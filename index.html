@@ -2,24 +2,33 @@
 <html lang="ms">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Website SMK Asajaya</title>
     <style>
-        body, html {
-            margin: 0; 
-            padding: 0; 
-            height: 100%; 
-            overflow: hidden;
+        /* Memastikan tiada ruang kosong langsung di sekeliling halaman */
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            overflow: hidden !important;
             background-color: #ffffff;
         }
+        
+        /* Memaksa iframe memenuhi 100% lebar dan tinggi skrin peranti */
         iframe {
-            border: none; 
-            width: 100%; 
-            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100% !important;
+            height: 100% !important;
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
     </style>
 </head>
 <body>
-    <iframe src="https://script.google.com/macros/s/AKfycbywLpIgO50iWSzNMo3EUmc9G67GWvej0YzHTFAYspCyYnH_KaxgyTWjAWI0V4m-IG1g4g/exec"></iframe>
+    <iframe src="https://script.google.com/macros/s/AKfycybwyLpIgO50iWSzNMo3EUMc9G67GWvej0YzHTFAYspCyIG1g4g/exec"></iframe>
 </body>
 </html>
