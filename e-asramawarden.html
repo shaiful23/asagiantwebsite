@@ -13,10 +13,11 @@
     <!-- src tuju terus ke ?page=warden — borang log masuk & portal kini
          dalam SATU fail (WardenPortal.html), jadi tiada isu navigasi
          iframe lagi (ikut corak Sistem E-Disiplin).
-         PENTING: allow="camera" WAJIB ada — Portal Warden guna kamera utk
-         ciri "Imbas QR (Check-In/Out)". Tanpa ini, pustaka html5-qrcode
-         gagal senyap dgn ralat generik "Script error." dan kamera tak
-         akan berfungsi langsung bila warden cuba imbas QR. -->
-    <iframe src="https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=warden" allow="camera"></iframe>
+         PENTING: allow="camera *" (BUKAN cuma "camera") — nilai lalai
+         "camera" bermaksud "camera 'self'" (hanya benarkan domain SAMA
+         smkasajaya.my). Kandungan sebenar berada di domain BERBEZA
+         (script.google.com), jadi WAJIB nyatakan "*" (atau domain khusus)
+         supaya kebenaran disalurkan merentasi domain. -->
+    <iframe src="https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=warden" allow="camera *"></iframe>
 </body>
 </html>
