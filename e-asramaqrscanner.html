@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Imbas QR - Asrama SMK Asajaya</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:'Segoe UI',Roboto,-apple-system,sans-serif;
+    background:linear-gradient(160deg,#0f2445 0%,#16345f 100%);
+    color:#fff; min-height:100vh; padding:24px 16px; text-align:center; box-sizing:border-box;
+  }
+  h2{margin:0 0 4px;}
+  #modeInfo{color:#c7d3e6; font-size:13px; margin-bottom:18px;}
+  #qr-reader{max-width:420px; margin:0 auto 18px; border-radius:16px; overflow:hidden; background:#000;}
+  button{background:#c9a24b; color:#0f2445; border:none; border-radius:10px; padding:12px 22px; font-weight:700; font-size:14px; cursor:pointer; margin:6px;}
+  button.outline{background:transparent; border:1.5px solid #c9a24b; color:#c9a24b;}
+  #result{max-width:420px; margin:20px auto 0; padding:16px; border-radius:12px; background:rgba(255,255,255,.08); min-height:50px; font-size:14px; line-height:1.5;}
+</style>
+</head>
+<body>
+  <h2>📷 Imbas Kod QR Penghuni</h2>
+  <p id="modeInfo"></p>
+  <div id="qr-reader"></div>
+  <div>
+    <button id="btnIn" onclick="setMode('CheckIn')">✅ Check-In</button>
+    <button id="btnOut" class="outline" onclick="setMode('CheckOut')">🚪 Check-Out</button>
+  </div>
+  <div id="result">Sedia untuk imbas...</div>
+
+<script>
+// Laman ini SENGAJA dihoskan di luar Apps Script (GitHub Pages) — Apps
+// Script HtmlService SEKAT getUserMedia() (akses kamera) secara rasmi &
+// kekal (dokumentasi rasmi Google), tak kira iframe atau akses terus.
+// Selepas imbas berjaya, hasil dihantar balik ke Apps Script melalui
+// endpoint JSONP (elak isu CORS sepenuhnya).
+const params = new URLSearchParams(window.location.search);
+const NAMA_WARDEN = params.get('nama') || '';
+const PERANAN = params.get('peranan') || '';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec';
+
+if (!NAMA_WARDEN || !PERANAN) {
+  document.body.innerHTML = '<div style="padding:40px;"><h2 style="color:#ff8a8a;">⚠️ Akses Tidak Sah</h2><p>Sila buka pengimbas ini melalui butang "Buka Pengimbas QR" dalam Portal Warden.</p></div>';
+  throw new Error('Tiada maklumat warden dalam URL');
+}
+document.getElementById('modeInfo').innerText = 'Log masuk sebagai: ' + NAMA_WARDEN + ' (' + PERANAN + ')';
+
+let mode = 'CheckIn';
+let lastScanTime = 0;
+
+function setMode(m){
+  mode = m;
+  document.getElementById('btnIn').className = m === 'CheckIn' ? '' : 'outline';
+  document.getElementById('btnOut').className = m === 'CheckOut' ? '' : 'outline';
+}
+setMode('CheckIn');
+
+function tunjukHasil(html){ document.getElementById('result').innerHTML = html; }
+
+// JSONP — muatkan respons pelayan melalui tag <script> (bukan fetch()),
+// supaya sekatan CORS merentasi domain langsung tidak relevan.
+function jsonp(url, timeoutMs){
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+    const script = document.createElement('script');
+    let selesai = false;
+    const bersih = () => { delete window[cbName]; script.remove(); clearTimeout(timer); };
+    window[cbName] = (data) => { if (selesai) return; selesai = true; bersih(); resolve(data); };
+    script.onerror = () => { if (selesai) return; selesai = true; bersih(); reject(new Error('Gagal sambung ke pelayan.')); };
+    const timer = setTimeout(() => { if (selesai) return; selesai = true; bersih(); reject(new Error('Tamat masa menunggu respons pelayan.')); }, timeoutMs || 15000);
+    script.src = url + (url.indexOf('?') === -1 ? '?' : '&') + 'callback=' + cbName;
+    document.body.appendChild(script);
+  });
+}
+
+function onScan(decodedText){
+  const now = Date.now();
+  if (now - lastScanTime < 2500) return;
+  lastScanTime = now;
+  tunjukHasil('⏳ Mengesahkan...');
+  const url = SCRIPT_URL + '?apiAction=rekodCheckInOut'
+    + '&id=' + encodeURIComponent(decodedText.trim())
+    + '&jenis=' + encodeURIComponent(mode)
+    + '&namaWarden=' + encodeURIComponent(NAMA_WARDEN)
+    + '&peranan=' + encodeURIComponent(PERANAN);
+  jsonp(url).then(res => {
+    if (res.success) {
+      tunjukHasil('<b style="color:#4ade80;">✅ ' + res.nama + '</b><br>' + res.jenis + ' — ' + res.masa +
+        (res.status === 'Lewat' ? ' <span style="color:#ff8a8a;">(LEWAT)</span>' : ''));
+    } else {
+      tunjukHasil('<b style="color:#ff8a8a;">⚠️ ' + res.message + '</b>');
+    }
+  }).catch(err => {
+    tunjukHasil('<b style="color:#ff8a8a;">⚠️ Ralat sambungan: ' + err.message + '</b>');
+  });
+}
+
+// Mula kamera — cuba kamera belakang dahulu (biasa utk telefon), jika
+// gagal cuba mana-mana kamera lain yang wujud (biasa utk komputer/laptop).
+const qr = new Html5Qrcode('qr-reader');
+const config = { fps: 10, qrbox: 230 };
+qr.start({ facingMode: 'environment' }, config, onScan, () => {}).catch(err => {
+  console.warn('Kamera "environment" gagal, cuba senarai kamera lain:', err);
+  Html5Qrcode.getCameras().then(cams => {
+    if (!cams || !cams.length) { tunjukHasil('🚫 Tiada kamera dikesan pada peranti/pelayar ini.'); return; }
+    qr.start(cams[0].id, config, onScan, () => {}).catch(err2 => {
+      const sebab = (err2 && (err2.name || err2.message)) || String(err2);
+      tunjukHasil('🚫 Tidak dapat mengakses kamera: ' + sebab);
+    });
+  }).catch(errCam => {
+    tunjukHasil('🚫 Tidak dapat mengesan kamera: ' + ((errCam && errCam.message) || errCam));
+  });
+});
+</script>
+</body>
+</html>
