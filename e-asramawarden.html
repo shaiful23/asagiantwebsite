@@ -1,34 +1,29 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>e-Asrama SMK Asajaya</title>
-    <style>
-        /* Memastikan tiada ruang kosong langsung di sekeliling halaman */
-        html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            overflow: hidden !important;
-            background-color: #ffffff;
-        }
-        
-        /* Memaksa iframe memenuhi 100% lebar dan tinggi skrin peranti */
-        iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100% !important;
-            height: 100% !important;
-            border: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>e-Asrama SMK Asajaya - Portal Warden</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+    background: linear-gradient(135deg,#0f2445 0%,#16345f 55%,#234a7c 100%);
+    color: #fff; text-align: center;
+  }
+  a { color: #e0be6c; }
+</style>
+<script>
+  // Redirect PENUH (bukan iframe) supaya tiada sekatan navigasi pelayar.
+  // Sengaja tuju ke borang LOG MASUK (login-warden), bukan terus ke portal,
+  // supaya sistem boleh sahkan sesi dgn betul.
+  window.location.replace("https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=login-warden");
+</script>
 </head>
 <body>
-    <iframe src="https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=warden"></iframe>
+  <p>Mengalihkan ke Portal Warden...<br>
+  Jika tidak dialihkan secara automatik dalam beberapa saat,
+  <a href="https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=login-warden">klik di sini</a>.</p>
 </body>
 </html>
