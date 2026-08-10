@@ -35,6 +35,7 @@
          nampak skrin kosong kerana redirect dalaman ke borang log masuk
          disekat oleh pelayar (sekatan navigasi iframe silang-domain). -->
     <iframe id="asramaFrame" src="https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=login-warden"></iframe>
+    <div id="statusDebug" style="position:fixed; bottom:8px; left:8px; background:rgba(0,0,0,.75); color:#0f0; font:11px monospace; padding:6px 10px; border-radius:6px; z-index:9999; max-width:90vw; word-break:break-all;">Menunggu isyarat...</div>
     <script>
       // Sistem di dalam iframe (script.googleusercontent.com) disekat oleh
       // sandbox Google drpd menavigasi dirinya sendiri terus (cth. selepas log
@@ -42,14 +43,20 @@
       // (halaman paling luar), dan KITA yang navigasi iframe tersebut —
       // menavigasi iframe milik sendiri (sama origin dgn diri sendiri di sini)
       // sentiasa dibenarkan.
+      var dbg = document.getElementById('statusDebug');
       window.addEventListener('message', function(event){
+        // PENUNJUK DEBUG: papar SETIAP mesej yang tiba (walaupun tak sepadan)
+        // supaya kita nampak sama ada postMessage sampai langsung atau tidak.
+        dbg.textContent = 'Mesej diterima drpd ' + event.origin + ': ' + JSON.stringify(event.data).substring(0,200);
+
         if (!event.data || event.data.jenis !== 'e_asrama_navigate') return;
         var url = event.data.url;
         if (typeof url !== 'string') return;
         // Sahkan URL memang milik deployment Apps Script kita sahaja (elak
         // penyalahgunaan open-redirect drpd sumber lain).
         var awalanSah = 'https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/';
-        if (url.indexOf(awalanSah) !== 0) return;
+        if (url.indexOf(awalanSah) !== 0) { dbg.textContent = 'URL ditolak (tak sepadan awalan): ' + url; return; }
+        dbg.textContent = 'Navigasi iframe ke: ' + url;
         document.getElementById('asramaFrame').src = url;
       });
     </script>
