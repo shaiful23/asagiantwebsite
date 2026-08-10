@@ -1,23 +1,35 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistem e-Asrama - Portal Warden</title>
-    <style>
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
-        iframe { border: none; width: 100%; height: 100%; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>e-Asrama SMK Asajaya - Portal Warden</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+    background: linear-gradient(135deg,#0f2445 0%,#16345f 55%,#234a7c 100%);
+    color: #fff; text-align: center;
+  }
+  a { color: #e0be6c; }
+  .spinner{width:22px;height:22px;border:3px solid rgba(255,255,255,.3);border-top-color:#e0be6c;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;margin-bottom:14px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+<script>
+  // REDIRECT PENUH (bukan iframe) — Apps Script (kamera, OAuth dalaman,
+  // navigasi sandbox) TERBUKTI tak stabil bila dibenamkan iframe pihak
+  // ketiga berlapis. Redirect penuh mengelakkan SEMUA sekatan sandbox
+  // Google ini sepenuhnya, sebab tiada lagi iframe langsung terlibat.
+  window.location.replace("https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=warden");
+</script>
 </head>
 <body>
-    <!-- src tuju terus ke ?page=warden — borang log masuk & portal kini
-         dalam SATU fail (WardenPortal.html), jadi tiada isu navigasi
-         iframe lagi (ikut corak Sistem E-Disiplin).
-         PENTING: allow="camera *" (BUKAN cuma "camera") — nilai lalai
-         "camera" bermaksud "camera 'self'" (hanya benarkan domain SAMA
-         smkasajaya.my). Kandungan sebenar berada di domain BERBEZA
-         (script.google.com), jadi WAJIB nyatakan "*" (atau domain khusus)
-         supaya kebenaran disalurkan merentasi domain. -->
-    <iframe src="https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=warden" allow="camera *"></iframe>
+  <div>
+    <span class="spinner"></span>
+    <p>Mengalihkan ke Portal Warden...<br>
+    Jika tidak dialihkan secara automatik dalam beberapa saat,
+    <a href="https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=warden">klik di sini</a>.</p>
+  </div>
 </body>
 </html>
