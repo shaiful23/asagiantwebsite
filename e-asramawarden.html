@@ -10,9 +10,12 @@
     </style>
 </head>
 <body>
-    <!-- src tuju terus ke ?page=penghuni — borang log masuk & portal kini
-         dalam SATU fail (PenghuniPortal.html), jadi tiada isu navigasi
-         iframe lagi (ikut corak Sistem E-Disiplin). -->
-    <iframe src="https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=warden"></iframe>
+    <!-- src tuju terus ke ?page=warden — borang log masuk & portal dalam
+         SATU fail (WardenPortal.html), jadi tiada navigasi antara laman
+         berlaku dalam iframe ini langsung (log masuk cuma sorok/tunjuk div
+         dalam laman yg sama). allow="camera *" wajib utk ciri Imbas QR
+         (walaupun QR sebenar dibuka di halaman berasingan luar Apps Script,
+         atribut ini dikekalkan sebagai langkah berjaga-jaga). -->
+    <iframe src="https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=warden" allow="camera *"></iframe>
 </body>
 </html>
