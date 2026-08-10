@@ -34,6 +34,24 @@
          Jika src tuju terus ke ?page=warden, pengguna yg belum log masuk akan
          nampak skrin kosong kerana redirect dalaman ke borang log masuk
          disekat oleh pelayar (sekatan navigasi iframe silang-domain). -->
-    <iframe src="https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=login-warden"></iframe>
+    <iframe id="asramaFrame" src="https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec?page=login-warden"></iframe>
+    <script>
+      // Sistem di dalam iframe (script.googleusercontent.com) disekat oleh
+      // sandbox Google drpd menavigasi dirinya sendiri terus (cth. selepas log
+      // masuk, atau bila sesi tamat). Ia hantar isyarat postMessage ke sini
+      // (halaman paling luar), dan KITA yang navigasi iframe tersebut —
+      // menavigasi iframe milik sendiri (sama origin dgn diri sendiri di sini)
+      // sentiasa dibenarkan.
+      window.addEventListener('message', function(event){
+        if (!event.data || event.data.jenis !== 'e_asrama_navigate') return;
+        var url = event.data.url;
+        if (typeof url !== 'string') return;
+        // Sahkan URL memang milik deployment Apps Script kita sahaja (elak
+        // penyalahgunaan open-redirect drpd sumber lain).
+        var awalanSah = 'https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/';
+        if (url.indexOf(awalanSah) !== 0) return;
+        document.getElementById('asramaFrame').src = url;
+      });
+    </script>
 </body>
 </html>
