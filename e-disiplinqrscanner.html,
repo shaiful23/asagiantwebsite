@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Imbas QR — Sistem E-Disiplin SMK Asajaya</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<style>
+  body{background:
+    radial-gradient(circle at 12% 0%, rgba(99,102,241,.14), transparent 42%),
+    radial-gradient(circle at 88% 6%, rgba(16,185,129,.08), transparent 38%),
+    #0b1120;
+    min-height:100vh; color:#f1f5f9; font-family:'Inter',Roboto,-apple-system,sans-serif;}
+  .glass{background:rgba(30,41,59,.6);backdrop-filter:blur(10px);}
+  #qr-reader{border-radius:14px; overflow:hidden; background:#000;}
+  #qr-reader video{border-radius:14px;}
+  .spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .fade-in{animation:fadeIn .3s ease both;}
+</style>
+</head>
+<body class="p-4 md:p-8">
+  <div class="max-w-lg mx-auto space-y-4">
+    <div class="glass p-5 rounded-2xl border border-white/10 text-center">
+      <h1 id="tajukHalaman" class="text-lg font-bold flex items-center justify-center gap-2"><i class="fas fa-qrcode text-indigo-400"></i> Imbas Kod QR</h1>
+      <p id="modeInfo" class="text-xs text-slate-400 mt-1"></p>
+    </div>
+
+    <div id="akesTidakSah" class="hidden glass p-6 rounded-2xl border border-rose-500/30 text-center">
+      <i class="fas fa-triangle-exclamation text-3xl text-rose-400 mb-2"></i>
+      <h2 class="font-bold text-rose-300">Akses Tidak Sah</h2>
+      <p class="text-sm text-slate-400 mt-2">Sila buka pengimbas ini melalui butang "Imbas QR Murid" / "Mula Imbas Kehadiran" dalam Sistem E-Disiplin (Panel Staf).</p>
+    </div>
+
+    <div id="kawasanImbas" class="glass p-4 rounded-2xl border border-white/10">
+      <div id="qr-reader"></div>
+      <p id="statusTeks" class="text-xs text-slate-400 mt-3 text-center">Sedia untuk imbas...</p>
+    </div>
+
+    <div id="kadHasil" class="hidden glass p-5 rounded-2xl border border-white/10 fade-in"></div>
+
+    <div id="senaraiTerkini" class="space-y-1.5"></div>
+  </div>
+
+<script>
+/* =========================================================================
+   Laman ini SENGAJA dihoskan di LUAR Apps Script (GitHub Pages / domain
+   sekolah) — Apps Script HtmlService menyekat getUserMedia() (akses kamera)
+   secara RASMI & KEKAL (dokumentasi rasmi Google), tak kira iframe atau
+   akses terus. Di sini (halaman biasa, bukan Apps Script), kamera berfungsi
+   normal sepenuhnya. Hasil imbasan dihantar balik ke Sistem E-Disiplin
+   melalui endpoint JSONP (elak sepenuhnya isu CORS merentasi domain).
+   ========================================================================= */
+const params = new URLSearchParams(window.location.search);
+const MOD = (params.get('mod') || '').toUpperCase();       // 'KEHADIRAN' atau 'REKOD'
+const TOKEN = params.get('token') || '';
+const NAMA = params.get('nama') || '';
+const EXEC = params.get('exec') || '';
+const PREFIX_QR_MURID = 'EDISIPLIN-MURID:';
+
+if (!TOKEN || !EXEC || (MOD !== 'KEHADIRAN' && MOD !== 'REKOD')) {
+  document.getElementById('akesTidakSah').classList.remove('hidden');
+  document.getElementById('kawasanImbas').classList.add('hidden');
+  throw new Error('Parameter tidak lengkap/tidak sah dalam URL.');
+}
+
+document.getElementById('tajukHalaman').innerHTML = MOD === 'KEHADIRAN'
+  ? '<i class="fas fa-qrcode text-indigo-400"></i> Imbas Kehadiran Murid'
+  : '<i class="fas fa-qrcode text-indigo-400"></i> Imbas QR Untuk Rekod Merit/Demerit';
+document.getElementById('modeInfo').innerText = 'Log masuk sebagai: ' + NAMA;
+
+// -- JSONP: muatkan respons pelayan melalui tag <script> (bukan fetch()),
+//    supaya sekatan CORS merentasi domain langsung tidak relevan. --------
+function jsonp(url, timeoutMs){
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+    const script = document.createElement('script');
+    let selesai = false;
+    const bersih = () => { delete window[cbName]; script.remove(); clearTimeout(timer); };
+    window[cbName] = (data) => { if (selesai) return; selesai = true; bersih(); resolve(data); };
+    script.onerror = () => { if (selesai) return; selesai = true; bersih(); reject(new Error('Gagal sambung ke pelayan.')); };
+    const timer = setTimeout(() => { if (selesai) return; selesai = true; bersih(); reject(new Error('Tamat masa menunggu respons pelayan.')); }, timeoutMs || 15000);
+    script.src = url + (url.indexOf('?') === -1 ? '?' : '&') + 'callback=' + cbName;
+    document.body.appendChild(script);
+  });
+}
+function apiUrl(action, extraParams){
+  let u = EXEC + '?apiAction=' + encodeURIComponent(action) + '&token=' + encodeURIComponent(TOKEN);
+  Object.keys(extraParams || {}).forEach(k => { u += '&' + k + '=' + encodeURIComponent(extraParams[k]); });
+  return u;
+}
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// -- Kamera -----------------------------------------------------------
+let qrScanner = null;
+let lastScanTime = 0;
+let sedangProses = false;
+
+function mulaScan(){
+  document.getElementById('statusTeks').innerText = 'Sedia untuk imbas...';
+  qrScanner = new Html5Qrcode('qr-reader');
+  qrScanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: 250 },
+    decodedText => onScan(decodedText.trim()),
+    () => {}
+  ).catch(() => {
+    document.getElementById('statusTeks').innerHTML = '<span class="text-rose-400"><i class="fas fa-triangle-exclamation mr-1"></i>Tidak dapat mengakses kamera. Sila benarkan akses kamera pada pelayar/peranti anda.</span>';
+  });
+}
+function hentikanScan(){
+  if (qrScanner){
+    const inst = qrScanner; qrScanner = null;
+    inst.stop().then(() => inst.clear()).catch(() => {});
+  }
+}
+
+function onScan(decodedText){
+  const now = Date.now();
+  if (now - lastScanTime < 2000 || sedangProses) return;
+  if (decodedText.indexOf(PREFIX_QR_MURID) !== 0){
+    document.getElementById('statusTeks').innerText = 'Kod QR tidak dikenali sistem. Cuba lagi.';
+    return;
+  }
+  lastScanTime = now;
+  const kod = decodedText.substring(PREFIX_QR_MURID.length);
+  if (MOD === 'KEHADIRAN') kendalikanKehadiran(kod);
+  else kendalikanRekod(kod);
+}
+
+/* ==================== MOD: KEHADIRAN ==================== */
+function kendalikanKehadiran(kod){
+  sedangProses = true;
+  document.getElementById('statusTeks').innerHTML = '<span class="spinner"></span> Memproses...';
+  jsonp(apiUrl('catatKehadiran', { kod })).then(res => {
+    sedangProses = false;
+    document.getElementById('statusTeks').innerText = 'Sedia untuk imbas murid seterusnya...';
+    if (!res.success){ tambahKeputusanSenarai({ ralat: true, mesej: res.message }); return; }
+    tambahKeputusanSenarai(res);
+  }).catch(err => {
+    sedangProses = false;
+    document.getElementById('statusTeks').innerText = 'Sedia untuk imbas murid seterusnya...';
+    tambahKeputusanSenarai({ ralat: true, mesej: err.message });
+  });
+}
+
+function tambahKeputusanSenarai(res){
+  const wrap = document.getElementById('senaraiTerkini');
+  const div = document.createElement('div');
+  div.className = 'glass p-3 rounded-xl border text-sm fade-in flex justify-between items-center ' + (res.ralat ? 'border-rose-500/30' : (res.status==='LEWAT' ? 'border-amber-500/30' : 'border-emerald-500/30'));
+  if (res.ralat){
+    div.innerHTML = `<span class="text-rose-400"><i class="fas fa-circle-xmark mr-1.5"></i>${esc(res.mesej)}</span>`;
+  } else {
+    const warna = res.status==='LEWAT' ? 'text-amber-400' : 'text-emerald-400';
+    const ikon = res.sudahDicatat ? 'fa-circle-info text-slate-400' : (res.status==='LEWAT' ? 'fa-clock text-amber-400' : 'fa-circle-check text-emerald-400');
+    div.innerHTML = `<span><i class="fas ${ikon} mr-1.5"></i><b>${esc(res.nama)}</b> <span class="text-slate-500">(${esc(res.tingkatan)} ${esc(res.kelas)})</span></span><span class="font-bold ${warna}">${esc(res.status)}${res.sudahDicatat ? ' - SEDIA ADA' : ''}</span>`;
+    if (res.rekodDemeritDicipta){
+      const notaDemerit = document.createElement('div');
+      notaDemerit.className = 'text-[11px] text-rose-400 -mt-1 mb-1 pl-1';
+      notaDemerit.innerText = '⚠ Demerit automatik dicatat kerana lewat.';
+      wrap.insertBefore(notaDemerit, wrap.firstChild);
+    }
+  }
+  wrap.insertBefore(div, wrap.firstChild);
+}
+
+/* ==================== MOD: REKOD ==================== */
+let senaraiKatalog = null;
+function kendalikanRekod(kod){
+  sedangProses = true;
+  hentikanScan();
+  document.getElementById('statusTeks').innerHTML = '<span class="spinner"></span> Mengesahkan murid...';
+  jsonp(apiUrl('cariMuridQR', { kod })).then(res => {
+    sedangProses = false;
+    if (!res.ditemui){
+      paparRalatRekod(res.message);
+      return;
+    }
+    if (senaraiKatalog) { paparFormRekod(res); return; }
+    jsonp(apiUrl('getKatalog', {})).then(kat => {
+      senaraiKatalog = kat || [];
+      paparFormRekod(res);
+    }).catch(() => { senaraiKatalog = []; paparFormRekod(res); });
+  }).catch(err => {
+    sedangProses = false;
+    paparRalatRekod(err.message);
+  });
+}
+
+function paparRalatRekod(mesej){
+  document.getElementById('statusTeks').innerText = '';
+  const kad = document.getElementById('kadHasil');
+  kad.classList.remove('hidden');
+  kad.innerHTML = `
+    <div class="text-center">
+      <i class="fas fa-circle-xmark text-3xl text-rose-400 mb-2"></i>
+      <p class="text-rose-300 font-bold">${esc(mesej)}</p>
+      <button onclick="cubaImbasSemula()" class="mt-4 bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-xl font-bold text-sm"><i class="fas fa-camera mr-1.5"></i>Cuba Imbas Semula</button>
+    </div>`;
+}
+
+function paparFormRekod(murid){
+  document.getElementById('statusTeks').innerText = '';
+  const kad = document.getElementById('kadHasil');
+  kad.classList.remove('hidden');
+  kad.innerHTML = `
+    <div class="flex items-center gap-3 mb-4 pb-4 border-b border-white/10">
+      <div class="w-11 h-11 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center"><i class="fas fa-user"></i></div>
+      <div><h3 class="font-bold">${esc(murid.nama)}</h3><p class="text-xs text-slate-400">${esc(murid.tingkatan)} ${esc(murid.kelas)}</p></div>
+    </div>
+    <form id="formRekodQR" class="space-y-3">
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Jenis</label>
+        <select id="rqJenis" onchange="kemaskiniKategoriRekodQR()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+          <option value="MERIT">MERIT</option><option value="DEMERIT">DEMERIT</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Kategori</label>
+        <select id="rqKategori" onchange="pilihKategoriRekodQR()" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white"></select>
+      </div>
+      <div id="rqManualWrap" class="hidden">
+        <label class="block text-xs uppercase text-slate-400 mb-1">Nyatakan Kategori</label>
+        <input id="rqKategoriManual" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white uppercase">
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Mata</label>
+        <input type="number" id="rqMata" required min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Catatan (pilihan)</label>
+        <textarea id="rqCatatan" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white uppercase"></textarea>
+      </div>
+      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2"><i class="fas fa-floppy-disk"></i> Simpan Rekod</button>
+    </form>`;
+  window._muridSemasaQR = murid;
+  kemaskiniKategoriRekodQR();
+  document.getElementById('formRekodQR').addEventListener('submit', hantarRekodQR);
+}
+
+function kemaskiniKategoriRekodQR(){
+  const jenis = document.getElementById('rqJenis').value;
+  const select = document.getElementById('rqKategori');
+  const senarai = (senaraiKatalog || []).filter(k => String(k.jenis).toUpperCase() === jenis);
+  let html = '';
+  senarai.forEach(k => { html += `<option value="${esc(k.kod)}" data-mata="${k.mata}" data-ket="${esc(k.keterangan)}">${esc(k.keterangan)} (${k.mata} mata)</option>`; });
+  html += `<option value="__LAIN__">LAIN-LAIN / KATEGORI KHAS</option>`;
+  select.innerHTML = html;
+  pilihKategoriRekodQR();
+}
+function pilihKategoriRekodQR(){
+  const select = document.getElementById('rqKategori');
+  const manual = select.value === '__LAIN__';
+  document.getElementById('rqManualWrap').classList.toggle('hidden', !manual);
+  const mataInput = document.getElementById('rqMata');
+  if (!manual){
+    const opt = select.options[select.selectedIndex];
+    mataInput.value = opt ? (opt.getAttribute('data-mata') || '') : '';
+  } else {
+    mataInput.value = '';
+  }
+}
+
+function hantarRekodQR(e){
+  e.preventDefault();
+  const select = document.getElementById('rqKategori');
+  const manual = select.value === '__LAIN__';
+  const kategoriFinal = manual ? document.getElementById('rqKategoriManual').value : (select.options[select.selectedIndex] ? select.options[select.selectedIndex].getAttribute('data-ket') : '');
+  const kodKatalog = manual ? '' : select.value;
+  const mata = document.getElementById('rqMata').value;
+  if (!kategoriFinal || !mata) { alert('Sila lengkapkan kategori dan mata.'); return; }
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Menyimpan...';
+  const m = window._muridSemasaQR;
+  jsonp(apiUrl('tambahRekod', {
+    nokp: m.nokp, nama: m.nama, tingkatan: m.tingkatan, kelas: m.kelas,
+    jenis: document.getElementById('rqJenis').value, kategori: kategoriFinal, mata: mata,
+    kodKatalog: kodKatalog, catatan: document.getElementById('rqCatatan').value
+  })).then(res => {
+    if (!res.success){ btn.disabled = false; btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Simpan Rekod'; alert(res.message); return; }
+    paparSelesaiRekod(m);
+  }).catch(err => {
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Simpan Rekod';
+    alert(err.message || 'Ralat sambungan.');
+  });
+}
+
+function paparSelesaiRekod(m){
+  const kad = document.getElementById('kadHasil');
+  kad.innerHTML = `
+    <div class="text-center">
+      <i class="fas fa-circle-check text-3xl text-emerald-400 mb-2"></i>
+      <p class="text-emerald-300 font-bold">Rekod ${esc(m.nama)} berjaya disimpan!</p>
+      <button onclick="cubaImbasSemula()" class="mt-4 bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-xl font-bold text-sm"><i class="fas fa-camera mr-1.5"></i>Imbas Murid Seterusnya</button>
+    </div>`;
+}
+
+function cubaImbasSemula(){
+  document.getElementById('kadHasil').classList.add('hidden');
+  document.getElementById('kadHasil').innerHTML = '';
+  mulaScan();
+}
+
+mulaScan();
+</script>
+</body>
+</html>
