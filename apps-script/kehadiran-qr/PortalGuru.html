@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<title>Portal Guru - Sistem Kehadiran QR</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<style>
+  body{background:radial-gradient(circle at 12% 0%, rgba(99,102,241,.14), transparent 42%),
+    radial-gradient(circle at 88% 6%, rgba(16,185,129,.08), transparent 38%), #0b1120;
+    min-height:100vh; color:#f1f5f9; font-family:'Inter',Roboto,-apple-system,sans-serif;}
+  .glass{background:rgba(30,41,59,.6);backdrop-filter:blur(10px);}
+  .spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body class="p-4 md:p-8">
+
+<!-- ============== SKRIN LOG MASUK ============== -->
+<div id="skrinLogin" class="max-w-sm mx-auto mt-10">
+  <div class="glass p-6 rounded-2xl border border-white/10 text-center">
+    <i class="fas fa-qrcode text-3xl text-indigo-400 mb-2"></i>
+    <h1 class="text-lg font-bold">Sistem Kehadiran QR</h1>
+    <p class="text-xs text-slate-400 mb-5">SMK Asajaya — Portal Guru</p>
+    <form id="formLogin" class="space-y-3 text-left">
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">No. Kad Pengenalan</label>
+        <input id="inNoKP" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white" placeholder="cth: 900101011234">
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">PIN</label>
+        <input id="inPIN" type="password" inputmode="numeric" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white" placeholder="****">
+      </div>
+      <p id="ralatLogin" class="text-xs text-rose-400 hidden"></p>
+      <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl font-bold text-sm">
+        <span id="btnLoginTeks"><i class="fas fa-right-to-bracket mr-1.5"></i>Log Masuk</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ============== SKRIN DASHBOARD ============== -->
+<div id="skrinDashboard" class="max-w-lg mx-auto space-y-4 hidden">
+  <div class="glass p-5 rounded-2xl border border-white/10 flex items-center justify-between">
+    <div>
+      <p class="text-xs text-slate-400">Log masuk sebagai</p>
+      <h2 id="namaGuruPaparan" class="font-bold"></h2>
+    </div>
+    <button onclick="logKeluar()" class="text-xs text-rose-400 hover:text-rose-300"><i class="fas fa-right-from-bracket mr-1"></i>Log Keluar</button>
+  </div>
+
+  <a id="pautanScanner" href="#" class="block glass p-5 rounded-2xl border border-indigo-500/30 text-center hover:border-indigo-400 transition">
+    <i class="fas fa-camera text-3xl text-indigo-400 mb-2"></i>
+    <p class="font-bold">Imbas Kehadiran (QR Kelas)</p>
+    <p class="text-xs text-slate-400 mt-1">Buka pengimbas kamera untuk rekod kehadiran anda &amp; murid</p>
+  </a>
+
+  <div class="glass p-4 rounded-2xl border border-white/10">
+    <h3 class="text-sm font-bold mb-3"><i class="fas fa-clock-rotate-left mr-1.5 text-slate-400"></i>Rekod Saya Hari Ini</h3>
+    <div id="senaraiSejarah" class="space-y-2 text-sm"></div>
+  </div>
+</div>
+
+<script>
+// Tukar URL ini kepada URL sebenar halaman kehadiranqrscanner.html di GitHub Pages sekolah anda.
+const URL_SCANNER = 'https://smkasajaya.my/kehadiranqrscanner.html';
+
+function tunjuk(id){ document.getElementById(id).classList.remove('hidden'); }
+function sembunyi(id){ document.getElementById(id).classList.add('hidden'); }
+
+document.getElementById('formLogin').addEventListener('submit', function(e){
+  e.preventDefault();
+  const nokp = document.getElementById('inNoKP').value.trim();
+  const pin = document.getElementById('inPIN').value.trim();
+  const ralat = document.getElementById('ralatLogin');
+  ralat.classList.add('hidden');
+  document.getElementById('btnLoginTeks').innerHTML = '<span class="spinner"></span> Mengesahkan...';
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      document.getElementById('btnLoginTeks').innerHTML = '<i class="fas fa-right-to-bracket mr-1.5"></i>Log Masuk';
+      if (!res.success){ ralat.innerText = res.message; ralat.classList.remove('hidden'); return; }
+      sessionStorage.setItem('kqr_token', res.token);
+      sessionStorage.setItem('kqr_nama', res.namaGuru);
+      papariDashboard(res.token, res.namaGuru);
+    })
+    .withFailureHandler(function(err){
+      document.getElementById('btnLoginTeks').innerHTML = '<i class="fas fa-right-to-bracket mr-1.5"></i>Log Masuk';
+      ralat.innerText = 'Ralat sambungan: ' + err.message;
+      ralat.classList.remove('hidden');
+    })
+    .apiLogin({ nokp: nokp, pin: pin });
+});
+
+function papariDashboard(token, nama){
+  sembunyi('skrinLogin');
+  tunjuk('skrinDashboard');
+  document.getElementById('namaGuruPaparan').innerText = nama;
+  document.getElementById('pautanScanner').href = URL_SCANNER + '?token=' + encodeURIComponent(token) +
+    '&nama=' + encodeURIComponent(nama) + '&exec=' + encodeURIComponent(EXEC_URL);
+  muatkanSejarah(token);
+}
+
+function muatkanSejarah(token){
+  const wrap = document.getElementById('senaraiSejarah');
+  wrap.innerHTML = '<p class="text-slate-500 text-xs">Memuatkan...</p>';
+  google.script.run
+    .withSuccessHandler(function(res){
+      if (!res.success){ wrap.innerHTML = '<p class="text-rose-400 text-xs">' + res.message + '</p>'; return; }
+      if (!res.senarai.length){ wrap.innerHTML = '<p class="text-slate-500 text-xs">Tiada rekod lagi hari ini.</p>'; return; }
+      wrap.innerHTML = res.senarai.map(function(l){
+        const warna = l.statusMasa === 'LEWAT' ? 'text-amber-400' : 'text-emerald-400';
+        return '<div class="flex justify-between items-center border-b border-white/5 pb-2">' +
+          '<span><b>' + l.namaKelas + '</b> <span class="text-slate-500">— ' + l.subjek + '</span></span>' +
+          '<span class="' + warna + ' font-bold text-xs">' + l.statusMasa + '</span></div>';
+      }).join('');
+    })
+    .withFailureHandler(function(err){ wrap.innerHTML = '<p class="text-rose-400 text-xs">Ralat: ' + err.message + '</p>'; })
+    .apiSejarahSayaHariIni({ token: token });
+}
+
+function logKeluar(){
+  sessionStorage.removeItem('kqr_token');
+  sessionStorage.removeItem('kqr_nama');
+  sembunyi('skrinDashboard');
+  tunjuk('skrinLogin');
+  document.getElementById('formLogin').reset();
+}
+
+// EXEC_URL diperlukan untuk pautan pengimbas (supaya scanner tahu ke mana nak hantar hasil).
+// PENTING: jangan guna window.location.href — Apps Script menghidangkan
+// halaman ini melalui iframe googleusercontent.com, jadi URL itu BUKAN URL
+// /exec sebenar. URL sebenar dihantar dari pelayan melalui templat di bawah.
+const EXEC_URL = '<?= execUrl ?>';
+
+(function mulaSemula(){
+  const token = sessionStorage.getItem('kqr_token');
+  const nama = sessionStorage.getItem('kqr_nama');
+  if (token && nama){
+    google.script.run.withSuccessHandler(function(res){
+      if (res.success) papariDashboard(token, nama);
+    }).apiSemakSesi({ token: token });
+  }
+})();
+</script>
+</body>
+</html>

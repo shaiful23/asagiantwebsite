@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Imbas QR — Kehadiran Guru & Murid SMK Asajaya</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<style>
+  body{background:
+    radial-gradient(circle at 12% 0%, rgba(99,102,241,.14), transparent 42%),
+    radial-gradient(circle at 88% 6%, rgba(16,185,129,.08), transparent 38%),
+    #0b1120;
+    min-height:100vh; color:#f1f5f9; font-family:'Inter',Roboto,-apple-system,sans-serif;}
+  .glass{background:rgba(30,41,59,.6);backdrop-filter:blur(10px);}
+  #qr-reader{border-radius:14px; overflow:hidden; background:#000;}
+  #qr-reader video{border-radius:14px;}
+  .spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .fade-in{animation:fadeIn .3s ease both;}
+  select, input, textarea { color-scheme: dark; }
+</style>
+</head>
+<body class="p-4 md:p-8">
+  <div class="max-w-lg mx-auto space-y-4">
+    <div class="glass p-5 rounded-2xl border border-white/10 text-center">
+      <h1 class="text-lg font-bold flex items-center justify-center gap-2"><i class="fas fa-qrcode text-indigo-400"></i> Imbas Kehadiran Kelas</h1>
+      <p id="modeInfo" class="text-xs text-slate-400 mt-1"></p>
+    </div>
+
+    <div id="akesTidakSah" class="hidden glass p-6 rounded-2xl border border-rose-500/30 text-center">
+      <i class="fas fa-triangle-exclamation text-3xl text-rose-400 mb-2"></i>
+      <h2 class="font-bold text-rose-300">Akses Tidak Sah</h2>
+      <p class="text-sm text-slate-400 mt-2">Sila buka pengimbas ini melalui butang "Imbas Kehadiran (QR Kelas)" dalam Portal Guru.</p>
+    </div>
+
+    <div id="kawasanImbas" class="glass p-4 rounded-2xl border border-white/10">
+      <div id="qr-reader"></div>
+      <p id="statusTeks" class="text-xs text-slate-400 mt-3 text-center">Sedia untuk imbas kod QR kelas...</p>
+    </div>
+
+    <div id="kadHasil" class="hidden glass p-5 rounded-2xl border border-white/10 fade-in"></div>
+  </div>
+
+<script>
+/* =========================================================================
+   Laman ini SENGAJA dihoskan di LUAR Apps Script (GitHub Pages / domain
+   sekolah) — Apps Script HtmlService menyekat getUserMedia() (akses kamera)
+   secara RASMI & KEKAL, tak kira iframe atau akses terus. Di sini kamera
+   berfungsi normal. Hasil imbasan dihantar ke Sistem Kehadiran QR melalui
+   endpoint JSONP (elak sepenuhnya isu CORS merentasi domain).
+   ========================================================================= */
+const params = new URLSearchParams(window.location.search);
+const TOKEN = params.get('token') || '';
+const NAMA = params.get('nama') || '';
+const EXEC = params.get('exec') || '';
+const PREFIX_QR_KELAS = 'KELAS:';
+
+if (!TOKEN || !EXEC || !NAMA) {
+  document.getElementById('akesTidakSah').classList.remove('hidden');
+  document.getElementById('kawasanImbas').classList.add('hidden');
+  throw new Error('Parameter tidak lengkap/tidak sah dalam URL.');
+}
+document.getElementById('modeInfo').innerText = 'Log masuk sebagai: ' + NAMA;
+
+function jsonp(url, timeoutMs){
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+    const script = document.createElement('script');
+    let selesai = false;
+    const bersih = () => { delete window[cbName]; script.remove(); clearTimeout(timer); };
+    window[cbName] = (data) => { if (selesai) return; selesai = true; bersih(); resolve(data); };
+    script.onerror = () => { if (selesai) return; selesai = true; bersih(); reject(new Error('Gagal sambung ke pelayan.')); };
+    const timer = setTimeout(() => { if (selesai) return; selesai = true; bersih(); reject(new Error('Tamat masa menunggu respons pelayan.')); }, timeoutMs || 15000);
+    script.src = url + (url.indexOf('?') === -1 ? '?' : '&') + 'callback=' + cbName;
+    document.body.appendChild(script);
+  });
+}
+function apiUrl(action, extraParams){
+  let u = EXEC + '?apiAction=' + encodeURIComponent(action) + '&token=' + encodeURIComponent(TOKEN);
+  Object.keys(extraParams || {}).forEach(k => { u += '&' + k + '=' + encodeURIComponent(extraParams[k]); });
+  return u;
+}
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+let qrScanner = null;
+let lastScanTime = 0;
+let sedangProses = false;
+
+function mulaScan(){
+  document.getElementById('statusTeks').innerText = 'Sedia untuk imbas kod QR kelas...';
+  qrScanner = new Html5Qrcode('qr-reader');
+  qrScanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: 250 },
+    decodedText => onScan(decodedText.trim()),
+    () => {}
+  ).catch(() => {
+    document.getElementById('statusTeks').innerHTML = '<span class="text-rose-400"><i class="fas fa-triangle-exclamation mr-1"></i>Tidak dapat mengakses kamera. Sila benarkan akses kamera pada pelayar/peranti anda.</span>';
+  });
+}
+function hentikanScan(){
+  if (qrScanner){
+    const inst = qrScanner; qrScanner = null;
+    inst.stop().then(() => inst.clear()).catch(() => {});
+  }
+}
+
+function onScan(decodedText){
+  const now = Date.now();
+  if (now - lastScanTime < 2000 || sedangProses) return;
+  if (decodedText.indexOf(PREFIX_QR_KELAS) !== 0){
+    document.getElementById('statusTeks').innerText = 'Kod QR tidak dikenali sistem. Cuba lagi.';
+    return;
+  }
+  lastScanTime = now;
+  sedangProses = true;
+  hentikanScan();
+  document.getElementById('statusTeks').innerHTML = '<span class="spinner"></span> Mengesahkan kelas...';
+  jsonp(apiUrl('cariKelasQR', { kod: decodedText })).then(res => {
+    sedangProses = false;
+    if (!res.success){ paparRalat(res.message); return; }
+    paparFormGuru(res);
+  }).catch(err => {
+    sedangProses = false;
+    paparRalat(err.message);
+  });
+}
+
+function paparRalat(mesej){
+  document.getElementById('statusTeks').innerText = '';
+  const kad = document.getElementById('kadHasil');
+  kad.classList.remove('hidden');
+  kad.innerHTML = `
+    <div class="text-center">
+      <i class="fas fa-circle-xmark text-3xl text-rose-400 mb-2"></i>
+      <p class="text-rose-300 font-bold">${esc(mesej)}</p>
+      <button onclick="cubaImbasSemula()" class="mt-4 bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-xl font-bold text-sm"><i class="fas fa-camera mr-1.5"></i>Cuba Imbas Semula</button>
+    </div>`;
+}
+
+/* ==================== BORANG KEHADIRAN GURU ==================== */
+function paparFormGuru(data){
+  document.getElementById('statusTeks').innerText = '';
+  window._dataKelasSemasa = data;
+
+  const jadual = data.jadualSemasa;
+  const jenisAuto = jadual && jadual.sepadanDenganGuruSemasa ? 'GURU SUBJEK' : 'GURU GANTI (RELIEF)';
+  const subjekAuto = jadual ? jadual.subjek : '';
+
+  let pilihanSubjek = '';
+  const senaraiUtama = (data.subjekGuru && data.subjekGuru.length) ? data.subjekGuru : data.senaraiSubjek;
+  senaraiUtama.forEach(s => { pilihanSubjek += `<option value="${esc(s)}" ${s===subjekAuto?'selected':''}>${esc(s)}</option>`; });
+  if (!senaraiUtama.includes('LAIN-LAIN')) pilihanSubjek += `<option value="LAIN-LAIN">LAIN-LAIN</option>`;
+
+  let pilihanJenis = '';
+  data.senaraiJenisGuru.forEach(j => { pilihanJenis += `<option value="${esc(j)}" ${j===jenisAuto?'selected':''}>${esc(j)}</option>`; });
+
+  const notaJadual = jadual
+    ? `<p class="text-xs ${jadual.sepadanDenganGuruSemasa ? 'text-emerald-400' : 'text-amber-400'} mt-1">
+         <i class="fas fa-calendar-check mr-1"></i>Jadual Waktu: Slot ${esc(jadual.slot)} (${esc(jadual.masaMula)}–${esc(jadual.masaTamat)})
+         ${jadual.sepadanDenganGuruSemasa ? '— sepadan dengan jadual anda' : '— guru dijadualkan berbeza, sila sahkan jenis kehadiran'}
+       </p>`
+    : `<p class="text-xs text-slate-400 mt-1"><i class="fas fa-circle-info mr-1"></i>Tiada jadual waktu sepadan pada masa ini. Sila lengkapkan borang secara manual.</p>`;
+
+  const kad = document.getElementById('kadHasil');
+  kad.classList.remove('hidden');
+  kad.innerHTML = `
+    <div class="flex items-center gap-3 mb-3 pb-4 border-b border-white/10">
+      <div class="w-11 h-11 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center"><i class="fas fa-chalkboard-user"></i></div>
+      <div><h3 class="font-bold">${esc(data.namaKelas)}</h3><p class="text-xs text-slate-400">${esc(data.bilik || '')}</p></div>
+    </div>
+    ${notaJadual}
+    <form id="formGuru" class="space-y-3 mt-3">
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Subjek</label>
+        <select id="fgSubjek" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">${pilihanSubjek}</select>
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Jenis Kehadiran</label>
+        <select id="fgJenis" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">${pilihanJenis}</select>
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Bilik</label>
+        <input id="fgBilik" value="${esc(data.bilik || '')}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white uppercase">
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Catatan (pilihan)</label>
+        <textarea id="fgCatatan" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white"></textarea>
+      </div>
+      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2"><i class="fas fa-floppy-disk"></i> Sahkan Kehadiran Saya</button>
+    </form>`;
+  document.getElementById('formGuru').addEventListener('submit', hantarKehadiranGuru);
+}
+
+function hantarKehadiranGuru(e){
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Menyimpan...';
+  const data = window._dataKelasSemasa;
+  jsonp(apiUrl('catatKehadiranGuru', {
+    idKelas: data.idKelas,
+    subjek: document.getElementById('fgSubjek').value,
+    jenis: document.getElementById('fgJenis').value,
+    bilik: document.getElementById('fgBilik').value,
+    catatan: document.getElementById('fgCatatan').value
+  })).then(res => {
+    if (!res.success){ btn.disabled = false; btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Sahkan Kehadiran Saya'; alert(res.message); return; }
+    window._idLogSemasa = res.idLog;
+    window._idKelasSemasa = data.idKelas;
+    paparStatusGuru(res, data);
+  }).catch(err => {
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Sahkan Kehadiran Saya';
+    alert(err.message || 'Ralat sambungan.');
+  });
+}
+
+function paparStatusGuru(res, dataKelas){
+  const warna = res.statusMasa === 'LEWAT' ? 'text-amber-400' : 'text-emerald-400';
+  const notaPendua = res.sudahDicatat ? `<p class="text-xs text-slate-400 mt-1">${esc(res.message)}</p>` : '';
+  const kad = document.getElementById('kadHasil');
+  kad.innerHTML = `
+    <div class="text-center pb-4 border-b border-white/10">
+      <i class="fas fa-circle-check text-2xl text-emerald-400 mb-1"></i>
+      <p class="font-bold">Kehadiran guru direkod — <span class="${warna}">${esc(res.statusMasa)}</span></p>
+      ${notaPendua}
+    </div>
+    <div id="senaraiMurid" class="mt-4"></div>`;
+  paparSenaraiMurid(res.senaraiMurid, dataKelas);
+}
+
+/* ==================== KEHADIRAN MURID ==================== */
+function paparSenaraiMurid(senaraiMurid, dataKelas){
+  const wrap = document.getElementById('senaraiMurid');
+  if (!senaraiMurid || !senaraiMurid.length){
+    wrap.innerHTML = `<p class="text-xs text-slate-400 text-center mt-2">Tiada murid berdaftar untuk kelas ini dalam sistem.</p>
+      <button onclick="cubaImbasSemula()" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-xl font-bold text-sm"><i class="fas fa-camera mr-1.5"></i>Imbas Kelas Seterusnya</button>`;
+    return;
+  }
+  const STATUS_OPTIONS = ['HADIR', 'TIDAK HADIR', 'LEWAT', 'SAKIT (MC)', 'CUTI/URUSAN RASMI', 'TANPA SEBAB'];
+  let barisHtml = '';
+  senaraiMurid.forEach(m => {
+    let opsi = '';
+    STATUS_OPTIONS.forEach(s => { opsi += `<option value="${esc(s)}" ${s==='HADIR'?'selected':''}>${esc(s)}</option>`; });
+    barisHtml += `
+      <div class="flex items-center justify-between gap-2 py-1.5 border-b border-white/5">
+        <span class="text-sm">${esc(m.nama)}</span>
+        <select data-id="${esc(m.idMurid)}" data-nama="${esc(m.nama)}" class="statusMurid bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-white">${opsi}</select>
+      </div>`;
+  });
+  wrap.innerHTML = `
+    <h3 class="text-sm font-bold mb-2"><i class="fas fa-users mr-1.5 text-slate-400"></i>Kehadiran Murid (${senaraiMurid.length} orang)</h3>
+    <button type="button" onclick="tandaSemuaHadir()" class="text-xs text-indigo-400 hover:text-indigo-300 mb-2"><i class="fas fa-check-double mr-1"></i>Tandakan Semua Hadir</button>
+    <div id="senaraiBarisMurid">${barisHtml}</div>
+    <button onclick="hantarKehadiranMurid(event)" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2"><i class="fas fa-floppy-disk"></i> Simpan Kehadiran Murid</button>`;
+}
+
+function tandaSemuaHadir(){
+  document.querySelectorAll('.statusMurid').forEach(sel => { sel.value = 'HADIR'; });
+}
+
+// Dihantar secara berkelompok (bukan sekali gus) supaya URL JSONP tidak
+// menjadi terlalu panjang untuk kelas yang ramai murid (30-40+ orang).
+const SAIZ_KELOMPOK_MURID = 15;
+
+function hantarKehadiranMurid(e){
+  const dataMurid = Array.from(document.querySelectorAll('.statusMurid')).map(sel => ({
+    idMurid: sel.getAttribute('data-id'), nama: sel.getAttribute('data-nama'), status: sel.value
+  }));
+  const btn = e.target;
+  btn.disabled = true;
+
+  const kelompok = [];
+  for (let i = 0; i < dataMurid.length; i += SAIZ_KELOMPOK_MURID) kelompok.push(dataMurid.slice(i, i + SAIZ_KELOMPOK_MURID));
+
+  const ringkasanGabungan = {};
+  let jumlahGabungan = 0;
+
+  function hantarSeterusnya(indeks){
+    if (indeks >= kelompok.length){ paparSelesai({ ringkasan: ringkasanGabungan, jumlah: jumlahGabungan }); return; }
+    btn.innerHTML = '<span class="spinner"></span> Menyimpan (' + (indeks + 1) + '/' + kelompok.length + ')...';
+    jsonp(apiUrl('catatKehadiranMurid', {
+      idLog: window._idLogSemasa,
+      idKelas: window._idKelasSemasa,
+      dataMurid: JSON.stringify(kelompok[indeks])
+    }), 20000).then(res => {
+      if (!res.success){ btn.disabled = false; btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Simpan Kehadiran Murid'; alert(res.message); return; }
+      Object.keys(res.ringkasan).forEach(k => { ringkasanGabungan[k] = (ringkasanGabungan[k] || 0) + res.ringkasan[k]; });
+      jumlahGabungan += res.jumlah;
+      hantarSeterusnya(indeks + 1);
+    }).catch(err => {
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Simpan Kehadiran Murid';
+      alert(err.message || 'Ralat sambungan.');
+    });
+  }
+  hantarSeterusnya(0);
+}
+
+function paparSelesai(res){
+  const ringkasanHtml = Object.keys(res.ringkasan).map(k => `<span class="inline-block bg-white/5 rounded-lg px-2 py-1 mr-1 mb-1">${esc(k)}: <b>${res.ringkasan[k]}</b></span>`).join('');
+  const kad = document.getElementById('kadHasil');
+  kad.innerHTML = `
+    <div class="text-center">
+      <i class="fas fa-circle-check text-3xl text-emerald-400 mb-2"></i>
+      <p class="text-emerald-300 font-bold">Kehadiran ${res.jumlah} murid berjaya disimpan!</p>
+      <div class="text-xs mt-3">${ringkasanHtml}</div>
+      <button onclick="cubaImbasSemula()" class="mt-4 bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-xl font-bold text-sm"><i class="fas fa-camera mr-1.5"></i>Imbas Kelas Seterusnya</button>
+    </div>`;
+}
+
+function cubaImbasSemula(){
+  document.getElementById('kadHasil').classList.add('hidden');
+  document.getElementById('kadHasil').innerHTML = '';
+  mulaScan();
+}
+
+mulaScan();
+</script>
+</body>
+</html>
