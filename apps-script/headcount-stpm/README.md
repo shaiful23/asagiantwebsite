@@ -30,6 +30,11 @@ dalam versi ini:
   OTR2, AR2, ETR, SEBENAR); Gred diterbitkan automatik oleh backend ikut BLD
   subjek berkenaan. UI papar Markah bersama Gred di semua jadual/laporan
   berkaitan headcount. Rujuk **"Markah & BLD"** di bawah.
+- ✅ **Sokongan berbilang batch/kohort (cth. calon STPM 2026 & 2027 serentak)**
+  — pemilih **"Tahun STPM"** global di semua paparan berkaitan (Pelajar,
+  Headcount, Ulangan, Intervensi, Analisis, Laporan, Dashboard), supaya data
+  dua (atau lebih) batch tidak bercampur. Rujuk **"Berbilang Batch/Kohort"**
+  di bawah.
 
 **Belum dilaksanakan**:
 
@@ -177,3 +182,36 @@ MODUL 43, supaya kaedah pengiraan konsisten walaupun BLD berbeza antara subjek.
 
 **Skop semasa:** Ulangan (`REPEAT_S1/S2`) masih guna Gred teks bebas, belum
 disambungkan kepada Markah+BLD — boleh dilanjutkan jika sekolah memerlukannya.
+
+## Berbilang Batch/Kohort (cth. STPM 2026 & 2027 serentak)
+
+Struktur data (`STUDENTS`, `ENROLLMENTS`, `HEADCOUNT_S1/S2/S3`, `REPEAT_S1/S2`)
+sememangnya menyimpan `TahunSTPM` sebagai sebahagian ID unik setiap rekod
+(MODUL 4), jadi dua atau lebih batch **boleh wujud serentak** dalam satu
+Sheet database yang sama tanpa konflik — cth. semasa fasa peralihan, calon
+STPM 2026 masih dalam Semester 3/ulangan sementara calon STPM 2027 baru mula
+didaftarkan untuk Semester 1.
+
+Untuk elak data batch bercampur di paparan/laporan, setiap halaman berkaitan
+kini ada pemilih **"Tahun STPM"** di bahagian atas (sebelah pemilih Semester,
+jika berkenaan):
+
+| Halaman | Ditapis ikut Tahun STPM? |
+| --- | --- |
+| Dashboard (GPK & Guru) | ✅ |
+| Pelajar | ✅ |
+| Headcount | ✅ |
+| Ulangan | ✅ |
+| Intervensi (senarai + impak) | ✅ |
+| Analisis → Pelajar Impak Tinggi | ✅ |
+| Laporan (semua 9 jenis) | ✅ |
+| Mata Pelajaran, Skema Gred (BLD), Pengguna | Tidak berkenaan — subjek/BLD/pengguna dikongsi merentasi semua batch |
+| Analisis → Simulasi What-If | Tidak berkenaan — dikendalikan terus melalui ID Pelajar tertentu |
+
+Pilihan **"Semua Tahun"** (nilai kosong) sentiasa tersedia untuk pandangan
+merentasi batch (cth. Admin nak lihat jumlah keseluruhan). Borang tambah
+pelajar/headcount/ulangan pra-isi Tahun STPM mengikut pemilih global semasa,
+tetapi masih boleh diubah secara manual jika perlu masukkan data batch lain.
+
+Tiada tetapan tambahan diperlukan — cukup pastikan lajur `TahunSTPM` diisi
+dengan betul (cth. `2026`, `2027`) semasa mendaftar pelajar setiap batch.

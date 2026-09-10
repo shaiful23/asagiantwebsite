@@ -74,6 +74,7 @@ function apiDashboardGuru(p) {
   let headcount = bacaSheetSebagaiObjek(sheetHeadcount(semester));
   if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) headcount = headcount.filter(h => sesi.skopSubjek.includes(h.KodSubjek));
   if (p.kodSubjek) headcount = headcount.filter(h => h.KodSubjek === p.kodSubjek);
+  if (p.tahunSTPM) headcount = headcount.filter(h => String(h.TahunSTPM) === String(p.tahunSTPM));
 
   const senarai = headcount.map(h => {
     const analisis = analisisRekodHeadcount(mapGred, konfig, h);
@@ -104,15 +105,16 @@ function apiDashboardKetuaPanitia(p) {
 
   const bySemester = {};
   ['S1', 'S2', 'S3'].forEach(sem => {
-    const rekod = bacaSheetSebagaiObjek(sheetHeadcount(sem)).filter(r => r.KodSubjek === kodSubjek);
+    let rekod = bacaSheetSebagaiObjek(sheetHeadcount(sem)).filter(r => r.KodSubjek === kodSubjek);
+    if (p.tahunSTPM) rekod = rekod.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
     const dianalisis = rekod.map(r => Object.assign({}, r, analisisRekodHeadcount(mapGred, konfig, r), { kelas: (pelajarMap[r.ID_Pelajar] || {}).Kelas || '' }));
     const gps = kiraGPS(mapGred, dianalisis.map(gredEfektif).filter(Boolean));
     const berisiko = dianalisis.filter(r => r.risiko === RISIKO_BERISIKO).length;
     bySemester[sem] = { senarai: dianalisis, gps, bilanganBerisiko: berisiko };
   });
 
-  const impakS1 = apiImpakIntervensi({ token: p.token, semester: 'S1' });
-  const impakS2 = apiImpakIntervensi({ token: p.token, semester: 'S2' });
+  const impakS1 = apiImpakIntervensi({ token: p.token, semester: 'S1', tahunSTPM: p.tahunSTPM });
+  const impakS2 = apiImpakIntervensi({ token: p.token, semester: 'S2', tahunSTPM: p.tahunSTPM });
 
   return jaya({
     kodSubjek, mengikutSemester: bySemester,

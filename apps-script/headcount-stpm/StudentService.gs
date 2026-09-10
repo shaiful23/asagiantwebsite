@@ -5,6 +5,19 @@
 const HEADER_STUDENTS = ['ID_Pelajar', 'NoKP', 'Nama', 'Jantina', 'Kelas', 'TahunSTPM', 'Status', 'Catatan'];
 const HEADER_ENROLLMENTS = ['ID_Pelajar', 'KodSubjek', 'TahunSTPM'];
 
+/* Senarai batch/kohort (Tahun STPM) sedia ada — untuk pemilih "Tahun STPM" global
+   di UI, supaya beberapa batch (cth. calon 2026 & 2027) boleh wujud serentak
+   tanpa data bercampur di dashboard/laporan. */
+function apiSenaraiTahunSTPM(p) {
+  const sesi = wajibPeranan(p.token, null);
+  if (sesi.success === false) return sesi;
+
+  const tahunSet = new Set(bacaSheetSebagaiObjek(SHEET_STUDENTS).map(s => String(s.TahunSTPM).trim()).filter(Boolean));
+  const senarai = Array.from(tahunSet).sort((a, b) => b.localeCompare(a));
+  const konfig = dapatkanKonfig();
+  return jaya({ senarai, tahunAktif: konfig.tahunSTPMAktif || '' });
+}
+
 function apiSenaraiPelajar(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;

@@ -4,6 +4,14 @@
 
 const HEADER_INTERVENTIONS = ['ID_Intervensi', 'ID_Pelajar', 'KodSubjek', 'Semester', 'Tarikh', 'JenisIntervensi', 'PuncaMasalah', 'Objektif', 'GuruPIC', 'Tempoh', 'Status', 'Catatan', 'KeputusanSelepasIntervensi'];
 
+/* Peta ID_Pelajar -> TahunSTPM — INTERVENTIONS/REPEAT tidak simpan TahunSTPM
+   terus, jadi batch (cth. calon 2026 vs 2027) ditentukan menerusi pelajar. */
+function petaTahunSTPMPelajar() {
+  const peta = {};
+  bacaSheetSebagaiObjek(SHEET_STUDENTS).forEach(s => { peta[s.ID_Pelajar] = String(s.TahunSTPM); });
+  return peta;
+}
+
 function apiSenaraiIntervensi(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
@@ -12,6 +20,10 @@ function apiSenaraiIntervensi(p) {
   if (p.idPelajar) senarai = senarai.filter(i => i.ID_Pelajar === p.idPelajar);
   if (p.semester) senarai = senarai.filter(i => i.Semester === p.semester);
   if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) senarai = senarai.filter(i => sesi.skopSubjek.includes(i.KodSubjek));
+  if (p.tahunSTPM) {
+    const petaTahun = petaTahunSTPMPelajar();
+    senarai = senarai.filter(i => petaTahun[i.ID_Pelajar] === String(p.tahunSTPM));
+  }
 
   return jaya({ senarai, jenisIntervensiPilihan: jenisIntervensiLalai() });
 }
@@ -64,7 +76,11 @@ function apiImpakIntervensi(p) {
 
   const semester = String(p.semester || 'S1').trim();
   const mapGred = dapatkanGred();
-  const intervensiSenarai = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS).filter(i => i.Semester === semester);
+  let intervensiSenarai = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS).filter(i => i.Semester === semester);
+  if (p.tahunSTPM) {
+    const petaTahun = petaTahunSTPMPelajar();
+    intervensiSenarai = intervensiSenarai.filter(i => petaTahun[i.ID_Pelajar] === String(p.tahunSTPM));
+  }
   const headcountSenarai = bacaSheetSebagaiObjek(sheetHeadcount(semester));
 
   let pulih = 0, masihBerisiko = 0;

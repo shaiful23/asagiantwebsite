@@ -26,7 +26,9 @@ function apiJanaLaporan(p) {
 
   if (jenis.indexOf('HEADCOUNT_') === 0) {
     const semester = jenis.split('_')[1];
-    baris = bacaSheetSebagaiObjek(sheetHeadcount(semester)).map(r => {
+    let rekodHeadcount = bacaSheetSebagaiObjek(sheetHeadcount(semester));
+    if (p.tahunSTPM) rekodHeadcount = rekodHeadcount.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
+    baris = rekodHeadcount.map(r => {
       const a = analisisRekodHeadcount(mapGred, konfig, r);
       const pelajar = pelajarMap[r.ID_Pelajar] || {};
       return {
@@ -40,7 +42,9 @@ function apiJanaLaporan(p) {
     });
   } else if (jenis === 'PELAJAR_BERISIKO') {
     ['S1', 'S2', 'S3'].forEach(sem => {
-      bacaSheetSebagaiObjek(sheetHeadcount(sem)).forEach(r => {
+      let rekodSem = bacaSheetSebagaiObjek(sheetHeadcount(sem));
+      if (p.tahunSTPM) rekodSem = rekodSem.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
+      rekodSem.forEach(r => {
         const a = analisisRekodHeadcount(mapGred, konfig, r);
         if (a.risiko === RISIKO_BERISIKO) {
           const pelajar = pelajarMap[r.ID_Pelajar] || {};
@@ -52,19 +56,24 @@ function apiJanaLaporan(p) {
       });
     });
   } else if (jenis === 'INTERVENSI') {
-    baris = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS).map(i => {
+    let rekodIntervensi = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS);
+    if (p.tahunSTPM) rekodIntervensi = rekodIntervensi.filter(i => pelajarMap[i.ID_Pelajar] && String(pelajarMap[i.ID_Pelajar].TahunSTPM) === String(p.tahunSTPM));
+    baris = rekodIntervensi.map(i => {
       const pelajar = pelajarMap[i.ID_Pelajar] || {};
       return Object.assign({ Nama: pelajar.Nama || '', Kelas: pelajar.Kelas || '' }, i, { __row: undefined });
     });
   } else if (jenis === 'ULANGAN_S1' || jenis === 'ULANGAN_S2') {
     const sem = jenis.split('_')[1];
-    baris = bacaSheetSebagaiObjek(sheetRepeat(sem)).map(r => {
+    let rekodUlangan = bacaSheetSebagaiObjek(sheetRepeat(sem));
+    if (p.tahunSTPM) rekodUlangan = rekodUlangan.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
+    baris = rekodUlangan.map(r => {
       const pelajar = pelajarMap[r.ID_Pelajar] || {};
       return Object.assign({ Nama: pelajar.Nama || '', Kelas: pelajar.Kelas || '' }, r, { __row: undefined });
     });
   } else if (jenis === 'PRESTASI_SUBJEK' || jenis === 'GPS') {
     const semester = String(p.semester || 'S1').trim();
-    const rekod = bacaSheetSebagaiObjek(sheetHeadcount(semester));
+    let rekod = bacaSheetSebagaiObjek(sheetHeadcount(semester));
+    if (p.tahunSTPM) rekod = rekod.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
     const mengikutSubjek = {};
     rekod.forEach(r => {
       const gred = gredEfektif(r);

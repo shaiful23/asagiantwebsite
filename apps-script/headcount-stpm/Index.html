@@ -135,6 +135,7 @@ const S = {
   token: localStorage.getItem('hcstpm_token') || '',
   nama: '', peranan: '', skopSubjek: [],
   semester: 'S1',
+  tahunSTPM: '', senaraiTahun: [],
   halaman: 'dashboard',
   cacheSubjek: [], cachePelajar: []
 };
@@ -218,7 +219,11 @@ function mulakanApp() {
   document.querySelectorAll('.nav-item').forEach(el => {
     el.addEventListener('click', () => tukarHalaman(el.dataset.halaman));
   });
-  tukarHalaman('dashboard');
+
+  panggil('apiSenaraiTahunSTPM', { token: S.token }).then(res => {
+    S.senaraiTahun = res.senarai;
+    S.tahunSTPM = (res.tahunAktif && res.senarai.indexOf(res.tahunAktif) !== -1) ? res.tahunAktif : (res.senarai[0] || '');
+  }).catch(() => {}).finally(() => tukarHalaman('dashboard'));
 }
 
 function tukarHalaman(nama) {
@@ -245,13 +250,28 @@ function pasangPilihanSemester(callback) {
   if (el) el.addEventListener('change', () => { S.semester = el.value; callback(); });
 }
 
+/* ======================= PILIHAN TAHUN STPM / BATCH (kawalan global) =======================
+   Membolehkan beberapa kohort (cth. calon STPM 2026 dan 2027) wujud serentak dalam sistem
+   tanpa data bercampur — setiap paparan/laporan ditapis ikut S.tahunSTPM semasa. */
+function pilihanTahunHtml() {
+  const opsyen = ['<option value="">Semua Tahun</option>'].concat(
+    S.senaraiTahun.map(t => '<option value="'+t+'"' + (t===S.tahunSTPM?' selected':'') + '>Tahun STPM '+t+'</option>')
+  );
+  return '<select id="pilihTahun">' + opsyen.join('') + '</select>';
+}
+function pasangPilihanTahun(callback) {
+  const el = document.getElementById('pilihTahun');
+  if (el) el.addEventListener('change', () => { S.tahunSTPM = el.value; callback(); });
+}
+
 /* ======================= DASHBOARD (MODUL 15/16/17/40) ======================= */
 function muatDashboard() {
-  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml();
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml() + pilihanTahunHtml();
   pasangPilihanSemester(muatDashboard);
+  pasangPilihanTahun(muatDashboard);
 
   const fn = bolehUrus() ? 'apiDashboardGPK' : 'apiDashboardGuru';
-  panggil(fn, { token: S.token, semester: S.semester }).then(res => {
+  panggil(fn, { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(res => {
     if (bolehUrus()) renderDashboardGPK(res); else renderDashboardGuru(res);
   }).catch(err => renderRalat(err));
 }
@@ -302,7 +322,10 @@ function renderRalat(err) {
 
 /* ======================= PELAJAR (MODUL 2, 4) ======================= */
 function muatPelajar() {
-  panggil('apiSenaraiPelajar', { token: S.token }).then(res => {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
+  pasangPilihanTahun(muatPelajar);
+
+  panggil('apiSenaraiPelajar', { token: S.token, tahunSTPM: S.tahunSTPM }).then(res => {
     S.cachePelajar = res.senarai;
     renderPelajar(res.senarai);
   }).catch(renderRalat);
@@ -318,7 +341,7 @@ function renderPelajar(senarai) {
         <div><label>Nama</label><input id="pNama"></div>
         <div><label>Jantina</label><select id="pJantina"><option>LELAKI</option><option>PEREMPUAN</option></select></div>
         <div><label>Kelas</label><input id="pKelas"></div>
-        <div><label>Tahun STPM</label><input id="pTahun" value="${new Date().getFullYear()}"></div>
+        <div><label>Tahun STPM</label><input id="pTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
         <div><label>Status</label><select id="pStatus"><option>AKTIF</option><option>TIDAK_AKTIF</option></select></div>
       </div>
       <label>Catatan</label><textarea id="pCatatan" rows="2"></textarea>
@@ -498,9 +521,10 @@ function padamBLD(kodSubjek, gred) {
 
 /* ======================= HEADCOUNT (MODUL 5, 6, 29) ======================= */
 function muatHeadcount() {
-  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml();
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml() + pilihanTahunHtml();
   pasangPilihanSemester(muatHeadcount);
-  panggil('apiDapatkanHeadcount', { token: S.token, semester: S.semester }).then(renderHeadcount).catch(renderRalat);
+  pasangPilihanTahun(muatHeadcount);
+  panggil('apiDapatkanHeadcount', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(renderHeadcount).catch(renderRalat);
 }
 
 function renderHeadcount(res) {
@@ -515,7 +539,7 @@ function renderHeadcount(res) {
       <div class="borang-grid">
         <div><label>ID Pelajar</label><input id="hIdPelajar"></div>
         <div><label>Kod Subjek</label><input id="hKodSubjek"></div>
-        <div><label>Tahun STPM</label><input id="hTahun" value="${new Date().getFullYear()}"></div>
+        <div><label>Tahun STPM</label><input id="hTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
         <div><label>Medan</label><select id="hMedan">
           ${MEDAN_HEADCOUNT.map(m => '<option'+(bolehEditSemua||medanBolehGuru.indexOf(m)!==-1?'':' disabled')+'>'+m+'</option>').join('')}
         </select></div>
@@ -553,14 +577,14 @@ function renderHeadcount(res) {
 
 /* ======================= ULANGAN (MODUL 12, 13) ======================= */
 function muatUlangan() {
-  document.getElementById('kawalanGlobal').innerHTML = '<select id="pilihSemesterUlangan"><option value="S1">Ulangan S1</option><option value="S2">Ulangan S2</option></select>';
+  document.getElementById('kawalanGlobal').innerHTML =
+    '<select id="pilihSemesterUlangan"><option value="S1">Ulangan S1</option><option value="S2">Ulangan S2</option></select>' + pilihanTahunHtml();
   if (!S.semesterUlangan) S.semesterUlangan = 'S1';
-  panggil('apiSenaraiUlangan', { token: S.token, semester: S.semesterUlangan }).then(renderUlangan).catch(renderRalat);
-  setTimeout(() => {
-    const el = document.getElementById('pilihSemesterUlangan');
-    el.value = S.semesterUlangan;
-    el.addEventListener('change', () => { S.semesterUlangan = el.value; muatUlangan(); });
-  });
+  panggil('apiSenaraiUlangan', { token: S.token, semester: S.semesterUlangan, tahunSTPM: S.tahunSTPM }).then(renderUlangan).catch(renderRalat);
+  pasangPilihanTahun(muatUlangan);
+  const elSem = document.getElementById('pilihSemesterUlangan');
+  elSem.value = S.semesterUlangan;
+  elSem.addEventListener('change', () => { S.semesterUlangan = elSem.value; muatUlangan(); });
 }
 
 function renderUlangan(res) {
@@ -570,7 +594,7 @@ function renderUlangan(res) {
       <div class="borang-grid">
         <div><label>ID Pelajar</label><input id="uIdPelajar"></div>
         <div><label>Kod Subjek</label><input id="uKodSubjek"></div>
-        <div><label>Tahun STPM</label><input id="uTahun" value="${new Date().getFullYear()}"></div>
+        <div><label>Tahun STPM</label><input id="uTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
         <div><label>Keputusan Asal</label><input id="uAsal" placeholder="cth. D"></div>
         <div><label>Sasaran Ulangan</label><input id="uSasaran" placeholder="cth. C"></div>
         <div><label>Ujian Selepas Intervensi</label><input id="uUjian"></div>
@@ -596,11 +620,12 @@ function renderUlangan(res) {
 
 /* ======================= INTERVENSI (MODUL 10, 11) ======================= */
 function muatIntervensi() {
-  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml();
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml() + pilihanTahunHtml();
   pasangPilihanSemester(muatIntervensi);
+  pasangPilihanTahun(muatIntervensi);
   Promise.all([
-    panggil('apiSenaraiIntervensi', { token: S.token, semester: S.semester }),
-    panggil('apiImpakIntervensi', { token: S.token, semester: S.semester })
+    panggil('apiSenaraiIntervensi', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }),
+    panggil('apiImpakIntervensi', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM })
   ]).then(([senaraiRes, impakRes]) => renderIntervensi(senaraiRes, impakRes)).catch(renderRalat);
 }
 
@@ -643,8 +668,9 @@ function renderIntervensi(senaraiRes, impakRes) {
 
 /* ======================= ANALISIS (MODUL 20, 21) ======================= */
 function muatAnalisis() {
-  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml();
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml() + pilihanTahunHtml();
   pasangPilihanSemester(() => { if (S.subAnalisis !== 'whatif') muatHighImpact(); });
+  pasangPilihanTahun(() => { if (S.subAnalisis !== 'whatif') muatHighImpact(); });
 
   document.getElementById('content').innerHTML = `
     <div class="panel">
@@ -665,7 +691,7 @@ function muatAnalisis() {
 /* MODUL 20 — High Impact Students */
 function muatHighImpact() {
   document.getElementById('subAnalisis').innerHTML = '<div class="muatan">Memuatkan...</div>';
-  panggil('apiTopHighImpactStudents', { token: S.token, semester: S.semester }).then(res => {
+  panggil('apiTopHighImpactStudents', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(res => {
     document.getElementById('subAnalisis').innerHTML = `
       <div class="panel">
         <h3>Top Pelajar Impak Tinggi — Semester ${S.semester.slice(1)}</h3>
@@ -731,19 +757,24 @@ const JENIS_LAPORAN_LABEL = {
 };
 
 function muatLaporan() {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
+  pasangPilihanTahun(() => { if (S.laporanAktif) janaLaporan(S.laporanAktif, document.querySelector('.tab-link[data-jenis="'+S.laporanAktif+'"]')); });
+
   document.getElementById('content').innerHTML = `
     <div class="panel">
       <h3>Jana Laporan</h3>
       ${Object.keys(JENIS_LAPORAN_LABEL).map(j => '<span class="tab-link" data-jenis="'+j+'">'+JENIS_LAPORAN_LABEL[j]+'</span>').join('')}
     </div>
     <div id="hasilLaporan"></div>`;
+  S.laporanAktif = '';
   document.querySelectorAll('#content .tab-link').forEach(el => el.addEventListener('click', () => janaLaporan(el.dataset.jenis, el)));
 }
 
 function janaLaporan(jenis, elKlik) {
+  S.laporanAktif = jenis;
   document.querySelectorAll('#content .tab-link').forEach(el => el.classList.toggle('aktif', el === elKlik));
   document.getElementById('hasilLaporan').innerHTML = '<div class="muatan">Menjana laporan...</div>';
-  panggil('apiJanaLaporan', { token: S.token, jenis, semester: S.semester }).then(res => {
+  panggil('apiJanaLaporan', { token: S.token, jenis, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(res => {
     if (!res.baris.length) { document.getElementById('hasilLaporan').innerHTML = '<div class="panel kecil">Tiada data untuk laporan ini.</div>'; return; }
     const lajur = Object.keys(res.baris[0]);
     document.getElementById('hasilLaporan').innerHTML = `
