@@ -20,12 +20,13 @@ dalam versi ini:
 - ✅ Fasa 8 — Intervensi + Impak Intervensi (AR1 → AR2)
 - ✅ Fasa 9 — Dashboard (GPK, Guru, Ketua Panitia)
 - ✅ Fasa 10 — Laporan (senarai + eksport CSV untuk 9 jenis laporan)
+- ✅ Modul 20 — "High Impact Students" (pelajar hampir capai ETR, diutamakan
+  yang hanya ada satu subjek kritikal, dengan cadangan tindakan)
+- ✅ Modul 21 — What-If Analysis (simulasi anggaran perubahan PNGK/GPS bagi
+  satu pelajar/subjek — dilabel "SIMULASI", tidak pernah menulis ke Sheet)
 
-**Belum dilaksanakan** (dicadangkan sebagai fasa akan datang, bukan sebahagian
-roadmap 12 fasa dokumen asal):
+**Belum dilaksanakan**:
 
-- ⏳ Modul 20 — "High Impact Students"
-- ⏳ Modul 21 — What-If Analysis / Simulasi
 - ⏳ Eksport PDF terus dari sistem (buat masa ini guna Cetak/Print pelayar
   pada jadual/laporan sedia ada, atau eksport CSV lalu buka di Excel/Sheets)
 - ⏳ Fasa 11 (Testing rasmi oleh pengguna sekolah) & Fasa 12 (Deployment) —
@@ -37,7 +38,8 @@ roadmap 12 fasa dokumen asal):
 - `Code.gs`, `Config.gs`, `Utils.gs`, `AuditService.gs`, `AuthService.gs`,
   `StudentService.gs`, `SubjectService.gs`, `HeadcountService.gs`,
   `AnalysisService.gs`, `RepeatService.gs`, `InterventionService.gs`,
-  `DashboardService.gs`, `ReportService.gs`, `appsscript.json`, `Index.html`
+  `DashboardService.gs`, `ReportService.gs`, `HighImpactService.gs`,
+  `WhatIfService.gs`, `appsscript.json`, `Index.html`
   — projek Google Apps Script (backend modular + frontend SPA tunggal).
 - `../../headcountstpm.html` — pembungkus GitHub Pages (iframe) untuk sistem ini.
 
@@ -58,8 +60,16 @@ sepenuhnya seperti diminta.
    (`Code.gs`, `Config.gs`, `Utils.gs`, `AuditService.gs`, `AuthService.gs`,
    `StudentService.gs`, `SubjectService.gs`, `HeadcountService.gs`,
    `AnalysisService.gs`, `RepeatService.gs`, `InterventionService.gs`,
-   `DashboardService.gs`, `ReportService.gs`), cipta fail Script baharu dengan
-   nama yang sama (tanpa `.gs`) dan salin-tampal kandungannya.
+   `DashboardService.gs`, `ReportService.gs`, `HighImpactService.gs`,
+   `WhatIfService.gs`), cipta fail Script baharu dengan nama yang sama
+   (tanpa `.gs`) dan salin-tampal kandungannya.
+
+   **Jika projek Apps Script anda sudah wujud** (kemaskini daripada versi
+   sebelumnya): cukup tambah dua fail Script baharu bernama `HighImpactService`
+   dan `WhatIfService`, salin-tampal kandungan `HighImpactService.gs` dan
+   `WhatIfService.gs`, kemudian **gantikan** kandungan `Index` sedia ada dengan
+   `Index.html` versi terkini (ada menu "Analisis" baharu). Deploy semula
+   (**Deploy → Manage deployments → Edit → New version**) selepas itu.
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json

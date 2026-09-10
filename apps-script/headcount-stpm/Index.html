@@ -104,6 +104,7 @@
       <div class="nav-item" data-halaman="headcount">Headcount</div>
       <div class="nav-item" data-halaman="ulangan">Ulangan</div>
       <div class="nav-item" data-halaman="intervensi">Intervensi</div>
+      <div class="nav-item" data-halaman="analisis">Analisis</div>
       <div class="nav-item" data-halaman="laporan">Laporan</div>
       <div class="nav-item" data-halaman="pengguna">Pengguna</div>
     </div>
@@ -213,12 +214,12 @@ function tukarHalaman(nama) {
   S.halaman = nama;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('aktif', el.dataset.halaman === nama));
   const tajuk = { dashboard:'Dashboard', pelajar:'Pelajar', subjek:'Mata Pelajaran', headcount:'Headcount',
-    ulangan:'Ulangan Semester', intervensi:'Intervensi', laporan:'Laporan', pengguna:'Pengguna & Peranan' };
+    ulangan:'Ulangan Semester', intervensi:'Intervensi', analisis:'Analisis', laporan:'Laporan', pengguna:'Pengguna & Peranan' };
   document.getElementById('tajukHalaman').textContent = tajuk[nama] || nama;
   document.getElementById('content').innerHTML = '<div class="muatan">Memuatkan...</div>';
   document.getElementById('kawalanGlobal').innerHTML = '';
   const fn = { dashboard: muatDashboard, pelajar: muatPelajar, subjek: muatSubjek, headcount: muatHeadcount,
-    ulangan: muatUlangan, intervensi: muatIntervensi, laporan: muatLaporan, pengguna: muatPengguna }[nama];
+    ulangan: muatUlangan, intervensi: muatIntervensi, analisis: muatAnalisis, laporan: muatLaporan, pengguna: muatPengguna }[nama];
   if (fn) fn();
 }
 
@@ -549,6 +550,88 @@ function renderIntervensi(senaraiRes, impakRes) {
       status: document.getElementById('iStatus').value, puncaMasalah: document.getElementById('iPunca').value,
       objektif: document.getElementById('iObjektif').value, catatan: document.getElementById('iCatatan').value
     }).then(() => { tunjukMesej('Intervensi disimpan.'); muatIntervensi(); }).catch(err => tunjukMesej(err, 'ralat'));
+  });
+}
+
+/* ======================= ANALISIS (MODUL 20, 21) ======================= */
+function muatAnalisis() {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml();
+  pasangPilihanSemester(() => { if (S.subAnalisis !== 'whatif') muatHighImpact(); });
+
+  document.getElementById('content').innerHTML = `
+    <div class="panel">
+      <span class="tab-link aktif" data-sub="highimpact">Pelajar Impak Tinggi</span>
+      <span class="tab-link" data-sub="whatif">Simulasi What-If</span>
+    </div>
+    <div id="subAnalisis"></div>`;
+
+  document.querySelectorAll('#content .tab-link').forEach(el => el.addEventListener('click', () => {
+    document.querySelectorAll('#content .tab-link').forEach(x => x.classList.toggle('aktif', x === el));
+    S.subAnalisis = el.dataset.sub;
+    if (el.dataset.sub === 'highimpact') muatHighImpact(); else muatWhatIf();
+  }));
+  S.subAnalisis = 'highimpact';
+  muatHighImpact();
+}
+
+/* MODUL 20 — High Impact Students */
+function muatHighImpact() {
+  document.getElementById('subAnalisis').innerHTML = '<div class="muatan">Memuatkan...</div>';
+  panggil('apiTopHighImpactStudents', { token: S.token, semester: S.semester }).then(res => {
+    document.getElementById('subAnalisis').innerHTML = `
+      <div class="panel">
+        <h3>Top Pelajar Impak Tinggi — Semester ${S.semester.slice(1)}</h3>
+        <p class="kecil">Pelajar yang hampir capai sasaran (ETR) — fokus di sini beri kesan terbesar kepada GPS keseluruhan.</p>
+        <div class="tbl-scroll"><table><thead><tr>
+          <th>Pelajar</th><th>Kelas</th><th>Subjek</th><th>Gred Semasa</th><th>Sasaran</th><th>Gap</th><th>Potensi Naik</th><th>Trend</th><th>Risiko</th><th>Subjek Kritikal Tunggal</th><th>Cadangan Tindakan</th>
+        </tr></thead><tbody>
+          ${res.senarai.map(s => `<tr>
+            <td>${escapeHtml(s.namaPelajar||s.idPelajar)}</td><td>${escapeHtml(s.kelas)}</td><td>${escapeHtml(s.kodSubjek)}</td>
+            <td>${escapeHtml(s.gredSemasa)}</td><td>${escapeHtml(s.gredSasaran)}</td><td>${s.gap}</td><td>${escapeHtml(s.potensiPeningkatan)}</td>
+            <td>${lencana(s.trend)}</td><td>${lencana(s.risiko)}</td><td>${s.hanyaSatuSubjekKritikal?'Ya':'Tidak'}</td><td class="kecil">${escapeHtml(s.cadanganTindakan)}</td>
+          </tr>`).join('') || '<tr><td colspan=11 class="kecil">Tiada calon impak tinggi buat masa ini.</td></tr>'}
+        </tbody></table></div>
+      </div>`;
+  }).catch(err => { document.getElementById('subAnalisis').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
+}
+
+/* MODUL 21 — What-If Analysis (SIMULASI sahaja, tidak ubah data sebenar) */
+function muatWhatIf() {
+  document.getElementById('subAnalisis').innerHTML = `
+    <div class="panel">
+      <h3>Simulasi What-If <span class="lencana KUNING">SIMULASI</span></h3>
+      <p class="kecil">Anggaran sahaja — TIDAK mengubah data sebenar dalam sistem.</p>
+      <div class="borang-grid">
+        <div><label>ID Pelajar</label><input id="wIdPelajar"></div>
+        <div><label>Semester</label><select id="wSemester"><option>S1</option><option>S2</option><option>S3</option></select></div>
+        <div><label>Kod Subjek</label><input id="wKodSubjek"></div>
+        <div><label>Gred Hipotesis</label><input id="wGredBaru" placeholder="cth. B"></div>
+      </div>
+      <button id="btnSimulasi">Jana Simulasi</button>
+    </div>
+    <div id="hasilSimulasi"></div>`;
+  document.getElementById('wSemester').value = S.semester;
+
+  document.getElementById('btnSimulasi').addEventListener('click', () => {
+    panggil('apiSimulasiWhatIf', {
+      token: S.token, idPelajar: document.getElementById('wIdPelajar').value,
+      semester: document.getElementById('wSemester').value, kodSubjek: document.getElementById('wKodSubjek').value,
+      gredBaru: document.getElementById('wGredBaru').value
+    }).then(res => {
+      document.getElementById('hasilSimulasi').innerHTML = `
+        <div class="panel">
+          <h3><span class="lencana KUNING">SIMULASI</span> ${escapeHtml(res.idPelajar)} — ${escapeHtml(res.kodSubjek)} (${escapeHtml(res.semester)})</h3>
+          <p>Gred semasa: <b>${escapeHtml(res.gredSemasa)}</b> &rarr; Gred hipotesis: <b>${escapeHtml(res.gredBaru)}</b></p>
+          <div class="grid-kad">
+            <div class="kad"><div class="nilai">${res.pngkSemasa ?? '-'}</div><div class="label">PNGK Semasa</div></div>
+            <div class="kad"><div class="nilai">${res.pngkSelepasSimulasi ?? '-'}</div><div class="label">PNGK Selepas Simulasi</div></div>
+            <div class="kad ${res.perubahanPNGK>0?'hijau':(res.perubahanPNGK<0?'merah':'')}"><div class="nilai">${res.perubahanPNGK ?? '-'}</div><div class="label">Perubahan PNGK</div></div>
+            <div class="kad"><div class="nilai">${res.gpsSemasa ?? '-'}</div><div class="label">GPS Subjek Semasa</div></div>
+            <div class="kad"><div class="nilai">${res.gpsSelepasSimulasi ?? '-'}</div><div class="label">GPS Subjek Selepas Simulasi</div></div>
+            <div class="kad ${res.perubahanGPS>0?'hijau':(res.perubahanGPS<0?'merah':'')}"><div class="nilai">${res.perubahanGPS ?? '-'}</div><div class="label">Perubahan GPS</div></div>
+          </div>
+        </div>`;
+    }).catch(err => tunjukMesej(err, 'ralat'));
   });
 }
 
