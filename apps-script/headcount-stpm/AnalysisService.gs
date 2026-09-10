@@ -31,6 +31,71 @@ function nilaiGred(mapGred, gred) {
   return g ? g.nilai : null;
 }
 
+/* BLD (Jadual Penentuan Gred) — KHUSUS SETIAP SUBJEK x SEMESTER (S1/S2/S3
+   boleh ada julat markah berbeza bagi subjek yang sama). Pulangkan
+   { 'KodSubjek|Semester': [{gred, min, max}, ...tersusun ikut min menaik] }. */
+function kunciBLD(kodSubjek, semester) {
+  return String(kodSubjek).trim() + '|' + String(semester).trim();
+}
+
+function dapatkanBLD() {
+  const rekod = bacaSheetSebagaiObjek(SHEET_GRADE_BOUNDARIES);
+  const map = {};
+  rekod.forEach(r => {
+    const kunci = kunciBLD(r.KodSubjek, r.Semester);
+    if (!map[kunci]) map[kunci] = [];
+    map[kunci].push({ gred: String(r.Gred).trim().toUpperCase(), min: Number(r.MarkahMin), max: Number(r.MarkahMax) });
+  });
+  Object.keys(map).forEach(k => map[k].sort((a, b) => a.min - b.min));
+  return map;
+}
+
+/* Terjemah Markah -> Gred bagi SATU subjek PADA SATU semester, menggunakan
+   BLD subjek+semester itu sahaja (bukan skema global) — rujuk permintaan:
+   "BLD untuk setiap semester (S1, S2, S3) adalah berbeza". */
+function gredDaripadaMarkah(bldMap, kodSubjek, semester, markah) {
+  if (markah === '' || markah === null || markah === undefined || isNaN(Number(markah))) return '';
+  const senarai = bldMap[kunciBLD(kodSubjek, semester)];
+  if (!senarai || !senarai.length) return ''; // BLD subjek+semester ini belum ditetapkan
+  const m = Number(markah);
+  const padanan = senarai.find(b => m >= b.min && m <= b.max);
+  return padanan ? padanan.gred : '';
+}
+
+/* Kenal pasti medan (TOV/OTR1/AR1/OTR2/AR2/ETR/SEBENAR) paling terkini yang ada
+   nilai — dipakai sebagai "keputusan semasa efektif" merentasi Dashboard/Laporan. */
+function medanEfektif(rekod) {
+  if (rekod.SEBENAR_Gred) return 'SEBENAR';
+  if (rekod.AR2_Gred) return 'AR2';
+  if (rekod.AR1_Gred) return 'AR1';
+  if (rekod.TOV_Gred) return 'TOV';
+  return null;
+}
+function gredEfektif(rekod) {
+  const m = medanEfektif(rekod);
+  return m ? rekod[m + '_Gred'] : '';
+}
+function markahEfektif(rekod) {
+  const m = medanEfektif(rekod);
+  return m && rekod[m + '_Markah'] !== '' && rekod[m + '_Markah'] !== undefined ? rekod[m + '_Markah'] : '';
+}
+
+/* Sasaran efektif (ETR diutamakan, jatuh balik ke OTR2/OTR1) — untuk paparan "sasaran semasa". */
+function medanSasaranEfektif(rekod) {
+  if (rekod.ETR_Gred) return 'ETR';
+  if (rekod.OTR2_Gred) return 'OTR2';
+  if (rekod.OTR1_Gred) return 'OTR1';
+  return null;
+}
+function gredSasaranEfektif(rekod) {
+  const m = medanSasaranEfektif(rekod);
+  return m ? rekod[m + '_Gred'] : '';
+}
+function markahSasaranEfektif(rekod) {
+  const m = medanSasaranEfektif(rekod);
+  return m && rekod[m + '_Markah'] !== '' ? rekod[m + '_Markah'] : '';
+}
+
 /* MODUL 7 — GAP: bandingkan sasaran vs sebenar (dalam nilai gred), pulangkan {gap, status}. */
 function kiraGap(mapGred, konfig, sasaranGred, sebenarGred) {
   const sasaran = nilaiGred(mapGred, sasaranGred);
@@ -94,11 +159,11 @@ function kiraRisiko(mapGred, konfig, etrGred, sebenarGred, trend) {
 /* Kira satu rekod headcount lengkap: gap1 (AR1 vs OTR1), gap2 (AR2 vs OTR2),
    gapETR (SEBENAR vs ETR), trend, risiko. Dipanggil oleh HeadcountService. */
 function analisisRekodHeadcount(mapGred, konfig, rekod) {
-  const gap1 = kiraGap(mapGred, konfig, rekod.OTR1, rekod.AR1);
-  const gap2 = kiraGap(mapGred, konfig, rekod.OTR2, rekod.AR2);
-  const gapETR = kiraGap(mapGred, konfig, rekod.ETR, rekod.SEBENAR);
-  const trend = kiraTrend(mapGred, [rekod.TOV, rekod.AR1, rekod.AR2, rekod.SEBENAR].filter(Boolean));
-  const risiko = kiraRisiko(mapGred, konfig, rekod.ETR, rekod.SEBENAR || rekod.AR2 || rekod.AR1, trend);
+  const gap1 = kiraGap(mapGred, konfig, rekod.OTR1_Gred, rekod.AR1_Gred);
+  const gap2 = kiraGap(mapGred, konfig, rekod.OTR2_Gred, rekod.AR2_Gred);
+  const gapETR = kiraGap(mapGred, konfig, rekod.ETR_Gred, rekod.SEBENAR_Gred);
+  const trend = kiraTrend(mapGred, [rekod.TOV_Gred, rekod.AR1_Gred, rekod.AR2_Gred, rekod.SEBENAR_Gred].filter(Boolean));
+  const risiko = kiraRisiko(mapGred, konfig, rekod.ETR_Gred, gredEfektif(rekod), trend);
 
   return {
     gap1: gap1.gap, statusGap1: gap1.status,

@@ -20,12 +20,26 @@ dalam versi ini:
 - ✅ Fasa 8 — Intervensi + Impak Intervensi (AR1 → AR2)
 - ✅ Fasa 9 — Dashboard (GPK, Guru, Ketua Panitia)
 - ✅ Fasa 10 — Laporan (senarai + eksport CSV untuk 9 jenis laporan)
+- ✅ Modul 20 — "High Impact Students" (pelajar hampir capai ETR, diutamakan
+  yang hanya ada satu subjek kritikal, dengan cadangan tindakan)
+- ✅ Modul 21 — What-If Analysis (simulasi anggaran perubahan PNGK/GPS bagi
+  satu pelajar/subjek — dilabel "SIMULASI", tidak pernah menulis ke Sheet)
+- ✅ **Markah & BLD (Jadual Penentuan Gred) khusus setiap subjek** — Admin/Ketua
+  Panitia tetapkan julat markah->gred per mata pelajaran melalui UI (menu
+  "Skema Gred (BLD)"). Guru key-in MARKAH sahaja di Headcount (TOV, OTR1, AR1,
+  OTR2, AR2, ETR, SEBENAR); Gred diterbitkan automatik oleh backend ikut BLD
+  subjek berkenaan. UI papar Markah bersama Gred di semua jadual/laporan
+  berkaitan headcount. Rujuk **"Markah & BLD"** di bawah.
+- ✅ **Sokongan berbilang batch/kohort (cth. calon STPM 2026 & 2027 serentak)**
+  — pemilih **"Tahun STPM"** global di semua paparan berkaitan (Pelajar,
+  Headcount, Ulangan, Intervensi, Analisis, Laporan, Dashboard), supaya data
+  dua (atau lebih) batch tidak bercampur. Rujuk **"Berbilang Batch/Kohort"**
+  di bawah.
 
-**Belum dilaksanakan** (dicadangkan sebagai fasa akan datang, bukan sebahagian
-roadmap 12 fasa dokumen asal):
+**Belum dilaksanakan**:
 
-- ⏳ Modul 20 — "High Impact Students"
-- ⏳ Modul 21 — What-If Analysis / Simulasi
+- ⏳ Ulangan (REPEAT_S1/S2) masih guna Gred teks bebas (bukan Markah+BLD) —
+  boleh dilanjutkan kemudian jika diperlukan.
 - ⏳ Eksport PDF terus dari sistem (buat masa ini guna Cetak/Print pelayar
   pada jadual/laporan sedia ada, atau eksport CSV lalu buka di Excel/Sheets)
 - ⏳ Fasa 11 (Testing rasmi oleh pengguna sekolah) & Fasa 12 (Deployment) —
@@ -35,9 +49,10 @@ roadmap 12 fasa dokumen asal):
 ## Struktur
 
 - `Code.gs`, `Config.gs`, `Utils.gs`, `AuditService.gs`, `AuthService.gs`,
-  `StudentService.gs`, `SubjectService.gs`, `HeadcountService.gs`,
-  `AnalysisService.gs`, `RepeatService.gs`, `InterventionService.gs`,
-  `DashboardService.gs`, `ReportService.gs`, `appsscript.json`, `Index.html`
+  `StudentService.gs`, `SubjectService.gs`, `GradeBoundaryService.gs`,
+  `HeadcountService.gs`, `AnalysisService.gs`, `RepeatService.gs`,
+  `InterventionService.gs`, `DashboardService.gs`, `ReportService.gs`,
+  `HighImpactService.gs`, `WhatIfService.gs`, `appsscript.json`, `Index.html`
   — projek Google Apps Script (backend modular + frontend SPA tunggal).
 - `../../headcountstpm.html` — pembungkus GitHub Pages (iframe) untuk sistem ini.
 
@@ -56,10 +71,36 @@ sepenuhnya seperti diminta.
 2. Buka **Extensions → Apps Script** dari Sheet tersebut.
 3. Padam kandungan `Code.gs` lalai. Untuk setiap fail `.gs` dalam folder ini
    (`Code.gs`, `Config.gs`, `Utils.gs`, `AuditService.gs`, `AuthService.gs`,
-   `StudentService.gs`, `SubjectService.gs`, `HeadcountService.gs`,
-   `AnalysisService.gs`, `RepeatService.gs`, `InterventionService.gs`,
-   `DashboardService.gs`, `ReportService.gs`), cipta fail Script baharu dengan
+   `StudentService.gs`, `SubjectService.gs`, `GradeBoundaryService.gs`,
+   `HeadcountService.gs`, `AnalysisService.gs`, `RepeatService.gs`,
+   `InterventionService.gs`, `DashboardService.gs`, `ReportService.gs`,
+   `HighImpactService.gs`, `WhatIfService.gs`), cipta fail Script baharu dengan
    nama yang sama (tanpa `.gs`) dan salin-tampal kandungannya.
+
+   **Jika projek Apps Script anda sudah wujud** (kemaskini daripada versi
+   sebelumnya):
+   1. Tambah fail Script baharu bernama `GradeBoundaryService` (dan
+      `HighImpactService`/`WhatIfService` jika belum ada), salin-tampal
+      kandungan `.gs` masing-masing.
+   2. **Gantikan** kandungan semua fail `.gs` sedia ada (terutamanya
+      `Config.gs`, `AnalysisService.gs`, `HeadcountService.gs`,
+      `GradeBoundaryService.gs`, `InterventionService.gs`, `DashboardService.gs`,
+      `ReportService.gs`, `WhatIfService.gs`, `Code.gs`) dengan versi terkini
+      dalam folder ini — struktur headcount berubah daripada "Gred sahaja"
+      kepada "Markah + Gred", dan BLD kini per **Subjek x Semester** (bukan
+      per subjek sahaja).
+   3. **Gantikan** kandungan `Index` dengan `Index.html` versi terkini (ada
+      menu "Skema Gred (BLD)" baharu dengan pemilih Semester, borang
+      Headcount kini minta Markah).
+   4. Kembali ke Sheet, refresh, klik **Sistem Headcount STPM → 2. Kemaskini
+      Struktur (Markah & Gred BLD)**. Ini (a) mencipta Sheet `GRADE_BOUNDARIES`
+      jika belum wujud ATAU tambah lajur `Semester` jika sudah wujud (BLD
+      sedia ada diandaikan untuk S1 — **WAJIB semak & salin/laraskan untuk
+      S2/S3** selepas ini di menu "Skema Gred (BLD)"), dan (b) menukar
+      struktur lajur `HEADCOUNT_S1/S2/S3` kepada Markah+Gred (data Gred
+      sedia ada, jika ada, dikekalkan) — rujuk **"Markah & BLD"** di bawah
+      untuk butiran. Selamat dijalankan berulang kali.
+   5. Deploy semula (**Deploy → Manage deployments → Edit → New version**).
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json
@@ -67,9 +108,9 @@ sepenuhnya seperti diminta.
 6. Kembali ke Sheet, refresh halaman. Menu baharu **"Sistem Headcount STPM"**
    akan muncul di bar menu.
 7. Klik **Sistem Headcount STPM → 1. Sediakan Sistem (Jalankan Sekali)**.
-   Benarkan kebenaran yang diminta. Ini mencipta semua 14 Sheet: `CONFIG`,
-   `GRADES`, `USERS`, `STUDENTS`, `SUBJECTS`, `ENROLLMENTS`, `HEADCOUNT_S1/S2/S3`,
-   `REPEAT_S1/S2`, `INTERVENTIONS`, `INTERVENTION_LOG`, `AUDIT_LOG`.
+   Benarkan kebenaran yang diminta. Ini mencipta semua 15 Sheet: `CONFIG`,
+   `GRADES`, `GRADE_BOUNDARIES`, `USERS`, `STUDENTS`, `SUBJECTS`, `ENROLLMENTS`,
+   `HEADCOUNT_S1/S2/S3`, `REPEAT_S1/S2`, `INTERVENTIONS`, `INTERVENTION_LOG`, `AUDIT_LOG`.
 8. **Kemaskini data sebenar sekolah** terus dalam Sheet:
    - `CONFIG`: nama sekolah, tahun STPM aktif, sasaran GPS/PNGK, threshold gap/risiko.
    - `GRADES`: senarai gred & nilai gred rasmi sekolah (boleh ubah tanpa sentuh kod).
@@ -78,6 +119,11 @@ sepenuhnya seperti diminta.
      selepas tambah admin sebenar.
    - `STUDENTS`, `SUBJECTS`, `ENROLLMENTS`: data pelajar, mata pelajaran dan
      pendaftaran sebenar. Padam baris "CONTOH".
+   - **`GRADE_BOUNDARIES` (BLD)**: WAJIB tetapkan julat markah->gred bagi
+     **SETIAP** mata pelajaran sebelum guru boleh key-in markah subjek itu —
+     paling mudah terus di menu **"Skema Gred (BLD)"** dalam sistem (bukan
+     dalam Sheet secara terus), supaya validasi (julat tidak bertindih,
+     0-100) dikuatkuasakan. Sheet baru ada contoh untuk subjek `PA` sahaja.
 9. Klik **Deploy → New deployment**. Pilih jenis **Web app**.
    - Execute as: **Me**
    - Who has access: **Anyone**
@@ -110,3 +156,76 @@ dalam Sheet `GRADES` dan `CONFIG` — tiada nilai di-hard-code. Frontend
 Setiap tindakan TAMBAH/KEMASKINI/NYAHAKTIF/LOGIN direkod dalam `AUDIT_LOG`
 (tarikh, pengguna, peranan, modul, nilai lama/baharu, sebab). Semakan boleh
 dibuat terus dalam Sheet `AUDIT_LOG` atau melalui `apiSenaraiAudit`.
+
+## Markah & BLD (Jadual Penentuan Gred khusus setiap Subjek x Semester)
+
+Setiap mata pelajaran ada julat markah→gred sendiri (BLD), **DAN julat itu
+boleh berbeza mengikut semester** (S1, S2, S3) bagi subjek yang sama — cth.
+skema markah Pengajian Am Semester 1 tak semestinya sama dengan Semester 3.
+Aliran kerja:
+
+1. **Admin / GPK / Ketua Akademik / Ketua Panitia** tetapkan BLD di menu
+   **"Skema Gred (BLD)"** — pilih **Semester** (S1/S2/S3) di bahagian atas
+   dahulu, kemudian untuk setiap Gred masukkan Markah Min & Markah Max
+   (0-100) bagi subjek itu **pada semester tersebut sahaja**. Sistem menolak
+   julat yang bertindih dalam subjek+semester yang sama. Ketua Panitia hanya
+   boleh urus subjek dalam `SkopSubjek` mereka sendiri.
+   - Guna **"Salin BLD"** untuk salin julat sedia ada ke subjek lain, ke
+     semester lain bagi subjek yang sama (cth. jadikan BLD S1 sebagai titik
+     mula untuk S2), atau kedua-duanya sekali.
+2. **Guru / Admin** key-in **MARKAH** (bukan Gred) di halaman **Headcount**,
+   bagi mana-mana daripada 7 medan (TOV, OTR1, AR1, OTR2, AR2, ETR, SEBENAR).
+   Guru hanya boleh isi AR1/AR2 (sama seperti sebelum ini).
+3. Backend (`HeadcountService.gs` → `apiSimpanHeadcount`) **menterjemah
+   Markah ke Gred secara automatik** menggunakan BLD subjek+semester berkenaan
+   (`AnalysisService.gs` → `gredDaripadaMarkah`), dan menyimpan **kedua-duanya**
+   (cth. lajur `AR1_Markah` = `72`, `AR1_Gred` = `B`).
+4. Jika BLD subjek+semester belum lengkap (atau markah tiada dalam mana-mana
+   julat ditetapkan), sistem **menolak simpanan** dengan mesej ralat yang
+   jelas, memandu pengguna ke menu "Skema Gred (BLD)" — headcount tidak akan
+   tersimpan dengan Gred kosong secara senyap. **Penting:** BLD mesti
+   ditetapkan berasingan untuk SETIAP semester (S1, S2, S3) — bukan sekali
+   sahaja untuk seluruh subjek.
+5. Semua paparan (Headcount, Dashboard Guru, High Impact Students, What-If,
+   Laporan/CSV) memaparkan **Markah bersama Gred**, cth. `72 (B)`.
+
+Semua pengiraan lanjutan (Gap, Trend, Risiko, PNGK, GPS) tetap berasaskan
+**Gred** (nilai gred daripada Sheet `GRADES`, bukan markah mentah) — selaras
+MODUL 43, supaya kaedah pengiraan konsisten walaupun BLD berbeza antara
+subjek/semester.
+
+**Skop semasa:** Ulangan (`REPEAT_S1/S2`) masih guna Gred teks bebas, belum
+disambungkan kepada Markah+BLD — boleh dilanjutkan jika sekolah memerlukannya.
+
+## Berbilang Batch/Kohort (cth. STPM 2026 & 2027 serentak)
+
+Struktur data (`STUDENTS`, `ENROLLMENTS`, `HEADCOUNT_S1/S2/S3`, `REPEAT_S1/S2`)
+sememangnya menyimpan `TahunSTPM` sebagai sebahagian ID unik setiap rekod
+(MODUL 4), jadi dua atau lebih batch **boleh wujud serentak** dalam satu
+Sheet database yang sama tanpa konflik — cth. semasa fasa peralihan, calon
+STPM 2026 masih dalam Semester 3/ulangan sementara calon STPM 2027 baru mula
+didaftarkan untuk Semester 1.
+
+Untuk elak data batch bercampur di paparan/laporan, setiap halaman berkaitan
+kini ada pemilih **"Tahun STPM"** di bahagian atas (sebelah pemilih Semester,
+jika berkenaan):
+
+| Halaman | Ditapis ikut Tahun STPM? |
+| --- | --- |
+| Dashboard (GPK & Guru) | ✅ |
+| Pelajar | ✅ |
+| Headcount | ✅ |
+| Ulangan | ✅ |
+| Intervensi (senarai + impak) | ✅ |
+| Analisis → Pelajar Impak Tinggi | ✅ |
+| Laporan (semua 9 jenis) | ✅ |
+| Mata Pelajaran, Skema Gred (BLD), Pengguna | Tidak berkenaan — subjek/BLD/pengguna dikongsi merentasi semua batch |
+| Analisis → Simulasi What-If | Tidak berkenaan — dikendalikan terus melalui ID Pelajar tertentu |
+
+Pilihan **"Semua Tahun"** (nilai kosong) sentiasa tersedia untuk pandangan
+merentasi batch (cth. Admin nak lihat jumlah keseluruhan). Borang tambah
+pelajar/headcount/ulangan pra-isi Tahun STPM mengikut pemilih global semasa,
+tetapi masih boleh diubah secara manual jika perlu masukkan data batch lain.
+
+Tiada tetapan tambahan diperlukan — cukup pastikan lajur `TahunSTPM` diisi
+dengan betul (cth. `2026`, `2027`) semasa mendaftar pelajar setiap batch.

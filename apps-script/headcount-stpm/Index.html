@@ -101,9 +101,11 @@
       <div class="nav-item" data-halaman="dashboard">Dashboard</div>
       <div class="nav-item" data-halaman="pelajar">Pelajar</div>
       <div class="nav-item" data-halaman="subjek">Mata Pelajaran</div>
+      <div class="nav-item" data-halaman="bld">Skema Gred (BLD)</div>
       <div class="nav-item" data-halaman="headcount">Headcount</div>
       <div class="nav-item" data-halaman="ulangan">Ulangan</div>
       <div class="nav-item" data-halaman="intervensi">Intervensi</div>
+      <div class="nav-item" data-halaman="analisis">Analisis</div>
       <div class="nav-item" data-halaman="laporan">Laporan</div>
       <div class="nav-item" data-halaman="pengguna">Pengguna</div>
     </div>
@@ -125,11 +127,16 @@
 </div>
 
 <script>
+/* ======================= PEMALAR (selaras Config.gs) ======================= */
+const MEDAN_HEADCOUNT = ['TOV', 'OTR1', 'AR1', 'OTR2', 'AR2', 'ETR', 'SEBENAR'];
+const SEMESTER_HEADCOUNT = ['S1', 'S2', 'S3'];
+
 /* ======================= STATE ======================= */
 const S = {
   token: localStorage.getItem('hcstpm_token') || '',
   nama: '', peranan: '', skopSubjek: [],
   semester: 'S1',
+  tahunSTPM: '', senaraiTahun: [],
   halaman: 'dashboard',
   cacheSubjek: [], cachePelajar: []
 };
@@ -154,6 +161,12 @@ function tunjukMesej(teks, jenis) {
 function escapeHtml(s) { return String(s === undefined || s === null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function lencana(nilai) { return nilai ? '<span class="lencana ' + nilai + '">' + nilai.replace(/_/g,' ') + '</span>' : ''; }
 function bolehUrus() { return ['ADMIN','GPK_TINGKATAN6','KETUA_AKADEMIK'].indexOf(S.peranan) !== -1; }
+function bolehUrusBLD() { return bolehUrus() || S.peranan === 'KETUA_PANITIA'; }
+/* Paparan konsisten "markah (gred)" — dipakai di semua jadual/borang headcount. */
+function formatMG(markah, gred) {
+  if (markah === '' || markah === undefined || markah === null) return gred ? escapeHtml(gred) : '-';
+  return escapeHtml(markah) + (gred ? ' (' + escapeHtml(gred) + ')' : '');
+}
 
 /* ======================= LOGIN / SESI ======================= */
 document.getElementById('btnLogin').addEventListener('click', login);
@@ -203,22 +216,27 @@ function mulakanApp() {
   document.getElementById('infoNama').textContent = S.nama;
   document.getElementById('infoPeranan').textContent = S.peranan.replace(/_/g,' ');
   if (S.peranan !== 'ADMIN') document.querySelector('.nav-item[data-halaman="pengguna"]').style.display = 'none';
+  if (S.peranan === 'GURU') document.querySelector('.nav-item[data-halaman="bld"]').style.display = 'none';
   document.querySelectorAll('.nav-item').forEach(el => {
     el.addEventListener('click', () => tukarHalaman(el.dataset.halaman));
   });
-  tukarHalaman('dashboard');
+
+  panggil('apiSenaraiTahunSTPM', { token: S.token }).then(res => {
+    S.senaraiTahun = res.senarai;
+    S.tahunSTPM = (res.tahunAktif && res.senarai.indexOf(res.tahunAktif) !== -1) ? res.tahunAktif : (res.senarai[0] || '');
+  }).catch(() => {}).finally(() => tukarHalaman('dashboard'));
 }
 
 function tukarHalaman(nama) {
   S.halaman = nama;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('aktif', el.dataset.halaman === nama));
-  const tajuk = { dashboard:'Dashboard', pelajar:'Pelajar', subjek:'Mata Pelajaran', headcount:'Headcount',
-    ulangan:'Ulangan Semester', intervensi:'Intervensi', laporan:'Laporan', pengguna:'Pengguna & Peranan' };
+  const tajuk = { dashboard:'Dashboard', pelajar:'Pelajar', subjek:'Mata Pelajaran', bld:'Skema Gred (BLD)', headcount:'Headcount',
+    ulangan:'Ulangan Semester', intervensi:'Intervensi', analisis:'Analisis', laporan:'Laporan', pengguna:'Pengguna & Peranan' };
   document.getElementById('tajukHalaman').textContent = tajuk[nama] || nama;
   document.getElementById('content').innerHTML = '<div class="muatan">Memuatkan...</div>';
   document.getElementById('kawalanGlobal').innerHTML = '';
-  const fn = { dashboard: muatDashboard, pelajar: muatPelajar, subjek: muatSubjek, headcount: muatHeadcount,
-    ulangan: muatUlangan, intervensi: muatIntervensi, laporan: muatLaporan, pengguna: muatPengguna }[nama];
+  const fn = { dashboard: muatDashboard, pelajar: muatPelajar, subjek: muatSubjek, bld: muatBLD, headcount: muatHeadcount,
+    ulangan: muatUlangan, intervensi: muatIntervensi, analisis: muatAnalisis, laporan: muatLaporan, pengguna: muatPengguna }[nama];
   if (fn) fn();
 }
 
@@ -233,13 +251,28 @@ function pasangPilihanSemester(callback) {
   if (el) el.addEventListener('change', () => { S.semester = el.value; callback(); });
 }
 
+/* ======================= PILIHAN TAHUN STPM / BATCH (kawalan global) =======================
+   Membolehkan beberapa kohort (cth. calon STPM 2026 dan 2027) wujud serentak dalam sistem
+   tanpa data bercampur — setiap paparan/laporan ditapis ikut S.tahunSTPM semasa. */
+function pilihanTahunHtml() {
+  const opsyen = ['<option value="">Semua Tahun</option>'].concat(
+    S.senaraiTahun.map(t => '<option value="'+t+'"' + (t===S.tahunSTPM?' selected':'') + '>Tahun STPM '+t+'</option>')
+  );
+  return '<select id="pilihTahun">' + opsyen.join('') + '</select>';
+}
+function pasangPilihanTahun(callback) {
+  const el = document.getElementById('pilihTahun');
+  if (el) el.addEventListener('change', () => { S.tahunSTPM = el.value; callback(); });
+}
+
 /* ======================= DASHBOARD (MODUL 15/16/17/40) ======================= */
 function muatDashboard() {
-  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml();
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml() + pilihanTahunHtml();
   pasangPilihanSemester(muatDashboard);
+  pasangPilihanTahun(muatDashboard);
 
   const fn = bolehUrus() ? 'apiDashboardGPK' : 'apiDashboardGuru';
-  panggil(fn, { token: S.token, semester: S.semester }).then(res => {
+  panggil(fn, { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(res => {
     if (bolehUrus()) renderDashboardGPK(res); else renderDashboardGuru(res);
   }).catch(err => renderRalat(err));
 }
@@ -270,13 +303,14 @@ function renderDashboardGuru(d) {
   document.getElementById('content').innerHTML = `
     <div class="panel">
       <h3>Pelajar Bawah Seliaan — Semester ${S.semester.slice(1)}</h3>
+      <p class="kecil">Format paparan: Markah (Gred).</p>
       <div class="tbl-scroll"><table><thead><tr>
         <th>Pelajar</th><th>Kelas</th><th>Subjek</th><th>TOV</th><th>OTR1</th><th>AR1</th><th>OTR2</th><th>AR2</th><th>ETR</th><th>Sebenar</th><th>Status</th><th>Trend</th><th>Risiko</th><th>Intervensi</th>
       </tr></thead><tbody>
         ${d.senarai.map(r => `<tr>
           <td>${escapeHtml(r.namaPelajar)}</td><td>${escapeHtml(r.kelas)}</td><td>${escapeHtml(r.KodSubjek)}</td>
-          <td>${escapeHtml(r.TOV)}</td><td>${escapeHtml(r.OTR1)}</td><td>${escapeHtml(r.AR1)}</td>
-          <td>${escapeHtml(r.OTR2)}</td><td>${escapeHtml(r.AR2)}</td><td>${escapeHtml(r.ETR)}</td><td>${escapeHtml(r.SEBENAR)}</td>
+          <td>${formatMG(r.TOV_Markah, r.TOV_Gred)}</td><td>${formatMG(r.OTR1_Markah, r.OTR1_Gred)}</td><td>${formatMG(r.AR1_Markah, r.AR1_Gred)}</td>
+          <td>${formatMG(r.OTR2_Markah, r.OTR2_Gred)}</td><td>${formatMG(r.AR2_Markah, r.AR2_Gred)}</td><td>${formatMG(r.ETR_Markah, r.ETR_Gred)}</td><td>${formatMG(r.SEBENAR_Markah, r.SEBENAR_Gred)}</td>
           <td>${lencana(r.statusGapETR)}</td><td>${lencana(r.trend)}</td><td>${lencana(r.risiko)}</td><td>${r.bilanganIntervensi}</td>
         </tr>`).join('') || '<tr><td colspan=14 class="kecil">Tiada rekod.</td></tr>'}
       </tbody></table></div>
@@ -289,7 +323,10 @@ function renderRalat(err) {
 
 /* ======================= PELAJAR (MODUL 2, 4) ======================= */
 function muatPelajar() {
-  panggil('apiSenaraiPelajar', { token: S.token }).then(res => {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
+  pasangPilihanTahun(muatPelajar);
+
+  panggil('apiSenaraiPelajar', { token: S.token, tahunSTPM: S.tahunSTPM }).then(res => {
     S.cachePelajar = res.senarai;
     renderPelajar(res.senarai);
   }).catch(renderRalat);
@@ -305,7 +342,7 @@ function renderPelajar(senarai) {
         <div><label>Nama</label><input id="pNama"></div>
         <div><label>Jantina</label><select id="pJantina"><option>LELAKI</option><option>PEREMPUAN</option></select></div>
         <div><label>Kelas</label><input id="pKelas"></div>
-        <div><label>Tahun STPM</label><input id="pTahun" value="${new Date().getFullYear()}"></div>
+        <div><label>Tahun STPM</label><input id="pTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
         <div><label>Status</label><select id="pStatus"><option>AKTIF</option><option>TIDAK_AKTIF</option></select></div>
       </div>
       <label>Catatan</label><textarea id="pCatatan" rows="2"></textarea>
@@ -409,11 +446,98 @@ function simpanSubjek() {
   }).then(() => { tunjukMesej('Subjek disimpan.'); muatSubjek(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
+/* ======================= SKEMA GRED / BLD (khusus setiap subjek x semester) ======================= */
+function muatBLD() {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml();
+  pasangPilihanSemester(muatBLD);
+
+  Promise.all([
+    panggil('apiSenaraiSubjek', { token: S.token }),
+    panggil('apiSenaraiBLD', { token: S.token, semester: S.semester })
+  ]).then(([subjekRes, bldRes]) => renderBLD(subjekRes.senarai, bldRes.senarai, bldRes.senaraiGred)).catch(renderRalat);
+}
+
+function renderBLD(senaraiSubjek, senaraiBLD, senaraiGred) {
+  S.cacheSubjek = senaraiSubjek;
+  const kumpulan = {};
+  senaraiBLD.forEach(b => { (kumpulan[b.KodSubjek] = kumpulan[b.KodSubjek] || []).push(b); });
+  const opsyenSubjek = senaraiSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('');
+  const opsyenSemester = SEMESTER_HEADCOUNT.map(sem => '<option value="'+sem+'"'+(sem===S.semester?' selected':'')+'>'+sem+'</option>').join('');
+
+  const borangUrus = bolehUrusBLD() ? `
+    <div class="panel">
+      <h3>Tambah / Kemaskini Julat Markah — Semester ${S.semester.slice(1)}</h3>
+      <p class="kecil">Setiap mata pelajaran ada BLD sendiri BAGI SETIAP SEMESTER (S1, S2, S3 boleh ada julat markah berbeza untuk subjek yang sama). Julat tidak boleh bertindih dalam subjek+semester yang sama.</p>
+      <div class="borang-grid">
+        <div><label>Kod Subjek</label><select id="bKodSubjek">${opsyenSubjek}</select></div>
+        <div><label>Gred</label><select id="bGred">${senaraiGred.map(g=>'<option>'+g+'</option>').join('')}</select></div>
+        <div><label>Markah Min</label><input id="bMin" type="number" min="0" max="100" step="0.5"></div>
+        <div><label>Markah Max</label><input id="bMax" type="number" min="0" max="100" step="0.5"></div>
+      </div>
+      <p class="kecil">Disimpan untuk Semester <b>${S.semester.slice(1)}</b> (tukar pemilih Semester di atas jika perlu tetapkan semester lain).</p>
+      <button id="btnSimpanBLD">Simpan Julat</button>
+    </div>
+    <div class="panel">
+      <h3>Salin BLD</h3>
+      <p class="kecil">Salin BLD antara subjek dan/atau antara semester (cth. tetapkan BLD Semester 1 dahulu, salin sebagai titik permulaan untuk Semester 2, kemudian laraskan).</p>
+      <div class="borang-grid">
+        <div><label>Salin Dari (Subjek)</label><select id="bSumberSubjek">${opsyenSubjek}</select></div>
+        <div><label>Salin Dari (Semester)</label><select id="bSumberSemester">${opsyenSemester}</select></div>
+        <div><label>Salin Ke (Subjek)</label><select id="bDestinasiSubjek">${opsyenSubjek}</select></div>
+        <div><label>Salin Ke (Semester)</label><select id="bDestinasiSemester">${opsyenSemester}</select></div>
+      </div>
+      <button class="sekunder" id="btnSalinBLD">Salin BLD (gantikan destinasi)</button>
+    </div>` : '';
+
+  document.getElementById('content').innerHTML = borangUrus +
+    `<div id="senaraiBLDSubjek">${senaraiSubjek.map(s => renderJadualBLDSubjek(s, kumpulan[s.KodSubjek] || [])).join('')}</div>`;
+
+  if (!bolehUrusBLD()) return;
+
+  document.getElementById('btnSimpanBLD').addEventListener('click', () => {
+    panggil('apiSimpanBLD', {
+      token: S.token, kodSubjek: document.getElementById('bKodSubjek').value, semester: S.semester,
+      gred: document.getElementById('bGred').value,
+      markahMin: document.getElementById('bMin').value, markahMax: document.getElementById('bMax').value
+    }).then(() => { tunjukMesej('Julat BLD disimpan.'); muatBLD(); }).catch(err => tunjukMesej(err, 'ralat'));
+  });
+
+  document.getElementById('btnSalinBLD').addEventListener('click', () => {
+    const sumberSubjek = document.getElementById('bSumberSubjek').value, sumberSemester = document.getElementById('bSumberSemester').value;
+    const destinasiSubjek = document.getElementById('bDestinasiSubjek').value, destinasiSemester = document.getElementById('bDestinasiSemester').value;
+    if (sumberSubjek === destinasiSubjek && sumberSemester === destinasiSemester) { tunjukMesej('Sumber dan destinasi tidak boleh sama.', 'ralat'); return; }
+    if (!confirm('Ini akan GANTIKAN BLD sedia ada bagi ' + destinasiSubjek + ' (' + destinasiSemester + '). Teruskan?')) return;
+    panggil('apiSalinBLD', {
+      token: S.token, kodSubjekSumber: sumberSubjek, semesterSumber: sumberSemester,
+      kodSubjekDestinasi: destinasiSubjek, semesterDestinasi: destinasiSemester
+    }).then(() => { tunjukMesej('BLD disalin.'); muatBLD(); }).catch(err => tunjukMesej(err, 'ralat'));
+  });
+}
+
+function renderJadualBLDSubjek(subjek, senaraiJulat) {
+  senaraiJulat = senaraiJulat.slice().sort((a, b) => Number(b.MarkahMin) - Number(a.MarkahMin));
+  return `<div class="panel">
+    <h3>${escapeHtml(subjek.KodSubjek)} — ${escapeHtml(subjek.NamaSubjek)} <span class="kecil">(Semester ${S.semester.slice(1)})</span></h3>
+    <div class="tbl-scroll"><table><thead><tr><th>Gred</th><th>Markah Min</th><th>Markah Max</th>${bolehUrusBLD()?'<th></th>':''}</tr></thead>
+    <tbody>${senaraiJulat.map(b => `<tr><td><b>${escapeHtml(b.Gred)}</b></td><td>${escapeHtml(b.MarkahMin)}</td><td>${escapeHtml(b.MarkahMax)}</td>
+      ${bolehUrusBLD() ? '<td><span class="aksi-link" onclick="padamBLD(\''+subjek.KodSubjek+'\',\''+b.Gred+'\')">Padam</span></td>' : ''}</tr>`).join('')
+      || '<tr><td colspan="'+(bolehUrusBLD()?4:3)+'" class="kecil">BLD belum ditetapkan untuk subjek ini pada semester ini — guru tidak boleh key-in markah sehingga ini disiapkan.</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+function padamBLD(kodSubjek, gred) {
+  if (!confirm('Padam julat gred ' + gred + ' bagi ' + kodSubjek + ' (' + S.semester + ')?')) return;
+  panggil('apiPadamBLD', { token: S.token, kodSubjek, semester: S.semester, gred })
+    .then(() => { tunjukMesej('Julat dipadam.'); muatBLD(); }).catch(err => tunjukMesej(err, 'ralat'));
+}
+
 /* ======================= HEADCOUNT (MODUL 5, 6, 29) ======================= */
 function muatHeadcount() {
-  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml();
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml() + pilihanTahunHtml();
   pasangPilihanSemester(muatHeadcount);
-  panggil('apiDapatkanHeadcount', { token: S.token, semester: S.semester }).then(renderHeadcount).catch(renderRalat);
+  pasangPilihanTahun(muatHeadcount);
+  panggil('apiDapatkanHeadcount', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(renderHeadcount).catch(renderRalat);
 }
 
 function renderHeadcount(res) {
@@ -423,30 +547,31 @@ function renderHeadcount(res) {
 
   document.getElementById('content').innerHTML = `
     <div class="panel">
-      <h3>Kemaskini Pantas Satu Rekod (Pelajar x Subjek x Tahun)</h3>
-      <p class="kecil">Guru hanya boleh isi AR1/AR2. Sistem terus mengira Gap, Status, Trend & Risiko (MODUL 29) — tiada kiraan manual diperlukan.</p>
+      <h3>Key In Markah — Satu Rekod (Pelajar x Subjek x Tahun)</h3>
+      <p class="kecil">Guru hanya boleh isi AR1/AR2. Taip MARKAH (0-100) — Gred diterbitkan automatik ikut BLD subjek berkenaan (tetapkan dahulu di menu "Skema Gred (BLD)"). Sistem terus mengira Gap, Status, Trend & Risiko (MODUL 29).</p>
       <div class="borang-grid">
         <div><label>ID Pelajar</label><input id="hIdPelajar"></div>
         <div><label>Kod Subjek</label><input id="hKodSubjek"></div>
-        <div><label>Tahun STPM</label><input id="hTahun" value="${new Date().getFullYear()}"></div>
+        <div><label>Tahun STPM</label><input id="hTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
         <div><label>Medan</label><select id="hMedan">
-          ${['TOV','OTR1','AR1','OTR2','AR2','ETR','SEBENAR'].map(m => '<option'+(bolehEditSemua||medanBolehGuru.indexOf(m)!==-1?'':' disabled')+'>'+m+'</option>').join('')}
+          ${MEDAN_HEADCOUNT.map(m => '<option'+(bolehEditSemua||medanBolehGuru.indexOf(m)!==-1?'':' disabled')+'>'+m+'</option>').join('')}
         </select></div>
-        <div><label>Nilai (Gred)</label><input id="hNilai" placeholder="cth. B+"></div>
+        <div><label>Markah (0-100)</label><input id="hMarkah" type="number" min="0" max="100" step="0.5" placeholder="cth. 72"></div>
       </div>
       <label>Sebab / Catatan perubahan</label><input id="hSebab" placeholder="cth. Keputusan ujian bulanan">
       <button id="btnSimpanHeadcount">Simpan</button>
     </div>
     <div class="panel">
       <h3>Headcount Semester ${S.semester.slice(1)} (${senarai.length} rekod)</h3>
+      <p class="kecil">Format paparan: Markah (Gred).</p>
       <div class="tbl-scroll"><table><thead><tr>
         <th>Pelajar</th><th>Kelas</th><th>Subjek</th><th>TOV</th><th>OTR1</th><th>AR1</th><th>Gap1</th><th>OTR2</th><th>AR2</th><th>Gap2</th><th>ETR</th><th>Sebenar</th><th>Status</th><th>Trend</th><th>Risiko</th>
       </tr></thead><tbody>
         ${senarai.map(r => `<tr>
           <td>${escapeHtml(r.namaPelajar||r.ID_Pelajar)}</td><td>${escapeHtml(r.kelas)}</td><td>${escapeHtml(r.KodSubjek)}</td>
-          <td>${escapeHtml(r.TOV)}</td><td>${escapeHtml(r.OTR1)}</td><td>${escapeHtml(r.AR1)}</td><td>${lencana(r.statusGap1)}</td>
-          <td>${escapeHtml(r.OTR2)}</td><td>${escapeHtml(r.AR2)}</td><td>${lencana(r.statusGap2)}</td>
-          <td>${escapeHtml(r.ETR)}</td><td>${escapeHtml(r.SEBENAR)}</td>
+          <td>${formatMG(r.TOV_Markah, r.TOV_Gred)}</td><td>${formatMG(r.OTR1_Markah, r.OTR1_Gred)}</td><td>${formatMG(r.AR1_Markah, r.AR1_Gred)}</td><td>${lencana(r.statusGap1)}</td>
+          <td>${formatMG(r.OTR2_Markah, r.OTR2_Gred)}</td><td>${formatMG(r.AR2_Markah, r.AR2_Gred)}</td><td>${lencana(r.statusGap2)}</td>
+          <td>${formatMG(r.ETR_Markah, r.ETR_Gred)}</td><td>${formatMG(r.SEBENAR_Markah, r.SEBENAR_Gred)}</td>
           <td>${lencana(r.statusGapETR)}</td><td>${lencana(r.trend)}</td><td>${lencana(r.risiko)}</td>
         </tr>`).join('') || '<tr><td colspan=15 class="kecil">Tiada rekod.</td></tr>'}
       </tbody></table></div>
@@ -457,21 +582,22 @@ function renderHeadcount(res) {
       token: S.token, semester: S.semester,
       idPelajar: document.getElementById('hIdPelajar').value, kodSubjek: document.getElementById('hKodSubjek').value,
       tahunSTPM: document.getElementById('hTahun').value, medan: document.getElementById('hMedan').value,
-      nilai: document.getElementById('hNilai').value, sebab: document.getElementById('hSebab').value
-    }).then(() => { tunjukMesej('Headcount dikemaskini.'); muatHeadcount(); }).catch(err => tunjukMesej(err, 'ralat'));
+      markah: document.getElementById('hMarkah').value, sebab: document.getElementById('hSebab').value
+    }).then(res => { tunjukMesej('Headcount dikemaskini' + (res.gred ? ' — Gred: ' + res.gred : '') + '.'); muatHeadcount(); })
+      .catch(err => tunjukMesej(err, 'ralat'));
   });
 }
 
 /* ======================= ULANGAN (MODUL 12, 13) ======================= */
 function muatUlangan() {
-  document.getElementById('kawalanGlobal').innerHTML = '<select id="pilihSemesterUlangan"><option value="S1">Ulangan S1</option><option value="S2">Ulangan S2</option></select>';
+  document.getElementById('kawalanGlobal').innerHTML =
+    '<select id="pilihSemesterUlangan"><option value="S1">Ulangan S1</option><option value="S2">Ulangan S2</option></select>' + pilihanTahunHtml();
   if (!S.semesterUlangan) S.semesterUlangan = 'S1';
-  panggil('apiSenaraiUlangan', { token: S.token, semester: S.semesterUlangan }).then(renderUlangan).catch(renderRalat);
-  setTimeout(() => {
-    const el = document.getElementById('pilihSemesterUlangan');
-    el.value = S.semesterUlangan;
-    el.addEventListener('change', () => { S.semesterUlangan = el.value; muatUlangan(); });
-  });
+  panggil('apiSenaraiUlangan', { token: S.token, semester: S.semesterUlangan, tahunSTPM: S.tahunSTPM }).then(renderUlangan).catch(renderRalat);
+  pasangPilihanTahun(muatUlangan);
+  const elSem = document.getElementById('pilihSemesterUlangan');
+  elSem.value = S.semesterUlangan;
+  elSem.addEventListener('change', () => { S.semesterUlangan = elSem.value; muatUlangan(); });
 }
 
 function renderUlangan(res) {
@@ -481,7 +607,7 @@ function renderUlangan(res) {
       <div class="borang-grid">
         <div><label>ID Pelajar</label><input id="uIdPelajar"></div>
         <div><label>Kod Subjek</label><input id="uKodSubjek"></div>
-        <div><label>Tahun STPM</label><input id="uTahun" value="${new Date().getFullYear()}"></div>
+        <div><label>Tahun STPM</label><input id="uTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
         <div><label>Keputusan Asal</label><input id="uAsal" placeholder="cth. D"></div>
         <div><label>Sasaran Ulangan</label><input id="uSasaran" placeholder="cth. C"></div>
         <div><label>Ujian Selepas Intervensi</label><input id="uUjian"></div>
@@ -507,11 +633,12 @@ function renderUlangan(res) {
 
 /* ======================= INTERVENSI (MODUL 10, 11) ======================= */
 function muatIntervensi() {
-  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml();
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml() + pilihanTahunHtml();
   pasangPilihanSemester(muatIntervensi);
+  pasangPilihanTahun(muatIntervensi);
   Promise.all([
-    panggil('apiSenaraiIntervensi', { token: S.token, semester: S.semester }),
-    panggil('apiImpakIntervensi', { token: S.token, semester: S.semester })
+    panggil('apiSenaraiIntervensi', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }),
+    panggil('apiImpakIntervensi', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM })
   ]).then(([senaraiRes, impakRes]) => renderIntervensi(senaraiRes, impakRes)).catch(renderRalat);
 }
 
@@ -552,6 +679,89 @@ function renderIntervensi(senaraiRes, impakRes) {
   });
 }
 
+/* ======================= ANALISIS (MODUL 20, 21) ======================= */
+function muatAnalisis() {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml() + pilihanTahunHtml();
+  pasangPilihanSemester(() => { if (S.subAnalisis !== 'whatif') muatHighImpact(); });
+  pasangPilihanTahun(() => { if (S.subAnalisis !== 'whatif') muatHighImpact(); });
+
+  document.getElementById('content').innerHTML = `
+    <div class="panel">
+      <span class="tab-link aktif" data-sub="highimpact">Pelajar Impak Tinggi</span>
+      <span class="tab-link" data-sub="whatif">Simulasi What-If</span>
+    </div>
+    <div id="subAnalisis"></div>`;
+
+  document.querySelectorAll('#content .tab-link').forEach(el => el.addEventListener('click', () => {
+    document.querySelectorAll('#content .tab-link').forEach(x => x.classList.toggle('aktif', x === el));
+    S.subAnalisis = el.dataset.sub;
+    if (el.dataset.sub === 'highimpact') muatHighImpact(); else muatWhatIf();
+  }));
+  S.subAnalisis = 'highimpact';
+  muatHighImpact();
+}
+
+/* MODUL 20 — High Impact Students */
+function muatHighImpact() {
+  document.getElementById('subAnalisis').innerHTML = '<div class="muatan">Memuatkan...</div>';
+  panggil('apiTopHighImpactStudents', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(res => {
+    document.getElementById('subAnalisis').innerHTML = `
+      <div class="panel">
+        <h3>Top Pelajar Impak Tinggi — Semester ${S.semester.slice(1)}</h3>
+        <p class="kecil">Pelajar yang hampir capai sasaran (ETR) — fokus di sini beri kesan terbesar kepada GPS keseluruhan.</p>
+        <div class="tbl-scroll"><table><thead><tr>
+          <th>Pelajar</th><th>Kelas</th><th>Subjek</th><th>Semasa</th><th>Sasaran</th><th>Gap</th><th>Potensi Naik</th><th>Trend</th><th>Risiko</th><th>Subjek Kritikal Tunggal</th><th>Cadangan Tindakan</th>
+        </tr></thead><tbody>
+          ${res.senarai.map(s => `<tr>
+            <td>${escapeHtml(s.namaPelajar||s.idPelajar)}</td><td>${escapeHtml(s.kelas)}</td><td>${escapeHtml(s.kodSubjek)}</td>
+            <td>${formatMG(s.markahSemasa, s.gredSemasa)}</td><td>${formatMG(s.markahSasaran, s.gredSasaran)}</td><td>${s.gap}</td><td>${escapeHtml(s.potensiPeningkatan)}</td>
+            <td>${lencana(s.trend)}</td><td>${lencana(s.risiko)}</td><td>${s.hanyaSatuSubjekKritikal?'Ya':'Tidak'}</td><td class="kecil">${escapeHtml(s.cadanganTindakan)}</td>
+          </tr>`).join('') || '<tr><td colspan=11 class="kecil">Tiada calon impak tinggi buat masa ini.</td></tr>'}
+        </tbody></table></div>
+      </div>`;
+  }).catch(err => { document.getElementById('subAnalisis').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
+}
+
+/* MODUL 21 — What-If Analysis (SIMULASI sahaja, tidak ubah data sebenar) */
+function muatWhatIf() {
+  document.getElementById('subAnalisis').innerHTML = `
+    <div class="panel">
+      <h3>Simulasi What-If <span class="lencana KUNING">SIMULASI</span></h3>
+      <p class="kecil">Anggaran sahaja — TIDAK mengubah data sebenar dalam sistem.</p>
+      <div class="borang-grid">
+        <div><label>ID Pelajar</label><input id="wIdPelajar"></div>
+        <div><label>Semester</label><select id="wSemester"><option>S1</option><option>S2</option><option>S3</option></select></div>
+        <div><label>Kod Subjek</label><input id="wKodSubjek"></div>
+        <div><label>Markah Hipotesis (0-100)</label><input id="wMarkahBaru" type="number" min="0" max="100" step="0.5" placeholder="cth. 78"></div>
+      </div>
+      <button id="btnSimulasi">Jana Simulasi</button>
+    </div>
+    <div id="hasilSimulasi"></div>`;
+  document.getElementById('wSemester').value = S.semester;
+
+  document.getElementById('btnSimulasi').addEventListener('click', () => {
+    panggil('apiSimulasiWhatIf', {
+      token: S.token, idPelajar: document.getElementById('wIdPelajar').value,
+      semester: document.getElementById('wSemester').value, kodSubjek: document.getElementById('wKodSubjek').value,
+      markahBaru: document.getElementById('wMarkahBaru').value
+    }).then(res => {
+      document.getElementById('hasilSimulasi').innerHTML = `
+        <div class="panel">
+          <h3><span class="lencana KUNING">SIMULASI</span> ${escapeHtml(res.idPelajar)} — ${escapeHtml(res.kodSubjek)} (${escapeHtml(res.semester)})</h3>
+          <p>Semasa: <b>${formatMG(res.markahSemasa, res.gredSemasa)}</b> &rarr; Hipotesis: <b>${formatMG(res.markahBaru, res.gredBaru)}</b></p>
+          <div class="grid-kad">
+            <div class="kad"><div class="nilai">${res.pngkSemasa ?? '-'}</div><div class="label">PNGK Semasa</div></div>
+            <div class="kad"><div class="nilai">${res.pngkSelepasSimulasi ?? '-'}</div><div class="label">PNGK Selepas Simulasi</div></div>
+            <div class="kad ${res.perubahanPNGK>0?'hijau':(res.perubahanPNGK<0?'merah':'')}"><div class="nilai">${res.perubahanPNGK ?? '-'}</div><div class="label">Perubahan PNGK</div></div>
+            <div class="kad"><div class="nilai">${res.gpsSemasa ?? '-'}</div><div class="label">GPS Subjek Semasa</div></div>
+            <div class="kad"><div class="nilai">${res.gpsSelepasSimulasi ?? '-'}</div><div class="label">GPS Subjek Selepas Simulasi</div></div>
+            <div class="kad ${res.perubahanGPS>0?'hijau':(res.perubahanGPS<0?'merah':'')}"><div class="nilai">${res.perubahanGPS ?? '-'}</div><div class="label">Perubahan GPS</div></div>
+          </div>
+        </div>`;
+    }).catch(err => tunjukMesej(err, 'ralat'));
+  });
+}
+
 /* ======================= LAPORAN (MODUL 22) ======================= */
 const JENIS_LAPORAN_LABEL = {
   HEADCOUNT_S1: 'Headcount Semester 1', HEADCOUNT_S2: 'Headcount Semester 2', HEADCOUNT_S3: 'Headcount Semester 3',
@@ -560,19 +770,24 @@ const JENIS_LAPORAN_LABEL = {
 };
 
 function muatLaporan() {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
+  pasangPilihanTahun(() => { if (S.laporanAktif) janaLaporan(S.laporanAktif, document.querySelector('.tab-link[data-jenis="'+S.laporanAktif+'"]')); });
+
   document.getElementById('content').innerHTML = `
     <div class="panel">
       <h3>Jana Laporan</h3>
       ${Object.keys(JENIS_LAPORAN_LABEL).map(j => '<span class="tab-link" data-jenis="'+j+'">'+JENIS_LAPORAN_LABEL[j]+'</span>').join('')}
     </div>
     <div id="hasilLaporan"></div>`;
+  S.laporanAktif = '';
   document.querySelectorAll('#content .tab-link').forEach(el => el.addEventListener('click', () => janaLaporan(el.dataset.jenis, el)));
 }
 
 function janaLaporan(jenis, elKlik) {
+  S.laporanAktif = jenis;
   document.querySelectorAll('#content .tab-link').forEach(el => el.classList.toggle('aktif', el === elKlik));
   document.getElementById('hasilLaporan').innerHTML = '<div class="muatan">Menjana laporan...</div>';
-  panggil('apiJanaLaporan', { token: S.token, jenis, semester: S.semester }).then(res => {
+  panggil('apiJanaLaporan', { token: S.token, jenis, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(res => {
     if (!res.baris.length) { document.getElementById('hasilLaporan').innerHTML = '<div class="panel kecil">Tiada data untuk laporan ini.</div>'; return; }
     const lajur = Object.keys(res.baris[0]);
     document.getElementById('hasilLaporan').innerHTML = `

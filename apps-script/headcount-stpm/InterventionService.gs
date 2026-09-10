@@ -4,6 +4,14 @@
 
 const HEADER_INTERVENTIONS = ['ID_Intervensi', 'ID_Pelajar', 'KodSubjek', 'Semester', 'Tarikh', 'JenisIntervensi', 'PuncaMasalah', 'Objektif', 'GuruPIC', 'Tempoh', 'Status', 'Catatan', 'KeputusanSelepasIntervensi'];
 
+/* Peta ID_Pelajar -> TahunSTPM — INTERVENTIONS/REPEAT tidak simpan TahunSTPM
+   terus, jadi batch (cth. calon 2026 vs 2027) ditentukan menerusi pelajar. */
+function petaTahunSTPMPelajar() {
+  const peta = {};
+  bacaSheetSebagaiObjek(SHEET_STUDENTS).forEach(s => { peta[s.ID_Pelajar] = String(s.TahunSTPM); });
+  return peta;
+}
+
 function apiSenaraiIntervensi(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
@@ -12,6 +20,10 @@ function apiSenaraiIntervensi(p) {
   if (p.idPelajar) senarai = senarai.filter(i => i.ID_Pelajar === p.idPelajar);
   if (p.semester) senarai = senarai.filter(i => i.Semester === p.semester);
   if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) senarai = senarai.filter(i => sesi.skopSubjek.includes(i.KodSubjek));
+  if (p.tahunSTPM) {
+    const petaTahun = petaTahunSTPMPelajar();
+    senarai = senarai.filter(i => petaTahun[i.ID_Pelajar] === String(p.tahunSTPM));
+  }
 
   return jaya({ senarai, jenisIntervensiPilihan: jenisIntervensiLalai() });
 }
@@ -64,7 +76,11 @@ function apiImpakIntervensi(p) {
 
   const semester = String(p.semester || 'S1').trim();
   const mapGred = dapatkanGred();
-  const intervensiSenarai = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS).filter(i => i.Semester === semester);
+  let intervensiSenarai = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS).filter(i => i.Semester === semester);
+  if (p.tahunSTPM) {
+    const petaTahun = petaTahunSTPMPelajar();
+    intervensiSenarai = intervensiSenarai.filter(i => petaTahun[i.ID_Pelajar] === String(p.tahunSTPM));
+  }
   const headcountSenarai = bacaSheetSebagaiObjek(sheetHeadcount(semester));
 
   let pulih = 0, masihBerisiko = 0;
@@ -72,14 +88,17 @@ function apiImpakIntervensi(p) {
     const hc = headcountSenarai.find(h => h.ID_Pelajar === i.ID_Pelajar && h.KodSubjek === i.KodSubjek);
     if (!hc) return Object.assign({}, i, { status: 'TIADA_DATA_HEADCOUNT' });
 
-    const ar1 = nilaiGred(mapGred, hc.AR1);
-    const ar2 = nilaiGred(mapGred, hc.AR2);
+    const ar1 = nilaiGred(mapGred, hc.AR1_Gred);
+    const ar2 = nilaiGred(mapGred, hc.AR2_Gred);
     let status = 'BELUM_LENGKAP';
     if (ar1 !== null && ar2 !== null) {
       status = ar2 > ar1 ? 'BERJAYA_MENINGKAT' : (ar2 === ar1 ? 'KEKAL' : 'MASIH_MENURUN');
       if (status === 'BERJAYA_MENINGKAT') pulih++; else masihBerisiko++;
     }
-    return Object.assign({}, i, { AR1: hc.AR1, AR2: hc.AR2, status });
+    return Object.assign({}, i, {
+      AR1_Markah: hc.AR1_Markah, AR1_Gred: hc.AR1_Gred,
+      AR2_Markah: hc.AR2_Markah, AR2_Gred: hc.AR2_Gred, status
+    });
   });
 
   const jumlahDinilai = pulih + masihBerisiko;

@@ -5,7 +5,13 @@
  * AR1, OTR2, AR2, ETR, SEBENAR (bukan sekadar gred akhir — rujuk MODUL 5).
  * ========================================================================= */
 
-const HEADER_HEADCOUNT = ['ID_Pelajar', 'KodSubjek', 'TahunSTPM', 'TOV', 'OTR1', 'AR1', 'OTR2', 'AR2', 'ETR', 'SEBENAR', 'Catatan', 'KemaskiniOleh', 'KemaskiniPada'];
+/* Setiap medan (TOV/OTR1/AR1/OTR2/AR2/ETR/SEBENAR) simpan SEPASANG lajur: Markah
+   (sumber, ditaip guru/admin) + Gred (terbitan, dikira backend daripada BLD subjek
+   berkenaan — rujuk GradeBoundaryService.gs & AnalysisService.gs). */
+const HEADER_HEADCOUNT = ['ID_Pelajar', 'KodSubjek', 'TahunSTPM',
+  'TOV_Markah', 'TOV_Gred', 'OTR1_Markah', 'OTR1_Gred', 'AR1_Markah', 'AR1_Gred',
+  'OTR2_Markah', 'OTR2_Gred', 'AR2_Markah', 'AR2_Gred', 'ETR_Markah', 'ETR_Gred',
+  'SEBENAR_Markah', 'SEBENAR_Gred', 'Catatan', 'KemaskiniOleh', 'KemaskiniPada'];
 
 function kunciRekod(idPelajar, kodSubjek, tahunSTPM) {
   return idPelajar + '|' + kodSubjek + '|' + tahunSTPM;
@@ -43,6 +49,8 @@ function apiDapatkanHeadcount(p) {
 }
 
 /* Simpan/kemaskini satu medan headcount (TOV/OTR1/AR1/OTR2/AR2/ETR/SEBENAR).
+   Pengguna taip MARKAH (0-100); Gred DITERBITKAN secara automatik daripada BLD
+   khusus subjek berkenaan (GradeBoundaryService.gs) — tiada Gred ditaip terus.
    Guru hanya dibenarkan kemaskini AR1/AR2 (MODUL 16); peranan pengurusan boleh semua medan. */
 function apiSimpanHeadcount(p) {
   const sesi = wajibPeranan(p.token, null);
@@ -52,12 +60,11 @@ function apiSimpanHeadcount(p) {
   const kodSubjek = String(p.kodSubjek || '').trim();
   const tahunSTPM = String(p.tahunSTPM || '').trim();
   const medan = String(p.medan || '').trim(); // TOV|OTR1|AR1|OTR2|AR2|ETR|SEBENAR
-  const nilaiBaharu = String(p.nilai || '').trim();
+  const markahMentah = p.markah === undefined || p.markah === null ? '' : String(p.markah).trim();
 
-  const medanDibenarkanGuru = ['AR1', 'AR2'];
   if (!idPelajar || !kodSubjek || !tahunSTPM || !medan) return ralat('Data tidak lengkap.');
-  if (['TOV', 'OTR1', 'AR1', 'OTR2', 'AR2', 'ETR', 'SEBENAR'].indexOf(medan) === -1) return ralat('Medan tidak sah: ' + medan);
-  if (sesi.peranan === ROLE_GURU && medanDibenarkanGuru.indexOf(medan) === -1) {
+  if (MEDAN_HEADCOUNT.indexOf(medan) === -1) return ralat('Medan tidak sah: ' + medan);
+  if (sesi.peranan === ROLE_GURU && MEDAN_BOLEH_GURU.indexOf(medan) === -1) {
     return ralat('Guru hanya dibenarkan memasukkan AR1 dan AR2.');
   }
   if (!cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar)) return ralat('Pelajar tidak dijumpai.');
@@ -65,16 +72,35 @@ function apiSimpanHeadcount(p) {
   const enrol = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).find(e => e.ID_Pelajar === idPelajar && e.KodSubjek === kodSubjek);
   if (!enrol) return ralat('Pelajar tidak berdaftar untuk mata pelajaran ini (MODUL 26: validasi).');
 
+  let markahBaru = '';
+  let gredBaru = '';
+  if (markahMentah !== '') {
+    const nombor = Number(markahMentah);
+    if (isNaN(nombor) || nombor < 0 || nombor > 100) return ralat('Markah mesti nombor antara 0-100.');
+    markahBaru = nombor;
+
+    const bldMap = dapatkanBLD();
+    gredBaru = gredDaripadaMarkah(bldMap, kodSubjek, p.semester, markahBaru);
+    if (!gredBaru) {
+      return ralat('BLD (skema markah→gred) belum lengkap untuk subjek "' + kodSubjek + '" pada ' + p.semester + ', atau markah ' +
+        markahBaru + ' tiada dalam mana-mana julat gred yang ditetapkan. Sila lengkapkan di menu "Skema Gred (BLD)" dahulu.');
+    }
+  }
+
   const namaSheet = sheetHeadcount(p.semester);
   const semua = bacaSheetSebagaiObjek(namaSheet);
   const sediaAda = semua.find(r => r.ID_Pelajar === idPelajar && r.KodSubjek === kodSubjek && String(r.TahunSTPM) === tahunSTPM);
 
-  const nilaiLama = sediaAda ? sediaAda[medan] : '';
-  const objek = sediaAda ? Object.assign({}, sediaAda) : {
-    ID_Pelajar: idPelajar, KodSubjek: kodSubjek, TahunSTPM: tahunSTPM,
-    TOV: '', OTR1: '', AR1: '', OTR2: '', AR2: '', ETR: '', SEBENAR: '', Catatan: ''
-  };
-  objek[medan] = nilaiBaharu;
+  const markahLama = sediaAda ? sediaAda[medan + '_Markah'] : '';
+  const gredLama = sediaAda ? sediaAda[medan + '_Gred'] : '';
+
+  const objek = sediaAda ? Object.assign({}, sediaAda) : { ID_Pelajar: idPelajar, KodSubjek: kodSubjek, TahunSTPM: tahunSTPM, Catatan: '' };
+  MEDAN_HEADCOUNT.forEach(m => {
+    if (objek[m + '_Markah'] === undefined) objek[m + '_Markah'] = '';
+    if (objek[m + '_Gred'] === undefined) objek[m + '_Gred'] = '';
+  });
+  objek[medan + '_Markah'] = markahBaru;
+  objek[medan + '_Gred'] = gredBaru;
   objek.KemaskiniOleh = sesi.nama;
   objek.KemaskiniPada = formatTarikhMasa(new Date());
   if (p.catatan !== undefined) objek.Catatan = String(p.catatan).trim();
@@ -87,10 +113,11 @@ function apiSimpanHeadcount(p) {
 
   // MODUL 3: setiap perubahan TOV mesti direkod (tarikh, pengguna, nilai lama/baharu, sebab).
   catatAudit(sesi, sediaAda ? 'KEMASKINI' : 'TAMBAH', 'HEADCOUNT_' + p.semester,
-    kunciRekod(idPelajar, kodSubjek, tahunSTPM), medan + '=' + nilaiLama, medan + '=' + nilaiBaharu,
+    kunciRekod(idPelajar, kodSubjek, tahunSTPM),
+    medan + '=' + markahLama + ' (' + gredLama + ')', medan + '=' + markahBaru + ' (' + gredBaru + ')',
     p.sebab || ('Kemaskini ' + medan));
 
-  return jaya({});
+  return jaya({ gred: gredBaru });
 }
 
 /* MODUL 14 — Profil akademik lengkap seorang pelajar: headcount semua semester,
@@ -118,7 +145,7 @@ function apiProfilPelajar(p) {
 
   const intervensi = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS).filter(i => i.ID_Pelajar === p.idPelajar);
 
-  const gredSebenarSemua = ['S1', 'S2', 'S3'].reduce((acc, sem) => acc.concat(semuaSemester[sem].map(r => r.SEBENAR).filter(Boolean)), []);
+  const gredSebenarSemua = ['S1', 'S2', 'S3'].reduce((acc, sem) => acc.concat(semuaSemester[sem].map(r => r.SEBENAR_Gred).filter(Boolean)), []);
   const pngk = kiraPNGK(mapGred, gredSebenarSemua);
 
   return jaya({ pelajar, headcount: semuaSemester, ulangan, intervensi, pngk });

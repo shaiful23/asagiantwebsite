@@ -26,42 +26,57 @@ function apiJanaLaporan(p) {
 
   if (jenis.indexOf('HEADCOUNT_') === 0) {
     const semester = jenis.split('_')[1];
-    baris = bacaSheetSebagaiObjek(sheetHeadcount(semester)).map(r => {
+    let rekodHeadcount = bacaSheetSebagaiObjek(sheetHeadcount(semester));
+    if (p.tahunSTPM) rekodHeadcount = rekodHeadcount.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
+    baris = rekodHeadcount.map(r => {
       const a = analisisRekodHeadcount(mapGred, konfig, r);
       const pelajar = pelajarMap[r.ID_Pelajar] || {};
       return {
         IDPelajar: r.ID_Pelajar, Nama: pelajar.Nama || '', Kelas: pelajar.Kelas || '', Subjek: r.KodSubjek,
-        TOV: r.TOV, OTR1: r.OTR1, AR1: r.AR1, OTR2: r.OTR2, AR2: r.AR2, ETR: r.ETR, SEBENAR: r.SEBENAR,
+        TOV: formatMarkahGred(r.TOV_Markah, r.TOV_Gred), OTR1: formatMarkahGred(r.OTR1_Markah, r.OTR1_Gred),
+        AR1: formatMarkahGred(r.AR1_Markah, r.AR1_Gred), OTR2: formatMarkahGred(r.OTR2_Markah, r.OTR2_Gred),
+        AR2: formatMarkahGred(r.AR2_Markah, r.AR2_Gred), ETR: formatMarkahGred(r.ETR_Markah, r.ETR_Gred),
+        SEBENAR: formatMarkahGred(r.SEBENAR_Markah, r.SEBENAR_Gred),
         StatusGapETR: a.statusGapETR, Trend: a.trend, Risiko: a.risiko
       };
     });
   } else if (jenis === 'PELAJAR_BERISIKO') {
     ['S1', 'S2', 'S3'].forEach(sem => {
-      bacaSheetSebagaiObjek(sheetHeadcount(sem)).forEach(r => {
+      let rekodSem = bacaSheetSebagaiObjek(sheetHeadcount(sem));
+      if (p.tahunSTPM) rekodSem = rekodSem.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
+      rekodSem.forEach(r => {
         const a = analisisRekodHeadcount(mapGred, konfig, r);
         if (a.risiko === RISIKO_BERISIKO) {
           const pelajar = pelajarMap[r.ID_Pelajar] || {};
-          baris.push({ Semester: sem, IDPelajar: r.ID_Pelajar, Nama: pelajar.Nama || '', Kelas: pelajar.Kelas || '', Subjek: r.KodSubjek, ETR: r.ETR, Sebenar: r.SEBENAR || r.AR2 || r.AR1, Trend: a.trend });
+          baris.push({
+            Semester: sem, IDPelajar: r.ID_Pelajar, Nama: pelajar.Nama || '', Kelas: pelajar.Kelas || '', Subjek: r.KodSubjek,
+            ETR: formatMarkahGred(r.ETR_Markah, r.ETR_Gred), Sebenar: formatMarkahGred(markahEfektif(r), gredEfektif(r)), Trend: a.trend
+          });
         }
       });
     });
   } else if (jenis === 'INTERVENSI') {
-    baris = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS).map(i => {
+    let rekodIntervensi = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS);
+    if (p.tahunSTPM) rekodIntervensi = rekodIntervensi.filter(i => pelajarMap[i.ID_Pelajar] && String(pelajarMap[i.ID_Pelajar].TahunSTPM) === String(p.tahunSTPM));
+    baris = rekodIntervensi.map(i => {
       const pelajar = pelajarMap[i.ID_Pelajar] || {};
       return Object.assign({ Nama: pelajar.Nama || '', Kelas: pelajar.Kelas || '' }, i, { __row: undefined });
     });
   } else if (jenis === 'ULANGAN_S1' || jenis === 'ULANGAN_S2') {
     const sem = jenis.split('_')[1];
-    baris = bacaSheetSebagaiObjek(sheetRepeat(sem)).map(r => {
+    let rekodUlangan = bacaSheetSebagaiObjek(sheetRepeat(sem));
+    if (p.tahunSTPM) rekodUlangan = rekodUlangan.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
+    baris = rekodUlangan.map(r => {
       const pelajar = pelajarMap[r.ID_Pelajar] || {};
       return Object.assign({ Nama: pelajar.Nama || '', Kelas: pelajar.Kelas || '' }, r, { __row: undefined });
     });
   } else if (jenis === 'PRESTASI_SUBJEK' || jenis === 'GPS') {
     const semester = String(p.semester || 'S1').trim();
-    const rekod = bacaSheetSebagaiObjek(sheetHeadcount(semester));
+    let rekod = bacaSheetSebagaiObjek(sheetHeadcount(semester));
+    if (p.tahunSTPM) rekod = rekod.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
     const mengikutSubjek = {};
     rekod.forEach(r => {
-      const gred = r.SEBENAR || r.AR2 || r.AR1;
+      const gred = gredEfektif(r);
       if (!mengikutSubjek[r.KodSubjek]) mengikutSubjek[r.KodSubjek] = [];
       if (gred) mengikutSubjek[r.KodSubjek].push(gred);
     });

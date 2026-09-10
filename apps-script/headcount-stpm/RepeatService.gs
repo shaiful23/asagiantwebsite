@@ -12,6 +12,7 @@ function apiSenaraiUlangan(p) {
   const mapGred = dapatkanGred();
   let senarai = bacaSheetSebagaiObjek(sheetRepeat(p.semester));
   if (p.idPelajar) senarai = senarai.filter(r => r.ID_Pelajar === p.idPelajar);
+  if (p.tahunSTPM) senarai = senarai.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
   if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) senarai = senarai.filter(r => sesi.skopSubjek.includes(r.KodSubjek));
 
   const hasil = senarai.map(r => {
