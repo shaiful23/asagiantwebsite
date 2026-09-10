@@ -24,6 +24,7 @@ const SHEET_GRADE_BOUNDARIES = 'GRADE_BOUNDARIES';
 /* Medan headcount (MODUL 5) — setiap satu kini menyimpan Markah + Gred terbitan (BLD). */
 const MEDAN_HEADCOUNT = ['TOV', 'OTR1', 'AR1', 'OTR2', 'AR2', 'ETR', 'SEBENAR'];
 const MEDAN_BOLEH_GURU = ['AR1', 'AR2'];
+const SEMESTER_HEADCOUNT = ['S1', 'S2', 'S3'];
 
 function sheetHeadcount(semester) {
   if (semester === 'S1') return SHEET_HEADCOUNT_S1;
@@ -100,14 +101,15 @@ function nilaiLalaiGrades() {
 }
 
 function nilaiLalaiBLD() {
-  // Contoh BLD (julat markah->gred) bagi subjek CONTOH 'PA' sahaja — SETIAP subjek
-  // sebenar WAJIB ditetapkan berasingan oleh Admin/Ketua Panitia di menu "Skema Gred (BLD)",
-  // sebab setiap subjek boleh ada julat markah berlainan (MODUL 5/29 — markah & gred).
+  // Contoh BLD (julat markah->gred) bagi subjek CONTOH 'PA', Semester 1 SAHAJA —
+  // SETIAP subjek x semester sebenar WAJIB ditetapkan berasingan oleh Admin/Ketua
+  // Panitia di menu "Skema Gred (BLD)", sebab S1/S2/S3 boleh ada julat markah
+  // berlainan bagi subjek yang sama (MODUL 5/29 — markah & gred).
   return [
-    ['PA', 'A', '80', '100'], ['PA', 'A-', '75', '79'], ['PA', 'B+', '70', '74'],
-    ['PA', 'B', '65', '69'], ['PA', 'B-', '60', '64'], ['PA', 'C+', '55', '59'],
-    ['PA', 'C', '50', '54'], ['PA', 'C-', '45', '49'], ['PA', 'D+', '40', '44'],
-    ['PA', 'D', '35', '39'], ['PA', 'F', '0', '34']
+    ['PA', 'S1', 'A', '80', '100'], ['PA', 'S1', 'A-', '75', '79'], ['PA', 'S1', 'B+', '70', '74'],
+    ['PA', 'S1', 'B', '65', '69'], ['PA', 'S1', 'B-', '60', '64'], ['PA', 'S1', 'C+', '55', '59'],
+    ['PA', 'S1', 'C', '50', '54'], ['PA', 'S1', 'C-', '45', '49'], ['PA', 'S1', 'D+', '40', '44'],
+    ['PA', 'S1', 'D', '35', '39'], ['PA', 'S1', 'F', '0', '34']
   ];
 }
 

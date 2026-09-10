@@ -23,8 +23,8 @@ function apiSimulasiWhatIf(p) {
 
   const mapGred = dapatkanGred();
   const bldMap = dapatkanBLD();
-  const gredBaru = gredDaripadaMarkah(bldMap, kodSubjek, markahBaru);
-  if (!gredBaru) return ralat('BLD subjek "' + kodSubjek + '" belum lengkap, atau markah tiada dalam mana-mana julat gred yang ditetapkan.');
+  const gredBaru = gredDaripadaMarkah(bldMap, kodSubjek, semester, markahBaru);
+  if (!gredBaru) return ralat('BLD subjek "' + kodSubjek + '" pada ' + semester + ' belum lengkap, atau markah tiada dalam mana-mana julat gred yang ditetapkan.');
 
   if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
     return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');

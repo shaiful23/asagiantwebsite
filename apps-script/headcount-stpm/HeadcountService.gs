@@ -80,9 +80,9 @@ function apiSimpanHeadcount(p) {
     markahBaru = nombor;
 
     const bldMap = dapatkanBLD();
-    gredBaru = gredDaripadaMarkah(bldMap, kodSubjek, markahBaru);
+    gredBaru = gredDaripadaMarkah(bldMap, kodSubjek, p.semester, markahBaru);
     if (!gredBaru) {
-      return ralat('BLD (skema markah→gred) belum lengkap untuk subjek "' + kodSubjek + '", atau markah ' +
+      return ralat('BLD (skema markah→gred) belum lengkap untuk subjek "' + kodSubjek + '" pada ' + p.semester + ', atau markah ' +
         markahBaru + ' tiada dalam mana-mana julat gred yang ditetapkan. Sila lengkapkan di menu "Skema Gred (BLD)" dahulu.');
     }
   }

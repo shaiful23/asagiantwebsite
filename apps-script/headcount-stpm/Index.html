@@ -129,6 +129,7 @@
 <script>
 /* ======================= PEMALAR (selaras Config.gs) ======================= */
 const MEDAN_HEADCOUNT = ['TOV', 'OTR1', 'AR1', 'OTR2', 'AR2', 'ETR', 'SEBENAR'];
+const SEMESTER_HEADCOUNT = ['S1', 'S2', 'S3'];
 
 /* ======================= STATE ======================= */
 const S = {
@@ -445,11 +446,14 @@ function simpanSubjek() {
   }).then(() => { tunjukMesej('Subjek disimpan.'); muatSubjek(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
-/* ======================= SKEMA GRED / BLD (khusus setiap subjek) ======================= */
+/* ======================= SKEMA GRED / BLD (khusus setiap subjek x semester) ======================= */
 function muatBLD() {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml();
+  pasangPilihanSemester(muatBLD);
+
   Promise.all([
     panggil('apiSenaraiSubjek', { token: S.token }),
-    panggil('apiSenaraiBLD', { token: S.token })
+    panggil('apiSenaraiBLD', { token: S.token, semester: S.semester })
   ]).then(([subjekRes, bldRes]) => renderBLD(subjekRes.senarai, bldRes.senarai, bldRes.senaraiGred)).catch(renderRalat);
 }
 
@@ -457,25 +461,30 @@ function renderBLD(senaraiSubjek, senaraiBLD, senaraiGred) {
   S.cacheSubjek = senaraiSubjek;
   const kumpulan = {};
   senaraiBLD.forEach(b => { (kumpulan[b.KodSubjek] = kumpulan[b.KodSubjek] || []).push(b); });
+  const opsyenSubjek = senaraiSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('');
+  const opsyenSemester = SEMESTER_HEADCOUNT.map(sem => '<option value="'+sem+'"'+(sem===S.semester?' selected':'')+'>'+sem+'</option>').join('');
 
   const borangUrus = bolehUrusBLD() ? `
     <div class="panel">
-      <h3>Tambah / Kemaskini Julat Markah</h3>
-      <p class="kecil">Setiap mata pelajaran ada BLD sendiri (julat markah 0-100 bagi setiap gred). Julat tidak boleh bertindih dalam subjek yang sama.</p>
+      <h3>Tambah / Kemaskini Julat Markah — Semester ${S.semester.slice(1)}</h3>
+      <p class="kecil">Setiap mata pelajaran ada BLD sendiri BAGI SETIAP SEMESTER (S1, S2, S3 boleh ada julat markah berbeza untuk subjek yang sama). Julat tidak boleh bertindih dalam subjek+semester yang sama.</p>
       <div class="borang-grid">
-        <div><label>Kod Subjek</label><select id="bKodSubjek">${senaraiSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('')}</select></div>
+        <div><label>Kod Subjek</label><select id="bKodSubjek">${opsyenSubjek}</select></div>
         <div><label>Gred</label><select id="bGred">${senaraiGred.map(g=>'<option>'+g+'</option>').join('')}</select></div>
         <div><label>Markah Min</label><input id="bMin" type="number" min="0" max="100" step="0.5"></div>
         <div><label>Markah Max</label><input id="bMax" type="number" min="0" max="100" step="0.5"></div>
       </div>
+      <p class="kecil">Disimpan untuk Semester <b>${S.semester.slice(1)}</b> (tukar pemilih Semester di atas jika perlu tetapkan semester lain).</p>
       <button id="btnSimpanBLD">Simpan Julat</button>
     </div>
     <div class="panel">
-      <h3>Salin BLD Antara Subjek</h3>
-      <p class="kecil">Guna ini jika beberapa subjek berkongsi julat markah yang sama — elak taip berulang kali.</p>
+      <h3>Salin BLD</h3>
+      <p class="kecil">Salin BLD antara subjek dan/atau antara semester (cth. tetapkan BLD Semester 1 dahulu, salin sebagai titik permulaan untuk Semester 2, kemudian laraskan).</p>
       <div class="borang-grid">
-        <div><label>Salin Dari</label><select id="bSumber">${senaraiSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+'</option>').join('')}</select></div>
-        <div><label>Salin Ke</label><select id="bDestinasi">${senaraiSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+'</option>').join('')}</select></div>
+        <div><label>Salin Dari (Subjek)</label><select id="bSumberSubjek">${opsyenSubjek}</select></div>
+        <div><label>Salin Dari (Semester)</label><select id="bSumberSemester">${opsyenSemester}</select></div>
+        <div><label>Salin Ke (Subjek)</label><select id="bDestinasiSubjek">${opsyenSubjek}</select></div>
+        <div><label>Salin Ke (Semester)</label><select id="bDestinasiSemester">${opsyenSemester}</select></div>
       </div>
       <button class="sekunder" id="btnSalinBLD">Salin BLD (gantikan destinasi)</button>
     </div>` : '';
@@ -487,35 +496,39 @@ function renderBLD(senaraiSubjek, senaraiBLD, senaraiGred) {
 
   document.getElementById('btnSimpanBLD').addEventListener('click', () => {
     panggil('apiSimpanBLD', {
-      token: S.token, kodSubjek: document.getElementById('bKodSubjek').value, gred: document.getElementById('bGred').value,
+      token: S.token, kodSubjek: document.getElementById('bKodSubjek').value, semester: S.semester,
+      gred: document.getElementById('bGred').value,
       markahMin: document.getElementById('bMin').value, markahMax: document.getElementById('bMax').value
     }).then(() => { tunjukMesej('Julat BLD disimpan.'); muatBLD(); }).catch(err => tunjukMesej(err, 'ralat'));
   });
 
   document.getElementById('btnSalinBLD').addEventListener('click', () => {
-    const sumber = document.getElementById('bSumber').value, destinasi = document.getElementById('bDestinasi').value;
-    if (sumber === destinasi) { tunjukMesej('Subjek sumber dan destinasi tidak boleh sama.', 'ralat'); return; }
-    if (!confirm('Ini akan GANTIKAN BLD sedia ada bagi subjek destinasi (' + destinasi + '). Teruskan?')) return;
-    panggil('apiSalinBLD', { token: S.token, kodSubjekSumber: sumber, kodSubjekDestinasi: destinasi })
-      .then(() => { tunjukMesej('BLD disalin.'); muatBLD(); }).catch(err => tunjukMesej(err, 'ralat'));
+    const sumberSubjek = document.getElementById('bSumberSubjek').value, sumberSemester = document.getElementById('bSumberSemester').value;
+    const destinasiSubjek = document.getElementById('bDestinasiSubjek').value, destinasiSemester = document.getElementById('bDestinasiSemester').value;
+    if (sumberSubjek === destinasiSubjek && sumberSemester === destinasiSemester) { tunjukMesej('Sumber dan destinasi tidak boleh sama.', 'ralat'); return; }
+    if (!confirm('Ini akan GANTIKAN BLD sedia ada bagi ' + destinasiSubjek + ' (' + destinasiSemester + '). Teruskan?')) return;
+    panggil('apiSalinBLD', {
+      token: S.token, kodSubjekSumber: sumberSubjek, semesterSumber: sumberSemester,
+      kodSubjekDestinasi: destinasiSubjek, semesterDestinasi: destinasiSemester
+    }).then(() => { tunjukMesej('BLD disalin.'); muatBLD(); }).catch(err => tunjukMesej(err, 'ralat'));
   });
 }
 
 function renderJadualBLDSubjek(subjek, senaraiJulat) {
   senaraiJulat = senaraiJulat.slice().sort((a, b) => Number(b.MarkahMin) - Number(a.MarkahMin));
   return `<div class="panel">
-    <h3>${escapeHtml(subjek.KodSubjek)} — ${escapeHtml(subjek.NamaSubjek)}</h3>
+    <h3>${escapeHtml(subjek.KodSubjek)} — ${escapeHtml(subjek.NamaSubjek)} <span class="kecil">(Semester ${S.semester.slice(1)})</span></h3>
     <div class="tbl-scroll"><table><thead><tr><th>Gred</th><th>Markah Min</th><th>Markah Max</th>${bolehUrusBLD()?'<th></th>':''}</tr></thead>
     <tbody>${senaraiJulat.map(b => `<tr><td><b>${escapeHtml(b.Gred)}</b></td><td>${escapeHtml(b.MarkahMin)}</td><td>${escapeHtml(b.MarkahMax)}</td>
       ${bolehUrusBLD() ? '<td><span class="aksi-link" onclick="padamBLD(\''+subjek.KodSubjek+'\',\''+b.Gred+'\')">Padam</span></td>' : ''}</tr>`).join('')
-      || '<tr><td colspan="'+(bolehUrusBLD()?4:3)+'" class="kecil">BLD belum ditetapkan untuk subjek ini — guru tidak boleh key-in markah sehingga ini disiapkan.</td></tr>'}
+      || '<tr><td colspan="'+(bolehUrusBLD()?4:3)+'" class="kecil">BLD belum ditetapkan untuk subjek ini pada semester ini — guru tidak boleh key-in markah sehingga ini disiapkan.</td></tr>'}
     </tbody></table></div>
   </div>`;
 }
 
 function padamBLD(kodSubjek, gred) {
-  if (!confirm('Padam julat gred ' + gred + ' bagi ' + kodSubjek + '?')) return;
-  panggil('apiPadamBLD', { token: S.token, kodSubjek, gred })
+  if (!confirm('Padam julat gred ' + gred + ' bagi ' + kodSubjek + ' (' + S.semester + ')?')) return;
+  panggil('apiPadamBLD', { token: S.token, kodSubjek, semester: S.semester, gred })
     .then(() => { tunjukMesej('Julat dipadam.'); muatBLD(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 

@@ -31,26 +31,32 @@ function nilaiGred(mapGred, gred) {
   return g ? g.nilai : null;
 }
 
-/* BLD (Jadual Penentuan Gred) — KHUSUS SETIAP SUBJEK. Pulangkan
-   { KodSubjek: [{gred, min, max}, ...tersusun ikut min menaik] }. */
+/* BLD (Jadual Penentuan Gred) — KHUSUS SETIAP SUBJEK x SEMESTER (S1/S2/S3
+   boleh ada julat markah berbeza bagi subjek yang sama). Pulangkan
+   { 'KodSubjek|Semester': [{gred, min, max}, ...tersusun ikut min menaik] }. */
+function kunciBLD(kodSubjek, semester) {
+  return String(kodSubjek).trim() + '|' + String(semester).trim();
+}
+
 function dapatkanBLD() {
   const rekod = bacaSheetSebagaiObjek(SHEET_GRADE_BOUNDARIES);
   const map = {};
   rekod.forEach(r => {
-    const kod = String(r.KodSubjek).trim();
-    if (!map[kod]) map[kod] = [];
-    map[kod].push({ gred: String(r.Gred).trim().toUpperCase(), min: Number(r.MarkahMin), max: Number(r.MarkahMax) });
+    const kunci = kunciBLD(r.KodSubjek, r.Semester);
+    if (!map[kunci]) map[kunci] = [];
+    map[kunci].push({ gred: String(r.Gred).trim().toUpperCase(), min: Number(r.MarkahMin), max: Number(r.MarkahMax) });
   });
   Object.keys(map).forEach(k => map[k].sort((a, b) => a.min - b.min));
   return map;
 }
 
-/* Terjemah Markah -> Gred bagi SATU subjek, menggunakan BLD subjek itu sahaja
-   (bukan skema global) — rujuk permintaan: "setiap subjek ada BLD berbeza". */
-function gredDaripadaMarkah(bldMap, kodSubjek, markah) {
+/* Terjemah Markah -> Gred bagi SATU subjek PADA SATU semester, menggunakan
+   BLD subjek+semester itu sahaja (bukan skema global) — rujuk permintaan:
+   "BLD untuk setiap semester (S1, S2, S3) adalah berbeza". */
+function gredDaripadaMarkah(bldMap, kodSubjek, semester, markah) {
   if (markah === '' || markah === null || markah === undefined || isNaN(Number(markah))) return '';
-  const senarai = bldMap[kodSubjek];
-  if (!senarai || !senarai.length) return ''; // BLD subjek ini belum ditetapkan
+  const senarai = bldMap[kunciBLD(kodSubjek, semester)];
+  if (!senarai || !senarai.length) return ''; // BLD subjek+semester ini belum ditetapkan
   const m = Number(markah);
   const padanan = senarai.find(b => m >= b.min && m <= b.max);
   return padanan ? padanan.gred : '';

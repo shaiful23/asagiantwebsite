@@ -84,16 +84,22 @@ sepenuhnya seperti diminta.
       kandungan `.gs` masing-masing.
    2. **Gantikan** kandungan semua fail `.gs` sedia ada (terutamanya
       `Config.gs`, `AnalysisService.gs`, `HeadcountService.gs`,
-      `InterventionService.gs`, `DashboardService.gs`, `ReportService.gs`,
-      `WhatIfService.gs`, `Code.gs`) dengan versi terkini dalam folder ini —
-      struktur headcount berubah daripada "Gred sahaja" kepada "Markah + Gred".
+      `GradeBoundaryService.gs`, `InterventionService.gs`, `DashboardService.gs`,
+      `ReportService.gs`, `WhatIfService.gs`, `Code.gs`) dengan versi terkini
+      dalam folder ini — struktur headcount berubah daripada "Gred sahaja"
+      kepada "Markah + Gred", dan BLD kini per **Subjek x Semester** (bukan
+      per subjek sahaja).
    3. **Gantikan** kandungan `Index` dengan `Index.html` versi terkini (ada
-      menu "Skema Gred (BLD)" baharu, borang Headcount kini minta Markah).
+      menu "Skema Gred (BLD)" baharu dengan pemilih Semester, borang
+      Headcount kini minta Markah).
    4. Kembali ke Sheet, refresh, klik **Sistem Headcount STPM → 2. Kemaskini
-      Struktur (Markah & Gred BLD)**. Ini mencipta Sheet `GRADE_BOUNDARIES`
-      dan menukar struktur lajur `HEADCOUNT_S1/S2/S3` kepada Markah+Gred
-      (data Gred sedia ada, jika ada, dikekalkan — rujuk **"Markah & BLD"**
-      di bawah untuk butiran).
+      Struktur (Markah & Gred BLD)**. Ini (a) mencipta Sheet `GRADE_BOUNDARIES`
+      jika belum wujud ATAU tambah lajur `Semester` jika sudah wujud (BLD
+      sedia ada diandaikan untuk S1 — **WAJIB semak & salin/laraskan untuk
+      S2/S3** selepas ini di menu "Skema Gred (BLD)"), dan (b) menukar
+      struktur lajur `HEADCOUNT_S1/S2/S3` kepada Markah+Gred (data Gred
+      sedia ada, jika ada, dikekalkan) — rujuk **"Markah & BLD"** di bawah
+      untuk butiran. Selamat dijalankan berulang kali.
    5. Deploy semula (**Deploy → Manage deployments → Edit → New version**).
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
@@ -151,34 +157,42 @@ Setiap tindakan TAMBAH/KEMASKINI/NYAHAKTIF/LOGIN direkod dalam `AUDIT_LOG`
 (tarikh, pengguna, peranan, modul, nilai lama/baharu, sebab). Semakan boleh
 dibuat terus dalam Sheet `AUDIT_LOG` atau melalui `apiSenaraiAudit`.
 
-## Markah & BLD (Jadual Penentuan Gred khusus setiap subjek)
+## Markah & BLD (Jadual Penentuan Gred khusus setiap Subjek x Semester)
 
-Setiap mata pelajaran ada julat markah→gred sendiri (BLD), sebab kesukaran
-soalan/pemoderatan berbeza antara subjek. Aliran kerja:
+Setiap mata pelajaran ada julat markah→gred sendiri (BLD), **DAN julat itu
+boleh berbeza mengikut semester** (S1, S2, S3) bagi subjek yang sama — cth.
+skema markah Pengajian Am Semester 1 tak semestinya sama dengan Semester 3.
+Aliran kerja:
 
-1. **Admin / GPK / Ketua Akademik / Ketua Panitia** tetapkan BLD subjek di menu
-   **"Skema Gred (BLD)"** — untuk setiap Gred, masukkan Markah Min & Markah Max
-   (0-100). Sistem menolak julat yang bertindih dalam subjek yang sama. Ketua
-   Panitia hanya boleh urus subjek dalam `SkopSubjek` mereka sendiri.
-   - Guna **"Salin BLD Antara Subjek"** jika beberapa subjek berkongsi julat
-     markah yang sama (elak taip berulang).
+1. **Admin / GPK / Ketua Akademik / Ketua Panitia** tetapkan BLD di menu
+   **"Skema Gred (BLD)"** — pilih **Semester** (S1/S2/S3) di bahagian atas
+   dahulu, kemudian untuk setiap Gred masukkan Markah Min & Markah Max
+   (0-100) bagi subjek itu **pada semester tersebut sahaja**. Sistem menolak
+   julat yang bertindih dalam subjek+semester yang sama. Ketua Panitia hanya
+   boleh urus subjek dalam `SkopSubjek` mereka sendiri.
+   - Guna **"Salin BLD"** untuk salin julat sedia ada ke subjek lain, ke
+     semester lain bagi subjek yang sama (cth. jadikan BLD S1 sebagai titik
+     mula untuk S2), atau kedua-duanya sekali.
 2. **Guru / Admin** key-in **MARKAH** (bukan Gred) di halaman **Headcount**,
    bagi mana-mana daripada 7 medan (TOV, OTR1, AR1, OTR2, AR2, ETR, SEBENAR).
    Guru hanya boleh isi AR1/AR2 (sama seperti sebelum ini).
 3. Backend (`HeadcountService.gs` → `apiSimpanHeadcount`) **menterjemah
-   Markah ke Gred secara automatik** menggunakan BLD subjek berkenaan
+   Markah ke Gred secara automatik** menggunakan BLD subjek+semester berkenaan
    (`AnalysisService.gs` → `gredDaripadaMarkah`), dan menyimpan **kedua-duanya**
    (cth. lajur `AR1_Markah` = `72`, `AR1_Gred` = `B`).
-4. Jika BLD subjek belum lengkap (atau markah tiada dalam mana-mana julat
-   ditetapkan), sistem **menolak simpanan** dengan mesej ralat yang jelas,
-   memandu pengguna ke menu "Skema Gred (BLD)" — headcount tidak akan
-   tersimpan dengan Gred kosong secara senyap.
+4. Jika BLD subjek+semester belum lengkap (atau markah tiada dalam mana-mana
+   julat ditetapkan), sistem **menolak simpanan** dengan mesej ralat yang
+   jelas, memandu pengguna ke menu "Skema Gred (BLD)" — headcount tidak akan
+   tersimpan dengan Gred kosong secara senyap. **Penting:** BLD mesti
+   ditetapkan berasingan untuk SETIAP semester (S1, S2, S3) — bukan sekali
+   sahaja untuk seluruh subjek.
 5. Semua paparan (Headcount, Dashboard Guru, High Impact Students, What-If,
    Laporan/CSV) memaparkan **Markah bersama Gred**, cth. `72 (B)`.
 
 Semua pengiraan lanjutan (Gap, Trend, Risiko, PNGK, GPS) tetap berasaskan
 **Gred** (nilai gred daripada Sheet `GRADES`, bukan markah mentah) — selaras
-MODUL 43, supaya kaedah pengiraan konsisten walaupun BLD berbeza antara subjek.
+MODUL 43, supaya kaedah pengiraan konsisten walaupun BLD berbeza antara
+subjek/semester.
 
 **Skop semasa:** Ulangan (`REPEAT_S1/S2`) masih guna Gred teks bebas, belum
 disambungkan kepada Markah+BLD — boleh dilanjutkan jika sekolah memerlukannya.

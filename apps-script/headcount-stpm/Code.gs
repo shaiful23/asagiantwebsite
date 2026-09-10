@@ -65,22 +65,42 @@ function sediakanSistemHeadcountSTPM() {
   );
 }
 
-/* Migrasi struktur lama (headcount simpan Gred sahaja) -> struktur baharu
-   (headcount simpan Markah + Gred, gred diterbitkan daripada BLD khusus subjek).
-   Selamat dijalankan berulang kali — sheet yang sudah berstruktur baharu dilangkau.
-   Data Gred sedia ada DIKEKALKAN dalam lajur "..._Gred"; lajur "..._Markah" akan
-   kosong buat sementara (isi semula markah asal jika perlu, atau teruskan key-in
-   markah bagi ujian akan datang). */
+/* Migrasi struktur lama -> struktur baharu, selamat dijalankan berulang kali
+   (bahagian yang sudah berstruktur baharu dilangkau):
+   1) HEADCOUNT_S1/S2/S3: Gred sahaja -> Markah + Gred (Gred sedia ada dikekalkan).
+   2) GRADE_BOUNDARIES (BLD): KodSubjek+Gred sahaja -> KodSubjek+Semester+Gred
+      (BLD sedia ada, jika ada, diandaikan untuk Semester 1 — SEMAK/SALIN ke
+      S2/S3 di menu "Skema Gred (BLD)" selepas ini, sebab setiap semester
+      kini boleh ada julat markah berlainan). */
 function kemaskiniStrukturMarkahGred() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const ui = SpreadsheetApp.getUi();
 
   let shBLD = ss.getSheetByName(SHEET_GRADE_BOUNDARIES);
+  let jumlahBLDDimigrasi = 0;
   if (!shBLD) {
     shBLD = ss.insertSheet(SHEET_GRADE_BOUNDARIES);
     shBLD.appendRow(HEADER_GRADE_BOUNDARIES);
     shBLD.setFrozenRows(1);
     shBLD.getRange(1, 1, 1, HEADER_GRADE_BOUNDARIES.length).setFontWeight('bold');
+  } else {
+    const dataBLD = shBLD.getDataRange().getValues();
+    const headerBLD = dataBLD[0] || [];
+    if (headerBLD.indexOf('Semester') === -1) {
+      const indeksBLD = {};
+      headerBLD.forEach((h, i) => { indeksBLD[h] = i; });
+      const barisLamaBLD = dataBLD.slice(1).filter(b => b.some(sel => sel !== '' && sel !== null));
+      const barisBaruBLD = barisLamaBLD.map(b => [
+        b[indeksBLD.KodSubjek], 'S1', b[indeksBLD.Gred], b[indeksBLD.MarkahMin], b[indeksBLD.MarkahMax]
+      ]);
+
+      shBLD.clear();
+      shBLD.appendRow(HEADER_GRADE_BOUNDARIES);
+      shBLD.setFrozenRows(1);
+      shBLD.getRange(1, 1, 1, HEADER_GRADE_BOUNDARIES.length).setFontWeight('bold');
+      if (barisBaruBLD.length) shBLD.getRange(2, 1, barisBaruBLD.length, HEADER_GRADE_BOUNDARIES.length).setValues(barisBaruBLD);
+      jumlahBLDDimigrasi = barisBaruBLD.length;
+    }
   }
 
   const medanLama = ['TOV', 'OTR1', 'AR1', 'OTR2', 'AR2', 'ETR', 'SEBENAR'];
@@ -129,7 +149,11 @@ function kemaskiniStrukturMarkahGred() {
 
   ui.alert(
     'Migrasi selesai.\n\n' +
-    '- Sheet GRADE_BOUNDARIES disediakan (tetapkan BLD SETIAP subjek di menu "Skema Gred (BLD)" dalam sistem sebelum key-in markah).\n' +
+    '- Sheet GRADE_BOUNDARIES kini menyokong BLD berasingan bagi setiap Subjek x Semester (S1/S2/S3).' +
+    (jumlahBLDDimigrasi
+      ? (' ' + jumlahBLDDimigrasi + ' rekod BLD sedia ada dipindah dan diandaikan untuk Semester 1 (S1) — ' +
+         'SILA SEMAK dan salin/laraskan untuk S2 & S3 di menu "Skema Gred (BLD)" dalam sistem sebelum guru key-in markah S2/S3.')
+      : ' Tetapkan BLD SETIAP subjek x semester di menu "Skema Gred (BLD)" dalam sistem sebelum key-in markah.') + '\n\n' +
     '- ' + jumlahDimigrasi + ' rekod headcount sedia ada dipindah ke struktur baharu. Gred asal dikekalkan dalam lajur "..._Gred"; ' +
     'lajur "..._Markah" masih kosong (isi semula markah asal secara manual jika perlu).\n' +
     (jumlahDilangkau ? ('- ' + jumlahDilangkau + ' Sheet headcount dilangkau (sudah berstruktur baharu).') : '')
