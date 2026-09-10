@@ -60,6 +60,12 @@ function keTarikh(nilai) {
   return String(nilai || '').trim();
 }
 
+/* Format paparan "markah (gred)" konsisten untuk laporan/eksport CSV. */
+function formatMarkahGred(markah, gred) {
+  if (markah === '' || markah === undefined || markah === null) return gred || '';
+  return gred ? (markah + ' (' + gred + ')') : String(markah);
+}
+
 function ralat(mesej) {
   return { success: false, message: mesej };
 }

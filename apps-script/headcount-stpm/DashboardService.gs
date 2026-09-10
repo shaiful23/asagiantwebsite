@@ -30,8 +30,8 @@ function apiDashboardGPK(p) {
     else if (r.statusGapETR === STATUS_MERAH) merah++;
   });
 
-  const gpsSemasa = kiraGPS(mapGred, dianalisis.map(r => r.SEBENAR || r.AR2 || r.AR1).filter(Boolean));
-  const pngkPurata = kiraPNGK(mapGred, dianalisis.map(r => r.SEBENAR).filter(Boolean));
+  const gpsSemasa = kiraGPS(mapGred, dianalisis.map(gredEfektif).filter(Boolean));
+  const pngkPurata = kiraPNGK(mapGred, dianalisis.map(r => r.SEBENAR_Gred).filter(Boolean));
   const sasaranGPS = Number(konfig.sasaranGPS || 0);
 
   const bilUlanganS1 = bacaSheetSebagaiObjek(SHEET_REPEAT_S1).filter(r => idPelajarDibenarkan.has(r.ID_Pelajar)).length;
@@ -106,7 +106,7 @@ function apiDashboardKetuaPanitia(p) {
   ['S1', 'S2', 'S3'].forEach(sem => {
     const rekod = bacaSheetSebagaiObjek(sheetHeadcount(sem)).filter(r => r.KodSubjek === kodSubjek);
     const dianalisis = rekod.map(r => Object.assign({}, r, analisisRekodHeadcount(mapGred, konfig, r), { kelas: (pelajarMap[r.ID_Pelajar] || {}).Kelas || '' }));
-    const gps = kiraGPS(mapGred, dianalisis.map(r => r.SEBENAR || r.AR2 || r.AR1).filter(Boolean));
+    const gps = kiraGPS(mapGred, dianalisis.map(gredEfektif).filter(Boolean));
     const berisiko = dianalisis.filter(r => r.risiko === RISIKO_BERISIKO).length;
     bySemester[sem] = { senarai: dianalisis, gps, bilanganBerisiko: berisiko };
   });

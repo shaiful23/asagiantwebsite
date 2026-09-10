@@ -72,14 +72,17 @@ function apiImpakIntervensi(p) {
     const hc = headcountSenarai.find(h => h.ID_Pelajar === i.ID_Pelajar && h.KodSubjek === i.KodSubjek);
     if (!hc) return Object.assign({}, i, { status: 'TIADA_DATA_HEADCOUNT' });
 
-    const ar1 = nilaiGred(mapGred, hc.AR1);
-    const ar2 = nilaiGred(mapGred, hc.AR2);
+    const ar1 = nilaiGred(mapGred, hc.AR1_Gred);
+    const ar2 = nilaiGred(mapGred, hc.AR2_Gred);
     let status = 'BELUM_LENGKAP';
     if (ar1 !== null && ar2 !== null) {
       status = ar2 > ar1 ? 'BERJAYA_MENINGKAT' : (ar2 === ar1 ? 'KEKAL' : 'MASIH_MENURUN');
       if (status === 'BERJAYA_MENINGKAT') pulih++; else masihBerisiko++;
     }
-    return Object.assign({}, i, { AR1: hc.AR1, AR2: hc.AR2, status });
+    return Object.assign({}, i, {
+      AR1_Markah: hc.AR1_Markah, AR1_Gred: hc.AR1_Gred,
+      AR2_Markah: hc.AR2_Markah, AR2_Gred: hc.AR2_Gred, status
+    });
   });
 
   const jumlahDinilai = pulih + masihBerisiko;

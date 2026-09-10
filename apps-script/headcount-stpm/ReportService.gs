@@ -31,7 +31,10 @@ function apiJanaLaporan(p) {
       const pelajar = pelajarMap[r.ID_Pelajar] || {};
       return {
         IDPelajar: r.ID_Pelajar, Nama: pelajar.Nama || '', Kelas: pelajar.Kelas || '', Subjek: r.KodSubjek,
-        TOV: r.TOV, OTR1: r.OTR1, AR1: r.AR1, OTR2: r.OTR2, AR2: r.AR2, ETR: r.ETR, SEBENAR: r.SEBENAR,
+        TOV: formatMarkahGred(r.TOV_Markah, r.TOV_Gred), OTR1: formatMarkahGred(r.OTR1_Markah, r.OTR1_Gred),
+        AR1: formatMarkahGred(r.AR1_Markah, r.AR1_Gred), OTR2: formatMarkahGred(r.OTR2_Markah, r.OTR2_Gred),
+        AR2: formatMarkahGred(r.AR2_Markah, r.AR2_Gred), ETR: formatMarkahGred(r.ETR_Markah, r.ETR_Gred),
+        SEBENAR: formatMarkahGred(r.SEBENAR_Markah, r.SEBENAR_Gred),
         StatusGapETR: a.statusGapETR, Trend: a.trend, Risiko: a.risiko
       };
     });
@@ -41,7 +44,10 @@ function apiJanaLaporan(p) {
         const a = analisisRekodHeadcount(mapGred, konfig, r);
         if (a.risiko === RISIKO_BERISIKO) {
           const pelajar = pelajarMap[r.ID_Pelajar] || {};
-          baris.push({ Semester: sem, IDPelajar: r.ID_Pelajar, Nama: pelajar.Nama || '', Kelas: pelajar.Kelas || '', Subjek: r.KodSubjek, ETR: r.ETR, Sebenar: r.SEBENAR || r.AR2 || r.AR1, Trend: a.trend });
+          baris.push({
+            Semester: sem, IDPelajar: r.ID_Pelajar, Nama: pelajar.Nama || '', Kelas: pelajar.Kelas || '', Subjek: r.KodSubjek,
+            ETR: formatMarkahGred(r.ETR_Markah, r.ETR_Gred), Sebenar: formatMarkahGred(markahEfektif(r), gredEfektif(r)), Trend: a.trend
+          });
         }
       });
     });
@@ -61,7 +67,7 @@ function apiJanaLaporan(p) {
     const rekod = bacaSheetSebagaiObjek(sheetHeadcount(semester));
     const mengikutSubjek = {};
     rekod.forEach(r => {
-      const gred = r.SEBENAR || r.AR2 || r.AR1;
+      const gred = gredEfektif(r);
       if (!mengikutSubjek[r.KodSubjek]) mengikutSubjek[r.KodSubjek] = [];
       if (gred) mengikutSubjek[r.KodSubjek].push(gred);
     });

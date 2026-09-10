@@ -41,8 +41,8 @@ function apiTopHighImpactStudents(p) {
 
   const calon = [];
   headcount.forEach(h => {
-    const gredSemasa = h.SEBENAR || h.AR2 || h.AR1 || h.TOV;
-    const gredSasaran = h.ETR || h.OTR2 || h.OTR1;
+    const gredSemasa = gredEfektif(h);
+    const gredSasaran = gredSasaranEfektif(h);
     if (!gredSemasa || !gredSasaran) return;
 
     const nilaiSemasa = nilaiGred(mapGred, gredSemasa);
@@ -58,7 +58,8 @@ function apiTopHighImpactStudents(p) {
 
     calon.push({
       idPelajar: h.ID_Pelajar, namaPelajar: pelajar.Nama || '', kelas: pelajar.Kelas || '',
-      kodSubjek: h.KodSubjek, gredSemasa, gredSasaran, gap,
+      kodSubjek: h.KodSubjek, markahSemasa: markahEfektif(h), gredSemasa,
+      markahSasaran: markahSasaranEfektif(h), gredSasaran, gap,
       potensiPeningkatan: gredSeterusnya || '', trend: a.trend, risiko: a.risiko,
       hanyaSatuSubjekKritikal: (bilTidakHijauSetiapPelajar[h.ID_Pelajar] || 0) <= 1,
       cadanganTindakan: cadanganTindakanHighImpact(a.risiko, a.trend, a.statusGapETR)
