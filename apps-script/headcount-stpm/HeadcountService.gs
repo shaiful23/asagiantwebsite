@@ -48,6 +48,137 @@ function apiDapatkanHeadcount(p) {
   return jaya({ senarai: hasil });
 }
 
+/* Roster PELAJAR bagi SATU (Subjek x Kelas x Tahun STPM), digabung dengan rekod
+   headcount semester berkenaan (kosong jika belum ada) + analisis — sumber data
+   sepunya untuk panel "Isi ETR" (Headcount) dan tab "Markah Ujian" (AR1/AR2/SEBENAR).
+   Pelajar yang belum ada rekod headcount TETAP dipaparkan (medan kosong) supaya
+   guru boleh mula isi terus. */
+function apiRosterHeadcount(p) {
+  const sesi = wajibPeranan(p.token, null);
+  if (sesi.success === false) return sesi;
+
+  const semester = String(p.semester || '').trim();
+  const kodSubjek = String(p.kodSubjek || '').trim();
+  const kelas = String(p.kelas || '').trim();
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+  if (!semester || !kodSubjek || !kelas || !tahunSTPM) return ralat('Semester, Kod Subjek, Kelas dan Tahun STPM wajib diisi.');
+  if (SEMESTER_HEADCOUNT.indexOf(semester) === -1) return ralat('Semester tidak sah.');
+  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
+    return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
+  }
+
+  const idBerdaftar = new Set(bacaSheetSebagaiObjek(SHEET_ENROLLMENTS)
+    .filter(e => e.KodSubjek === kodSubjek && String(e.TahunSTPM) === tahunSTPM).map(e => e.ID_Pelajar));
+  const pelajarLayak = bacaSheetSebagaiObjek(SHEET_STUDENTS).filter(s =>
+    idBerdaftar.has(s.ID_Pelajar) && String(s.Status).toUpperCase() === 'AKTIF' &&
+    String(s.Kelas).toUpperCase() === kelas.toUpperCase() && String(s.TahunSTPM) === tahunSTPM);
+
+  const mapGred = dapatkanGred();
+  const konfig = dapatkanKonfig();
+  const headcountSediaAda = {};
+  bacaSheetSebagaiObjek(sheetHeadcount(semester))
+    .filter(r => r.KodSubjek === kodSubjek && String(r.TahunSTPM) === tahunSTPM)
+    .forEach(r => { headcountSediaAda[r.ID_Pelajar] = r; });
+
+  const medanKosong = {};
+  MEDAN_HEADCOUNT.forEach(m => { medanKosong[m + '_Markah'] = ''; medanKosong[m + '_Gred'] = ''; });
+
+  const senarai = pelajarLayak
+    .sort((a, b) => String(a.Nama).localeCompare(String(b.Nama)))
+    .map(s => {
+      const rekod = headcountSediaAda[s.ID_Pelajar] ||
+        Object.assign({ ID_Pelajar: s.ID_Pelajar, KodSubjek: kodSubjek, TahunSTPM: tahunSTPM }, medanKosong);
+      const analisis = analisisRekodHeadcount(mapGred, konfig, rekod);
+      return Object.assign({}, rekod, analisis, { namaPelajar: s.Nama, kelas: s.Kelas });
+    });
+
+  return jaya({ senarai });
+}
+
+/* Isi ETR (markah) bagi SATU pelajar/subjek/semester. TOV, OTR1 dan OTR2
+   DITERBITKAN SECARA AUTOMATIK daripada ETR (bukan rolling antara semester —
+   setiap semester berdiri sendiri, rujuk permintaan):
+     TOV  = OTR1 = 2 gred bawah ETR (sasaran awal semester)
+     OTR2 = 1 gred bawah ETR (sasaran hampir akhir semester, sebelum ETR)
+   Markah bagi TOV/OTR1/OTR2 diambil daripada Markah Minimum gred berkenaan
+   dalam BLD subjek+semester itu (anggaran, sebab bukan keputusan ujian sebenar). */
+function apiSimpanETR(p) {
+  const sesi = wajibPeranan(p.token, null);
+  if (sesi.success === false) return sesi;
+
+  const idPelajar = String(p.idPelajar || '').trim();
+  const kodSubjek = String(p.kodSubjek || '').trim();
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+  const semester = String(p.semester || '').trim();
+  const markahETRMentah = p.markahETR === undefined || p.markahETR === null ? '' : String(p.markahETR).trim();
+
+  if (!idPelajar || !kodSubjek || !tahunSTPM || !semester) return ralat('Data tidak lengkap.');
+  if (SEMESTER_HEADCOUNT.indexOf(semester) === -1) return ralat('Semester tidak sah.');
+  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
+    return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
+  }
+  if (!cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar)) return ralat('Pelajar tidak dijumpai.');
+  const enrol = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).find(e => e.ID_Pelajar === idPelajar && e.KodSubjek === kodSubjek);
+  if (!enrol) return ralat('Pelajar tidak berdaftar untuk mata pelajaran ini (MODUL 26: validasi).');
+
+  let markahETR = '', gredETR = '', markahTOV = '', gredTOV = '', markahOTR1 = '', gredOTR1 = '', markahOTR2 = '', gredOTR2 = '';
+
+  if (markahETRMentah !== '') {
+    const nombor = Number(markahETRMentah);
+    if (isNaN(nombor) || nombor < 0 || nombor > 100) return ralat('Markah ETR mesti nombor antara 0-100.');
+    markahETR = nombor;
+
+    const mapGred = dapatkanGred();
+    const bldMap = dapatkanBLD();
+    gredETR = gredDaripadaMarkah(bldMap, kodSubjek, semester, markahETR);
+    if (!gredETR) {
+      return ralat('BLD (skema markah→gred) belum lengkap untuk subjek "' + kodSubjek + '" pada ' + semester + ', atau markah ' +
+        markahETR + ' tiada dalam mana-mana julat gred yang ditetapkan. Sila lengkapkan di menu "Skema Gred (BLD)" dahulu.');
+    }
+
+    gredTOV = gredTurun(mapGred, gredETR, 2);
+    gredOTR1 = gredTurun(mapGred, gredETR, 2);
+    gredOTR2 = gredTurun(mapGred, gredETR, 1);
+
+    const senaraiBLDSubjekSemester = bldMap[kunciBLD(kodSubjek, semester)] || [];
+    const markahMinBagiGred = gred => {
+      const e = senaraiBLDSubjekSemester.find(b => b.gred === gred);
+      return e ? e.min : '';
+    };
+    markahTOV = markahMinBagiGred(gredTOV);
+    markahOTR1 = markahMinBagiGred(gredOTR1);
+    markahOTR2 = markahMinBagiGred(gredOTR2);
+  }
+
+  const namaSheet = sheetHeadcount(semester);
+  const semua = bacaSheetSebagaiObjek(namaSheet);
+  const sediaAda = semua.find(r => r.ID_Pelajar === idPelajar && r.KodSubjek === kodSubjek && String(r.TahunSTPM) === tahunSTPM);
+
+  const objek = sediaAda ? Object.assign({}, sediaAda) : { ID_Pelajar: idPelajar, KodSubjek: kodSubjek, TahunSTPM: tahunSTPM, Catatan: '' };
+  MEDAN_HEADCOUNT.forEach(m => {
+    if (objek[m + '_Markah'] === undefined) objek[m + '_Markah'] = '';
+    if (objek[m + '_Gred'] === undefined) objek[m + '_Gred'] = '';
+  });
+  objek.ETR_Markah = markahETR; objek.ETR_Gred = gredETR;
+  objek.TOV_Markah = markahTOV; objek.TOV_Gred = gredTOV;
+  objek.OTR1_Markah = markahOTR1; objek.OTR1_Gred = gredOTR1;
+  objek.OTR2_Markah = markahOTR2; objek.OTR2_Gred = gredOTR2;
+  objek.KemaskiniOleh = sesi.nama;
+  objek.KemaskiniPada = formatTarikhMasa(new Date());
+
+  if (sediaAda) {
+    kemaskiniBaris(namaSheet, sediaAda.__row, objek, HEADER_HEADCOUNT);
+  } else {
+    tambahBaris(namaSheet, objek, HEADER_HEADCOUNT);
+  }
+
+  catatAudit(sesi, sediaAda ? 'KEMASKINI' : 'TAMBAH', 'ETR_' + semester, kunciRekod(idPelajar, kodSubjek, tahunSTPM),
+    '', 'ETR=' + markahETR + '(' + gredETR + ') -> auto TOV=' + gredTOV + ' OTR1=' + gredOTR1 + ' OTR2=' + gredOTR2,
+    p.sebab || 'Isi ETR (TOV/OTR1/OTR2 dikira automatik)');
+
+  return jaya({ gredETR, gredTOV, gredOTR1, gredOTR2 });
+}
+
 /* Simpan/kemaskini satu medan headcount (TOV/OTR1/AR1/OTR2/AR2/ETR/SEBENAR).
    Pengguna taip MARKAH (0-100); Gred DITERBITKAN secara automatik daripada BLD
    khusus subjek berkenaan (GradeBoundaryService.gs) — tiada Gred ditaip terus.
@@ -64,8 +195,9 @@ function apiSimpanHeadcount(p) {
 
   if (!idPelajar || !kodSubjek || !tahunSTPM || !medan) return ralat('Data tidak lengkap.');
   if (MEDAN_HEADCOUNT.indexOf(medan) === -1) return ralat('Medan tidak sah: ' + medan);
+  if (medan === 'ETR') return ralat('Sila guna fungsi "Isi ETR" (Headcount) supaya TOV & OTR turut dikira automatik.');
   if (sesi.peranan === ROLE_GURU && MEDAN_BOLEH_GURU.indexOf(medan) === -1) {
-    return ralat('Guru hanya dibenarkan memasukkan AR1 dan AR2.');
+    return ralat('Guru hanya dibenarkan memasukkan AR1, AR2 dan SEBENAR (di tab Markah Ujian).');
   }
   if (!cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar)) return ralat('Pelajar tidak dijumpai.');
 

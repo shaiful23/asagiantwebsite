@@ -62,6 +62,17 @@ function gredDaripadaMarkah(bldMap, kodSubjek, semester, markah) {
   return padanan ? padanan.gred : '';
 }
 
+/* Cari gred N tingkat ke bawah drpd satu gred asal, mengikut senarai Sheet GRADES
+   tersusun MENURUN ikut NilaiGred — data-driven, TIADA huruf gred di-hard-code
+   (MODUL 43). Dipakai untuk auto-isi TOV/OTR daripada ETR (rujuk apiSimpanETR). */
+function gredTurun(mapGred, gredAsal, bilanganTurun) {
+  const senarai = Object.keys(mapGred).sort((a, b) => mapGred[b].nilai - mapGred[a].nilai);
+  const indeks = senarai.indexOf(String(gredAsal).trim().toUpperCase());
+  if (indeks === -1) return '';
+  const indeksBaru = Math.min(indeks + bilanganTurun, senarai.length - 1);
+  return senarai[indeksBaru];
+}
+
 /* Kenal pasti medan (TOV/OTR1/AR1/OTR2/AR2/ETR/SEBENAR) paling terkini yang ada
    nilai — dipakai sebagai "keputusan semasa efektif" merentasi Dashboard/Laporan. */
 function medanEfektif(rekod) {

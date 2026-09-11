@@ -87,6 +87,31 @@ function apiNyahaktifPelajar(p) {
   return jaya({});
 }
 
+/* Senarai KELAS yang ada pelajar berdaftar bagi SATU mata pelajaran (+ tahun STPM
+   jika dinyatakan) — dipakai untuk pemilih "Kelas yang diajar" bagi guru di
+   Headcount (Isi ETR) & tab Markah Ujian, supaya guru hanya nampak kelas sebenar
+   dia ajar bagi subjek tersebut (bukan semua kelas sekolah). */
+function apiSenaraiKelasUntukSubjek(p) {
+  const sesi = wajibPeranan(p.token, null);
+  if (sesi.success === false) return sesi;
+
+  const kodSubjek = String(p.kodSubjek || '').trim();
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+  if (!kodSubjek) return ralat('Kod Subjek wajib diisi.');
+  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
+    return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
+  }
+
+  const idBerdaftar = new Set(bacaSheetSebagaiObjek(SHEET_ENROLLMENTS)
+    .filter(e => e.KodSubjek === kodSubjek && (!tahunSTPM || String(e.TahunSTPM) === tahunSTPM))
+    .map(e => e.ID_Pelajar));
+  const kelasSet = new Set(bacaSheetSebagaiObjek(SHEET_STUDENTS)
+    .filter(s => idBerdaftar.has(s.ID_Pelajar) && String(s.Status).toUpperCase() === 'AKTIF')
+    .map(s => s.Kelas));
+
+  return jaya({ senarai: Array.from(kelasSet).filter(Boolean).sort() });
+}
+
 /* ------------------------- MODUL 4: PENDAFTARAN PELAJAR-SUBJEK ------------------------- */
 function apiSenaraiPendaftaran(p) {
   const sesi = wajibPeranan(p.token, null);

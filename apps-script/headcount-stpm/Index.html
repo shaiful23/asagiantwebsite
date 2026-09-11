@@ -103,6 +103,7 @@
       <div class="nav-item" data-halaman="subjek">Mata Pelajaran</div>
       <div class="nav-item" data-halaman="bld">Skema Gred (BLD)</div>
       <div class="nav-item" data-halaman="headcount">Headcount</div>
+      <div class="nav-item" data-halaman="ujian">Markah Ujian</div>
       <div class="nav-item" data-halaman="ulangan">Ulangan</div>
       <div class="nav-item" data-halaman="intervensi">Intervensi</div>
       <div class="nav-item" data-halaman="analisis">Analisis</div>
@@ -168,6 +169,53 @@ function formatMG(markah, gred) {
   return escapeHtml(markah) + (gred ? ' (' + escapeHtml(gred) + ')' : '');
 }
 
+/* ======================= ROSTER PELAJAR (kongsi: Headcount "Isi ETR" & tab "Markah Ujian") =======================
+   Jadual senarai pelajar satu Subjek x Kelas, dengan medanBolehEdit (cth. ['ETR']
+   atau ['AR1','AR2','SEBENAR']) dipaparkan sebagai input Markah; medan lain paparan
+   sahaja (Markah (Gred)). Backend sentiasa punca pengiraan (MODUL 43) — selepas
+   simpan, roster dimuat SEMULA supaya Gap/Trend/Risiko/Gred terbitan sentiasa tepat. */
+function renderJadualRoster(senarai, medanBolehEdit) {
+  const bolehEdit = m => medanBolehEdit.indexOf(m) !== -1;
+  const sel = (r, m) => {
+    if (bolehEdit(m)) {
+      const nilaiMarkah = (r[m + '_Markah'] !== '' && r[m + '_Markah'] !== undefined) ? r[m + '_Markah'] : '';
+      const gredSemasa = r[m + '_Gred'] || '';
+      return '<input type="number" min="0" max="100" step="0.5" class="input-roster" style="width:64px;margin:0" ' +
+        'data-id="' + escapeHtml(r.ID_Pelajar) + '" data-medan="' + m + '" value="' + escapeHtml(nilaiMarkah) + '"> ' +
+        '<span class="kecil">' + (gredSemasa ? '(' + escapeHtml(gredSemasa) + ')' : '') + '</span>';
+    }
+    return formatMG(r[m + '_Markah'], r[m + '_Gred']);
+  };
+  return `<div class="tbl-scroll"><table><thead><tr>
+    <th>Pelajar</th><th>TOV</th><th>OTR1</th><th>AR1</th><th>Gap1</th><th>OTR2</th><th>AR2</th><th>Gap2</th><th>ETR</th><th>Sebenar</th><th>Status</th><th>Trend</th><th>Risiko</th>
+  </tr></thead><tbody>
+    ${senarai.map(r => `<tr>
+      <td>${escapeHtml(r.namaPelajar||r.ID_Pelajar)}</td>
+      <td>${sel(r,'TOV')}</td><td>${sel(r,'OTR1')}</td><td>${sel(r,'AR1')}</td><td>${lencana(r.statusGap1)}</td>
+      <td>${sel(r,'OTR2')}</td><td>${sel(r,'AR2')}</td><td>${lencana(r.statusGap2)}</td>
+      <td>${sel(r,'ETR')}</td><td>${sel(r,'SEBENAR')}</td>
+      <td>${lencana(r.statusGapETR)}</td><td>${lencana(r.trend)}</td><td>${lencana(r.risiko)}</td>
+    </tr>`).join('') || '<tr><td colspan=13 class="kecil">Tiada pelajar berdaftar bagi subjek + kelas ini pada Tahun STPM semasa.</td></tr>'}
+  </tbody></table></div>`;
+}
+
+/* Lampirkan auto-simpan "onblur" pada setiap input.input-roster dalam #idContainer.
+   fnSimpan(idPelajar, medan, markah) mesti pulangkan Promise (rujuk panggil()). */
+function pasangSimpanRoster(idContainer, fnSimpan, fnMuatSemula) {
+  document.querySelectorAll('#' + idContainer + ' .input-roster').forEach(el => {
+    const nilaiAsal = el.value;
+    el.addEventListener('blur', () => {
+      if (el.value === nilaiAsal) return;
+      const idPelajar = el.dataset.id, medan = el.dataset.medan, markah = el.value;
+      el.disabled = true;
+      fnSimpan(idPelajar, medan, markah).then(() => {
+        tunjukMesej('Markah ' + medan + ' disimpan.');
+        fnMuatSemula();
+      }).catch(err => { tunjukMesej(err, 'ralat'); el.disabled = false; });
+    });
+  });
+}
+
 /* ======================= LOGIN / SESI ======================= */
 document.getElementById('btnLogin').addEventListener('click', login);
 document.getElementById('inPIN').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
@@ -231,12 +279,12 @@ function tukarHalaman(nama) {
   S.halaman = nama;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('aktif', el.dataset.halaman === nama));
   const tajuk = { dashboard:'Dashboard', pelajar:'Pelajar', subjek:'Mata Pelajaran', bld:'Skema Gred (BLD)', headcount:'Headcount',
-    ulangan:'Ulangan Semester', intervensi:'Intervensi', analisis:'Analisis', laporan:'Laporan', pengguna:'Pengguna & Peranan' };
+    ujian:'Markah Ujian', ulangan:'Ulangan Semester', intervensi:'Intervensi', analisis:'Analisis', laporan:'Laporan', pengguna:'Pengguna & Peranan' };
   document.getElementById('tajukHalaman').textContent = tajuk[nama] || nama;
   document.getElementById('content').innerHTML = '<div class="muatan">Memuatkan...</div>';
   document.getElementById('kawalanGlobal').innerHTML = '';
   const fn = { dashboard: muatDashboard, pelajar: muatPelajar, subjek: muatSubjek, bld: muatBLD, headcount: muatHeadcount,
-    ulangan: muatUlangan, intervensi: muatIntervensi, analisis: muatAnalisis, laporan: muatLaporan, pengguna: muatPengguna }[nama];
+    ujian: muatUjian, ulangan: muatUlangan, intervensi: muatIntervensi, analisis: muatAnalisis, laporan: muatLaporan, pengguna: muatPengguna }[nama];
   if (fn) fn();
 }
 
@@ -537,55 +585,154 @@ function muatHeadcount() {
   document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml() + pilihanTahunHtml();
   pasangPilihanSemester(muatHeadcount);
   pasangPilihanTahun(muatHeadcount);
-  panggil('apiDapatkanHeadcount', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(renderHeadcount).catch(renderRalat);
+
+  panggil('apiSenaraiSubjek', { token: S.token }).then(subjekRes => {
+    S.cacheSubjek = subjekRes.senarai;
+    renderHeadcountShell();
+  }).catch(renderRalat);
 }
 
-function renderHeadcount(res) {
-  const senarai = res.senarai;
-  const bolehEditSemua = bolehUrus();
-  const medanBolehGuru = ['AR1','AR2'];
+function renderHeadcountShell() {
+  if (!S.viewHeadcount) S.viewHeadcount = 'subjek';
 
   document.getElementById('content').innerHTML = `
     <div class="panel">
-      <h3>Key In Markah — Satu Rekod (Pelajar x Subjek x Tahun)</h3>
-      <p class="kecil">Guru hanya boleh isi AR1/AR2. Taip MARKAH (0-100) — Gred diterbitkan automatik ikut BLD subjek berkenaan (tetapkan dahulu di menu "Skema Gred (BLD)"). Sistem terus mengira Gap, Status, Trend & Risiko (MODUL 29).</p>
+      <h3>Isi ETR — Semester ${S.semester.slice(1)}</h3>
+      <p class="kecil">Pilih Subjek dan Kelas yang anda ajar, kemudian isi MARKAH ETR bagi setiap pelajar.
+      TOV, OTR1 dan OTR2 dikira <b>AUTOMATIK</b> daripada ETR (TOV = OTR1 = 2 gred bawah ETR; OTR2 = 1 gred bawah ETR),
+      rujuk BLD Semester ${S.semester.slice(1)} subjek berkenaan — setiap semester berdiri sendiri (bukan rolling).</p>
       <div class="borang-grid">
-        <div><label>ID Pelajar</label><input id="hIdPelajar"></div>
-        <div><label>Kod Subjek</label><input id="hKodSubjek"></div>
-        <div><label>Tahun STPM</label><input id="hTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
-        <div><label>Medan</label><select id="hMedan">
-          ${MEDAN_HEADCOUNT.map(m => '<option'+(bolehEditSemua||medanBolehGuru.indexOf(m)!==-1?'':' disabled')+'>'+m+'</option>').join('')}
+        <div><label>Kod Subjek</label><select id="eKodSubjek"><option value="">-- Pilih Subjek --</option>
+          ${S.cacheSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('')}
         </select></div>
-        <div><label>Markah (0-100)</label><input id="hMarkah" type="number" min="0" max="100" step="0.5" placeholder="cth. 72"></div>
+        <div><label>Kelas</label><select id="eKelas"><option value="">-- Pilih Subjek dahulu --</option></select></div>
       </div>
-      <label>Sebab / Catatan perubahan</label><input id="hSebab" placeholder="cth. Keputusan ujian bulanan">
-      <button id="btnSimpanHeadcount">Simpan</button>
+      <div id="rosterETR"></div>
     </div>
     <div class="panel">
-      <h3>Headcount Semester ${S.semester.slice(1)} (${senarai.length} rekod)</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <h3 style="margin:0">Headcount Semester ${S.semester.slice(1)} — Keseluruhan</h3>
+        <div>
+          <span class="tab-link ${S.viewHeadcount==='subjek'?'aktif':''}" data-view="subjek">Ikut Subjek</span>
+          <span class="tab-link ${S.viewHeadcount==='kelas'?'aktif':''}" data-view="kelas">Ikut Kelas</span>
+        </div>
+      </div>
       <p class="kecil">Format paparan: Markah (Gred).</p>
-      <div class="tbl-scroll"><table><thead><tr>
-        <th>Pelajar</th><th>Kelas</th><th>Subjek</th><th>TOV</th><th>OTR1</th><th>AR1</th><th>Gap1</th><th>OTR2</th><th>AR2</th><th>Gap2</th><th>ETR</th><th>Sebenar</th><th>Status</th><th>Trend</th><th>Risiko</th>
-      </tr></thead><tbody>
-        ${senarai.map(r => `<tr>
-          <td>${escapeHtml(r.namaPelajar||r.ID_Pelajar)}</td><td>${escapeHtml(r.kelas)}</td><td>${escapeHtml(r.KodSubjek)}</td>
-          <td>${formatMG(r.TOV_Markah, r.TOV_Gred)}</td><td>${formatMG(r.OTR1_Markah, r.OTR1_Gred)}</td><td>${formatMG(r.AR1_Markah, r.AR1_Gred)}</td><td>${lencana(r.statusGap1)}</td>
-          <td>${formatMG(r.OTR2_Markah, r.OTR2_Gred)}</td><td>${formatMG(r.AR2_Markah, r.AR2_Gred)}</td><td>${lencana(r.statusGap2)}</td>
-          <td>${formatMG(r.ETR_Markah, r.ETR_Gred)}</td><td>${formatMG(r.SEBENAR_Markah, r.SEBENAR_Gred)}</td>
-          <td>${lencana(r.statusGapETR)}</td><td>${lencana(r.trend)}</td><td>${lencana(r.risiko)}</td>
-        </tr>`).join('') || '<tr><td colspan=15 class="kecil">Tiada rekod.</td></tr>'}
-      </tbody></table></div>
+      <div id="aggregateHeadcount"><div class="muatan">Memuatkan...</div></div>
     </div>`;
 
-  document.getElementById('btnSimpanHeadcount').addEventListener('click', () => {
-    panggil('apiSimpanHeadcount', {
-      token: S.token, semester: S.semester,
-      idPelajar: document.getElementById('hIdPelajar').value, kodSubjek: document.getElementById('hKodSubjek').value,
-      tahunSTPM: document.getElementById('hTahun').value, medan: document.getElementById('hMedan').value,
-      markah: document.getElementById('hMarkah').value, sebab: document.getElementById('hSebab').value
-    }).then(res => { tunjukMesej('Headcount dikemaskini' + (res.gred ? ' — Gred: ' + res.gred : '') + '.'); muatHeadcount(); })
-      .catch(err => tunjukMesej(err, 'ralat'));
-  });
+  document.getElementById('eKodSubjek').addEventListener('change', muatKelasUntukETR);
+  document.querySelectorAll('#content .tab-link').forEach(el => el.addEventListener('click', () => {
+    S.viewHeadcount = el.dataset.view;
+    document.querySelectorAll('#content .tab-link').forEach(x => x.classList.toggle('aktif', x === el));
+    muatAggregateHeadcount();
+  }));
+
+  muatAggregateHeadcount();
+}
+
+function muatKelasUntukETR() {
+  const kodSubjek = document.getElementById('eKodSubjek').value;
+  const selKelas = document.getElementById('eKelas');
+  document.getElementById('rosterETR').innerHTML = '';
+  if (!kodSubjek) { selKelas.innerHTML = '<option value="">-- Pilih Subjek dahulu --</option>'; return; }
+  selKelas.innerHTML = '<option value="">Memuatkan...</option>';
+  panggil('apiSenaraiKelasUntukSubjek', { token: S.token, kodSubjek, tahunSTPM: S.tahunSTPM }).then(res => {
+    selKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>' + res.senarai.map(k=>'<option value="'+escapeHtml(k)+'">'+escapeHtml(k)+'</option>').join('');
+    selKelas.onchange = muatRosterETR;
+  }).catch(err => { selKelas.innerHTML = '<option value="">Ralat</option>'; tunjukMesej(err, 'ralat'); });
+}
+
+function muatRosterETR() {
+  const kodSubjek = document.getElementById('eKodSubjek').value;
+  const kelas = document.getElementById('eKelas').value;
+  if (!kodSubjek || !kelas) { document.getElementById('rosterETR').innerHTML = ''; return; }
+  document.getElementById('rosterETR').innerHTML = '<div class="muatan">Memuatkan senarai pelajar...</div>';
+  panggil('apiRosterHeadcount', { token: S.token, semester: S.semester, kodSubjek, kelas, tahunSTPM: S.tahunSTPM }).then(res => {
+    document.getElementById('rosterETR').innerHTML = renderJadualRoster(res.senarai, ['ETR']);
+    pasangSimpanRoster('rosterETR', (idPelajar, medan, markah) =>
+      panggil('apiSimpanETR', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM, kodSubjek, idPelajar, markahETR: markah }),
+      () => { muatRosterETR(); muatAggregateHeadcount(); });
+  }).catch(err => { document.getElementById('rosterETR').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
+}
+
+/* Feature 1 (butang paparan): "Ikut Subjek" / "Ikut Kelas" bagi jadual keseluruhan. */
+function muatAggregateHeadcount() {
+  document.getElementById('aggregateHeadcount').innerHTML = '<div class="muatan">Memuatkan...</div>';
+  panggil('apiDapatkanHeadcount', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(res => {
+    document.getElementById('aggregateHeadcount').innerHTML = renderAggregateHeadcount(res.senarai, S.viewHeadcount);
+  }).catch(err => { document.getElementById('aggregateHeadcount').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
+}
+
+function renderAggregateHeadcount(senarai, ikut) {
+  if (!senarai.length) return '<p class="kecil">Tiada rekod.</p>';
+  const medanKumpul = ikut === 'kelas' ? 'kelas' : 'KodSubjek';
+  const kumpulan = {};
+  senarai.forEach(r => { const k = r[medanKumpul] || '-'; (kumpulan[k] = kumpulan[k] || []).push(r); });
+
+  return Object.keys(kumpulan).sort().map(kunci => `
+    <h4 style="margin:16px 0 8px">${ikut==='kelas'?'Kelas':'Subjek'}: ${escapeHtml(kunci)} <span class="kecil">(${kumpulan[kunci].length} rekod)</span></h4>
+    <div class="tbl-scroll"><table><thead><tr>
+      <th>Pelajar</th><th>${ikut==='kelas'?'Subjek':'Kelas'}</th><th>TOV</th><th>OTR1</th><th>AR1</th><th>Gap1</th><th>OTR2</th><th>AR2</th><th>Gap2</th><th>ETR</th><th>Sebenar</th><th>Status</th><th>Trend</th><th>Risiko</th>
+    </tr></thead><tbody>
+      ${kumpulan[kunci].map(r => `<tr>
+        <td>${escapeHtml(r.namaPelajar||r.ID_Pelajar)}</td><td>${escapeHtml(ikut==='kelas'?r.KodSubjek:r.kelas)}</td>
+        <td>${formatMG(r.TOV_Markah, r.TOV_Gred)}</td><td>${formatMG(r.OTR1_Markah, r.OTR1_Gred)}</td><td>${formatMG(r.AR1_Markah, r.AR1_Gred)}</td><td>${lencana(r.statusGap1)}</td>
+        <td>${formatMG(r.OTR2_Markah, r.OTR2_Gred)}</td><td>${formatMG(r.AR2_Markah, r.AR2_Gred)}</td><td>${lencana(r.statusGap2)}</td>
+        <td>${formatMG(r.ETR_Markah, r.ETR_Gred)}</td><td>${formatMG(r.SEBENAR_Markah, r.SEBENAR_Gred)}</td>
+        <td>${lencana(r.statusGapETR)}</td><td>${lencana(r.trend)}</td><td>${lencana(r.risiko)}</td>
+      </tr>`).join('')}
+    </tbody></table></div>`).join('');
+}
+
+/* ======================= MARKAH UJIAN — AR1, AR2 & SEBENAR (MODUL 6) ======================= */
+function muatUjian() {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml() + pilihanTahunHtml();
+  pasangPilihanSemester(muatUjian);
+  pasangPilihanTahun(muatUjian);
+
+  panggil('apiSenaraiSubjek', { token: S.token }).then(subjekRes => {
+    S.cacheSubjek = subjekRes.senarai;
+    document.getElementById('content').innerHTML = `
+      <div class="panel">
+        <h3>Markah Ujian — AR1, AR2 & Sebenar (Semester ${S.semester.slice(1)})</h3>
+        <p class="kecil">Pilih Subjek dan Kelas yang diajar, kemudian isi markah AR1 (Ujian 1), AR2 (Ujian 2) dan/atau SEBENAR
+        (keputusan rasmi) bagi setiap pelajar. Gred diterbitkan automatik ikut BLD Semester ${S.semester.slice(1)} subjek berkenaan.</p>
+        <div class="borang-grid">
+          <div><label>Kod Subjek</label><select id="jKodSubjek"><option value="">-- Pilih Subjek --</option>
+            ${S.cacheSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('')}
+          </select></div>
+          <div><label>Kelas</label><select id="jKelas"><option value="">-- Pilih Subjek dahulu --</option></select></div>
+        </div>
+        <div id="rosterUjian"></div>
+      </div>`;
+    document.getElementById('jKodSubjek').addEventListener('change', muatKelasUntukUjian);
+  }).catch(renderRalat);
+}
+
+function muatKelasUntukUjian() {
+  const kodSubjek = document.getElementById('jKodSubjek').value;
+  const selKelas = document.getElementById('jKelas');
+  document.getElementById('rosterUjian').innerHTML = '';
+  if (!kodSubjek) { selKelas.innerHTML = '<option value="">-- Pilih Subjek dahulu --</option>'; return; }
+  selKelas.innerHTML = '<option value="">Memuatkan...</option>';
+  panggil('apiSenaraiKelasUntukSubjek', { token: S.token, kodSubjek, tahunSTPM: S.tahunSTPM }).then(res => {
+    selKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>' + res.senarai.map(k=>'<option value="'+escapeHtml(k)+'">'+escapeHtml(k)+'</option>').join('');
+    selKelas.onchange = muatRosterUjian;
+  }).catch(err => { selKelas.innerHTML = '<option value="">Ralat</option>'; tunjukMesej(err, 'ralat'); });
+}
+
+function muatRosterUjian() {
+  const kodSubjek = document.getElementById('jKodSubjek').value;
+  const kelas = document.getElementById('jKelas').value;
+  if (!kodSubjek || !kelas) { document.getElementById('rosterUjian').innerHTML = ''; return; }
+  document.getElementById('rosterUjian').innerHTML = '<div class="muatan">Memuatkan senarai pelajar...</div>';
+  panggil('apiRosterHeadcount', { token: S.token, semester: S.semester, kodSubjek, kelas, tahunSTPM: S.tahunSTPM }).then(res => {
+    document.getElementById('rosterUjian').innerHTML = renderJadualRoster(res.senarai, ['AR1','AR2','SEBENAR']);
+    pasangSimpanRoster('rosterUjian', (idPelajar, medan, markah) =>
+      panggil('apiSimpanHeadcount', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM, kodSubjek, idPelajar, medan, markah }),
+      muatRosterUjian);
+  }).catch(err => { document.getElementById('rosterUjian').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
 }
 
 /* ======================= ULANGAN (MODUL 12, 13) ======================= */
