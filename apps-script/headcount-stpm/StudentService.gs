@@ -112,6 +112,20 @@ function apiSenaraiKelasUntukSubjek(p) {
   return jaya({ senarai: Array.from(kelasSet).filter(Boolean).sort() });
 }
 
+/* Senarai KELAS sekolah sebenar (daripada STUDENTS terus, BUKAN daripada
+   ENROLLMENTS) — dipakai untuk pemilih Kelas semasa PENDAFTARAN pukal, sebab
+   pada ketika ini pelajar mungkin belum berdaftar ke mana-mana subjek lagi
+   (ayam-telur dengan apiSenaraiKelasUntukSubjek). */
+function apiSenaraiKelasSekolah(p) {
+  const sesi = wajibPeranan(p.token, null);
+  if (sesi.success === false) return sesi;
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+  const kelasSet = new Set(bacaSheetSebagaiObjek(SHEET_STUDENTS)
+    .filter(s => String(s.Status).toUpperCase() === 'AKTIF' && (!tahunSTPM || String(s.TahunSTPM) === tahunSTPM))
+    .map(s => s.Kelas));
+  return jaya({ senarai: Array.from(kelasSet).filter(Boolean).sort() });
+}
+
 /* ------------------------- MODUL 4: PENDAFTARAN PELAJAR-SUBJEK ------------------------- */
 function apiSenaraiPendaftaran(p) {
   const sesi = wajibPeranan(p.token, null);
@@ -119,6 +133,39 @@ function apiSenaraiPendaftaran(p) {
   let senarai = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS);
   if (p.idPelajar) senarai = senarai.filter(e => e.ID_Pelajar === p.idPelajar);
   return jaya({ senarai });
+}
+
+/* Daftarkan SEMUA pelajar aktif dalam satu Kelas (+ Tahun STPM) ke satu Subjek
+   sekali gus — cara paling praktikal untuk sekolah (satu kelas ambil subjek
+   sama), berbanding daftar seorang demi seorang. Pelajar yang sudah berdaftar
+   dilangkau (bukan ralat) supaya boleh dijalankan berulang kali dengan selamat. */
+function apiDaftarSubjekPukal(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  if (sesi.success === false) return sesi;
+
+  const kodSubjek = String(p.kodSubjek || '').trim();
+  const kelas = String(p.kelas || '').trim();
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+  if (!kodSubjek || !kelas || !tahunSTPM) return ralat('Kod Subjek, Kelas dan Tahun STPM wajib diisi.');
+  if (!cariBarisMengikutId(SHEET_SUBJECTS, 'KodSubjek', kodSubjek)) return ralat('Mata pelajaran tidak dijumpai.');
+
+  const pelajarKelas = bacaSheetSebagaiObjek(SHEET_STUDENTS).filter(s =>
+    String(s.Status).toUpperCase() === 'AKTIF' && String(s.Kelas).toUpperCase() === kelas.toUpperCase() && String(s.TahunSTPM) === tahunSTPM);
+  if (!pelajarKelas.length) return ralat('Tiada pelajar aktif dalam kelas "' + kelas + '" bagi Tahun STPM ' + tahunSTPM + '.');
+
+  const enrolSediaAda = new Set(bacaSheetSebagaiObjek(SHEET_ENROLLMENTS)
+    .filter(e => e.KodSubjek === kodSubjek && String(e.TahunSTPM) === tahunSTPM).map(e => e.ID_Pelajar));
+
+  let bilBaharu = 0;
+  pelajarKelas.forEach(s => {
+    if (enrolSediaAda.has(s.ID_Pelajar)) return;
+    tambahBaris(SHEET_ENROLLMENTS, { ID_Pelajar: s.ID_Pelajar, KodSubjek: kodSubjek, TahunSTPM: tahunSTPM }, HEADER_ENROLLMENTS);
+    bilBaharu++;
+  });
+
+  catatAudit(sesi, 'TAMBAH', 'PENDAFTARAN_PUKAL', kodSubjek + '-' + kelas, '',
+    bilBaharu + ' drpd ' + pelajarKelas.length + ' pelajar', 'Daftar pukal kelas ' + kelas + ' ke subjek ' + kodSubjek);
+  return jaya({ bilBaharu, jumlahKelas: pelajarKelas.length });
 }
 
 function apiDaftarSubjek(p) {

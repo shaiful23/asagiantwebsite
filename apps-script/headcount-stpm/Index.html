@@ -374,9 +374,13 @@ function muatPelajar() {
   document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
   pasangPilihanTahun(muatPelajar);
 
-  panggil('apiSenaraiPelajar', { token: S.token, tahunSTPM: S.tahunSTPM }).then(res => {
-    S.cachePelajar = res.senarai;
-    renderPelajar(res.senarai);
+  Promise.all([
+    panggil('apiSenaraiPelajar', { token: S.token, tahunSTPM: S.tahunSTPM }),
+    panggil('apiSenaraiSubjek', { token: S.token })
+  ]).then(([pelajarRes, subjekRes]) => {
+    S.cachePelajar = pelajarRes.senarai;
+    S.cacheSubjek = subjekRes.senarai;
+    renderPelajar(pelajarRes.senarai);
   }).catch(renderRalat);
 }
 
@@ -395,6 +399,28 @@ function renderPelajar(senarai) {
       </div>
       <label>Catatan</label><textarea id="pCatatan" rows="2"></textarea>
       <button id="btnSimpanPelajar">Simpan Pelajar</button>
+    </div>
+    <div class="panel">
+      <h3>Pendaftaran Subjek — Pukal (Ikut Kelas)</h3>
+      <p class="kecil">Daftarkan SEMUA pelajar aktif dalam satu kelas ke satu mata pelajaran sekali gus (cth. seluruh 6A Akasia ambil Pengajian Am). Pelajar yang sudah berdaftar dilangkau secara automatik — selamat dijalankan berulang kali. <b>WAJIB dibuat dahulu</b> sebelum guru boleh key-in ETR/Markah Ujian bagi kelas berkenaan.</p>
+      <div class="borang-grid">
+        <div><label>Kod Subjek</label><select id="dKodSubjek">${S.cacheSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('')}</select></div>
+        <div><label>Kelas</label><select id="dKelas"><option value="">Memuatkan...</option></select></div>
+        <div><label>Tahun STPM</label><input id="dTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
+      </div>
+      <button id="btnDaftarPukal">Daftarkan Kelas Ini</button>
+    </div>
+    <div class="panel">
+      <h3>Pendaftaran Subjek — Individu</h3>
+      <p class="kecil">Untuk daftar/batal satu pelajar bagi satu subjek sahaja (cth. pelajar ambil subjek tambahan berbeza daripada kelasnya).</p>
+      <div class="borang-grid">
+        <div><label>ID Pelajar</label><input id="rIdPelajar" placeholder="cth. P001" list="senaraiIdPelajar"></div>
+        <div><label>Kod Subjek</label><select id="rKodSubjek">${S.cacheSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('')}</select></div>
+        <div><label>Tahun STPM</label><input id="rTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
+      </div>
+      <datalist id="senaraiIdPelajar">${senarai.map(s=>'<option value="'+escapeHtml(s.ID_Pelajar)+'">'+escapeHtml(s.Nama)+'</option>').join('')}</datalist>
+      <button id="btnDaftarIndividu">Daftar</button>
+      <div id="senaraiPendaftaranIndividu" style="margin-top:12px"></div>
     </div>` : '';
 
   document.getElementById('content').innerHTML = borang + `
@@ -411,7 +437,58 @@ function renderPelajar(senarai) {
     isiJadualPelajar(senarai.filter(s => s.Nama.toLowerCase().includes(k) || String(s.NoKP).includes(k) || s.ID_Pelajar.toLowerCase().includes(k)));
   });
 
-  if (bolehUrus()) document.getElementById('btnSimpanPelajar').addEventListener('click', simpanPelajar);
+  if (!bolehUrus()) return;
+  document.getElementById('btnSimpanPelajar').addEventListener('click', simpanPelajar);
+
+  muatKelasUntukPukal();
+  document.getElementById('dTahun').addEventListener('change', muatKelasUntukPukal);
+  document.getElementById('btnDaftarPukal').addEventListener('click', daftarSubjekPukal);
+
+  document.getElementById('btnDaftarIndividu').addEventListener('click', daftarSubjekIndividu);
+  document.getElementById('rIdPelajar').addEventListener('change', muatPendaftaranIndividu);
+}
+
+function muatKelasUntukPukal() {
+  const selKelas = document.getElementById('dKelas');
+  selKelas.innerHTML = '<option value="">Memuatkan...</option>';
+  panggil('apiSenaraiKelasSekolah', { token: S.token, tahunSTPM: document.getElementById('dTahun').value }).then(res => {
+    selKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>' + res.senarai.map(k=>'<option value="'+escapeHtml(k)+'">'+escapeHtml(k)+'</option>').join('');
+  }).catch(err => { selKelas.innerHTML = '<option value="">Ralat</option>'; tunjukMesej(err, 'ralat'); });
+}
+
+function daftarSubjekPukal() {
+  panggil('apiDaftarSubjekPukal', {
+    token: S.token, kodSubjek: document.getElementById('dKodSubjek').value,
+    kelas: document.getElementById('dKelas').value, tahunSTPM: document.getElementById('dTahun').value
+  }).then(res => {
+    tunjukMesej('Berjaya daftarkan ' + res.bilBaharu + ' drpd ' + res.jumlahKelas + ' pelajar (baki sudah berdaftar sebelum ini).');
+  }).catch(err => tunjukMesej(err, 'ralat'));
+}
+
+function daftarSubjekIndividu() {
+  panggil('apiDaftarSubjek', {
+    token: S.token, idPelajar: document.getElementById('rIdPelajar').value,
+    kodSubjek: document.getElementById('rKodSubjek').value, tahunSTPM: document.getElementById('rTahun').value
+  }).then(() => { tunjukMesej('Pelajar didaftarkan.'); muatPendaftaranIndividu(); }).catch(err => tunjukMesej(err, 'ralat'));
+}
+
+function muatPendaftaranIndividu() {
+  const idPelajar = document.getElementById('rIdPelajar').value.trim();
+  const kotak = document.getElementById('senaraiPendaftaranIndividu');
+  if (!idPelajar) { kotak.innerHTML = ''; return; }
+  kotak.innerHTML = '<div class="muatan">Memuatkan...</div>';
+  panggil('apiSenaraiPendaftaran', { token: S.token, idPelajar }).then(res => {
+    kotak.innerHTML = '<p class="kecil">Subjek berdaftar bagi <b>'+escapeHtml(idPelajar)+'</b>:</p>' +
+      (res.senarai.map(e => '<span class="lencana AKTIF" style="margin:2px">' + escapeHtml(e.KodSubjek) + ' (' + escapeHtml(e.TahunSTPM) + ')' +
+        ' <span class="aksi-link" style="color:#fff" onclick="batalDaftarIndividu(\''+idPelajar+'\',\''+e.KodSubjek+'\',\''+e.TahunSTPM+'\')">&times;</span></span>').join(' ')
+        || '<span class="kecil">Belum berdaftar mana-mana subjek.</span>');
+  }).catch(err => { kotak.innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
+}
+
+function batalDaftarIndividu(idPelajar, kodSubjek, tahunSTPM) {
+  if (!confirm('Batalkan pendaftaran ' + idPelajar + ' daripada subjek ' + kodSubjek + '?')) return;
+  panggil('apiBatalDaftarSubjek', { token: S.token, idPelajar, kodSubjek, tahunSTPM })
+    .then(() => { tunjukMesej('Pendaftaran dibatalkan.'); muatPendaftaranIndividu(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
 function isiJadualPelajar(senarai) {

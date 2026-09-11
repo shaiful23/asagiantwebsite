@@ -43,6 +43,15 @@ dalam versi ini:
   rolling** — setiap semester (S1/S2/S3) berdiri sendiri sepenuhnya. Jadual
   keseluruhan Headcount ada butang paparan **"Ikut Subjek" / "Ikut Kelas"**.
   Rujuk **"Aliran Kerja Headcount (ETR-Driven)"** di bawah.
+- ✅ **UI Pendaftaran Subjek (MODUL 4)** — sebelum ini backend sudah ada
+  (`apiDaftarSubjek`) tetapi TIADA UI untuk gunakannya, jadi pemilih Kelas di
+  Headcount/Markah Ujian sentiasa kosong (kelas hanya "wujud" bagi sistem
+  selepas pelajar berdaftar ke subjek). Kini ada panel **"Pendaftaran Subjek"**
+  di halaman Pelajar — pendaftaran **pukal ikut kelas** (satu klik daftarkan
+  semua pelajar aktif satu kelas ke satu subjek) dan pendaftaran **individu**
+  (satu pelajar, satu subjek, dengan senarai + butang batal). Rujuk
+  **"Pendaftaran Subjek"** di bawah — **WAJIB dibuat dahulu** sebelum guru
+  boleh key-in ETR/Markah Ujian.
 
 **Belum dilaksanakan**:
 
@@ -211,6 +220,32 @@ subjek/semester.
 
 **Skop semasa:** Ulangan (`REPEAT_S1/S2`) masih guna Gred teks bebas, belum
 disambungkan kepada Markah+BLD — boleh dilanjutkan jika sekolah memerlukannya.
+
+## Pendaftaran Subjek (MODUL 4)
+
+**Langkah ini WAJIB dibuat dahulu** (selepas Pelajar & Mata Pelajaran diisi,
+sebelum sesiapa cuba key-in ETR/AR1/AR2/SEBENAR) — jika tidak, pemilih
+**Kelas** di Headcount ("Isi ETR") dan tab "Markah Ujian" akan sentiasa
+**kosong**, kerana kedua-duanya membina senarai Kelas daripada siapa yang
+sudah berdaftar ke subjek berkenaan (`ENROLLMENTS`), bukan daripada Sheet
+`STUDENTS` terus.
+
+Di halaman **Pelajar**, panel **"Pendaftaran Subjek"** ada dua cara:
+
+1. **Pukal (ikut Kelas)** — pilih Kod Subjek + Kelas + Tahun STPM, klik
+   **"Daftarkan Kelas Ini"**. Semua pelajar **AKTIF** dalam kelas itu terus
+   didaftarkan ke subjek tersebut sekali gus. Pelajar yang sudah berdaftar
+   dilangkau secara automatik (bukan ralat) — selamat diklik berulang kali,
+   cth. selepas tambah pelajar baharu ke kelas yang sama.
+2. **Individu** — untuk kes pelajar ambil subjek berbeza daripada rakan
+   sekelas (cth. elektif). Taip/pilih ID Pelajar (senarai cadangan nama
+   disediakan), pilih Kod Subjek, klik **Daftar**. Senarai subjek pelajar
+   itu terus dipaparkan di bawah, dengan pautan **×** untuk batalkan
+   pendaftaran.
+
+Backend: `apiDaftarSubjekPukal` (StudentService.gs) untuk pukal,
+`apiDaftarSubjek`/`apiBatalDaftarSubjek`/`apiSenaraiPendaftaran` (sedia ada)
+untuk individu. Semua tindakan direkod dalam `AUDIT_LOG`.
 
 ## Aliran Kerja Headcount (ETR-Driven)
 
