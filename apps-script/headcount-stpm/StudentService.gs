@@ -102,14 +102,31 @@ function apiSenaraiKelasUntukSubjek(p) {
     return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
   }
 
-  const idBerdaftar = new Set(bacaSheetSebagaiObjek(SHEET_ENROLLMENTS)
-    .filter(e => String(e.KodSubjek) === kodSubjek && (!tahunSTPM || String(e.TahunSTPM) === tahunSTPM))
-    .map(e => e.ID_Pelajar));
-  const kelasSet = new Set(bacaSheetSebagaiObjek(SHEET_STUDENTS)
-    .filter(s => idBerdaftar.has(s.ID_Pelajar) && String(s.Status).toUpperCase() === 'AKTIF')
-    .map(s => s.Kelas));
+  /* Diagnostik: kira setiap peringkat penapisan berasingan supaya, jika senarai
+     akhir kosong, punca sebenar boleh dikenal pasti terus (bukan teka) — cth.
+     tiada pendaftaran langsung, ATAU pendaftaran wujud tetapi Tahun STPM tidak
+     padan, ATAU pelajar berdaftar tetapi status bukan AKTIF. */
+  const semuaEnrolmen = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS);
+  const enrolmenSubjek = semuaEnrolmen.filter(e => String(e.KodSubjek) === kodSubjek);
+  const enrolmenSubjekTahun = enrolmenSubjek.filter(e => !tahunSTPM || String(e.TahunSTPM) === tahunSTPM);
+  const idBerdaftar = new Set(enrolmenSubjekTahun.map(e => e.ID_Pelajar));
 
-  return jaya({ senarai: Array.from(kelasSet).filter(Boolean).sort() });
+  const semuaPelajar = bacaSheetSebagaiObjek(SHEET_STUDENTS);
+  const pelajarBerdaftar = semuaPelajar.filter(s => idBerdaftar.has(s.ID_Pelajar));
+  const pelajarAktif = pelajarBerdaftar.filter(s => String(s.Status).toUpperCase() === 'AKTIF');
+  const kelasSet = new Set(pelajarAktif.map(s => s.Kelas));
+
+  return jaya({
+    senarai: Array.from(kelasSet).filter(Boolean).sort(),
+    diagnostik: {
+      jumlahEnrolmenSubjek: enrolmenSubjek.length,
+      jumlahEnrolmenSubjekTahun: enrolmenSubjekTahun.length,
+      jumlahPelajarBerdaftar: pelajarBerdaftar.length,
+      jumlahPelajarAktif: pelajarAktif.length,
+      tahunDiguna: tahunSTPM || '(Semua Tahun)',
+      contohTahunEnrolmenSubjek: enrolmenSubjek.slice(0, 5).map(e => String(e.TahunSTPM))
+    }
+  });
 }
 
 /* Senarai KELAS sekolah sebenar (daripada STUDENTS terus, BUKAN daripada

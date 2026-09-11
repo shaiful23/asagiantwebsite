@@ -65,6 +65,7 @@
   .kecil { font-size: 12px; color: var(--abu); }
   .mesej { padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; font-size: 13px; }
   .mesej.jaya { background: #dcfce7; color: #166534; } .mesej.ralat { background: #fee2e2; color: #991b1b; }
+  .mesej.amaran { background: #fef9c3; color: #854d0e; }
 
   /* Toast makluman terapung — sentiasa kelihatan tanpa kira kedudukan scroll semasa. */
   #toastKontena { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; max-width: 360px; }
@@ -155,8 +156,19 @@ function panggil(fn) {
   return new Promise((resolve, reject) => {
     google.script.run
       .withSuccessHandler(res => {
-        if (res && res.success === false) reject(res.message || 'Ralat tidak diketahui.');
-        else resolve(res);
+        /* google.script.run kadangkala pulangkan null/undefined (bukan objek yang
+           dijangka daripada jaya()/ralat()) apabila beberapa panggilan berlaku
+           serentak dalam tempoh yang sangat rapat — kesan sampingan jambatan
+           iframe HtmlService, bukan ralat sebenar pada data. Tangkap di sini
+           supaya SEMUA pemanggil (banyak tempat guna res.senarai dsb.) dapat
+           mesej jelas & boleh cuba semula, bukan TypeError yang memecahkan UI. */
+        if (res === null || res === undefined) {
+          reject('Tiada respons daripada server (mungkin gangguan sambungan sebentar). Sila cuba semula.');
+        } else if (res.success === false) {
+          reject(res.message || 'Ralat tidak diketahui.');
+        } else {
+          resolve(res);
+        }
       })
       .withFailureHandler(err => reject(err.message || String(err)))
       [fn].apply(null, Array.prototype.slice.call(arguments, 1));
@@ -703,6 +715,7 @@ function renderHeadcountShell() {
         </select></div>
         <div><label>Kelas</label><select id="eKelas"><option value="">-- Pilih Subjek dahulu --</option></select></div>
       </div>
+      <div id="eKelasInfo"></div>
       <div id="rosterETR"></div>
     </div>
     <div class="panel">
@@ -727,28 +740,60 @@ function renderHeadcountShell() {
   muatAggregateHeadcount();
 }
 
+/* Terjemah objek diagnostik daripada apiSenaraiKelasUntukSubjek kepada mesej
+   Bahasa Melayu yang menunjukkan TEPAT peringkat mana penapisan gagal, supaya
+   pengguna/admin tidak perlu teka punca dropdown Kelas kosong. */
+function mesejDiagnostikKelas(diagnostik) {
+  if (!diagnostik) return '';
+  const d = diagnostik;
+  if (d.jumlahEnrolmenSubjek === 0) {
+    return '<div class="mesej amaran">Tiada pendaftaran subjek ini langsung dalam ENROLLMENTS. ' +
+      'Sila sahkan pendaftaran subjek (Tab Pelajar → Pendaftaran Subjek) telah berjaya disimpan untuk Kod Subjek ini.</div>';
+  }
+  if (d.jumlahEnrolmenSubjekTahun === 0) {
+    return '<div class="mesej amaran">Terdapat ' + d.jumlahEnrolmenSubjek + ' pendaftaran untuk subjek ini, ' +
+      'tetapi TIADA yang padan dengan Tahun STPM semasa dipilih (<b>' + escapeHtml(d.tahunDiguna) + '</b>). ' +
+      'Nilai Tahun STPM sebenar dalam rekod pendaftaran: ' +
+      (d.contohTahunEnrolmenSubjek && d.contohTahunEnrolmenSubjek.length ? escapeHtml(d.contohTahunEnrolmenSubjek.join(', ')) : '(tiada)') +
+      '. Sila tukar pilihan Tahun STPM di bahagian atas supaya padan, atau semak semula Tahun STPM semasa pendaftaran.</div>';
+  }
+  if (d.jumlahPelajarBerdaftar === 0) {
+    return '<div class="mesej amaran">Pendaftaran wujud dan Tahun STPM padan, tetapi tiada rekod pelajar (STUDENTS) ' +
+      'yang sepadan dengan ID Pelajar dalam pendaftaran tersebut. Semak ID Pelajar dalam ENROLLMENTS vs STUDENTS.</div>';
+  }
+  if (d.jumlahPelajarAktif === 0) {
+    return '<div class="mesej amaran">' + d.jumlahPelajarBerdaftar + ' pelajar berdaftar untuk subjek/tahun ini, ' +
+      'tetapi tiada seorang pun berstatus AKTIF (semak lajur Status di STUDENTS).</div>';
+  }
+  return '';
+}
+
 function muatKelasUntukETR() {
   const kodSubjek = document.getElementById('eKodSubjek').value;
   const selKelas = document.getElementById('eKelas');
   document.getElementById('rosterETR').innerHTML = '';
+  document.getElementById('eKelasInfo').innerHTML = '';
   if (!kodSubjek) { selKelas.innerHTML = '<option value="">-- Pilih Subjek dahulu --</option>'; return; }
   selKelas.innerHTML = '<option value="">Memuatkan...</option>';
   panggil('apiSenaraiKelasUntukSubjek', { token: S.token, kodSubjek, tahunSTPM: S.tahunSTPM }).then(res => {
     selKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>' + res.senarai.map(k=>'<option value="'+escapeHtml(k)+'">'+escapeHtml(k)+'</option>').join('');
     selKelas.onchange = muatRosterETR;
+    document.getElementById('eKelasInfo').innerHTML = res.senarai.length === 0 ? mesejDiagnostikKelas(res.diagnostik) : '';
   }).catch(err => { selKelas.innerHTML = '<option value="">Ralat</option>'; tunjukMesej(err, 'ralat'); });
 }
 
 function muatRosterETR() {
   const kodSubjek = document.getElementById('eKodSubjek').value;
   const kelas = document.getElementById('eKelas').value;
-  if (!kodSubjek || !kelas) { document.getElementById('rosterETR').innerHTML = ''; return; }
+  if (!kodSubjek || !kelas) { document.getElementById('rosterETR').innerHTML = ''; return Promise.resolve(); }
   document.getElementById('rosterETR').innerHTML = '<div class="muatan">Memuatkan senarai pelajar...</div>';
-  panggil('apiRosterHeadcount', { token: S.token, semester: S.semester, kodSubjek, kelas, tahunSTPM: S.tahunSTPM }).then(res => {
+  return panggil('apiRosterHeadcount', { token: S.token, semester: S.semester, kodSubjek, kelas, tahunSTPM: S.tahunSTPM }).then(res => {
     document.getElementById('rosterETR').innerHTML = renderJadualRoster(res.senarai, ['ETR']);
     pasangSimpanRoster('rosterETR', (idPelajar, medan, markah) =>
       panggil('apiSimpanETR', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM, kodSubjek, idPelajar, markahETR: markah }),
-      () => { muatRosterETR(); muatAggregateHeadcount(); });
+      /* Muat semula roster DAHULU, kemudian jadual keseluruhan — bukan serentak —
+         supaya dua panggilan google.script.run tidak bertindih (elak respons null). */
+      () => muatRosterETR().then(muatAggregateHeadcount));
   }).catch(err => { document.getElementById('rosterETR').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
 }
 
@@ -800,6 +845,7 @@ function muatUjian() {
           </select></div>
           <div><label>Kelas</label><select id="jKelas"><option value="">-- Pilih Subjek dahulu --</option></select></div>
         </div>
+        <div id="jKelasInfo"></div>
         <div id="rosterUjian"></div>
       </div>`;
     document.getElementById('jKodSubjek').addEventListener('change', muatKelasUntukUjian);
@@ -810,11 +856,13 @@ function muatKelasUntukUjian() {
   const kodSubjek = document.getElementById('jKodSubjek').value;
   const selKelas = document.getElementById('jKelas');
   document.getElementById('rosterUjian').innerHTML = '';
+  document.getElementById('jKelasInfo').innerHTML = '';
   if (!kodSubjek) { selKelas.innerHTML = '<option value="">-- Pilih Subjek dahulu --</option>'; return; }
   selKelas.innerHTML = '<option value="">Memuatkan...</option>';
   panggil('apiSenaraiKelasUntukSubjek', { token: S.token, kodSubjek, tahunSTPM: S.tahunSTPM }).then(res => {
     selKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>' + res.senarai.map(k=>'<option value="'+escapeHtml(k)+'">'+escapeHtml(k)+'</option>').join('');
     selKelas.onchange = muatRosterUjian;
+    document.getElementById('jKelasInfo').innerHTML = res.senarai.length === 0 ? mesejDiagnostikKelas(res.diagnostik) : '';
   }).catch(err => { selKelas.innerHTML = '<option value="">Ralat</option>'; tunjukMesej(err, 'ralat'); });
 }
 
