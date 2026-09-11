@@ -257,11 +257,15 @@ daripada semester sebelumnya. Aliran kerja diringkaskan kepada:
    **Headcount → panel "Isi ETR"** — pilih Subjek, kemudian Kelas (senarai
    kelas diambil terus daripada pendaftaran sebenar bagi subjek itu, jadi
    guru hanya nampak kelas yang benar-benar dia ajar). Jadual senarai
-   pelajar kelas itu dipaparkan; guru taip **Markah ETR** bagi setiap
-   pelajar (auto-simpan bila pindah fokus/"blur" daripada kotak input).
-2. Backend (`HeadcountService.gs` → `apiSimpanETR`) terbitkan Gred ETR
-   daripada BLD Semester berkenaan, kemudian **kira TOV, OTR1, OTR2
-   automatik** — progresif, setiap satu tingkat gred tersendiri:
+   pelajar kelas itu dipaparkan; guru taip **Markah ETR** bagi SETIAP
+   pelajar dalam jadual, kemudian klik butang **"Simpan Semua ETR"** di
+   bawah jadual — seluruh kelas disimpan dalam **SATU** panggilan server
+   (`apiSimpanETRPukal`), bukan satu panggilan berasingan bagi setiap sel
+   yang diisi (corak lama "auto-simpan onblur" — lambat sebab setiap sel
+   = satu round-trip + "loading" berasingan).
+2. Backend terbitkan Gred ETR daripada BLD Semester berkenaan bagi SETIAP
+   pelajar dalam pukal itu, kemudian **kira TOV, OTR1, OTR2 automatik** —
+   progresif, setiap satu tingkat gred tersendiri:
    - `TOV` = **3 gred di bawah ETR**
    - `OTR1` = **2 gred di bawah ETR**
    - `OTR2` = **1 gred di bawah ETR** (paling hampir ETR — sasaran menaik
@@ -281,12 +285,37 @@ daripada semester sebelumnya. Aliran kerja diringkaskan kepada:
    (keputusan rasmi) yang dipilih terus sebagai **Gred** (dropdown, bukan
    Markah) — slip keputusan STPM sebenar hanya menyatakan gred, jadi tiada
    BLD terlibat bagi SEBENAR. Corak pemilihan Subjek → Kelas sama, jadual
-   pelajar sama, auto-simpan yang sama ("blur" untuk input Markah, "change"
-   untuk dropdown Gred) (`apiSimpanHeadcount`).
+   pelajar sama; selepas isi SEMUA pelajar, klik **"Simpan Semua Markah"**
+   — seluruh kelas (AR1 + AR2 + SEBENAR sekali gus) disimpan dalam SATU
+   panggilan server (`apiSimpanHeadcountPukal`).
+   - Baris yang gagal disahkan (markah bukan nombor 0-100, BLD tidak
+     lengkap, gred SEBENAR tidak sah) **dilangkau sahaja** — baki baris
+     yang sah tetap disimpan — dan disenaraikan dalam mesej makluman
+     supaya guru tahu rekod mana perlu disemak semula.
 4. Jadual **"Headcount Semester … — Keseluruhan"** (bawah panel Isi ETR)
    memaparkan semua rekod, dengan butang **"Ikut Subjek" / "Ikut Kelas"**
    untuk tukar cara ia dikumpulkan/disusun — tiada panggilan data tambahan,
    sekadar susunan semula paparan sedia ada.
+
+## Prestasi (Paginasi) & Responsif
+
+- **Paginasi paparan** — jadual besar (Senarai Pelajar, hasil Laporan,
+  Headcount Keseluruhan ikut kumpulan Subjek/Kelas) hanya render **25 baris**
+  pada satu masa (`paparkanBerhalaman()` dalam Index.html), dengan butang
+  "Sebelum / Seterus" di bawah jadual. Data penuh kekal di memori pelayar
+  untuk carian/eksport (cth. Eksport CSV Laporan tetap eksport SEMUA baris,
+  bukan setakat muka yang dipaparkan) — hanya PAPARAN DOM yang dipotong,
+  supaya pelayar (terutama peranti mudah alih/lemah) tidak perlu render
+  ratusan/ribuan baris HTML sekaligus.
+- **Simpan pukal** (rujuk "Aliran Kerja Headcount" di atas) mengurangkan
+  bilangan panggilan `google.script.run` daripada satu-setiap-sel kepada
+  satu-setiap-kelas — punca utama sistem terasa "loading" berulang kali
+  pada corak lama.
+- **Responsif** — reka letak asas (sidebar, grid borang, jadual) sudah guna
+  CSS grid/flex `auto-fit` dan `overflow-x:auto` supaya boleh dibuka di
+  skrin sempit; tambahan media query `max-width:480px` mengecilkan fon
+  jadual, jadikan kawalan atas (pemilih semester/tahun) penuh lebar, dan
+  butang "Simpan Semua" penuh lebar pada skrin telefon.
 
 ## Berbilang Batch/Kohort (cth. STPM 2026 & 2027 serentak)
 

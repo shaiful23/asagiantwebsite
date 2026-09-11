@@ -104,6 +104,43 @@ function apiRosterHeadcount(p) {
      OTR2 = 1 gred bawah ETR (sasaran hampir akhir semester, sebelum ETR)
    Markah bagi TOV/OTR1/OTR2 diambil daripada Markah Minimum gred berkenaan
    dalam BLD subjek+semester itu (anggaran, sebab bukan keputusan ujian sebenar). */
+/* Kongsi oleh apiSimpanETR (individu, kekal untuk keserasian) & apiSimpanETRPukal
+   (pukal — kaedah simpan utama UI sekarang). Kira ETR/TOV/OTR1/OTR2 (markah+gred)
+   daripada SATU nilai Markah ETR mentah. Pulangkan { ok:false, mesej } jika markah
+   tidak sah/BLD tidak lengkap, atau { ok:true, markahETR, gredETR, ...,
+   markahOTR2, gredOTR2 } jika berjaya (nilai kosong '' jika markahETRMentah kosong). */
+function kiraETRDaripadaMarkah(mapGred, bldMap, kodSubjek, semester, markahETRMentah) {
+  if (markahETRMentah === '') {
+    return { ok: true, markahETR: '', gredETR: '', markahTOV: '', gredTOV: '', markahOTR1: '', gredOTR1: '', markahOTR2: '', gredOTR2: '' };
+  }
+
+  const nombor = Number(markahETRMentah);
+  if (isNaN(nombor) || nombor < 0 || nombor > 100) return { ok: false, mesej: 'Markah ETR mesti nombor antara 0-100.' };
+
+  const gredETR = gredDaripadaMarkah(bldMap, kodSubjek, semester, nombor);
+  if (!gredETR) {
+    return { ok: false, mesej: 'BLD (skema markah→gred) belum lengkap untuk subjek "' + kodSubjek + '" pada ' + semester + ', atau markah ' +
+      nombor + ' tiada dalam mana-mana julat gred yang ditetapkan. Sila lengkapkan di menu "Skema Gred (BLD)" dahulu.' };
+  }
+
+  const gredTOV = gredTurun(mapGred, gredETR, 3);
+  const gredOTR1 = gredTurun(mapGred, gredETR, 2);
+  const gredOTR2 = gredTurun(mapGred, gredETR, 1);
+
+  const senaraiBLDSubjekSemester = bldMap[kunciBLD(kodSubjek, semester)] || [];
+  const markahMinBagiGred = gred => {
+    const e = senaraiBLDSubjekSemester.find(b => b.gred === gred);
+    return e ? e.min : '';
+  };
+
+  return {
+    ok: true, markahETR: nombor, gredETR,
+    markahTOV: markahMinBagiGred(gredTOV), gredTOV,
+    markahOTR1: markahMinBagiGred(gredOTR1), gredOTR1,
+    markahOTR2: markahMinBagiGred(gredOTR2), gredOTR2
+  };
+}
+
 function apiSimpanETR(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
@@ -123,34 +160,11 @@ function apiSimpanETR(p) {
   const enrol = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).find(e => e.ID_Pelajar === idPelajar && String(e.KodSubjek) === kodSubjek);
   if (!enrol) return ralat('Pelajar tidak berdaftar untuk mata pelajaran ini (MODUL 26: validasi).');
 
-  let markahETR = '', gredETR = '', markahTOV = '', gredTOV = '', markahOTR1 = '', gredOTR1 = '', markahOTR2 = '', gredOTR2 = '';
-
-  if (markahETRMentah !== '') {
-    const nombor = Number(markahETRMentah);
-    if (isNaN(nombor) || nombor < 0 || nombor > 100) return ralat('Markah ETR mesti nombor antara 0-100.');
-    markahETR = nombor;
-
-    const mapGred = dapatkanGred();
-    const bldMap = dapatkanBLD();
-    gredETR = gredDaripadaMarkah(bldMap, kodSubjek, semester, markahETR);
-    if (!gredETR) {
-      return ralat('BLD (skema markah→gred) belum lengkap untuk subjek "' + kodSubjek + '" pada ' + semester + ', atau markah ' +
-        markahETR + ' tiada dalam mana-mana julat gred yang ditetapkan. Sila lengkapkan di menu "Skema Gred (BLD)" dahulu.');
-    }
-
-    gredTOV = gredTurun(mapGred, gredETR, 3);
-    gredOTR1 = gredTurun(mapGred, gredETR, 2);
-    gredOTR2 = gredTurun(mapGred, gredETR, 1);
-
-    const senaraiBLDSubjekSemester = bldMap[kunciBLD(kodSubjek, semester)] || [];
-    const markahMinBagiGred = gred => {
-      const e = senaraiBLDSubjekSemester.find(b => b.gred === gred);
-      return e ? e.min : '';
-    };
-    markahTOV = markahMinBagiGred(gredTOV);
-    markahOTR1 = markahMinBagiGred(gredOTR1);
-    markahOTR2 = markahMinBagiGred(gredOTR2);
-  }
+  const mapGred = dapatkanGred();
+  const bldMap = dapatkanBLD();
+  const hasil = kiraETRDaripadaMarkah(mapGred, bldMap, kodSubjek, semester, markahETRMentah);
+  if (!hasil.ok) return ralat(hasil.mesej);
+  const { markahETR, gredETR, markahTOV, gredTOV, markahOTR1, gredOTR1, markahOTR2, gredOTR2 } = hasil;
 
   const namaSheet = sheetHeadcount(semester);
   const semua = bacaSheetSebagaiObjek(namaSheet);
@@ -179,6 +193,76 @@ function apiSimpanETR(p) {
     p.sebab || 'Isi ETR (TOV/OTR1/OTR2 dikira automatik)');
 
   return jaya({ gredETR, gredTOV, gredOTR1, gredOTR2 });
+}
+
+/* Simpan ETR bagi SEMUA pelajar satu Subjek x Kelas dalam SATU panggilan server
+   (bukan satu panggilan setiap pelajar) — dipakai oleh butang "Simpan Semua" pada
+   panel Isi ETR, gantikan corak auto-simpan "onblur" lama yang perlahan (setiap
+   sel diisi = satu round-trip google.script.run + satu "loading"). p.senarai =
+   [{idPelajar, markahETR}, ...]. Baris yang gagal (markah/BLD tidak sah) DILANGKAU
+   (bukan gagalkan keseluruhan pukal) — disenaraikan dalam `ralat` untuk makluman. */
+function apiSimpanETRPukal(p) {
+  const sesi = wajibPeranan(p.token, null);
+  if (sesi.success === false) return sesi;
+
+  const kodSubjek = String(p.kodSubjek || '').trim();
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+  const semester = String(p.semester || '').trim();
+  const senarai = Array.isArray(p.senarai) ? p.senarai : [];
+
+  if (!kodSubjek || !tahunSTPM || !semester) return ralat('Data tidak lengkap.');
+  if (SEMESTER_HEADCOUNT.indexOf(semester) === -1) return ralat('Semester tidak sah.');
+  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
+    return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
+  }
+  if (!senarai.length) return ralat('Tiada markah untuk disimpan.');
+
+  const enrolSet = new Set(bacaSheetSebagaiObjek(SHEET_ENROLLMENTS)
+    .filter(e => String(e.KodSubjek) === kodSubjek).map(e => e.ID_Pelajar));
+
+  const mapGred = dapatkanGred();
+  const bldMap = dapatkanBLD();
+  const namaSheet = sheetHeadcount(semester);
+  const semua = bacaSheetSebagaiObjek(namaSheet);
+  const indeks = {};
+  semua.forEach(r => { indeks[kunciRekod(r.ID_Pelajar, r.KodSubjek, r.TahunSTPM)] = r; });
+
+  let disimpan = 0;
+  const ralatSenarai = [];
+  const masaKemaskini = formatTarikhMasa(new Date());
+
+  senarai.forEach(item => {
+    const idPelajar = String(item.idPelajar || '').trim();
+    if (!idPelajar) return;
+    if (!enrolSet.has(idPelajar)) { ralatSenarai.push(idPelajar + ': tidak berdaftar untuk subjek ini'); return; }
+
+    const markahETRMentah = item.markahETR === undefined || item.markahETR === null ? '' : String(item.markahETR).trim();
+    const hasil = kiraETRDaripadaMarkah(mapGred, bldMap, kodSubjek, semester, markahETRMentah);
+    if (!hasil.ok) { ralatSenarai.push(idPelajar + ': ' + hasil.mesej); return; }
+
+    const kunci = kunciRekod(idPelajar, kodSubjek, tahunSTPM);
+    const sediaAda = indeks[kunci];
+    const objek = sediaAda ? Object.assign({}, sediaAda) : { ID_Pelajar: idPelajar, KodSubjek: kodSubjek, TahunSTPM: tahunSTPM, Catatan: '' };
+    MEDAN_HEADCOUNT.forEach(m => {
+      if (objek[m + '_Markah'] === undefined) objek[m + '_Markah'] = '';
+      if (objek[m + '_Gred'] === undefined) objek[m + '_Gred'] = '';
+    });
+    objek.ETR_Markah = hasil.markahETR; objek.ETR_Gred = hasil.gredETR;
+    objek.TOV_Markah = hasil.markahTOV; objek.TOV_Gred = hasil.gredTOV;
+    objek.OTR1_Markah = hasil.markahOTR1; objek.OTR1_Gred = hasil.gredOTR1;
+    objek.OTR2_Markah = hasil.markahOTR2; objek.OTR2_Gred = hasil.gredOTR2;
+    objek.KemaskiniOleh = sesi.nama;
+    objek.KemaskiniPada = masaKemaskini;
+
+    if (sediaAda) kemaskiniBaris(namaSheet, sediaAda.__row, objek, HEADER_HEADCOUNT);
+    else tambahBaris(namaSheet, objek, HEADER_HEADCOUNT);
+    disimpan++;
+  });
+
+  catatAudit(sesi, 'PUKAL', 'ETR_' + semester, kodSubjek, '', disimpan + ' rekod',
+    'Simpan pukal ETR (' + disimpan + ' pelajar, ' + ralatSenarai.length + ' ralat)');
+
+  return jaya({ disimpan, ralat: ralatSenarai });
 }
 
 /* Simpan/kemaskini satu medan headcount (TOV/OTR1/AR1/OTR2/AR2/ETR/SEBENAR).
@@ -263,6 +347,90 @@ function apiSimpanHeadcount(p) {
     p.sebab || ('Kemaskini ' + medan));
 
   return jaya({ gred: gredBaru });
+}
+
+/* Simpan AR1/AR2 (Markah) dan/atau SEBENAR (Gred) bagi SEMUA pelajar satu
+   Subjek x Kelas dalam SATU panggilan server — dipakai oleh butang "Simpan
+   Semua" pada tab Markah Ujian, gantikan corak auto-simpan "onblur"/"change"
+   lama (satu round-trip google.script.run bagi SETIAP sel diisi). p.senarai =
+   [{idPelajar, AR1, AR2, SEBENAR}, ...] — medan yang tiada di sesuatu rekod
+   (undefined) dilangkau (nilai sedia ada kekal, tidak ditulis semula). Baris
+   yang gagal (markah/gred/BLD tidak sah) DILANGKAU (bukan gagalkan
+   keseluruhan pukal) — disenaraikan dalam `ralat` untuk makluman. */
+function apiSimpanHeadcountPukal(p) {
+  const sesi = wajibPeranan(p.token, null);
+  if (sesi.success === false) return sesi;
+
+  const kodSubjek = String(p.kodSubjek || '').trim();
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+  const semester = String(p.semester || '').trim();
+  const senarai = Array.isArray(p.senarai) ? p.senarai : [];
+
+  if (!kodSubjek || !tahunSTPM || !semester) return ralat('Data tidak lengkap.');
+  if (SEMESTER_HEADCOUNT.indexOf(semester) === -1) return ralat('Semester tidak sah.');
+  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
+    return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
+  }
+  if (!senarai.length) return ralat('Tiada markah untuk disimpan.');
+
+  const enrolSet = new Set(bacaSheetSebagaiObjek(SHEET_ENROLLMENTS)
+    .filter(e => String(e.KodSubjek) === kodSubjek).map(e => e.ID_Pelajar));
+
+  const mapGred = dapatkanGred();
+  const bldMap = dapatkanBLD();
+  const namaSheet = sheetHeadcount(semester);
+  const semua = bacaSheetSebagaiObjek(namaSheet);
+  const indeks = {};
+  semua.forEach(r => { indeks[kunciRekod(r.ID_Pelajar, r.KodSubjek, r.TahunSTPM)] = r; });
+
+  let disimpan = 0;
+  const ralatSenarai = [];
+  const masaKemaskini = formatTarikhMasa(new Date());
+
+  senarai.forEach(item => {
+    const idPelajar = String(item.idPelajar || '').trim();
+    if (!idPelajar) return;
+    if (!enrolSet.has(idPelajar)) { ralatSenarai.push(idPelajar + ': tidak berdaftar untuk subjek ini'); return; }
+
+    const kunci = kunciRekod(idPelajar, kodSubjek, tahunSTPM);
+    const sediaAda = indeks[kunci];
+    const objek = sediaAda ? Object.assign({}, sediaAda) : { ID_Pelajar: idPelajar, KodSubjek: kodSubjek, TahunSTPM: tahunSTPM, Catatan: '' };
+    MEDAN_HEADCOUNT.forEach(m => {
+      if (objek[m + '_Markah'] === undefined) objek[m + '_Markah'] = '';
+      if (objek[m + '_Gred'] === undefined) objek[m + '_Gred'] = '';
+    });
+
+    let gagal = false;
+    ['AR1', 'AR2'].forEach(medan => {
+      if (gagal || item[medan] === undefined) return;
+      const mentah = String(item[medan]).trim();
+      if (mentah === '') { objek[medan + '_Markah'] = ''; objek[medan + '_Gred'] = ''; return; }
+      const nombor = Number(mentah);
+      if (isNaN(nombor) || nombor < 0 || nombor > 100) { ralatSenarai.push(idPelajar + ' ' + medan + ': markah tidak sah'); gagal = true; return; }
+      const gred = gredDaripadaMarkah(bldMap, kodSubjek, semester, nombor);
+      if (!gred) { ralatSenarai.push(idPelajar + ' ' + medan + ': BLD tidak lengkap untuk markah ' + nombor); gagal = true; return; }
+      objek[medan + '_Markah'] = nombor; objek[medan + '_Gred'] = gred;
+    });
+    if (!gagal && item.SEBENAR !== undefined) {
+      const gredMentah = String(item.SEBENAR).trim().toUpperCase();
+      if (gredMentah === '') { objek.SEBENAR_Markah = ''; objek.SEBENAR_Gred = ''; }
+      else if (!mapGred[gredMentah]) { ralatSenarai.push(idPelajar + ' SEBENAR: gred "' + gredMentah + '" tidak sah'); gagal = true; }
+      else { objek.SEBENAR_Gred = gredMentah; objek.SEBENAR_Markah = ''; }
+    }
+    if (gagal) return;
+
+    objek.KemaskiniOleh = sesi.nama;
+    objek.KemaskiniPada = masaKemaskini;
+
+    if (sediaAda) kemaskiniBaris(namaSheet, sediaAda.__row, objek, HEADER_HEADCOUNT);
+    else tambahBaris(namaSheet, objek, HEADER_HEADCOUNT);
+    disimpan++;
+  });
+
+  catatAudit(sesi, 'PUKAL', 'HEADCOUNT_' + semester, kodSubjek, '', disimpan + ' rekod',
+    'Simpan pukal Markah Ujian (' + disimpan + ' pelajar, ' + ralatSenarai.length + ' ralat)');
+
+  return jaya({ disimpan, ralat: ralatSenarai });
 }
 
 /* MODUL 14 — Profil akademik lengkap seorang pelajar: headcount semua semester,
