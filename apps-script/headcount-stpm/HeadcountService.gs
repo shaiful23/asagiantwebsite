@@ -97,8 +97,10 @@ function apiRosterHeadcount(p) {
 
 /* Isi ETR (markah) bagi SATU pelajar/subjek/semester. TOV, OTR1 dan OTR2
    DITERBITKAN SECARA AUTOMATIK daripada ETR (bukan rolling antara semester —
-   setiap semester berdiri sendiri, rujuk permintaan):
-     TOV  = OTR1 = 2 gred bawah ETR (sasaran awal semester)
+   setiap semester berdiri sendiri, rujuk permintaan) — progresif, setiap satu
+   tingkat gred tersendiri:
+     TOV  = 3 gred bawah ETR (sasaran awal semester)
+     OTR1 = 2 gred bawah ETR
      OTR2 = 1 gred bawah ETR (sasaran hampir akhir semester, sebelum ETR)
    Markah bagi TOV/OTR1/OTR2 diambil daripada Markah Minimum gred berkenaan
    dalam BLD subjek+semester itu (anggaran, sebab bukan keputusan ujian sebenar). */
@@ -136,7 +138,7 @@ function apiSimpanETR(p) {
         markahETR + ' tiada dalam mana-mana julat gred yang ditetapkan. Sila lengkapkan di menu "Skema Gred (BLD)" dahulu.');
     }
 
-    gredTOV = gredTurun(mapGred, gredETR, 2);
+    gredTOV = gredTurun(mapGred, gredETR, 3);
     gredOTR1 = gredTurun(mapGred, gredETR, 2);
     gredOTR2 = gredTurun(mapGred, gredETR, 1);
 
@@ -180,9 +182,13 @@ function apiSimpanETR(p) {
 }
 
 /* Simpan/kemaskini satu medan headcount (TOV/OTR1/AR1/OTR2/AR2/ETR/SEBENAR).
-   Pengguna taip MARKAH (0-100); Gred DITERBITKAN secara automatik daripada BLD
-   khusus subjek berkenaan (GradeBoundaryService.gs) — tiada Gred ditaip terus.
-   Guru hanya dibenarkan kemaskini AR1/AR2 (MODUL 16); peranan pengurusan boleh semua medan. */
+   AR1/AR2: pengguna taip MARKAH (0-100); Gred DITERBITKAN secara automatik
+   daripada BLD khusus subjek+semester berkenaan (GradeBoundaryService.gs).
+   SEBENAR (keputusan rasmi): pengguna pilih GRED TERUS (bukan markah) —
+   slip keputusan STPM sebenar hanya menyatakan gred, jadi tiada markah/BLD
+   terlibat bagi medan ini; SEBENAR_Markah kekal kosong.
+   Guru hanya dibenarkan kemaskini AR1/AR2/SEBENAR (MODUL 16); peranan
+   pengurusan boleh semua medan. */
 function apiSimpanHeadcount(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
@@ -206,7 +212,14 @@ function apiSimpanHeadcount(p) {
 
   let markahBaru = '';
   let gredBaru = '';
-  if (markahMentah !== '') {
+
+  if (medan === 'SEBENAR') {
+    if (markahMentah !== '') {
+      const mapGred = dapatkanGred();
+      gredBaru = markahMentah.toUpperCase();
+      if (!mapGred[gredBaru]) return ralat('Gred "' + gredBaru + '" tidak sah — tiada dalam Sheet GRADES.');
+    }
+  } else if (markahMentah !== '') {
     const nombor = Number(markahMentah);
     if (isNaN(nombor) || nombor < 0 || nombor > 100) return ralat('Markah mesti nombor antara 0-100.');
     markahBaru = nombor;

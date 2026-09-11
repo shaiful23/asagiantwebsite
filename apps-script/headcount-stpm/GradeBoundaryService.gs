@@ -9,6 +9,16 @@
 
 const HEADER_GRADE_BOUNDARIES = ['KodSubjek', 'Semester', 'Gred', 'MarkahMin', 'MarkahMax'];
 
+/* Senarai gred sistem (Sheet GRADES), tersusun TERTINGGI -> TERENDAH — dipakai
+   sebagai pilihan dropdown SEBENAR (Markah Ujian) yang diisi terus sebagai gred. */
+function apiSenaraiGredSistem(p) {
+  const sesi = wajibPeranan(p.token, null);
+  if (sesi.success === false) return sesi;
+  const mapGred = dapatkanGred();
+  const senarai = Object.keys(mapGred).sort((a, b) => mapGred[b].nilai - mapGred[a].nilai);
+  return jaya({ senarai });
+}
+
 function apiSenaraiBLD(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
