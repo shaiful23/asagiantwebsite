@@ -76,6 +76,15 @@
   .muatan { color: var(--abu); font-size: 13px; padding: 20px 0; text-align: center; }
   .aksi-link { color: var(--biru-terang); cursor: pointer; font-size: 12px; margin-right: 8px; }
 
+  /* Kawalan paginasi — dipakai selepas mana-mana jadual besar (Pelajar, Laporan,
+     Headcount Keseluruhan) supaya hanya satu muka rekod dirender pada satu masa,
+     elak render ratusan/ribuan baris DOM sekaligus (perlahan di peranti lemah). */
+  .paginasi { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .paginasi button { padding: 6px 12px; font-size: 12px; }
+
+  /* Butang "Simpan Semua" penuh lebar dalam panel roster (Isi ETR / Markah Ujian). */
+  .btn-simpan-roster { margin-top: 12px; width: 100%; max-width: 260px; }
+
   @media (max-width: 820px) {
     #sidebar { position: static; width: 100%; padding: 10px 0; }
     #sidebar h2 { display:none; }
@@ -84,6 +93,15 @@
     #sidebar .nav-item.aktif { border-bottom-color: #fff; }
     #sidebar .pengguna-info { display:none; }
     #main { margin-left: 0; padding: 16px; }
+  }
+
+  @media (max-width: 480px) {
+    #topbar h1 { font-size: 17px; }
+    .kawalan select, .kawalan input { min-width: 0; flex: 1 1 auto; }
+    .panel { padding: 14px; }
+    .btn-simpan-roster { max-width: none; }
+    table { font-size: 12px; }
+    th, td { padding: 6px 8px; }
   }
 </style>
 </head>
@@ -202,6 +220,42 @@ function tunjukMesej(teks, jenis) {
 }
 function escapeHtml(s) { return String(s === undefined || s === null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function lencana(nilai) { return nilai ? '<span class="lencana ' + nilai + '">' + nilai.replace(/_/g,' ') + '</span>' : ''; }
+
+/* ======================= PAGINASI (client-side) =======================
+   Jadual besar (Pelajar, Laporan, Headcount Keseluruhan) dibahagi kepada
+   muka-muka kecil supaya hanya SEBAHAGIAN baris dirender ke DOM pada satu
+   masa — elak sistem "hang"/perlahan di peranti mudah alih/lemah bila
+   senarai ada ratusan/ribuan rekod. Data penuh (`senarai`) tetap disimpan
+   di memori (untuk carian/eksport); hanya PAPARAN yang dipotong ikut muka.
+   `keadaan` ialah objek {m: nomborMukaSemasa} yang kekal antara panggilan
+   (supaya klik "Seterus/Sebelum" tidak reset ke muka 1). */
+const SAIZ_MUKA_LALAI = 25;
+
+function paparkanBerhalaman(idTbody, idKawalan, senarai, keadaan, fnRenderBaris, saizMuka) {
+  saizMuka = saizMuka || SAIZ_MUKA_LALAI;
+  const jumlahMuka = Math.max(1, Math.ceil(senarai.length / saizMuka));
+  if (keadaan.m > jumlahMuka) keadaan.m = jumlahMuka;
+  if (keadaan.m < 1) keadaan.m = 1;
+  const mula = (keadaan.m - 1) * saizMuka;
+  const subsenarai = senarai.slice(mula, mula + saizMuka);
+
+  const elTbody = document.getElementById(idTbody);
+  if (elTbody) elTbody.innerHTML = fnRenderBaris(subsenarai);
+
+  const elKawalan = document.getElementById(idKawalan);
+  if (!elKawalan) return;
+  if (senarai.length <= saizMuka) { elKawalan.innerHTML = ''; return; }
+  elKawalan.innerHTML = '<div class="paginasi">' +
+    '<button class="sekunder" data-p="prev"' + (keadaan.m <= 1 ? ' disabled' : '') + '>&laquo; Sebelum</button>' +
+    '<span class="kecil">Muka ' + keadaan.m + ' / ' + jumlahMuka + ' (' + senarai.length + ' rekod)</span>' +
+    '<button class="sekunder" data-p="next"' + (keadaan.m >= jumlahMuka ? ' disabled' : '') + '>Seterus &raquo;</button>' +
+    '</div>';
+  const sambung = () => paparkanBerhalaman(idTbody, idKawalan, senarai, keadaan, fnRenderBaris, saizMuka);
+  const btnPrev = elKawalan.querySelector('[data-p="prev"]');
+  const btnNext = elKawalan.querySelector('[data-p="next"]');
+  if (btnPrev) btnPrev.addEventListener('click', () => { keadaan.m--; sambung(); });
+  if (btnNext) btnNext.addEventListener('click', () => { keadaan.m++; sambung(); });
+}
 function bolehUrus() { return ['ADMIN','GPK_TINGKATAN6','KETUA_AKADEMIK'].indexOf(S.peranan) !== -1; }
 function bolehUrusBLD() { return bolehUrus() || S.peranan === 'KETUA_PANITIA'; }
 /* Paparan konsisten "markah (gred)" — dipakai di semua jadual/borang headcount. */
@@ -251,24 +305,29 @@ function renderJadualRoster(senarai, medanBolehEdit, senaraiGred) {
   </tbody></table></div>`;
 }
 
-/* Lampirkan auto-simpan pada setiap .input-roster dalam #idContainer — "blur"
-   bagi <input> markah, "change" bagi <select> gred (SEBENAR). fnSimpan(idPelajar,
-   medan, nilai) mesti pulangkan Promise (rujuk panggil()); nilai ialah markah
-   (nombor) untuk kebanyakan medan, atau kod gred untuk SEBENAR. */
-function pasangSimpanRoster(idContainer, fnSimpan, fnMuatSemula) {
+/* Kumpul nilai SEMASA semua .input-roster dalam #idContainer, dikumpul ikut
+   ID Pelajar -> { idPelajar, [medan]: nilai }. Dipakai oleh butang "Simpan
+   Semua" (Isi ETR / Markah Ujian) — GANTI corak auto-simpan "onblur"/"change"
+   setiap sel yang lama (perlahan sebab satu round-trip server bagi setiap
+   sel diisi); kini SATU sahaja panggilan pukal bagi seluruh kelas. */
+function kumpulNilaiRoster(idContainer) {
+  const mengikutPelajar = {};
   document.querySelectorAll('#' + idContainer + ' .input-roster').forEach(el => {
-    const nilaiAsal = el.value;
-    const acara = el.tagName === 'SELECT' ? 'change' : 'blur';
-    el.addEventListener(acara, () => {
-      if (el.value === nilaiAsal) return;
-      const idPelajar = el.dataset.id, medan = el.dataset.medan, nilai = el.value;
-      el.disabled = true;
-      fnSimpan(idPelajar, medan, nilai).then(() => {
-        tunjukMesej('Markah/Gred ' + medan + ' disimpan.');
-        fnMuatSemula();
-      }).catch(err => { tunjukMesej(err, 'ralat'); el.disabled = false; });
-    });
+    const id = el.dataset.id, medan = el.dataset.medan;
+    if (!mengikutPelajar[id]) mengikutPelajar[id] = { idPelajar: id };
+    mengikutPelajar[id][medan] = el.value;
   });
+  return Object.values(mengikutPelajar);
+}
+
+/* Ringkasan hasil simpan pukal (dipakai selepas apiSimpanETRPukal /
+   apiSimpanHeadcountPukal) sebagai mesej toast — jenis "jaya" jika semua
+   berjaya, "ralat" jika ada baris dilangkau (senaraikan sebab, sehingga 5). */
+function mesejHasilPukal(res, label) {
+  const bilRalat = (res.ralat || []).length;
+  if (!bilRalat) return { teks: res.disimpan + ' ' + label + ' berjaya disimpan.', jenis: 'jaya' };
+  const contoh = res.ralat.slice(0, 5).join('; ') + (bilRalat > 5 ? '; ...' : '');
+  return { teks: res.disimpan + ' ' + label + ' disimpan, ' + bilRalat + ' dilangkau — ' + contoh, jenis: 'ralat' };
 }
 
 /* ======================= LOGIN / SESI ======================= */
@@ -484,6 +543,7 @@ function renderPelajar(senarai) {
       <input id="carianPelajar" placeholder="Cari nama / No. KP / ID..." style="max-width:280px">
       <div class="tbl-scroll"><table><thead><tr><th>ID</th><th>Nama</th><th>Kelas</th><th>Tahun</th><th>Status</th>${bolehUrus()?'<th></th>':''}</tr></thead>
       <tbody id="tbodyPelajar"></tbody></table></div>
+      <div id="paginasiPelajar"></div>
     </div>`;
 
   isiJadualPelajar(senarai);
@@ -547,11 +607,12 @@ function batalDaftarIndividu(idPelajar, kodSubjek, tahunSTPM) {
 }
 
 function isiJadualPelajar(senarai) {
-  document.getElementById('tbodyPelajar').innerHTML = senarai.map(s => `<tr>
+  S.mukaPelajar = { m: 1 }; // senarai baharu (carian/muat semula) -> kembali ke muka 1
+  paparkanBerhalaman('tbodyPelajar', 'paginasiPelajar', senarai, S.mukaPelajar, baris => baris.map(s => `<tr>
     <td>${escapeHtml(s.ID_Pelajar)}</td><td>${escapeHtml(s.Nama)}</td><td>${escapeHtml(s.Kelas)}</td><td>${escapeHtml(s.TahunSTPM)}</td>
     <td>${lencana(s.Status)}</td>
     ${bolehUrus() ? '<td><span class="aksi-link" onclick="isiFormPelajar(\''+s.ID_Pelajar+'\')">Edit</span></td>' : ''}
-  </tr>`).join('') || '<tr><td colspan=6 class="kecil">Tiada pelajar.</td></tr>';
+  </tr>`).join('') || '<tr><td colspan=6 class="kecil">Tiada pelajar.</td></tr>');
 }
 
 function isiFormPelajar(id) {
@@ -730,7 +791,8 @@ function renderHeadcountShell() {
   document.getElementById('content').innerHTML = `
     <div class="panel">
       <h3>Isi ETR — Semester ${S.semester.slice(1)}</h3>
-      <p class="kecil">Pilih Subjek dan Kelas yang anda ajar, kemudian isi MARKAH ETR bagi setiap pelajar.
+      <p class="kecil">Pilih Subjek dan Kelas yang anda ajar, isi MARKAH ETR bagi setiap pelajar, kemudian klik <b>"Simpan Semua ETR"</b>
+      di bawah jadual (satu klik simpan seluruh kelas sekali gus — lebih pantas).
       TOV, OTR1 dan OTR2 dikira <b>AUTOMATIK</b> daripada ETR (TOV = 3 gred bawah ETR; OTR1 = 2 gred bawah ETR; OTR2 = 1 gred bawah ETR),
       rujuk BLD Semester ${S.semester.slice(1)} subjek berkenaan — setiap semester berdiri sendiri (bukan rolling).</p>
       <div class="borang-grid">
@@ -812,12 +874,20 @@ function muatRosterETR() {
   if (!kodSubjek || !kelas) { document.getElementById('rosterETR').innerHTML = ''; return Promise.resolve(); }
   document.getElementById('rosterETR').innerHTML = '<div class="muatan">Memuatkan senarai pelajar...</div>';
   return panggil('apiRosterHeadcount', { token: S.token, semester: S.semester, kodSubjek, kelas, tahunSTPM: S.tahunSTPM }).then(res => {
-    document.getElementById('rosterETR').innerHTML = renderJadualRoster(res.senarai, ['ETR']);
-    pasangSimpanRoster('rosterETR', (idPelajar, medan, markah) =>
-      panggil('apiSimpanETR', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM, kodSubjek, idPelajar, markahETR: markah }),
-      /* Muat semula roster DAHULU, kemudian jadual keseluruhan — bukan serentak —
-         supaya dua panggilan google.script.run tidak bertindih (elak respons null). */
-      () => muatRosterETR().then(muatAggregateHeadcount));
+    document.getElementById('rosterETR').innerHTML = renderJadualRoster(res.senarai, ['ETR']) +
+      '<button id="btnSimpanETR" class="btn-simpan-roster">Simpan Semua ETR</button>';
+    document.getElementById('btnSimpanETR').addEventListener('click', () => {
+      const btn = document.getElementById('btnSimpanETR');
+      btn.disabled = true; btn.textContent = 'Menyimpan...';
+      const senarai = kumpulNilaiRoster('rosterETR').map(r => ({ idPelajar: r.idPelajar, markahETR: r.ETR }));
+      panggil('apiSimpanETRPukal', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM, kodSubjek, senarai }).then(hasil => {
+        const m = mesejHasilPukal(hasil, 'rekod ETR');
+        tunjukMesej(m.teks, m.jenis);
+        /* Muat semula roster DAHULU, kemudian jadual keseluruhan — bukan serentak —
+           supaya dua panggilan google.script.run tidak bertindih (elak respons null). */
+        muatRosterETR().then(muatAggregateHeadcount);
+      }).catch(err => { tunjukMesej(err, 'ralat'); btn.disabled = false; btn.textContent = 'Simpan Semua ETR'; });
+    });
   }).catch(err => { document.getElementById('rosterETR').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
 }
 
@@ -825,29 +895,37 @@ function muatRosterETR() {
 function muatAggregateHeadcount() {
   document.getElementById('aggregateHeadcount').innerHTML = '<div class="muatan">Memuatkan...</div>';
   panggil('apiDapatkanHeadcount', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(res => {
-    document.getElementById('aggregateHeadcount').innerHTML = renderAggregateHeadcount(res.senarai, S.viewHeadcount);
+    renderAggregateHeadcount(res.senarai, S.viewHeadcount);
   }).catch(err => { document.getElementById('aggregateHeadcount').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
 }
 
+/* Dikumpulkan ikut Subjek/Kelas, SETIAP kumpulan dipaginasi berasingan (id
+   tbody/kawalan unik ikut indeks) — elak render ratusan baris sekaligus bila
+   Admin/GPK lihat SEMUA subjek/kelas serentak. */
 function renderAggregateHeadcount(senarai, ikut) {
-  if (!senarai.length) return '<p class="kecil">Tiada rekod.</p>';
+  const kontena = document.getElementById('aggregateHeadcount');
+  if (!senarai.length) { kontena.innerHTML = '<p class="kecil">Tiada rekod.</p>'; return; }
   const medanKumpul = ikut === 'kelas' ? 'kelas' : 'KodSubjek';
   const kumpulan = {};
   senarai.forEach(r => { const k = r[medanKumpul] || '-'; (kumpulan[k] = kumpulan[k] || []).push(r); });
+  const kunciSenarai = Object.keys(kumpulan).sort();
 
-  return Object.keys(kumpulan).sort().map(kunci => `
+  kontena.innerHTML = kunciSenarai.map((kunci, i) => `
     <h4 style="margin:16px 0 8px">${ikut==='kelas'?'Kelas':'Subjek'}: ${escapeHtml(kunci)} <span class="kecil">(${kumpulan[kunci].length} rekod)</span></h4>
     <div class="tbl-scroll"><table><thead><tr>
       <th>Pelajar</th><th>${ikut==='kelas'?'Subjek':'Kelas'}</th><th>TOV</th><th>OTR1</th><th>AR1</th><th>Gap1</th><th>OTR2</th><th>AR2</th><th>Gap2</th><th>ETR</th><th>Sebenar</th><th>Status</th><th>Trend</th><th>Risiko</th>
-    </tr></thead><tbody>
-      ${kumpulan[kunci].map(r => `<tr>
+    </tr></thead><tbody id="tbodyAgg${i}"></tbody></table></div>
+    <div id="paginasiAgg${i}"></div>`).join('');
+
+  kunciSenarai.forEach((kunci, i) => {
+    paparkanBerhalaman('tbodyAgg' + i, 'paginasiAgg' + i, kumpulan[kunci], { m: 1 }, baris => baris.map(r => `<tr>
         <td>${escapeHtml(r.namaPelajar||r.ID_Pelajar)}</td><td>${escapeHtml(ikut==='kelas'?r.KodSubjek:r.kelas)}</td>
         <td>${formatMG(r.TOV_Markah, r.TOV_Gred)}</td><td>${formatMG(r.OTR1_Markah, r.OTR1_Gred)}</td><td>${formatMG(r.AR1_Markah, r.AR1_Gred)}</td><td>${lencana(r.statusGap1)}</td>
         <td>${formatMG(r.OTR2_Markah, r.OTR2_Gred)}</td><td>${formatMG(r.AR2_Markah, r.AR2_Gred)}</td><td>${lencana(r.statusGap2)}</td>
         <td>${formatMG(r.ETR_Markah, r.ETR_Gred)}</td><td>${formatMG(r.SEBENAR_Markah, r.SEBENAR_Gred)}</td>
         <td>${lencana(r.statusGapETR)}</td><td>${lencana(r.trend)}</td><td>${lencana(r.risiko)}</td>
-      </tr>`).join('')}
-    </tbody></table></div>`).join('');
+      </tr>`).join(''));
+  });
 }
 
 /* ======================= MARKAH UJIAN — AR1, AR2 & SEBENAR (MODUL 6) ======================= */
@@ -865,9 +943,10 @@ function muatUjian() {
     document.getElementById('content').innerHTML = `
       <div class="panel">
         <h3>Markah Ujian — AR1, AR2 & Sebenar (Semester ${S.semester.slice(1)})</h3>
-        <p class="kecil">Pilih Subjek dan Kelas yang diajar, kemudian isi MARKAH AR1 (Ujian 1) dan AR2 (Ujian 2) — Gred
+        <p class="kecil">Pilih Subjek dan Kelas yang diajar, isi MARKAH AR1 (Ujian 1) dan AR2 (Ujian 2) — Gred
         diterbitkan automatik ikut BLD Semester ${S.semester.slice(1)} subjek berkenaan. SEBENAR (keputusan rasmi) pula
-        dipilih terus sebagai <b>GRED</b> (bukan markah), sebab slip keputusan STPM sebenar hanya nyatakan gred.</p>
+        dipilih terus sebagai <b>GRED</b> (bukan markah), sebab slip keputusan STPM sebenar hanya nyatakan gred.
+        Selepas selesai isi SEMUA pelajar, klik <b>"Simpan Semua Markah"</b> di bawah jadual (satu klik simpan seluruh kelas).</p>
         <div class="borang-grid">
           <div><label>Kod Subjek</label><select id="jKodSubjek"><option value="">-- Pilih Subjek --</option>
             ${S.cacheSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('')}
@@ -901,10 +980,18 @@ function muatRosterUjian() {
   if (!kodSubjek || !kelas) { document.getElementById('rosterUjian').innerHTML = ''; return; }
   document.getElementById('rosterUjian').innerHTML = '<div class="muatan">Memuatkan senarai pelajar...</div>';
   panggil('apiRosterHeadcount', { token: S.token, semester: S.semester, kodSubjek, kelas, tahunSTPM: S.tahunSTPM }).then(res => {
-    document.getElementById('rosterUjian').innerHTML = renderJadualRoster(res.senarai, ['AR1','AR2','SEBENAR'], S.cacheGredSenarai);
-    pasangSimpanRoster('rosterUjian', (idPelajar, medan, nilai) =>
-      panggil('apiSimpanHeadcount', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM, kodSubjek, idPelajar, medan, markah: nilai }),
-      muatRosterUjian);
+    document.getElementById('rosterUjian').innerHTML = renderJadualRoster(res.senarai, ['AR1','AR2','SEBENAR'], S.cacheGredSenarai) +
+      '<button id="btnSimpanUjian" class="btn-simpan-roster">Simpan Semua Markah</button>';
+    document.getElementById('btnSimpanUjian').addEventListener('click', () => {
+      const btn = document.getElementById('btnSimpanUjian');
+      btn.disabled = true; btn.textContent = 'Menyimpan...';
+      const senarai = kumpulNilaiRoster('rosterUjian');
+      panggil('apiSimpanHeadcountPukal', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM, kodSubjek, senarai }).then(hasil => {
+        const m = mesejHasilPukal(hasil, 'rekod markah');
+        tunjukMesej(m.teks, m.jenis);
+        muatRosterUjian();
+      }).catch(err => { tunjukMesej(err, 'ralat'); btn.disabled = false; btn.textContent = 'Simpan Semua Markah'; });
+    });
   }).catch(err => { document.getElementById('rosterUjian').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
 }
 
@@ -1113,13 +1200,18 @@ function janaLaporan(jenis, elKlik) {
     const lajur = Object.keys(res.baris[0]);
     document.getElementById('hasilLaporan').innerHTML = `
       <div class="panel">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <h3>${JENIS_LAPORAN_LABEL[jenis]} (${res.baris.length} baris)</h3>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <h3 style="margin:0">${JENIS_LAPORAN_LABEL[jenis]} (${res.baris.length} baris)</h3>
           <button id="btnEksportCSV">Eksport CSV</button>
         </div>
         <div class="tbl-scroll"><table><thead><tr>${lajur.map(l=>'<th>'+l+'</th>').join('')}</tr></thead>
-        <tbody>${res.baris.map(b => '<tr>'+lajur.map(l=>'<td>'+escapeHtml(b[l])+'</td>').join('')+'</tr>').join('')}</tbody></table></div>
+        <tbody id="tbodyLaporan"></tbody></table></div>
+        <div id="paginasiLaporan"></div>
       </div>`;
+    /* Paginasi PAPARAN sahaja — Eksport CSV guna res.baris PENUH (semua baris),
+       bukan setakat muka yang sedang dipaparkan. */
+    paparkanBerhalaman('tbodyLaporan', 'paginasiLaporan', res.baris, { m: 1 }, baris =>
+      baris.map(b => '<tr>'+lajur.map(l=>'<td>'+escapeHtml(b[l])+'</td>').join('')+'</tr>').join(''));
     document.getElementById('btnEksportCSV').addEventListener('click', () => eksportCSV(jenis, lajur, res.baris));
   }).catch(err => { document.getElementById('hasilLaporan').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
 }
