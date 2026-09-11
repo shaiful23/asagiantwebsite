@@ -156,8 +156,19 @@ function panggil(fn) {
   return new Promise((resolve, reject) => {
     google.script.run
       .withSuccessHandler(res => {
-        if (res && res.success === false) reject(res.message || 'Ralat tidak diketahui.');
-        else resolve(res);
+        /* google.script.run kadangkala pulangkan null/undefined (bukan objek yang
+           dijangka daripada jaya()/ralat()) apabila beberapa panggilan berlaku
+           serentak dalam tempoh yang sangat rapat — kesan sampingan jambatan
+           iframe HtmlService, bukan ralat sebenar pada data. Tangkap di sini
+           supaya SEMUA pemanggil (banyak tempat guna res.senarai dsb.) dapat
+           mesej jelas & boleh cuba semula, bukan TypeError yang memecahkan UI. */
+        if (res === null || res === undefined) {
+          reject('Tiada respons daripada server (mungkin gangguan sambungan sebentar). Sila cuba semula.');
+        } else if (res.success === false) {
+          reject(res.message || 'Ralat tidak diketahui.');
+        } else {
+          resolve(res);
+        }
       })
       .withFailureHandler(err => reject(err.message || String(err)))
       [fn].apply(null, Array.prototype.slice.call(arguments, 1));
@@ -774,13 +785,15 @@ function muatKelasUntukETR() {
 function muatRosterETR() {
   const kodSubjek = document.getElementById('eKodSubjek').value;
   const kelas = document.getElementById('eKelas').value;
-  if (!kodSubjek || !kelas) { document.getElementById('rosterETR').innerHTML = ''; return; }
+  if (!kodSubjek || !kelas) { document.getElementById('rosterETR').innerHTML = ''; return Promise.resolve(); }
   document.getElementById('rosterETR').innerHTML = '<div class="muatan">Memuatkan senarai pelajar...</div>';
-  panggil('apiRosterHeadcount', { token: S.token, semester: S.semester, kodSubjek, kelas, tahunSTPM: S.tahunSTPM }).then(res => {
+  return panggil('apiRosterHeadcount', { token: S.token, semester: S.semester, kodSubjek, kelas, tahunSTPM: S.tahunSTPM }).then(res => {
     document.getElementById('rosterETR').innerHTML = renderJadualRoster(res.senarai, ['ETR']);
     pasangSimpanRoster('rosterETR', (idPelajar, medan, markah) =>
       panggil('apiSimpanETR', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM, kodSubjek, idPelajar, markahETR: markah }),
-      () => { muatRosterETR(); muatAggregateHeadcount(); });
+      /* Muat semula roster DAHULU, kemudian jadual keseluruhan — bukan serentak —
+         supaya dua panggilan google.script.run tidak bertindih (elak respons null). */
+      () => muatRosterETR().then(muatAggregateHeadcount));
   }).catch(err => { document.getElementById('rosterETR').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
 }
 
