@@ -261,11 +261,12 @@ daripada semester sebelumnya. Aliran kerja diringkaskan kepada:
    pelajar (auto-simpan bila pindah fokus/"blur" daripada kotak input).
 2. Backend (`HeadcountService.gs` → `apiSimpanETR`) terbitkan Gred ETR
    daripada BLD Semester berkenaan, kemudian **kira TOV, OTR1, OTR2
-   automatik**:
-   - `TOV = OTR1` = **2 gred di bawah ETR**
-   - `OTR2` = **1 gred di bawah ETR** (lebih hampir ETR — sasaran menaik
-     sepanjang semester)
-   - "1/2 gred di bawah" dikira mengikut kedudukan dalam Sheet `GRADES`
+   automatik** — progresif, setiap satu tingkat gred tersendiri:
+   - `TOV` = **3 gred di bawah ETR**
+   - `OTR1` = **2 gred di bawah ETR**
+   - `OTR2` = **1 gred di bawah ETR** (paling hampir ETR — sasaran menaik
+     sepanjang semester: TOV → OTR1 → OTR2 → ETR)
+   - "N gred di bawah" dikira mengikut kedudukan dalam Sheet `GRADES`
      (tersusun ikut `NilaiGred`, **data-driven, tiada huruf gred
      di-hard-code** — MODUL 43), jadi ia ikut skema gred sekolah sebenar,
      bukan senarai tetap dalam kod.
@@ -275,10 +276,13 @@ daripada semester sebelumnya. Aliran kerja diringkaskan kepada:
    - Jika BLD Semester+Subjek belum lengkap, simpanan ETR **ditolak** dengan
      mesej memandu ke menu "Skema Gred (BLD)".
 3. Guru pergi ke tab **"Markah Ujian"** (nav berasingan) untuk isi **AR1**
-   (Ujian 1), **AR2** (Ujian 2) dan **SEBENAR** (keputusan rasmi) — corak
-   pemilihan Subjek → Kelas yang sama, jadual pelajar yang sama, auto-simpan
-   "blur" yang sama. Gred setiap satu diterbitkan daripada BLD Semester
-   berkenaan (`apiSimpanHeadcount`).
+   (Ujian 1) dan **AR2** (Ujian 2) sebagai **Markah** (Gred diterbitkan
+   daripada BLD Semester berkenaan, sama seperti ETR), serta **SEBENAR**
+   (keputusan rasmi) yang dipilih terus sebagai **Gred** (dropdown, bukan
+   Markah) — slip keputusan STPM sebenar hanya menyatakan gred, jadi tiada
+   BLD terlibat bagi SEBENAR. Corak pemilihan Subjek → Kelas sama, jadual
+   pelajar sama, auto-simpan yang sama ("blur" untuk input Markah, "change"
+   untuk dropdown Gred) (`apiSimpanHeadcount`).
 4. Jadual **"Headcount Semester … — Keseluruhan"** (bawah panel Isi ETR)
    memaparkan semua rekod, dengan butang **"Ikut Subjek" / "Ikut Kelas"**
    untuk tukar cara ia dikumpulkan/disusun — tiada panggilan data tambahan,

@@ -212,12 +212,23 @@ function formatMG(markah, gred) {
 
 /* ======================= ROSTER PELAJAR (kongsi: Headcount "Isi ETR" & tab "Markah Ujian") =======================
    Jadual senarai pelajar satu Subjek x Kelas, dengan medanBolehEdit (cth. ['ETR']
-   atau ['AR1','AR2','SEBENAR']) dipaparkan sebagai input Markah; medan lain paparan
-   sahaja (Markah (Gred)). Backend sentiasa punca pengiraan (MODUL 43) — selepas
-   simpan, roster dimuat SEMULA supaya Gap/Trend/Risiko/Gred terbitan sentiasa tepat. */
-function renderJadualRoster(senarai, medanBolehEdit) {
+   atau ['AR1','AR2','SEBENAR']) dipaparkan sebagai medan boleh isi; medan lain
+   paparan sahaja (Markah (Gred)). AR1/AR2/ETR/TOV/OTR diisi sebagai MARKAH (input
+   nombor); SEBENAR diisi sebagai GRED TERUS (dropdown, senaraiGred) sebab slip
+   keputusan STPM sebenar hanya nyatakan gred, bukan markah. Backend sentiasa
+   punca pengiraan (MODUL 43) — selepas simpan, roster dimuat SEMULA supaya
+   Gap/Trend/Risiko/Gred terbitan sentiasa tepat. */
+function renderJadualRoster(senarai, medanBolehEdit, senaraiGred) {
   const bolehEdit = m => medanBolehEdit.indexOf(m) !== -1;
   const sel = (r, m) => {
+    if (bolehEdit(m) && m === 'SEBENAR') {
+      const gredSemasa = r.SEBENAR_Gred || '';
+      return '<select class="input-roster" style="width:64px;margin:0" ' +
+        'data-id="' + escapeHtml(r.ID_Pelajar) + '" data-medan="SEBENAR">' +
+        '<option value=""' + (gredSemasa ? '' : ' selected') + '>-</option>' +
+        (senaraiGred || []).map(g => '<option value="' + escapeHtml(g) + '"' + (g === gredSemasa ? ' selected' : '') + '>' + escapeHtml(g) + '</option>').join('') +
+        '</select>';
+    }
     if (bolehEdit(m)) {
       const nilaiMarkah = (r[m + '_Markah'] !== '' && r[m + '_Markah'] !== undefined) ? r[m + '_Markah'] : '';
       const gredSemasa = r[m + '_Gred'] || '';
@@ -240,17 +251,20 @@ function renderJadualRoster(senarai, medanBolehEdit) {
   </tbody></table></div>`;
 }
 
-/* Lampirkan auto-simpan "onblur" pada setiap input.input-roster dalam #idContainer.
-   fnSimpan(idPelajar, medan, markah) mesti pulangkan Promise (rujuk panggil()). */
+/* Lampirkan auto-simpan pada setiap .input-roster dalam #idContainer — "blur"
+   bagi <input> markah, "change" bagi <select> gred (SEBENAR). fnSimpan(idPelajar,
+   medan, nilai) mesti pulangkan Promise (rujuk panggil()); nilai ialah markah
+   (nombor) untuk kebanyakan medan, atau kod gred untuk SEBENAR. */
 function pasangSimpanRoster(idContainer, fnSimpan, fnMuatSemula) {
   document.querySelectorAll('#' + idContainer + ' .input-roster').forEach(el => {
     const nilaiAsal = el.value;
-    el.addEventListener('blur', () => {
+    const acara = el.tagName === 'SELECT' ? 'change' : 'blur';
+    el.addEventListener(acara, () => {
       if (el.value === nilaiAsal) return;
-      const idPelajar = el.dataset.id, medan = el.dataset.medan, markah = el.value;
+      const idPelajar = el.dataset.id, medan = el.dataset.medan, nilai = el.value;
       el.disabled = true;
-      fnSimpan(idPelajar, medan, markah).then(() => {
-        tunjukMesej('Markah ' + medan + ' disimpan.');
+      fnSimpan(idPelajar, medan, nilai).then(() => {
+        tunjukMesej('Markah/Gred ' + medan + ' disimpan.');
         fnMuatSemula();
       }).catch(err => { tunjukMesej(err, 'ralat'); el.disabled = false; });
     });
@@ -717,7 +731,7 @@ function renderHeadcountShell() {
     <div class="panel">
       <h3>Isi ETR — Semester ${S.semester.slice(1)}</h3>
       <p class="kecil">Pilih Subjek dan Kelas yang anda ajar, kemudian isi MARKAH ETR bagi setiap pelajar.
-      TOV, OTR1 dan OTR2 dikira <b>AUTOMATIK</b> daripada ETR (TOV = OTR1 = 2 gred bawah ETR; OTR2 = 1 gred bawah ETR),
+      TOV, OTR1 dan OTR2 dikira <b>AUTOMATIK</b> daripada ETR (TOV = 3 gred bawah ETR; OTR1 = 2 gred bawah ETR; OTR2 = 1 gred bawah ETR),
       rujuk BLD Semester ${S.semester.slice(1)} subjek berkenaan — setiap semester berdiri sendiri (bukan rolling).</p>
       <div class="borang-grid">
         <div><label>Kod Subjek</label><select id="eKodSubjek"><option value="">-- Pilih Subjek --</option>
@@ -842,13 +856,18 @@ function muatUjian() {
   pasangPilihanSemester(muatUjian);
   pasangPilihanTahun(muatUjian);
 
-  panggil('apiSenaraiSubjek', { token: S.token }).then(subjekRes => {
+  Promise.all([
+    panggil('apiSenaraiSubjek', { token: S.token }),
+    panggil('apiSenaraiGredSistem', { token: S.token })
+  ]).then(([subjekRes, gredRes]) => {
     S.cacheSubjek = subjekRes.senarai;
+    S.cacheGredSenarai = gredRes.senarai;
     document.getElementById('content').innerHTML = `
       <div class="panel">
         <h3>Markah Ujian — AR1, AR2 & Sebenar (Semester ${S.semester.slice(1)})</h3>
-        <p class="kecil">Pilih Subjek dan Kelas yang diajar, kemudian isi markah AR1 (Ujian 1), AR2 (Ujian 2) dan/atau SEBENAR
-        (keputusan rasmi) bagi setiap pelajar. Gred diterbitkan automatik ikut BLD Semester ${S.semester.slice(1)} subjek berkenaan.</p>
+        <p class="kecil">Pilih Subjek dan Kelas yang diajar, kemudian isi MARKAH AR1 (Ujian 1) dan AR2 (Ujian 2) — Gred
+        diterbitkan automatik ikut BLD Semester ${S.semester.slice(1)} subjek berkenaan. SEBENAR (keputusan rasmi) pula
+        dipilih terus sebagai <b>GRED</b> (bukan markah), sebab slip keputusan STPM sebenar hanya nyatakan gred.</p>
         <div class="borang-grid">
           <div><label>Kod Subjek</label><select id="jKodSubjek"><option value="">-- Pilih Subjek --</option>
             ${S.cacheSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('')}
@@ -882,9 +901,9 @@ function muatRosterUjian() {
   if (!kodSubjek || !kelas) { document.getElementById('rosterUjian').innerHTML = ''; return; }
   document.getElementById('rosterUjian').innerHTML = '<div class="muatan">Memuatkan senarai pelajar...</div>';
   panggil('apiRosterHeadcount', { token: S.token, semester: S.semester, kodSubjek, kelas, tahunSTPM: S.tahunSTPM }).then(res => {
-    document.getElementById('rosterUjian').innerHTML = renderJadualRoster(res.senarai, ['AR1','AR2','SEBENAR']);
-    pasangSimpanRoster('rosterUjian', (idPelajar, medan, markah) =>
-      panggil('apiSimpanHeadcount', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM, kodSubjek, idPelajar, medan, markah }),
+    document.getElementById('rosterUjian').innerHTML = renderJadualRoster(res.senarai, ['AR1','AR2','SEBENAR'], S.cacheGredSenarai);
+    pasangSimpanRoster('rosterUjian', (idPelajar, medan, nilai) =>
+      panggil('apiSimpanHeadcount', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM, kodSubjek, idPelajar, medan, markah: nilai }),
       muatRosterUjian);
   }).catch(err => { document.getElementById('rosterUjian').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
 }
