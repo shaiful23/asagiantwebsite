@@ -9,6 +9,22 @@ function dapatkanSheet(nama) {
   return sh;
 }
 
+/* Google Sheets format "Automatic" secara senyap tukar sel yang ditulis sebagai
+   rentetan tarikh/masa (cth. KemaskiniPada = "2026-09-11 14:23:05" daripada
+   formatTarikhMasa()) kepada objek Date sebenar apabila dibaca semula melalui
+   getValues() — sama seperti KodSubjek bertukar kepada Number (rujuk pembetulan
+   sebelum ini). Objek Date terbenam dalam respons google.script.run didapati
+   menyebabkan keseluruhan respons klien jadi null (bukan ralat biasa) — jadi
+   tukar SEMUA sel bertarikh kembali kepada rentetan di sini, satu tempat sahaja,
+   sebelum data ini sampai ke mana-mana fungsi api*() yang memulangkannya ke UI. */
+function nilaiSelSebagaiTeks(nilai) {
+  if (nilai instanceof Date) {
+    const adaMasa = nilai.getHours() || nilai.getMinutes() || nilai.getSeconds();
+    return adaMasa ? formatTarikhMasa(nilai) : formatTarikh(nilai);
+  }
+  return nilai;
+}
+
 /* Baca keseluruhan sheet sebagai array objek {header: nilai}, satu panggilan getValues(). */
 function bacaSheetSebagaiObjek(namaSheet) {
   const sh = dapatkanSheet(namaSheet);
@@ -18,7 +34,7 @@ function bacaSheetSebagaiObjek(namaSheet) {
     .filter(baris => baris.some(sel => sel !== '' && sel !== null))
     .map((baris, idx) => {
       const obj = {};
-      header.forEach((h, i) => { obj[h] = baris[i]; });
+      header.forEach((h, i) => { obj[h] = nilaiSelSebagaiTeks(baris[i]); });
       obj.__row = idx + 2; // nombor baris sebenar dalam Sheet (1 = header)
       return obj;
     });
