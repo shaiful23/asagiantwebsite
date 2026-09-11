@@ -574,7 +574,7 @@ function renderSubjek(senarai) {
 }
 
 function isiFormSubjek(kod) {
-  const s = S.cacheSubjek.find(x => x.KodSubjek === kod);
+  const s = S.cacheSubjek.find(x => String(x.KodSubjek) === String(kod));
   if (!s) return;
   document.getElementById('sKod').value = s.KodSubjek;
   document.getElementById('sNama').value = s.NamaSubjek;

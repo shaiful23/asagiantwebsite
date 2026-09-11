@@ -32,11 +32,11 @@ function apiDapatkanHeadcount(p) {
   let senarai = bacaSheetSebagaiObjek(namaSheet);
 
   if (p.idPelajar) senarai = senarai.filter(r => r.ID_Pelajar === p.idPelajar);
-  if (p.kodSubjek) senarai = senarai.filter(r => r.KodSubjek === p.kodSubjek);
+  if (p.kodSubjek) senarai = senarai.filter(r => String(r.KodSubjek) === String(p.kodSubjek));
   if (p.tahunSTPM) senarai = senarai.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
   if (p.kelas) senarai = senarai.filter(r => pelajarMap[r.ID_Pelajar] && String(pelajarMap[r.ID_Pelajar].Kelas).toUpperCase() === String(p.kelas).toUpperCase());
   if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) {
-    senarai = senarai.filter(r => sesi.skopSubjek.includes(r.KodSubjek));
+    senarai = senarai.filter(r => sesi.skopSubjek.includes(String(r.KodSubjek)));
   }
 
   const hasil = senarai.map(r => {
@@ -68,7 +68,7 @@ function apiRosterHeadcount(p) {
   }
 
   const idBerdaftar = new Set(bacaSheetSebagaiObjek(SHEET_ENROLLMENTS)
-    .filter(e => e.KodSubjek === kodSubjek && String(e.TahunSTPM) === tahunSTPM).map(e => e.ID_Pelajar));
+    .filter(e => String(e.KodSubjek) === kodSubjek && String(e.TahunSTPM) === tahunSTPM).map(e => e.ID_Pelajar));
   const pelajarLayak = bacaSheetSebagaiObjek(SHEET_STUDENTS).filter(s =>
     idBerdaftar.has(s.ID_Pelajar) && String(s.Status).toUpperCase() === 'AKTIF' &&
     String(s.Kelas).toUpperCase() === kelas.toUpperCase() && String(s.TahunSTPM) === tahunSTPM);
@@ -77,7 +77,7 @@ function apiRosterHeadcount(p) {
   const konfig = dapatkanKonfig();
   const headcountSediaAda = {};
   bacaSheetSebagaiObjek(sheetHeadcount(semester))
-    .filter(r => r.KodSubjek === kodSubjek && String(r.TahunSTPM) === tahunSTPM)
+    .filter(r => String(r.KodSubjek) === kodSubjek && String(r.TahunSTPM) === tahunSTPM)
     .forEach(r => { headcountSediaAda[r.ID_Pelajar] = r; });
 
   const medanKosong = {};
@@ -118,7 +118,7 @@ function apiSimpanETR(p) {
     return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
   }
   if (!cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar)) return ralat('Pelajar tidak dijumpai.');
-  const enrol = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).find(e => e.ID_Pelajar === idPelajar && e.KodSubjek === kodSubjek);
+  const enrol = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).find(e => e.ID_Pelajar === idPelajar && String(e.KodSubjek) === kodSubjek);
   if (!enrol) return ralat('Pelajar tidak berdaftar untuk mata pelajaran ini (MODUL 26: validasi).');
 
   let markahETR = '', gredETR = '', markahTOV = '', gredTOV = '', markahOTR1 = '', gredOTR1 = '', markahOTR2 = '', gredOTR2 = '';
@@ -152,7 +152,7 @@ function apiSimpanETR(p) {
 
   const namaSheet = sheetHeadcount(semester);
   const semua = bacaSheetSebagaiObjek(namaSheet);
-  const sediaAda = semua.find(r => r.ID_Pelajar === idPelajar && r.KodSubjek === kodSubjek && String(r.TahunSTPM) === tahunSTPM);
+  const sediaAda = semua.find(r => r.ID_Pelajar === idPelajar && String(r.KodSubjek) === kodSubjek && String(r.TahunSTPM) === tahunSTPM);
 
   const objek = sediaAda ? Object.assign({}, sediaAda) : { ID_Pelajar: idPelajar, KodSubjek: kodSubjek, TahunSTPM: tahunSTPM, Catatan: '' };
   MEDAN_HEADCOUNT.forEach(m => {
@@ -201,7 +201,7 @@ function apiSimpanHeadcount(p) {
   }
   if (!cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar)) return ralat('Pelajar tidak dijumpai.');
 
-  const enrol = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).find(e => e.ID_Pelajar === idPelajar && e.KodSubjek === kodSubjek);
+  const enrol = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).find(e => e.ID_Pelajar === idPelajar && String(e.KodSubjek) === kodSubjek);
   if (!enrol) return ralat('Pelajar tidak berdaftar untuk mata pelajaran ini (MODUL 26: validasi).');
 
   let markahBaru = '';
@@ -221,7 +221,7 @@ function apiSimpanHeadcount(p) {
 
   const namaSheet = sheetHeadcount(p.semester);
   const semua = bacaSheetSebagaiObjek(namaSheet);
-  const sediaAda = semua.find(r => r.ID_Pelajar === idPelajar && r.KodSubjek === kodSubjek && String(r.TahunSTPM) === tahunSTPM);
+  const sediaAda = semua.find(r => r.ID_Pelajar === idPelajar && String(r.KodSubjek) === kodSubjek && String(r.TahunSTPM) === tahunSTPM);
 
   const markahLama = sediaAda ? sediaAda[medan + '_Markah'] : '';
   const gredLama = sediaAda ? sediaAda[medan + '_Gred'] : '';

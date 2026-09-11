@@ -13,7 +13,7 @@ function apiSenaraiUlangan(p) {
   let senarai = bacaSheetSebagaiObjek(sheetRepeat(p.semester));
   if (p.idPelajar) senarai = senarai.filter(r => r.ID_Pelajar === p.idPelajar);
   if (p.tahunSTPM) senarai = senarai.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) senarai = senarai.filter(r => sesi.skopSubjek.includes(r.KodSubjek));
+  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) senarai = senarai.filter(r => sesi.skopSubjek.includes(String(r.KodSubjek)));
 
   const hasil = senarai.map(r => {
     const asal = nilaiGred(mapGred, r.KeputusanAsal);
@@ -44,7 +44,7 @@ function apiSimpanUlangan(p) {
   if (!cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar)) return ralat('Pelajar tidak dijumpai.');
 
   const namaSheet = sheetRepeat(p.semester);
-  const sediaAda = bacaSheetSebagaiObjek(namaSheet).find(r => r.ID_Pelajar === idPelajar && r.KodSubjek === kodSubjek && String(r.TahunSTPM) === tahunSTPM);
+  const sediaAda = bacaSheetSebagaiObjek(namaSheet).find(r => r.ID_Pelajar === idPelajar && String(r.KodSubjek) === kodSubjek && String(r.TahunSTPM) === tahunSTPM);
 
   const objek = {
     ID_Pelajar: idPelajar,

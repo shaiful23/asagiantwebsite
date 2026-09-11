@@ -31,7 +31,7 @@ function apiSenaraiPelajar(p) {
   }
   if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) {
     // GURU / KETUA_PANITIA: hanya pelajar yang mengambil subjek dalam skop mereka
-    const enrolments = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).filter(e => sesi.skopSubjek.includes(e.KodSubjek));
+    const enrolments = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).filter(e => sesi.skopSubjek.includes(String(e.KodSubjek)));
     const idDibenarkan = new Set(enrolments.map(e => e.ID_Pelajar));
     senarai = senarai.filter(s => idDibenarkan.has(s.ID_Pelajar));
   }
@@ -103,7 +103,7 @@ function apiSenaraiKelasUntukSubjek(p) {
   }
 
   const idBerdaftar = new Set(bacaSheetSebagaiObjek(SHEET_ENROLLMENTS)
-    .filter(e => e.KodSubjek === kodSubjek && (!tahunSTPM || String(e.TahunSTPM) === tahunSTPM))
+    .filter(e => String(e.KodSubjek) === kodSubjek && (!tahunSTPM || String(e.TahunSTPM) === tahunSTPM))
     .map(e => e.ID_Pelajar));
   const kelasSet = new Set(bacaSheetSebagaiObjek(SHEET_STUDENTS)
     .filter(s => idBerdaftar.has(s.ID_Pelajar) && String(s.Status).toUpperCase() === 'AKTIF')
@@ -154,7 +154,7 @@ function apiDaftarSubjekPukal(p) {
   if (!pelajarKelas.length) return ralat('Tiada pelajar aktif dalam kelas "' + kelas + '" bagi Tahun STPM ' + tahunSTPM + '.');
 
   const enrolSediaAda = new Set(bacaSheetSebagaiObjek(SHEET_ENROLLMENTS)
-    .filter(e => e.KodSubjek === kodSubjek && String(e.TahunSTPM) === tahunSTPM).map(e => e.ID_Pelajar));
+    .filter(e => String(e.KodSubjek) === kodSubjek && String(e.TahunSTPM) === tahunSTPM).map(e => e.ID_Pelajar));
 
   let bilBaharu = 0;
   pelajarKelas.forEach(s => {
@@ -180,7 +180,7 @@ function apiDaftarSubjek(p) {
   if (!cariBarisMengikutId(SHEET_SUBJECTS, 'KodSubjek', kodSubjek)) return ralat('Mata pelajaran tidak dijumpai.');
 
   const sediaAda = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).find(e =>
-    e.ID_Pelajar === idPelajar && e.KodSubjek === kodSubjek && String(e.TahunSTPM) === tahunSTPM);
+    e.ID_Pelajar === idPelajar && String(e.KodSubjek) === kodSubjek && String(e.TahunSTPM) === tahunSTPM);
   if (sediaAda) return ralat('Pelajar ini sudah berdaftar untuk subjek & tahun STPM tersebut.');
 
   tambahBaris(SHEET_ENROLLMENTS, { ID_Pelajar: idPelajar, KodSubjek: kodSubjek, TahunSTPM: tahunSTPM }, HEADER_ENROLLMENTS);
@@ -193,7 +193,7 @@ function apiBatalDaftarSubjek(p) {
   if (sesi.success === false) return sesi;
   const sh = dapatkanSheet(SHEET_ENROLLMENTS);
   const semua = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS);
-  const rekod = semua.find(e => e.ID_Pelajar === p.idPelajar && e.KodSubjek === p.kodSubjek && String(e.TahunSTPM) === String(p.tahunSTPM));
+  const rekod = semua.find(e => e.ID_Pelajar === p.idPelajar && String(e.KodSubjek) === String(p.kodSubjek) && String(e.TahunSTPM) === String(p.tahunSTPM));
   if (!rekod) return ralat('Pendaftaran tidak dijumpai.');
   sh.deleteRow(rekod.__row);
   catatAudit(sesi, 'PADAM', 'PENDAFTARAN', p.idPelajar + '-' + p.kodSubjek, '', '', 'Batal daftar');
