@@ -17,7 +17,7 @@ function apiDashboardGPK(p) {
   if (p.kelas) pelajar = pelajar.filter(s => String(s.Kelas).toUpperCase() === String(p.kelas).toUpperCase());
 
   let headcount = bacaSheetSebagaiObjek(sheetHeadcount(semester));
-  if (p.kodSubjek) headcount = headcount.filter(h => h.KodSubjek === p.kodSubjek);
+  if (p.kodSubjek) headcount = headcount.filter(h => String(h.KodSubjek) === String(p.kodSubjek));
   const idPelajarDibenarkan = new Set(pelajar.map(s => s.ID_Pelajar));
   headcount = headcount.filter(h => idPelajarDibenarkan.has(h.ID_Pelajar));
 
@@ -72,15 +72,15 @@ function apiDashboardGuru(p) {
   bacaSheetSebagaiObjek(SHEET_STUDENTS).forEach(s => { pelajarMap[s.ID_Pelajar] = s; });
 
   let headcount = bacaSheetSebagaiObjek(sheetHeadcount(semester));
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) headcount = headcount.filter(h => sesi.skopSubjek.includes(h.KodSubjek));
-  if (p.kodSubjek) headcount = headcount.filter(h => h.KodSubjek === p.kodSubjek);
+  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) headcount = headcount.filter(h => sesi.skopSubjek.includes(String(h.KodSubjek)));
+  if (p.kodSubjek) headcount = headcount.filter(h => String(h.KodSubjek) === String(p.kodSubjek));
   if (p.tahunSTPM) headcount = headcount.filter(h => String(h.TahunSTPM) === String(p.tahunSTPM));
 
   const senarai = headcount.map(h => {
     const analisis = analisisRekodHeadcount(mapGred, konfig, h);
     const pelajar = pelajarMap[h.ID_Pelajar] || {};
     const intervensiPelajar = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS)
-      .filter(i => i.ID_Pelajar === h.ID_Pelajar && i.KodSubjek === h.KodSubjek).length;
+      .filter(i => i.ID_Pelajar === h.ID_Pelajar && String(i.KodSubjek) === String(h.KodSubjek)).length;
     return Object.assign({}, h, analisis, { namaPelajar: pelajar.Nama || '', kelas: pelajar.Kelas || '', bilanganIntervensi: intervensiPelajar });
   });
 
@@ -105,7 +105,7 @@ function apiDashboardKetuaPanitia(p) {
 
   const bySemester = {};
   ['S1', 'S2', 'S3'].forEach(sem => {
-    let rekod = bacaSheetSebagaiObjek(sheetHeadcount(sem)).filter(r => r.KodSubjek === kodSubjek);
+    let rekod = bacaSheetSebagaiObjek(sheetHeadcount(sem)).filter(r => String(r.KodSubjek) === String(kodSubjek));
     if (p.tahunSTPM) rekod = rekod.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
     const dianalisis = rekod.map(r => Object.assign({}, r, analisisRekodHeadcount(mapGred, konfig, r), { kelas: (pelajarMap[r.ID_Pelajar] || {}).Kelas || '' }));
     const gps = kiraGPS(mapGred, dianalisis.map(gredEfektif).filter(Boolean));

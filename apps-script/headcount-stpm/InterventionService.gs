@@ -19,7 +19,7 @@ function apiSenaraiIntervensi(p) {
   let senarai = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS);
   if (p.idPelajar) senarai = senarai.filter(i => i.ID_Pelajar === p.idPelajar);
   if (p.semester) senarai = senarai.filter(i => i.Semester === p.semester);
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) senarai = senarai.filter(i => sesi.skopSubjek.includes(i.KodSubjek));
+  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) senarai = senarai.filter(i => sesi.skopSubjek.includes(String(i.KodSubjek)));
   if (p.tahunSTPM) {
     const petaTahun = petaTahunSTPMPelajar();
     senarai = senarai.filter(i => petaTahun[i.ID_Pelajar] === String(p.tahunSTPM));
@@ -85,7 +85,7 @@ function apiImpakIntervensi(p) {
 
   let pulih = 0, masihBerisiko = 0;
   const butiran = intervensiSenarai.map(i => {
-    const hc = headcountSenarai.find(h => h.ID_Pelajar === i.ID_Pelajar && h.KodSubjek === i.KodSubjek);
+    const hc = headcountSenarai.find(h => h.ID_Pelajar === i.ID_Pelajar && String(h.KodSubjek) === String(i.KodSubjek));
     if (!hc) return Object.assign({}, i, { status: 'TIADA_DATA_HEADCOUNT' });
 
     const ar1 = nilaiGred(mapGred, hc.AR1_Gred);

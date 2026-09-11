@@ -9,7 +9,7 @@ function apiSenaraiSubjek(p) {
   if (sesi.success === false) return sesi;
   let senarai = bacaSheetSebagaiObjek(SHEET_SUBJECTS);
   if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) {
-    senarai = senarai.filter(s => sesi.skopSubjek.includes(s.KodSubjek));
+    senarai = senarai.filter(s => sesi.skopSubjek.includes(String(s.KodSubjek)));
   }
   return jaya({ senarai });
 }

@@ -36,7 +36,7 @@ function apiSimulasiWhatIf(p) {
   ['S1', 'S2', 'S3'].forEach(sem => {
     bacaSheetSebagaiObjek(sheetHeadcount(sem)).filter(r => r.ID_Pelajar === idPelajar).forEach(r => {
       gredSemasaSemuaSemester[sem + '|' + r.KodSubjek] = gredEfektif(r);
-      if (sem === semester && r.KodSubjek === kodSubjek) rekodDisasar = r;
+      if (sem === semester && String(r.KodSubjek) === kodSubjek) rekodDisasar = r;
     });
   });
   if (!rekodDisasar) return ralat('Tiada rekod headcount bagi pelajar/subjek/semester ini.');
@@ -51,7 +51,7 @@ function apiSimulasiWhatIf(p) {
   const pngkSimulasi = kiraPNGK(mapGred, Object.values(gredSelepasSimulasi).filter(Boolean));
 
   /* ---- GPS subjek/semester berkenaan (kohort sekelas subjek) ---- */
-  const headcountSubjekSemester = bacaSheetSebagaiObjek(sheetHeadcount(semester)).filter(r => r.KodSubjek === kodSubjek);
+  const headcountSubjekSemester = bacaSheetSebagaiObjek(sheetHeadcount(semester)).filter(r => String(r.KodSubjek) === kodSubjek);
   const gpsSemasa = kiraGPS(mapGred, headcountSubjekSemester.map(gredEfektif).filter(Boolean));
   const gpsSimulasi = kiraGPS(mapGred, headcountSubjekSemester
     .map(r => r.ID_Pelajar === idPelajar ? gredBaru : gredEfektif(r)).filter(Boolean));

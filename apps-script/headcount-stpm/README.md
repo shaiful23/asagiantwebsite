@@ -35,6 +35,23 @@ dalam versi ini:
   Headcount, Ulangan, Intervensi, Analisis, Laporan, Dashboard), supaya data
   dua (atau lebih) batch tidak bercampur. Rujuk **"Berbilang Batch/Kohort"**
   di bawah.
+- ✅ **ETR-driven headcount (guru hanya isi ETR; TOV/OTR dikira automatik) +
+  Markah Ujian berasingan** — guru isi **ETR sahaja** (per pelajar, ikut
+  kelas yang diajar) di Headcount; TOV, OTR1, OTR2 diterbitkan automatik
+  daripada ETR (rujuk BLD semester berkenaan). AR1, AR2 dan SEBENAR kini
+  diisi di **tab "Markah Ujian"** berasingan. Headcount **tidak lagi
+  rolling** — setiap semester (S1/S2/S3) berdiri sendiri sepenuhnya. Jadual
+  keseluruhan Headcount ada butang paparan **"Ikut Subjek" / "Ikut Kelas"**.
+  Rujuk **"Aliran Kerja Headcount (ETR-Driven)"** di bawah.
+- ✅ **UI Pendaftaran Subjek (MODUL 4)** — sebelum ini backend sudah ada
+  (`apiDaftarSubjek`) tetapi TIADA UI untuk gunakannya, jadi pemilih Kelas di
+  Headcount/Markah Ujian sentiasa kosong (kelas hanya "wujud" bagi sistem
+  selepas pelajar berdaftar ke subjek). Kini ada panel **"Pendaftaran Subjek"**
+  di halaman Pelajar — pendaftaran **pukal ikut kelas** (satu klik daftarkan
+  semua pelajar aktif satu kelas ke satu subjek) dan pendaftaran **individu**
+  (satu pelajar, satu subjek, dengan senarai + butang batal). Rujuk
+  **"Pendaftaran Subjek"** di bawah — **WAJIB dibuat dahulu** sebelum guru
+  boleh key-in ETR/Markah Ujian.
 
 **Belum dilaksanakan**:
 
@@ -101,6 +118,12 @@ sepenuhnya seperti diminta.
       sedia ada, jika ada, dikekalkan) — rujuk **"Markah & BLD"** di bawah
       untuk butiran. Selamat dijalankan berulang kali.
    5. Deploy semula (**Deploy → Manage deployments → Edit → New version**).
+
+   **Kemaskini terkini (ETR-driven headcount + tab Markah Ujian):** tiada
+   perubahan struktur Sheet — cukup **gantikan** kandungan `Config.gs`,
+   `AnalysisService.gs`, `StudentService.gs`, `HeadcountService.gs` dan
+   `Index` dengan versi terkini, kemudian deploy semula. Tiada langkah
+   migrasi Sheet diperlukan untuk kemaskini ini.
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json
@@ -139,7 +162,7 @@ sepenuhnya seperti diminta.
 | `GPK_TINGKATAN6` | Urus penuh pelajar/subjek/headcount, dashboard GPK |
 | `KETUA_AKADEMIK` | Sama seperti GPK (akses analisis akademik penuh) |
 | `KETUA_PANITIA` | Terhad kepada subjek dalam `SkopSubjek`, dashboard panitia |
-| `GURU` | Terhad kepada subjek dalam `SkopSubjek`, hanya boleh isi AR1/AR2 |
+| `GURU` | Terhad kepada subjek dalam `SkopSubjek`. Isi **ETR** (Headcount) dan **AR1/AR2/SEBENAR** (Markah Ujian) sahaja — TOV/OTR1/OTR2 diterbitkan automatik, tidak boleh ditaip terus oleh sesiapa |
 
 Semua semakan kebenaran dibuat di **server** (`wajibPeranan()` dalam setiap
 Service), bukan hanya disembunyikan di frontend — selaras MODUL 31.
@@ -173,9 +196,10 @@ Aliran kerja:
    - Guna **"Salin BLD"** untuk salin julat sedia ada ke subjek lain, ke
      semester lain bagi subjek yang sama (cth. jadikan BLD S1 sebagai titik
      mula untuk S2), atau kedua-duanya sekali.
-2. **Guru / Admin** key-in **MARKAH** (bukan Gred) di halaman **Headcount**,
-   bagi mana-mana daripada 7 medan (TOV, OTR1, AR1, OTR2, AR2, ETR, SEBENAR).
-   Guru hanya boleh isi AR1/AR2 (sama seperti sebelum ini).
+2. **Guru / Admin** key-in **MARKAH** (bukan Gred) — **ETR** di halaman
+   **Headcount** (panel "Isi ETR"), **AR1/AR2/SEBENAR** di tab **"Markah
+   Ujian"**. TOV, OTR1, OTR2 tidak ditaip terus oleh sesiapa — rujuk
+   **"Aliran Kerja Headcount (ETR-Driven)"** di bawah.
 3. Backend (`HeadcountService.gs` → `apiSimpanHeadcount`) **menterjemah
    Markah ke Gred secara automatik** menggunakan BLD subjek+semester berkenaan
    (`AnalysisService.gs` → `gredDaripadaMarkah`), dan menyimpan **kedua-duanya**
@@ -196,6 +220,69 @@ subjek/semester.
 
 **Skop semasa:** Ulangan (`REPEAT_S1/S2`) masih guna Gred teks bebas, belum
 disambungkan kepada Markah+BLD — boleh dilanjutkan jika sekolah memerlukannya.
+
+## Pendaftaran Subjek (MODUL 4)
+
+**Langkah ini WAJIB dibuat dahulu** (selepas Pelajar & Mata Pelajaran diisi,
+sebelum sesiapa cuba key-in ETR/AR1/AR2/SEBENAR) — jika tidak, pemilih
+**Kelas** di Headcount ("Isi ETR") dan tab "Markah Ujian" akan sentiasa
+**kosong**, kerana kedua-duanya membina senarai Kelas daripada siapa yang
+sudah berdaftar ke subjek berkenaan (`ENROLLMENTS`), bukan daripada Sheet
+`STUDENTS` terus.
+
+Di halaman **Pelajar**, panel **"Pendaftaran Subjek"** ada dua cara:
+
+1. **Pukal (ikut Kelas)** — pilih Kod Subjek + Kelas + Tahun STPM, klik
+   **"Daftarkan Kelas Ini"**. Semua pelajar **AKTIF** dalam kelas itu terus
+   didaftarkan ke subjek tersebut sekali gus. Pelajar yang sudah berdaftar
+   dilangkau secara automatik (bukan ralat) — selamat diklik berulang kali,
+   cth. selepas tambah pelajar baharu ke kelas yang sama.
+2. **Individu** — untuk kes pelajar ambil subjek berbeza daripada rakan
+   sekelas (cth. elektif). Taip/pilih ID Pelajar (senarai cadangan nama
+   disediakan), pilih Kod Subjek, klik **Daftar**. Senarai subjek pelajar
+   itu terus dipaparkan di bawah, dengan pautan **×** untuk batalkan
+   pendaftaran.
+
+Backend: `apiDaftarSubjekPukal` (StudentService.gs) untuk pukal,
+`apiDaftarSubjek`/`apiBatalDaftarSubjek`/`apiSenaraiPendaftaran` (sedia ada)
+untuk individu. Semua tindakan direkod dalam `AUDIT_LOG`.
+
+## Aliran Kerja Headcount (ETR-Driven)
+
+Headcount **tidak lagi rolling** — TOV, OTR1, OTR2 dan ETR bagi setiap
+semester (S1, S2, S3) adalah **berdiri sendiri sepenuhnya**, tidak diwarisi
+daripada semester sebelumnya. Aliran kerja diringkaskan kepada:
+
+1. **Guru** (atau Admin/GPK/Ketua Akademik/Ketua Panitia) pergi ke
+   **Headcount → panel "Isi ETR"** — pilih Subjek, kemudian Kelas (senarai
+   kelas diambil terus daripada pendaftaran sebenar bagi subjek itu, jadi
+   guru hanya nampak kelas yang benar-benar dia ajar). Jadual senarai
+   pelajar kelas itu dipaparkan; guru taip **Markah ETR** bagi setiap
+   pelajar (auto-simpan bila pindah fokus/"blur" daripada kotak input).
+2. Backend (`HeadcountService.gs` → `apiSimpanETR`) terbitkan Gred ETR
+   daripada BLD Semester berkenaan, kemudian **kira TOV, OTR1, OTR2
+   automatik**:
+   - `TOV = OTR1` = **2 gred di bawah ETR**
+   - `OTR2` = **1 gred di bawah ETR** (lebih hampir ETR — sasaran menaik
+     sepanjang semester)
+   - "1/2 gred di bawah" dikira mengikut kedudukan dalam Sheet `GRADES`
+     (tersusun ikut `NilaiGred`, **data-driven, tiada huruf gred
+     di-hard-code** — MODUL 43), jadi ia ikut skema gred sekolah sebenar,
+     bukan senarai tetap dalam kod.
+   - Markah bagi TOV/OTR1/OTR2 yang diterbitkan diambil daripada **Markah
+     Minimum** gred berkenaan dalam BLD Semester itu (anggaran — bukan
+     keputusan ujian sebenar).
+   - Jika BLD Semester+Subjek belum lengkap, simpanan ETR **ditolak** dengan
+     mesej memandu ke menu "Skema Gred (BLD)".
+3. Guru pergi ke tab **"Markah Ujian"** (nav berasingan) untuk isi **AR1**
+   (Ujian 1), **AR2** (Ujian 2) dan **SEBENAR** (keputusan rasmi) — corak
+   pemilihan Subjek → Kelas yang sama, jadual pelajar yang sama, auto-simpan
+   "blur" yang sama. Gred setiap satu diterbitkan daripada BLD Semester
+   berkenaan (`apiSimpanHeadcount`).
+4. Jadual **"Headcount Semester … — Keseluruhan"** (bawah panel Isi ETR)
+   memaparkan semua rekod, dengan butang **"Ikut Subjek" / "Ikut Kelas"**
+   untuk tukar cara ia dikumpulkan/disusun — tiada panggilan data tambahan,
+   sekadar susunan semula paparan sedia ada.
 
 ## Berbilang Batch/Kohort (cth. STPM 2026 & 2027 serentak)
 

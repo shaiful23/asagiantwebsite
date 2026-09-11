@@ -14,9 +14,9 @@ function apiSenaraiBLD(p) {
   if (sesi.success === false) return sesi;
 
   let senarai = bacaSheetSebagaiObjek(SHEET_GRADE_BOUNDARIES);
-  if (p.kodSubjek) senarai = senarai.filter(b => b.KodSubjek === p.kodSubjek);
+  if (p.kodSubjek) senarai = senarai.filter(b => String(b.KodSubjek) === String(p.kodSubjek));
   if (p.semester) senarai = senarai.filter(b => b.Semester === p.semester);
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) senarai = senarai.filter(b => sesi.skopSubjek.includes(b.KodSubjek));
+  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) senarai = senarai.filter(b => sesi.skopSubjek.includes(String(b.KodSubjek)));
 
   senarai.sort((a, b) => String(a.KodSubjek).localeCompare(String(b.KodSubjek)) ||
     String(a.Semester).localeCompare(String(b.Semester)) || (Number(b.MarkahMin) - Number(a.MarkahMin)));
@@ -46,11 +46,11 @@ function apiSimpanBLD(p) {
   if (!mapGred[gred]) return ralat('Gred "' + gred + '" tiada dalam Sheet GRADES. Tambah dahulu di sana.');
 
   const semua = bacaSheetSebagaiObjek(SHEET_GRADE_BOUNDARIES);
-  const bertindih = semua.find(b => b.KodSubjek === kodSubjek && b.Semester === semester && String(b.Gred).toUpperCase() !== gred &&
+  const bertindih = semua.find(b => String(b.KodSubjek) === kodSubjek && b.Semester === semester && String(b.Gred).toUpperCase() !== gred &&
     markahMin <= Number(b.MarkahMax) && markahMax >= Number(b.MarkahMin));
   if (bertindih) return ralat('Julat markah bertindih dengan gred ' + bertindih.Gred + ' (' + bertindih.MarkahMin + '-' + bertindih.MarkahMax + ') pada ' + semester + '.');
 
-  const sediaAda = semua.find(b => b.KodSubjek === kodSubjek && b.Semester === semester && String(b.Gred).toUpperCase() === gred);
+  const sediaAda = semua.find(b => String(b.KodSubjek) === kodSubjek && b.Semester === semester && String(b.Gred).toUpperCase() === gred);
   const objek = { KodSubjek: kodSubjek, Semester: semester, Gred: gred, MarkahMin: markahMin, MarkahMax: markahMax };
 
   if (sediaAda) {
@@ -75,7 +75,7 @@ function apiPadamBLD(p) {
   }
 
   const sh = dapatkanSheet(SHEET_GRADE_BOUNDARIES);
-  const rekod = bacaSheetSebagaiObjek(SHEET_GRADE_BOUNDARIES).find(b => b.KodSubjek === kodSubjek && b.Semester === semester && String(b.Gred).toUpperCase() === gred);
+  const rekod = bacaSheetSebagaiObjek(SHEET_GRADE_BOUNDARIES).find(b => String(b.KodSubjek) === kodSubjek && b.Semester === semester && String(b.Gred).toUpperCase() === gred);
   if (!rekod) return ralat('Rekod BLD tidak dijumpai.');
   sh.deleteRow(rekod.__row);
   catatAudit(sesi, 'PADAM', 'BLD', kodSubjek + '-' + semester + '-' + gred, rekod.MarkahMin + '-' + rekod.MarkahMax, '', '');
@@ -105,11 +105,11 @@ function apiSalinBLD(p) {
   }
 
   const semua = bacaSheetSebagaiObjek(SHEET_GRADE_BOUNDARIES);
-  const bldSumber = semua.filter(b => b.KodSubjek === kodSumber && b.Semester === semSumber);
+  const bldSumber = semua.filter(b => String(b.KodSubjek) === kodSumber && b.Semester === semSumber);
   if (!bldSumber.length) return ralat('BLD sumber (' + kodSumber + ' — ' + semSumber + ') belum ditetapkan.');
 
   const sh = dapatkanSheet(SHEET_GRADE_BOUNDARIES);
-  semua.filter(b => b.KodSubjek === kodDestinasi && b.Semester === semDestinasi)
+  semua.filter(b => String(b.KodSubjek) === kodDestinasi && b.Semester === semDestinasi)
     .sort((a, b) => b.__row - a.__row).forEach(b => sh.deleteRow(b.__row));
   bldSumber.forEach(b => tambahBaris(SHEET_GRADE_BOUNDARIES,
     { KodSubjek: kodDestinasi, Semester: semDestinasi, Gred: b.Gred, MarkahMin: b.MarkahMin, MarkahMax: b.MarkahMax }, HEADER_GRADE_BOUNDARIES));

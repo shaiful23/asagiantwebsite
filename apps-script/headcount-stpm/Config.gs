@@ -23,7 +23,7 @@ const SHEET_GRADE_BOUNDARIES = 'GRADE_BOUNDARIES';
 
 /* Medan headcount (MODUL 5) — setiap satu kini menyimpan Markah + Gred terbitan (BLD). */
 const MEDAN_HEADCOUNT = ['TOV', 'OTR1', 'AR1', 'OTR2', 'AR2', 'ETR', 'SEBENAR'];
-const MEDAN_BOLEH_GURU = ['AR1', 'AR2'];
+const MEDAN_BOLEH_GURU = ['AR1', 'AR2', 'SEBENAR'];
 const SEMESTER_HEADCOUNT = ['S1', 'S2', 'S3'];
 
 function sheetHeadcount(semester) {

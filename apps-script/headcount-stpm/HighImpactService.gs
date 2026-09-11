@@ -26,7 +26,7 @@ function apiTopHighImpactStudents(p) {
   bacaSheetSebagaiObjek(SHEET_STUDENTS).forEach(s => { pelajarMap[s.ID_Pelajar] = s; });
 
   let headcount = bacaSheetSebagaiObjek(sheetHeadcount(semester));
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) headcount = headcount.filter(h => sesi.skopSubjek.includes(h.KodSubjek));
+  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) headcount = headcount.filter(h => sesi.skopSubjek.includes(String(h.KodSubjek)));
   if (p.tahunSTPM) headcount = headcount.filter(h => String(h.TahunSTPM) === String(p.tahunSTPM));
 
   // Bilangan subjek berstatus bukan-Hijau bagi setiap pelajar — untuk kenal pasti "hanya satu subjek kritikal".
