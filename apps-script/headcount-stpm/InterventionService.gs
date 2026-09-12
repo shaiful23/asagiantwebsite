@@ -68,6 +68,27 @@ function apiSimpanIntervensi(p) {
   return jaya({ idIntervensi });
 }
 
+/* Padam SATU rekod intervensi. Tiada jadual lain rujuk ID_Intervensi (bukan
+   seperti Pelajar/Subjek yang berisiko tinggalkan rekod "anak yatim"), jadi
+   padam terus dibenarkan tanpa semakan rekod berkaitan — sama peranan
+   dengan apiSimpanIntervensi (skop subjek turut disemak untuk GURU/KETUA_PANITIA). */
+function apiPadamIntervensi(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_GURU, ROLE_KETUA_PANITIA]));
+  if (sesi.success === false) return sesi;
+
+  const idIntervensi = String(p.idIntervensi || '').trim();
+  const rekod = cariBarisMengikutId(SHEET_INTERVENTIONS, 'ID_Intervensi', idIntervensi);
+  if (!rekod) return ralat('Rekod intervensi tidak dijumpai.');
+  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(String(rekod.KodSubjek)) === -1) {
+    return ralat('Anda tiada kebenaran untuk rekod intervensi ini.');
+  }
+
+  const sh = dapatkanSheet(SHEET_INTERVENTIONS);
+  sh.deleteRow(rekod.__row);
+  catatAudit(sesi, 'PADAM', 'INTERVENSI', idIntervensi, JSON.stringify(rekod), '', 'Padam intervensi pelajar ' + rekod.ID_Pelajar);
+  return jaya({});
+}
+
 /* MODUL 11 — Impak intervensi: bandingkan AR1 -> AR2 (headcount semester berkaitan)
    bagi semua pelajar yang menerima intervensi pada semester tersebut. */
 function apiImpakIntervensi(p) {

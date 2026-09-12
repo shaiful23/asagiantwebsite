@@ -40,3 +40,30 @@ function apiSimpanSubjek(p) {
   }
   return jaya({});
 }
+
+/* Padam SEPENUHNYA rekod mata pelajaran — HANYA dibenarkan jika subjek tiada
+   SEBARANG rekod pendaftaran/headcount/BLD (elak rekod "anak yatim" merentasi
+   ENROLLMENTS, HEADCOUNT_S1/S2/S3 & GRADE_BOUNDARIES yang rujuk KodSubjek yang
+   sudah tiada). Jika subjek sudah pernah dipakai, tukar Status kepada
+   TIDAK_AKTIF sahaja (guna borang Kemaskini) — kekalkan rekod untuk sejarah. */
+function apiPadamSubjek(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  if (sesi.success === false) return sesi;
+
+  const kodSubjek = String(p.kodSubjek || '').trim();
+  const rekod = cariBarisMengikutId(SHEET_SUBJECTS, 'KodSubjek', kodSubjek);
+  if (!rekod) return ralat('Mata pelajaran tidak dijumpai.');
+
+  const adaEnrolmen = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).some(e => String(e.KodSubjek) === kodSubjek);
+  const adaHeadcount = ['S1', 'S2', 'S3'].some(sem => bacaSheetSebagaiObjek(sheetHeadcount(sem)).some(h => String(h.KodSubjek) === kodSubjek));
+  const adaBLD = bacaSheetSebagaiObjek(SHEET_GRADE_BOUNDARIES).some(b => String(b.KodSubjek) === kodSubjek);
+  if (adaEnrolmen || adaHeadcount || adaBLD) {
+    return ralat('Mata pelajaran ini sudah mempunyai rekod pendaftaran/headcount/BLD — tidak boleh dipadam terus ' +
+      '(elak kehilangan data). Tukar Status kepada TIDAK_AKTIF sebagai gantinya (borang Kemaskini di atas).');
+  }
+
+  const sh = dapatkanSheet(SHEET_SUBJECTS);
+  sh.deleteRow(rekod.__row);
+  catatAudit(sesi, 'PADAM', 'MATA_PELAJARAN', kodSubjek, JSON.stringify(rekod), '', 'Padam subjek: ' + rekod.NamaSubjek);
+  return jaya({});
+}

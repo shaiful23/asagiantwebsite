@@ -611,8 +611,18 @@ function isiJadualPelajar(senarai) {
   paparkanBerhalaman('tbodyPelajar', 'paginasiPelajar', senarai, S.mukaPelajar, baris => baris.map(s => `<tr>
     <td>${escapeHtml(s.ID_Pelajar)}</td><td>${escapeHtml(s.Nama)}</td><td>${escapeHtml(s.Kelas)}</td><td>${escapeHtml(s.TahunSTPM)}</td>
     <td>${lencana(s.Status)}</td>
-    ${bolehUrus() ? '<td><span class="aksi-link" onclick="isiFormPelajar(\''+s.ID_Pelajar+'\')">Edit</span></td>' : ''}
+    ${bolehUrus() ? '<td><span class="aksi-link" onclick="isiFormPelajar(\''+s.ID_Pelajar+'\')">Edit</span>' +
+      '<span class="aksi-link" style="color:var(--merah)" onclick="padamPelajar(\''+s.ID_Pelajar+'\')">Padam</span></td>' : ''}
   </tr>`).join('') || '<tr><td colspan=6 class="kecil">Tiada pelajar.</td></tr>');
+}
+
+function padamPelajar(id) {
+  const s = S.cachePelajar.find(x => x.ID_Pelajar === id);
+  const nama = s ? s.Nama : id;
+  if (!confirm('Padam SEPENUHNYA rekod pelajar "' + nama + '" (' + id + ')? Tindakan ini tidak boleh diundur.\n\n' +
+    '(Jika pelajar ini sudah ada rekod pendaftaran subjek/headcount, sistem akan menolak — guna "Nyahaktifkan" — kemaskini Status kepada TIDAK_AKTIF melalui borang di atas — sebagai gantinya.)')) return;
+  panggil('apiPadamPelajar', { token: S.token, idPelajar: id })
+    .then(() => { tunjukMesej('Pelajar dipadam.'); muatPelajar(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
 function isiFormPelajar(id) {
@@ -665,9 +675,19 @@ function renderSubjek(senarai) {
     <div class="panel"><h3>Senarai Mata Pelajaran (${senarai.length})</h3>
     <div class="tbl-scroll"><table><thead><tr><th>Kod</th><th>Nama</th><th>Guru</th><th>Ketua Panitia</th><th>Status</th>${bolehUrus()?'<th></th>':''}</tr></thead>
     <tbody>${senarai.map(s => `<tr><td>${escapeHtml(s.KodSubjek)}</td><td>${escapeHtml(s.NamaSubjek)}</td><td>${escapeHtml(s.GuruMataPelajaran)}</td><td>${escapeHtml(s.KetuaPanitia)}</td><td>${lencana(s.StatusAktif)}</td>
-    ${bolehUrus() ? '<td><span class="aksi-link" onclick="isiFormSubjek(\''+s.KodSubjek+'\')">Edit</span></td>' : ''}</tr>`).join('') || '<tr><td colspan=6 class="kecil">Tiada subjek.</td></tr>'}</tbody></table></div></div>`;
+    ${bolehUrus() ? '<td><span class="aksi-link" onclick="isiFormSubjek(\''+s.KodSubjek+'\')">Edit</span>' +
+      '<span class="aksi-link" style="color:var(--merah)" onclick="padamSubjek(\''+s.KodSubjek+'\')">Padam</span></td>' : ''}</tr>`).join('') || '<tr><td colspan=6 class="kecil">Tiada subjek.</td></tr>'}</tbody></table></div></div>`;
 
   if (bolehUrus()) document.getElementById('btnSimpanSubjek').addEventListener('click', simpanSubjek);
+}
+
+function padamSubjek(kod) {
+  const s = S.cacheSubjek.find(x => String(x.KodSubjek) === String(kod));
+  const nama = s ? s.NamaSubjek : kod;
+  if (!confirm('Padam SEPENUHNYA mata pelajaran "' + nama + '" (' + kod + ')? Tindakan ini tidak boleh diundur.\n\n' +
+    '(Jika subjek ini sudah ada rekod pendaftaran/headcount/BLD, sistem akan menolak — tukar Status kepada TIDAK_AKTIF melalui borang di atas sebagai gantinya.)')) return;
+  panggil('apiPadamSubjek', { token: S.token, kodSubjek: kod })
+    .then(() => { tunjukMesej('Subjek dipadam.'); muatSubjek(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
 function isiFormSubjek(kod) {
@@ -1072,8 +1092,9 @@ function renderIntervensi(senaraiRes, impakRes) {
       <button id="btnSimpanIntervensi">Simpan Intervensi</button>
     </div>
     <div class="panel"><h3>Senarai Intervensi Semester ${S.semester.slice(1)} (${senaraiRes.senarai.length})</h3>
-    <div class="tbl-scroll"><table><thead><tr><th>Pelajar</th><th>Subjek</th><th>Jenis</th><th>PIC</th><th>Tarikh</th><th>Status</th></tr></thead>
-    <tbody>${senaraiRes.senarai.map(i => `<tr><td>${escapeHtml(i.ID_Pelajar)}</td><td>${escapeHtml(i.KodSubjek)}</td><td>${escapeHtml(i.JenisIntervensi)}</td><td>${escapeHtml(i.GuruPIC)}</td><td>${escapeHtml(i.Tarikh)}</td><td>${escapeHtml(i.Status)}</td></tr>`).join('') || '<tr><td colspan=6 class="kecil">Tiada rekod.</td></tr>'}</tbody></table></div></div>`;
+    <div class="tbl-scroll"><table><thead><tr><th>Pelajar</th><th>Subjek</th><th>Jenis</th><th>PIC</th><th>Tarikh</th><th>Status</th><th></th></tr></thead>
+    <tbody>${senaraiRes.senarai.map(i => `<tr><td>${escapeHtml(i.ID_Pelajar)}</td><td>${escapeHtml(i.KodSubjek)}</td><td>${escapeHtml(i.JenisIntervensi)}</td><td>${escapeHtml(i.GuruPIC)}</td><td>${escapeHtml(i.Tarikh)}</td><td>${escapeHtml(i.Status)}</td>
+    <td><span class="aksi-link" style="color:var(--merah)" onclick="padamIntervensi('${escapeHtml(i.ID_Intervensi)}')">Padam</span></td></tr>`).join('') || '<tr><td colspan=7 class="kecil">Tiada rekod.</td></tr>'}</tbody></table></div></div>`;
 
   document.getElementById('btnSimpanIntervensi').addEventListener('click', () => {
     panggil('apiSimpanIntervensi', {
@@ -1084,6 +1105,12 @@ function renderIntervensi(senaraiRes, impakRes) {
       objektif: document.getElementById('iObjektif').value, catatan: document.getElementById('iCatatan').value
     }).then(() => { tunjukMesej('Intervensi disimpan.'); muatIntervensi(); }).catch(err => tunjukMesej(err, 'ralat'));
   });
+}
+
+function padamIntervensi(idIntervensi) {
+  if (!confirm('Padam rekod intervensi ini? Tindakan ini tidak boleh diundur.')) return;
+  panggil('apiPadamIntervensi', { token: S.token, idIntervensi })
+    .then(() => { tunjukMesej('Intervensi dipadam.'); muatIntervensi(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
 /* ======================= ANALISIS (MODUL 20, 21) ======================= */
