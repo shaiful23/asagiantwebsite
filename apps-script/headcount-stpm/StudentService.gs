@@ -87,6 +87,32 @@ function apiNyahaktifPelajar(p) {
   return jaya({});
 }
 
+/* Padam SEPENUHNYA rekod pelajar (bukan sekadar nyahaktif) — HANYA dibenarkan
+   jika pelajar tiada SEBARANG rekod pendaftaran/headcount (elak rekod "anak
+   yatim" merentasi ENROLLMENTS & HEADCOUNT_S1/S2/S3 yang rujuk ID_Pelajar
+   yang sudah tiada). Jika pelajar sudah ada sejarah akademik, guna
+   "Nyahaktifkan" — kekalkan rekod untuk audit/laporan sejarah. */
+function apiPadamPelajar(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  if (sesi.success === false) return sesi;
+
+  const idPelajar = String(p.idPelajar || '').trim();
+  const rekod = cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar);
+  if (!rekod) return ralat('Pelajar tidak dijumpai.');
+
+  const adaEnrolmen = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).some(e => e.ID_Pelajar === idPelajar);
+  const adaHeadcount = ['S1', 'S2', 'S3'].some(sem => bacaSheetSebagaiObjek(sheetHeadcount(sem)).some(h => h.ID_Pelajar === idPelajar));
+  if (adaEnrolmen || adaHeadcount) {
+    return ralat('Pelajar ini sudah mempunyai rekod pendaftaran subjek dan/atau headcount — tidak boleh dipadam terus ' +
+      '(elak kehilangan data). Sila guna butang "Nyahaktifkan" (kemaskini Status) sebagai gantinya.');
+  }
+
+  const sh = dapatkanSheet(SHEET_STUDENTS);
+  sh.deleteRow(rekod.__row);
+  catatAudit(sesi, 'PADAM', 'PELAJAR', idPelajar, JSON.stringify(rekod), '', 'Padam pelajar: ' + rekod.Nama);
+  return jaya({});
+}
+
 /* Senarai KELAS yang ada pelajar berdaftar bagi SATU mata pelajaran (+ tahun STPM
    jika dinyatakan) — dipakai untuk pemilih "Kelas yang diajar" bagi guru di
    Headcount (Isi ETR) & tab Markah Ujian, supaya guru hanya nampak kelas sebenar
