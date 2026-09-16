@@ -94,6 +94,9 @@
     .grid-borang { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .grid-borang .lebar-penuh { grid-column: 1 / -1; }
     .aksi-modal { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+    .grid-checkbox-panitia { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+    .checkbox-panitia { display: flex; align-items: center; gap: 6px; font-weight: 400; font-size: 13px; }
+    .checkbox-panitia input { width: auto; }
 
     #kontainerToast { position: fixed; top: 16px; right: 16px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
     .toast { padding: 10px 16px; border-radius: 8px; color: #fff; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,.2); }
@@ -378,14 +381,14 @@ function mulakanApp() {
   const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
   const pembantuMakmal = SESI.peranan === 'PEMBANTU_MAKMAL';
   const bolehPesananMakmal = PERANAN_LIHAT_SEMUA_PESANAN.indexOf(SESI.peranan) !== -1 ||
-    (['GURU', 'KETUA_PANITIA'].indexOf(SESI.peranan) !== -1 && PANITIA_MAKMAL.indexOf(SESI.panitia) !== -1);
+    (['GURU', 'KETUA_PANITIA'].indexOf(SESI.peranan) !== -1 && (SESI.panitia || []).some(pn => PANITIA_MAKMAL.indexOf(pn) !== -1));
   document.getElementById('navPanitia').classList.toggle('hidden', !aksesPenuh);
   document.getElementById('navPengguna').classList.toggle('hidden', !aksesPenuh);
   document.getElementById('navAudit').classList.toggle('hidden', !aksesPenuh);
   document.getElementById('navPesananMakmal').classList.toggle('hidden', !bolehPesananMakmal);
   ['navDokumen', 'navMesyuarat', 'navTindakan', 'navProgram'].forEach(id => document.getElementById(id).classList.toggle('hidden', pembantuMakmal));
 
-  PANITIA_AKTIF = aksesPenuh ? SENARAI_PANITIA[0] : SESI.panitia;
+  PANITIA_AKTIF = aksesPenuh ? SENARAI_PANITIA[0] : ((SESI.panitia && SESI.panitia[0]) || null);
   document.getElementById('labelPanitiaAktif').textContent = pembantuMakmal ? 'Semua Panitia Makmal' : PANITIA_AKTIF;
 
   document.querySelectorAll('.item-nav').forEach(a => a.addEventListener('click', ev => {
@@ -452,11 +455,14 @@ function bukaPanitiaDariDashboard(namaPanitia) {
   navigasi('dokumen');
 }
 
-/* Selektor Panitia (ADMIN/KETUA_BIDANG sahaja) — dipaparkan di atas setiap view berkenaan. */
+/* Selektor Panitia — dipaparkan di atas setiap view berkenaan. ADMIN/KETUA_BIDANG boleh
+   pilih mana-mana daripada 5 panitia; guru/ketua panitia yang mengajar > 1 panitia boleh
+   tukar antara panitia sendiri sahaja. Guru bagi 1 panitia tunggal tak perlu selektor. */
 function pemilihPanitiaHtml() {
   const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
-  if (!aksesPenuh) return '';
-  return `<select id="pemilihPanitia" style="width:auto">${SENARAI_PANITIA.map(p => `<option value="${p}" ${p === PANITIA_AKTIF ? 'selected' : ''}>${p}</option>`).join('')}</select>`;
+  const senarai = aksesPenuh ? SENARAI_PANITIA : (SESI.panitia || []);
+  if (senarai.length <= 1) return '';
+  return `<select id="pemilihPanitia" style="width:auto">${senarai.map(p => `<option value="${p}" ${p === PANITIA_AKTIF ? 'selected' : ''}>${p}</option>`).join('')}</select>`;
 }
 function pasangPemilihPanitia(muatSemula) {
   const el = document.getElementById('pemilihPanitia');
@@ -844,8 +850,17 @@ function padamEvidens(idEvidens, idProgram, namaProgram) {
 }
 
 /* ============================ PESANAN RADAS & BAHAN MAKMAL ============================ */
+/* Senarai panitia makmal yang pengguna semasa boleh buat pesanan bagi pihaknya —
+   ADMIN/KETUA_BIDANG boleh bagi semua panitia makmal; GURU/KETUA_PANITIA hanya
+   panitia makmal dalam senarai panitia sendiri (mungkin > 1). */
+function panitiaPesananBoleh() {
+  const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
+  if (aksesPenuh) return PANITIA_MAKMAL;
+  if (['GURU', 'KETUA_PANITIA'].indexOf(SESI.peranan) === -1) return [];
+  return (SESI.panitia || []).filter(pn => PANITIA_MAKMAL.indexOf(pn) !== -1);
+}
 function bolehBuatPesananMakmalJS() {
-  return ['GURU', 'KETUA_PANITIA'].indexOf(SESI.peranan) !== -1 && PANITIA_MAKMAL.indexOf(SESI.panitia) !== -1;
+  return panitiaPesananBoleh().length > 0;
 }
 function bolehUrusSemuaPesananJS() { return PERANAN_LIHAT_SEMUA_PESANAN.indexOf(SESI.peranan) !== -1; }
 /* Sama ada boleh batal/sunting pesanan (pemohon panitia makmal, atau Admin/Ketua Bidang) —
@@ -896,9 +911,15 @@ function muatSemulaPesananMakmal() {
 /* pesananSedia/itemSedia diisi hanya semasa Sunting (bukaSuntingPesanan) — kosong bermaksud Pesanan Baharu. */
 function bukaBorangPesananMakmal(pesananSedia, itemSedia) {
   const suntingMod = !!pesananSedia;
-  bukaModal(ikon('pesananMakmal', 'ikon-h3') + (suntingMod ? 'Sunting Pesanan' : ('Pesanan Baharu — ' + SESI.panitia)), `
+  const panitiaPilihan = panitiaPesananBoleh();
+  const medanPanitia = suntingMod ? '' :
+    (panitiaPilihan.length > 1
+      ? `<div class="medan"><label>Panitia</label><select name="panitia">${panitiaPilihan.map(p => `<option value="${p}">${p}</option>`).join('')}</select></div>`
+      : `<input type="hidden" name="panitia" value="${panitiaPilihan[0] || ''}">`);
+  bukaModal(ikon('pesananMakmal', 'ikon-h3') + (suntingMod ? ('Sunting Pesanan — ' + pesananSedia.Panitia) : 'Pesanan Baharu'), `
     <form id="borangPesananMakmal">
       <div class="grid-borang">
+        ${medanPanitia}
         <div class="medan"><label>Kelas</label><input type="text" name="kelas" value="${suntingMod ? pesananSedia.Kelas : ''}" placeholder="cth. 5 Bestari" required></div>
         <div class="medan"><label>Tarikh Diperlukan</label><input type="date" name="tarikhDiperlukan" value="${suntingMod ? pesananSedia.TarikhDiperlukan : ''}" required></div>
         <div class="medan lebar-penuh"><label>Tajuk Eksperimen/Aktiviti</label><input type="text" name="tajukEksperimen" value="${suntingMod ? pesananSedia.TajukEksperimen : ''}" required></div>
@@ -945,7 +966,7 @@ function hantarBorangPesananMakmal(ev, idPesananSunting) {
     return obj;
   });
   const data = {
-    kelas: f.get('kelas'), tajukEksperimen: f.get('tajukEksperimen'),
+    panitia: f.get('panitia'), kelas: f.get('kelas'), tajukEksperimen: f.get('tajukEksperimen'),
     tarikhDiperlukan: f.get('tarikhDiperlukan'), catatanAm: f.get('catatanAm'), item
   };
   const panggilan = idPesananSunting
@@ -1083,7 +1104,9 @@ function bukaBorangPengguna(u) {
         <div class="medan"><label>Nama Penuh</label><input type="text" name="nama" value="${u ? u.nama : ''}" required></div>
         <div class="medan"><label>Peranan</label><select name="peranan" id="pilihPerananPengguna">
           ${Object.keys(LABEL_PERANAN).map(r => `<option value="${r}" ${u && u.peranan === r ? 'selected' : ''}>${LABEL_PERANAN[r]}</option>`).join('')}</select></div>
-        <div class="medan" id="medanPanitiaPengguna"><label>Panitia</label><select name="panitia">${SENARAI_PANITIA.map(p => `<option value="${p}" ${u && u.panitia === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
+        <div class="medan lebar-penuh" id="medanPanitiaPengguna"><label>Panitia (boleh pilih > 1 jika mengajar > 1 mata pelajaran)</label>
+          <div class="grid-checkbox-panitia">${SENARAI_PANITIA.map(p => `<label class="checkbox-panitia"><input type="checkbox" name="panitia" value="${p}" ${u && u.panitiaSenarai && u.panitiaSenarai.indexOf(p) !== -1 ? 'checked' : ''}> ${p}</label>`).join('')}</div>
+        </div>
         <div class="medan lebar-penuh"><label>E-mel (untuk notifikasi, pilihan)</label><input type="email" name="emel" value="${u ? (u.emel || '') : ''}" placeholder="nama@contoh.edu.my"></div>
       </div>
       ${!u ? '<p style="font-size:12px;color:var(--kelabu)">Kata laluan lalai = 6 digit terakhir No. KP; sistem akan paksa tukar kata laluan semasa log masuk pertama.</p>' : ''}
@@ -1098,7 +1121,7 @@ function bukaBorangPengguna(u) {
   document.getElementById('borangPengguna').addEventListener('submit', ev => {
     ev.preventDefault();
     const f = new FormData(ev.target);
-    panggilApi('apiSimpanPengguna', { nokp: f.get('nokp'), nama: f.get('nama'), peranan: f.get('peranan'), panitia: f.get('panitia'), emel: f.get('emel') })
+    panggilApi('apiSimpanPengguna', { nokp: f.get('nokp'), nama: f.get('nama'), peranan: f.get('peranan'), panitia: f.getAll('panitia'), emel: f.get('emel') })
       .then(() => { papartToast('Pengguna disimpan.'); tutupModal(); muatSemulaPengguna(); });
   });
 }

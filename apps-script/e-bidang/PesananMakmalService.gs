@@ -12,14 +12,20 @@ const HEADER_PESANAN_MAKMAL = ['IDPesanan', 'Panitia', 'NamaGuru', 'NoKPGuru', '
   'DiprosesOleh', 'TarikhDiproses', 'CatatanPembantu'];
 const HEADER_ITEM_PESANAN_MAKMAL = ['IDItem', 'IDPesanan', 'NamaBahanRadas', 'Kuantiti', 'Unit', 'Catatan'];
 
-function bolehBuatPesananMakmal(sesi) {
-  return (sesi.peranan === ROLE_GURU || sesi.peranan === ROLE_KETUA_PANITIA) && PANITIA_MAKMAL.indexOf(sesi.panitia) !== -1;
+/* panitia ialah panitia SASARAN pesanan (bukan sesi.panitia terus, sebab seorang
+   guru boleh mengajar > 1 panitia makmal). ADMIN/KETUA_BIDANG boleh buat pesanan
+   bagi mana-mana panitia makmal (cth. admin yang juga ketua panitia Kimia tetapi
+   perlu buat pesanan bagi panitia Sains juga). */
+function bolehBuatPesananMakmal(sesi, panitia) {
+  if (PANITIA_MAKMAL.indexOf(panitia) === -1) return false;
+  if (PERANAN_AKSES_PENUH.indexOf(sesi.peranan) !== -1) return true;
+  return (sesi.peranan === ROLE_GURU || sesi.peranan === ROLE_KETUA_PANITIA) && (sesi.panitia || []).indexOf(panitia) !== -1;
 }
 
 function bolehLihatPesanan(sesi, pesanan) {
   if (PERANAN_LIHAT_SEMUA_PESANAN.indexOf(sesi.peranan) !== -1) return true;
-  if (sesi.peranan === ROLE_KETUA_PANITIA) return sesi.panitia === pesanan.Panitia;
-  if (sesi.peranan === ROLE_GURU) return sesi.panitia === pesanan.Panitia && sesi.nokp === pesanan.NoKPGuru;
+  if (sesi.peranan === ROLE_KETUA_PANITIA) return (sesi.panitia || []).indexOf(pesanan.Panitia) !== -1;
+  if (sesi.peranan === ROLE_GURU) return (sesi.panitia || []).indexOf(pesanan.Panitia) !== -1 && sesi.nokp === pesanan.NoKPGuru;
   return false;
 }
 
@@ -32,9 +38,9 @@ function apiSenaraiPesanan(p) {
     senarai = bacaSheetSebagaiObjek(SHEET_PESANAN_MAKMAL);
     if (p.panitia) senarai = senarai.filter(ps => ps.Panitia === p.panitia);
   } else if (sesi.peranan === ROLE_KETUA_PANITIA) {
-    senarai = bacaSheetSebagaiObjek(SHEET_PESANAN_MAKMAL).filter(ps => ps.Panitia === sesi.panitia);
+    senarai = bacaSheetSebagaiObjek(SHEET_PESANAN_MAKMAL).filter(ps => (sesi.panitia || []).indexOf(ps.Panitia) !== -1);
   } else if (sesi.peranan === ROLE_GURU) {
-    senarai = bacaSheetSebagaiObjek(SHEET_PESANAN_MAKMAL).filter(ps => ps.Panitia === sesi.panitia && ps.NoKPGuru === sesi.nokp);
+    senarai = bacaSheetSebagaiObjek(SHEET_PESANAN_MAKMAL).filter(ps => (sesi.panitia || []).indexOf(ps.Panitia) !== -1 && ps.NoKPGuru === sesi.nokp);
   } else {
     return ralat('Anda tidak mempunyai kebenaran untuk modul ini.');
   }
@@ -59,7 +65,9 @@ function apiButiranPesanan(p) {
 function apiSimpanPesanan(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
-  if (!bolehBuatPesananMakmal(sesi)) return ralat('Hanya Guru/Ketua Panitia bagi panitia Sains, Kimia, Biologi & Fizik boleh membuat pesanan makmal.');
+
+  const panitia = String(p.panitia || '').trim();
+  if (!bolehBuatPesananMakmal(sesi, panitia)) return ralat('Hanya Guru/Ketua Panitia bagi panitia Sains, Kimia, Biologi & Fizik (atau Admin/Ketua Bidang) boleh membuat pesanan makmal.');
 
   const kelas = String(p.kelas || '').trim();
   const tajukEksperimen = String(p.tajukEksperimen || '').trim();
@@ -79,7 +87,7 @@ function apiSimpanPesanan(p) {
   const idPesanan = janaId('PSN');
   tambahBaris(SHEET_PESANAN_MAKMAL, {
     IDPesanan: idPesanan,
-    Panitia: sesi.panitia,
+    Panitia: panitia,
     NamaGuru: sesi.nama,
     NoKPGuru: sesi.nokp,
     Kelas: kelas,
@@ -105,7 +113,7 @@ function apiSimpanPesanan(p) {
     }, HEADER_ITEM_PESANAN_MAKMAL);
   });
 
-  catatAudit(sesi, 'TAMBAH', 'PESANAN_MAKMAL', idPesanan, 'Pesanan makmal baharu: ' + tajukEksperimen + ' (' + sesi.panitia + ', ' + kelas + ')');
+  catatAudit(sesi, 'TAMBAH', 'PESANAN_MAKMAL', idPesanan, 'Pesanan makmal baharu: ' + tajukEksperimen + ' (' + panitia + ', ' + kelas + ')');
   return jaya({ idPesanan });
 }
 

@@ -9,7 +9,8 @@ function apiSenaraiPengguna(p) {
   const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
   if (sesi.success === false) return sesi;
   const senarai = bacaSheetSebagaiObjek(SHEET_USERS).map(u => ({
-    nokp: u.NoKP, nama: u.NamaPenuh, peranan: u.Peranan, panitia: u.Panitia, emel: u.Emel || '',
+    nokp: u.NoKP, nama: u.NamaPenuh, peranan: u.Peranan, panitia: u.Panitia,
+    panitiaSenarai: senaraiPanitiaDaripadaMedan(u.Panitia), emel: u.Emel || '',
     mestiTukarPassword: u.MestiTukarPassword, status: u.Status, __row: u.__row
   }));
   return jaya({ senarai });
@@ -23,7 +24,7 @@ function apiSenaraiAhliPanitia(p) {
   if (!wajibAksesPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
 
   const senarai = bacaSheetSebagaiObjek(SHEET_USERS)
-    .filter(u => String(u.Panitia) === String(p.panitia) && String(u.Status).toUpperCase() === 'AKTIF')
+    .filter(u => senaraiPanitiaDaripadaMedan(u.Panitia).indexOf(p.panitia) !== -1 && String(u.Status).toUpperCase() === 'AKTIF')
     .map(u => ({ nokp: u.NoKP, nama: u.NamaPenuh, peranan: u.Peranan }));
   return jaya({ senarai });
 }
@@ -35,11 +36,12 @@ function apiSimpanPengguna(p) {
   const nokp = String(p.nokp || '').trim();
   const nama = String(p.nama || '').trim();
   const peranan = String(p.peranan || '').trim();
-  const panitia = String(p.panitia || '').trim();
+  const senaraiPanitiaInput = Array.isArray(p.panitia) ? p.panitia : senaraiPanitiaDaripadaMedan(p.panitia);
+  const panitiaSah = senaraiPanitiaInput.map(s => String(s).trim()).filter(s => SENARAI_PANITIA.indexOf(s) !== -1);
   const emel = String(p.emel || '').trim();
   if (!nokp || !nama || SEMUA_PERANAN.indexOf(peranan) === -1) return ralat('Data pengguna tidak lengkap/sah.');
-  if ((peranan === ROLE_KETUA_PANITIA || peranan === ROLE_GURU) && SENARAI_PANITIA.indexOf(panitia) === -1) {
-    return ralat('Sila pilih Panitia yang sah bagi peranan ' + peranan + '.');
+  if ((peranan === ROLE_KETUA_PANITIA || peranan === ROLE_GURU) && !panitiaSah.length) {
+    return ralat('Sila pilih sekurang-kurangnya satu Panitia bagi peranan ' + peranan + '.');
   }
   if (emel && emel.indexOf('@') === -1) return ralat('Format e-mel tidak sah.');
 
@@ -49,7 +51,7 @@ function apiSimpanPengguna(p) {
     Password: sediaAda ? sediaAda.Password : cincangKataLaluan(kataLaluanLalaiDaripadaIC(nokp)),
     Peranan: peranan,
     NamaPenuh: nama,
-    Panitia: (peranan === ROLE_KETUA_PANITIA || peranan === ROLE_GURU) ? panitia : '',
+    Panitia: (peranan === ROLE_KETUA_PANITIA || peranan === ROLE_GURU) ? panitiaSah.join(', ') : '',
     MestiTukarPassword: sediaAda ? sediaAda.MestiTukarPassword : 'YA',
     Status: sediaAda ? sediaAda.Status : 'AKTIF',
     Emel: emel
