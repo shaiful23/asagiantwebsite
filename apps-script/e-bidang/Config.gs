@@ -15,14 +15,17 @@ const SHEET_TINDAKAN_SUSULAN = 'TINDAKAN_SUSULAN';
 const SHEET_PROGRAM = 'PROGRAM';
 const SHEET_EVIDENS = 'EVIDENS';
 const SHEET_AUDIT_LOG = 'AUDIT_LOG';
+const SHEET_PESANAN_MAKMAL = 'PESANAN_MAKMAL';
+const SHEET_ITEM_PESANAN_MAKMAL = 'ITEM_PESANAN_MAKMAL';
 
 /* ------------------------- PERANAN (ROLES) ------------------------- */
 const ROLE_ADMIN = 'ADMIN';
 const ROLE_KETUA_BIDANG = 'KETUA_BIDANG';
 const ROLE_KETUA_PANITIA = 'KETUA_PANITIA';
 const ROLE_GURU = 'GURU';
+const ROLE_PEMBANTU_MAKMAL = 'PEMBANTU_MAKMAL';
 
-const SEMUA_PERANAN = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_KETUA_PANITIA, ROLE_GURU];
+const SEMUA_PERANAN = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_KETUA_PANITIA, ROLE_GURU, ROLE_PEMBANTU_MAKMAL];
 
 // Peranan yang boleh melihat/menguruskan SEMUA panitia (bukan hanya panitia sendiri)
 const PERANAN_AKSES_PENUH = [ROLE_ADMIN, ROLE_KETUA_BIDANG];
@@ -30,8 +33,14 @@ const PERANAN_AKSES_PENUH = [ROLE_ADMIN, ROLE_KETUA_BIDANG];
 // Peranan yang boleh menguruskan (cipta/kemaskini/padam) mesyuarat & program panitia
 const PERANAN_URUS_PANITIA = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_KETUA_PANITIA];
 
+// Peranan yang boleh melihat/memproses Pesanan Makmal merentasi SEMUA panitia
+const PERANAN_LIHAT_SEMUA_PESANAN = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_PEMBANTU_MAKMAL];
+
 /* ------------------------- PANITIA BIDANG SAINS & MATEMATIK ------------------------- */
 const SENARAI_PANITIA = ['Matematik', 'Sains', 'Kimia', 'Biologi', 'Fizik'];
+
+// Panitia yang menjalankan eksperimen makmal (boleh buat Pesanan Radas & Bahan) — Matematik tidak termasuk.
+const PANITIA_MAKMAL = ['Sains', 'Kimia', 'Biologi', 'Fizik'];
 
 /* ------------------------- KATEGORI DOKUMEN LALAI ------------------------- */
 function kategoriDokumenLalai() {
@@ -57,6 +66,15 @@ const SEMUA_STATUS_TINDAKAN = [STATUS_BELUM_MULA, STATUS_DALAM_PROSES, STATUS_SE
 const JENIS_PROGRAM = 'PROGRAM';
 const JENIS_PLC = 'PLC';
 const SEMUA_JENIS_PROGRAM = [JENIS_PROGRAM, JENIS_PLC];
+
+/* ------------------------- STATUS PESANAN MAKMAL ------------------------- */
+const STATUS_PESANAN_MENUNGGU = 'MENUNGGU';
+const STATUS_PESANAN_DALAM_PROSES = 'DALAM_PROSES';
+const STATUS_PESANAN_SIAP = 'SIAP';
+const STATUS_PESANAN_DITOLAK = 'DITOLAK';
+const STATUS_PESANAN_DIBATALKAN = 'DIBATALKAN';
+const SEMUA_STATUS_PESANAN = [STATUS_PESANAN_MENUNGGU, STATUS_PESANAN_DALAM_PROSES,
+  STATUS_PESANAN_SIAP, STATUS_PESANAN_DITOLAK, STATUS_PESANAN_DIBATALKAN];
 
 /* ------------------------- SESI & KESELAMATAN ------------------------- */
 const TEMPOH_SESI_SAAT = 8 * 60 * 60; // 8 jam

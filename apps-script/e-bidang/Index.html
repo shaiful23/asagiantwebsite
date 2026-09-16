@@ -111,6 +111,32 @@
       #barAtas .info-pengguna { flex-wrap: wrap; row-gap: 6px; }
       .grid-borang { grid-template-columns: 1fr; }
     }
+
+    /* ---------- Borang Pesanan Makmal (baris item dinamik) ---------- */
+    .baris-item-pesanan { display: grid; grid-template-columns: 2fr 1fr 1fr 1.5fr auto; gap: 8px; margin-bottom: 8px; align-items: center; }
+    @media (max-width: 600px) { .baris-item-pesanan { grid-template-columns: 1fr 1fr; } }
+
+    /* ---------- Cetak Borang Pesanan (formal, dengan logo sekolah) ---------- */
+    .dokumen-cetak { display: none; }
+    .kepala-cetak { display: flex; align-items: center; gap: 16px; border-bottom: 3px solid var(--biru-gelap); padding-bottom: 12px; margin-bottom: 16px; }
+    .kepala-cetak img { width: 72px; height: auto; flex-shrink: 0; }
+    .kepala-cetak h1 { margin: 0; font-size: 16px; }
+    .kepala-cetak h2 { margin: 2px 0; font-size: 14px; }
+    .kepala-cetak p { margin: 0; font-size: 12px; color: #333; }
+    .jadual-meta-cetak, .jadual-item-cetak { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12px; }
+    .jadual-meta-cetak td { border: 1px solid #333; padding: 6px 8px; }
+    .jadual-item-cetak th, .jadual-item-cetak td { border: 1px solid #333; padding: 6px 8px; text-align: left; }
+    .jadual-item-cetak th { background: #f1f5f9; }
+    .catatan-pembantu-cetak { font-size: 12px; margin: 0 0 30px; }
+    .blok-tandatangan { display: flex; justify-content: space-between; gap: 20px; margin-top: 40px; font-size: 12px; text-align: center; }
+    .blok-tandatangan > div { flex: 1; }
+    .blok-tandatangan .garis-tandatangan { margin-bottom: 6px; font-size: 14px; }
+    @media print {
+      body * { visibility: hidden; }
+      #kawasanCetak, #kawasanCetak * { visibility: visible; }
+      #kawasanCetak { position: absolute; left: 0; top: 0; width: 100%; }
+      .dokumen-cetak { display: block; padding: 20px; font-family: 'Segoe UI', Arial, sans-serif; color: #000; }
+    }
   </style>
 </head>
 <body>
@@ -176,10 +202,11 @@
         <span>E-Bidang<br>Sains &amp; Matematik</span>
       </div>
       <a href="#" class="item-nav" data-view="dashboard" aria-label="Dashboard"><span class="nav-ikon"></span><span>Dashboard</span></a>
-      <a href="#" class="item-nav" data-view="dokumen" aria-label="Fail &amp; Dokumen"><span class="nav-ikon"></span><span>Fail &amp; Dokumen</span></a>
-      <a href="#" class="item-nav" data-view="mesyuarat" aria-label="Mesyuarat"><span class="nav-ikon"></span><span>Mesyuarat</span></a>
-      <a href="#" class="item-nav" data-view="tindakan" aria-label="Tindakan Susulan"><span class="nav-ikon"></span><span>Tindakan Susulan</span></a>
-      <a href="#" class="item-nav" data-view="program" aria-label="Program &amp; PLC"><span class="nav-ikon"></span><span>Program &amp; PLC</span></a>
+      <a href="#" class="item-nav" data-view="dokumen" id="navDokumen" aria-label="Fail &amp; Dokumen"><span class="nav-ikon"></span><span>Fail &amp; Dokumen</span></a>
+      <a href="#" class="item-nav" data-view="mesyuarat" id="navMesyuarat" aria-label="Mesyuarat"><span class="nav-ikon"></span><span>Mesyuarat</span></a>
+      <a href="#" class="item-nav" data-view="tindakan" id="navTindakan" aria-label="Tindakan Susulan"><span class="nav-ikon"></span><span>Tindakan Susulan</span></a>
+      <a href="#" class="item-nav" data-view="program" id="navProgram" aria-label="Program &amp; PLC"><span class="nav-ikon"></span><span>Program &amp; PLC</span></a>
+      <a href="#" class="item-nav" data-view="pesananMakmal" id="navPesananMakmal" aria-label="Pesanan Makmal"><span class="nav-ikon"></span><span>Pesanan Makmal</span></a>
       <a href="#" class="item-nav" data-view="panitia" id="navPanitia" aria-label="Panitia"><span class="nav-ikon"></span><span>Panitia</span></a>
       <a href="#" class="item-nav" data-view="pengguna" id="navPengguna" aria-label="Pengguna"><span class="nav-ikon"></span><span>Pengguna</span></a>
       <a href="#" class="item-nav" data-view="audit" id="navAudit" aria-label="Log Audit"><span class="nav-ikon"></span><span>Log Audit</span></a>
@@ -199,6 +226,7 @@
   </div>
 
   <div id="kontainerToast"></div>
+  <div id="kawasanCetak"></div>
 
 <script>
 /* =========================================================================
@@ -206,9 +234,15 @@
  * disahkan token sesi setiap panggilan (rujuk wajibPeranan() di pelayan).
  * ========================================================================= */
 const SENARAI_PANITIA = ['Matematik', 'Sains', 'Kimia', 'Biologi', 'Fizik'];
-const LABEL_PERANAN = { ADMIN: 'Admin', KETUA_BIDANG: 'Ketua Bidang', KETUA_PANITIA: 'Ketua Panitia', GURU: 'Guru' };
+const PANITIA_MAKMAL = ['Sains', 'Kimia', 'Biologi', 'Fizik'];
+const PERANAN_LIHAT_SEMUA_PESANAN = ['ADMIN', 'KETUA_BIDANG', 'PEMBANTU_MAKMAL'];
+const LABEL_PERANAN = { ADMIN: 'Admin', KETUA_BIDANG: 'Ketua Bidang', KETUA_PANITIA: 'Ketua Panitia', GURU: 'Guru', PEMBANTU_MAKMAL: 'Pembantu Makmal' };
 const LABEL_STATUS_TINDAKAN = { BELUM_MULA: 'Belum Mula', DALAM_PROSES: 'Dalam Proses', SELESAI: 'Selesai' };
 const LENCANA_STATUS_TINDAKAN = { BELUM_MULA: 'kelabu', DALAM_PROSES: 'kuning', SELESAI: 'hijau' };
+const LABEL_STATUS_PESANAN = { MENUNGGU: 'Menunggu', DALAM_PROSES: 'Dalam Proses', SIAP: 'Siap', DITOLAK: 'Ditolak', DIBATALKAN: 'Dibatalkan' };
+const LENCANA_STATUS_PESANAN = { MENUNGGU: 'kelabu', DALAM_PROSES: 'kuning', SIAP: 'hijau', DITOLAK: 'merah', DIBATALKAN: 'kelabu' };
+// Lambang rasmi sekolah (dimampatkan) — digunakan pada borang cetak Pesanan Radas & Bahan Makmal.
+const LOGO_SEKOLAH_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQQAAAD0CAMAAABKM6iVAAABIFBMVEUAAADzCAXu7gIEA/Tq6On7AAAGBJ+fogikpKRrBWv5AgCkEQkJCHT5AQFtbGv6WlrfpQabXgbkXAhyagv3n5+0yQFbXpRbWvmmV12doPpYE5qWDVv28ll4igCUk1aUXJJ2ERn29KGzBwmGkpF8kZIOAOicpQCv8gB9i4m3AgPhlV3MrsarYQYAAP+OKo97CgekrAXkM0exXV2d8wBgAJu3w9TyYwCKk5KpCB4QANWYAGCrygD/AP8lBatEEcWoaGemqALQVADFTk719QDHzwF3AG12gXrQywAdAGUZC2gaE2QA/wBtFWJoYDGrAF6yaACMd9PGVgDkpwQVA5cnAZZ/fwBzh9Jq/waVAHKzXwD/AHHJuABnAWZjAKFVVVVgYnP/Sn5sAAAAYHRSTlMA+f7+/w/+/f3+n/79YP7+/v79/v/9/v/9//z5//3+/v7/CaP+nqJdom7//6gB/wNh+2glov8Ob6ZmppUBqv+bJ6hrCmEG/5UjXKYBs6cIDv9NDiVnAv8IaU8CklxlA2/JoZTKAAAjaElEQVR42u2dCWPjtpWACcoURFKkeEiyLMmyx3MlnitzZJqkOZurSdomTdttt8fu//8X+w4ABC9JY1Fje1bIxLYsmQQ+vBsg6TiHdmiHdmiHdmiHdmiHdmiHdmiHdmiHdhuaV2///wb/Zm+9Y+O3X0Sm1d7y3lUA6ocoCgLR2IIAcVT+4N0BwN9h+HqsUWWQLBiBfp/fe2dAqHF4NH5rpqFd2FbxwvxBZD5qE7ztBDQAr/gtzHnQqA1GBvBvgtvPwSJgANDwxYZmhID+FI9yWzEUBCJjETcOv0SiQOjdTvtA01cQqM5/lqgfXDfM3AReJ0nWBOLCPsztosAIzBSWASRuJtxJqCBMwsTN4XdyMkkBSY0FCQRyCKJbhYEQBEX3i+FLGKhI4EsiNQSZuvBzMsnTFGTiVE7wnSQpcSCUShxuBwbsJU6c7rma/YQgSIkQcgKhuKTuqVCvM5QJmSIaNy3JQ6RE63ZgIAQ8edhpo/kwwzBIgJDiUDMXQCgIEkYOECTMPqJAucgm0g0RRVYRBwX3ZmNQCCLPFgIadpjIHAaXJqc4uImUVQink1O0DC6+ciWqSwaqkrlZ2UoCBjr6jbcFFoIMhnJKYi5SFPMUR+fKHAyBgjABdSCbEMJXN5dSfQxRSDKaIstsrWAMN1UYoF8VBDgOUnIcOtp9EHC0ikrqFQR6k7wF/DJz6X2XIEzYaLqTSRkDfLuZOsGaYCEAaUZhT7MJ6kEOzpBgJKchvtLuAQZdvASZQKGBP3RRh+CP4RX8JpXamRgMwU3UCewTT5BGgEIvQPlpBDC8lGBInFuXzIOGgC+TCQsKigRyITchJctMSgBFIQ3P8Cw3Tye0JiiPkKF6k9OToOUy1zqBsyvTEH/S7gHekKfwGzCWGdpFtAPwLSXrSPoBphQ+AR7GNdFDRMhvljCgNbA1ATWanGEG37CFAgwf6URO+gBjSgsBF/BjCE0AsVMcPYBDeUjQcYAQwGFSpJpPpO0wQSduEAXoSECTQ2KQZRkBmJwm6BgmKQUHGBSBTqBntIdfbUBCkOCAPKTJhBUpITOJeiKLEEoLww1RCU+LZsCxoWQKckIakaBRgMGAvENgLMKtMsgM4wocvEoscjoOaYXQyUVg2N8IVYiUdJIYjHDiUwmKTFkAOQZy/mFYnvLmVnwAMbIrJXdKRoTCSJmMRoUwoCG6MaoQqPB4lLAZSIWyfWgFLTEW1dGKOhvDgQCQIAgVWaDVlNmIMQQXeN5rp+BxL1AhyC2epqPnUhtDDBLA3VkEihEGVEpTpXZukalCWyBAl1gYKO9CzcAs3FBQc3CthsF4BezRCLKidCTQI6AZQM8GA8gtAKaS7K0ryTEKzSFMMepUloFyr5x4KwzRtXsJNAcRfcVa0XgMQ88SVygK6BJy7QpoSLqS/uSCll2CcmO5cIrStOGAUpAp68AGorAM12wYvBIDdyLHYBRRI0QKNpEUQiHQBOCPvtWFNviyWCzm88971ObzObwsrTlEBQdwN5h8U+yUMwM3HY0JQ+Bdo2GArvK5A04UoI2gszn2mlyktgWGwBOqswXBJ6/u37/fa2lzRMEg/ukFmmCY5lh8kyQPGZWjxGh0OSZhIMNwLRRKDEZj7RFUqoM/a1lmAt9S2Tj4T/vwbRJPF1Z1TmkFxF5UfCAGVKdzr5mCZkCT5bI9wJFzupQKJQZhURISwT+2AlCIRFGiIwwppl2nFDcmWikux4SBzONbp2AzwKKZvEwwRCK/iHZB2AjwQ8GrNwGgGorDEwsDG0g2DqyBo2ukYBhw1RwpZBQoUuYkKYG0EASfXIGAwmBqdYghyyEDQSNJxVg4G7y6LgqKAYcH40tJLhHlgCkYTeBI8kpCYNorCwMFT3kqMWwCgYAUC1RjdD0USnIwPjpSFNglSC5+hNR3RLALARtDpHLuLEMv7ELoiD4iBycxHo/fOoWSTQQG41HGSRNRSBUD0IQnUQcINAYOHEIuSyIDyiIwegQKR2+dgsfnujAMRmQIQk6Zs0IThHjV66bd/8Su2UBG4mK9WsfkFoW35SkVA+rQpWJAFCg6GDEDz/lTIBa97tp9UKzfOxcsDKgQycQs4FQovIVsCnMmHSORaR6ZdC8T6UjXO0AMet22V8LYYgggL92CAVBwCgrB/nNKHJ7OF7BycDkSRdJbFDsiMd82JsL2+ZbCUFSzE2nXKERyyRQord23QoCs0UkiipXRLRTLZGmmc3zo6Daj+ty3SkqLMrXj44Y/+EdRwhIyHRXVOAjPLh8djRSFaM8UUA24qMiRu5QTMyFWgr+NNZgLGPjxycnJh/D/8RyALDZi+LgIT7CwYpa8sXBx+QjjhcDbu4ugMzADTukpWiwz+DbYRhXmQODkyGofnkz9cLGlStgU2FW4OYYLSGHfxlEZxSJQTGiJTBYMtrWIzxfTEgJqJ8e+8DdRiAoKdE4QA84nnhdB0z6NIxqESDkGTFw4PBJkGHR9YytVePp8XkdAGKZh2KsoRUUt7v+DqmlsHkcJLmYIdhSZorBfs+ARYnYM7iX4hZQNI3pHw+CTyoAbNPvp6PiopX0IwlCnUD7Gf9A0m0UOODczwGU6VogLFNg9iYJtENAUJOwXU9x6QAxQG1+tn0fKDM9aGRyN7/zXvEYB7GbpKH8tKGDOohmgXBIFipn2IwpKGTzO6+Hsk4SlQLKFIgb3NyLoPV3D4OhoMGikcFI60McFheeJCp5xEXyC1hEVwttXtKCUwVTTUsaAFVVm8KTMAPp+/Ga6wBAG4CXegIIKHHlDzCmLAlHYh58kZbhQURIZxSzMAYPIKG+sM6h2XPuFtQwQwmC6WDRQKB3tPlGgEO2U9jjQjgZc+ykUonuzYCsDJQyUK0CMMkkadaGVwbxmBrCVIAzmYTXSOD45Kh/vMytecKXaFgX2CXIpLQrde4iSMjgjtolY2DlN2S+UGNRmzijD4sQa/chehsRUENwDicI87NUpHJWO+MrEjhCshEItWApN4cLr3kNQmKRSBjcZPefwfYJFdo6RtmPQE1oZGAAmDTNoeulxNCZJWE0X/kYKvu5QNjlNtXmE8JHX51TI1DEEo4QJhMoqa9L5E3bmszWya5XRTwwBGP7Y1orBjEiMEEJcFwUkW6awEH9i0QQL7dKiD22Ukkyhe9uoQgRShkvQg4naPcTKAMpnxwftDHoCLQIRKAEwBoE5zO59Nw3nmymExjjmOa1YIwLXTYlCgIlclxAsq/gczpDmkoXBzTSDT7ZiMA9P7ozaCHDEOJgRoqnfkEQcH1coWGlERghCENM80wrRrW20BQE36oMEoDDQXiJ2jlsx6C1CQrDBQyKGWYM+qINbx+5rs4AxsyTzqEqvI6Wk3dlGFgS1+IwhusLA+6jwXJVuHrcvpaxFoDzkjHaz9beg4GuFoII/bRIRBkK3osCVFO2OcpICAZESUUe/0W9j8Dmutxc1o3A+KwUIo7KPHI8/JA85iGPA4GtbysvS6iiV+MMoBC55gCpoL6NsY3eiQHZWix2uuYJJwM3GKZ4SpsKqAZQZQPeRwSIUagShCRLKIYIFQkEACj5bkXBx9svJyS/HAGNRpwAK8SmpKRV5rMqriuA6EwWPzKynL1Qhayy1m0QpaY4PnorFLydcMzqeU5lgriCM6pu1rJez2T2AwJECHMNwO/l8QSWr45NGhXAxZDIFz+eFKHRCgWoUShDo8oSMXfOpaDAIRQcXi18KyR8JHMA8/PCIasItu/gKDkABLSPuXBkVR4H80q9REKr0muEuFl3wzLLnLArPOhIFWxCUQcz0jrqqMhTdG53ZCETofy7mECqNbQCzQZE0QKw0szjMvgMIs7PByMZw56RH4UMpQ59rUcAdQ6c6bIQkQhir0IlJ0K6BL+Qj9whu+TSsKoM1RYuzEoLZ4M5JP1yI54rAeWOogH5Bcwj986czrTsaw51Bj5xGiUKoe0cKQTGTizA4t0Up9jpgEHH5lHL31EgDpvHvVzyD6dtTM3tjFRs9cu4tNIHmWGnA7tHkEeHzgqIYq4+o1Oq4FCz88xnZxoS38PA1Bqp53YSNMNmRWfBQyz5hmpPgXTjBorGOJE7MAHRgMFYr6+ezdSEC+0ft6AqQ/DO8e8zxtE1hodxkNoG0FlXCWpqKnC4yCK6yO4FZalNeIaQzlKyi5RtHuvdhOC4lja0ILAZxgWFsYRhz2UmFkrYoBJ+aREpqBPq6Ka+LZJIPwtoAkSImbOYy1ou/WIJgT45oEgMEF443MWAIFC3ZwnBEFDDBbIinw+gJX2UAiVSo8gh9XWXUQTKp/GOgr+hJ01OIFCcTvPzi/YogWAtsmsG40Goyh4ttGXw31xv3RoVlmHGpoZZfgoN4pmU1o8B+AukkiwIFTJ63e+qky1iS84UwzIn4xZOSIFhKOlIMLDEABBAAhSfbMYinc/FopKRBfWZGFOKm/FJ4T9hqJQQAVCIxooCGfWdJCAJtFjFfgFDRVVddfARsWvKksc2AxeB8NrgXT8PpWgSGAfDCsXN5QVsGogB46hBM2JhMaEtthvZRQQh2No22WeSLVVPKnzI2OS0rbqgFhoEKjXCEs2non2zFAOJFEoCxrRIfzkSIMnJeOyFlEGwVUtzpyIGC6Mg0kptV2pCoi1oRA0SLH5VihCqEcYnB+YxHOA3D43YEFoOpHyotUMLAH4RDNaoDBkzPPH09KiIg+6hNI46hI22giy1IGsI8r5rFqjqIcMAMMF4810OEsfknd1oQWAxAEPqh9o5EAQ7H5ZbmmlNhGnF1Mle7X7vRh1KQwLc5SDXiiz+1bkPwIYWbFQxCM8T5eV/MPxw3ESgxwIEab6opQLsHCjFtrLboNEqYcNE1l87tqA8l3+CCSdRXXCDfVkEAFVXKUGGAY/PD4zuDpmYzoAyySB8NhThuKzktTM01tS/Q7cI/2NqgHGQmeJ0DIuawHQIHSWwTizHSJIb+8XoEpAw4uY8qFDDBnonmbRxz6JATWHcssfKH3UJn3u1gjp1iZc1V4nDh2drQ78M/avSKrVqVQcx2PfTvbWLg27E3lqCZAr65aK49oj7om1ZkWHLOs0zfnmW3ApPanWNVfVIKFMg32NrQLzcQhYFaXrAZTMMh99efrkEwnevVJzEoLIemMPXP7bOVio2eviTPpdgew6YOjAKYhMAU9t3CQ5JvsLShX209X1A5pPALFP8oB98PbQpxXGEQ+kbEi0+xpwwh5qycSbdPgicquucrD2Se04qMUInelfXBNgkJG1tMzjCoB9/wqg0BU6gzMNT64WI+Xa3OpnGtAYOhtdpoGKiMKgxrZzKr1FofZO1a7F2cZMkkkKXB0JxvcgJv3W9nAM23YiRMiKYlZYZ4YdqIwC+pvE8506DIK8MG3nrDQrEaVWvPsCbi7W4S6JptV55StCiCT7VJ0H0ZqmZRCON7enDTODwvGbR+WMMwRQQV0w8fm+E78NF7C6DaKHVqg2PgXFQgZB0UFWyTkOHVeLjSFVJxCUzCRxaDod1M72jZHQHMFqEW8qLnPmCYT4s2989Dv275cefvYjbDQ5wPK8RLGKLg2wuV5CQksWQadzYKpQwSQiVe50swR4XT/UGPaVhthZPQe5eh+w0uhN72ueEY/dKHCmnw/fPzc7+AWz3dkD77bxM0cj5Nl2KpYGGHSMGuLorsVNLyN0cJcFDcj1AHUJmhYkCNgtynAYYwRGuMTQ7Q+vvGE9JeLm0U8BYmeRqGtFCtLOPFFSOFcnVRXZTn0s2gVMxc6hArdkUj+muNZzHMDR/or0XAFD4uyoC0gYkqTGphLvCuahmVXSzfQhHEIdUVVtWjGC+ELJrMh8N+d63MR58Qb0Aj87iggJue9Z4qlU+7sqg7X9ky2rWESgOT8AkziN2GJtdRqJrPN2rDYV45lYyVKNwvVo3RhMtS5Z1s/FUqjaV4sQbBj2Us3ZbWTqHBiTRLevNfy7bzwec/MJYRg5q8FDF5V7WM7ByaIGAEJisTopr+RbyeQMM4W81r0WLrdFUM8IvMhEsyrfQ42gFC4RxqEKzzr6bawPUL+5C3IujTv8ow1zmZCgNyfvG034cIpMQiiZy/tcSMEbiHq0BQQXMTBKysaQJxYeEVhqpKDEujjFliKm5EvdB4LEgFCqkR5LHtOi0QaPtabnrrXM09VD1kScMYgiagBAAClCm8MKYrH1bmuDxxsgwhllZTht8WH81AIeiDP17F/PN0xZJgEsm3AwGsxVQpQb+fW2OT8EtLGKzWZNPimrZXrF3BT6tCTpHX0JxTFvMwXzifNkoum/LgihCcaphQOAcdxVQHJ2Fy+tKebRxKmyORpAL9NUbfBqjEwEJAvzUmqfdXpw0C+8gOwwQsV82ZQF7vPlLoWYO2fYaseRFZEZJJ1evkufXXOUXicPDKp2IVW/61NZu+OoQ1HhLSp6FsnV5bGExbTYsgOc7NH0tpAcpjZfZXSe2o8C6JgWw6L/yy3/O/XwfhKu6hHQI63df/u3JbW1UYSgR0K0kRAyhnTKUDSG0N8qoYWGd13V/bIXhXg2AvxVYhOF+76xpZBo7xldNg9VH1E1WULqybRcBKnAwH7Rf7uVx7Wvdrp8U9RF1DIGvxzfresDSgZBcDsjQAAgUE0y9CK0VpmOfabMTIpR+naBcIUT/egMB1v3m7EL7f1B/tvHq9+hQiD0lRBv96qs0svVEKRkvqsQ2EqHsIQZul3QwBshhVV6mmfq6fKjsIpoMZ9MngSbxTa1WimFAspdzIwP2+ewgYNQfvVxo+fwLwuNs0qv439P3cT5U76IMBJVB/VJ4zlU2WnwoI25zxS+d1/fFSF9B2gOA172wMor+7u7TU92eJS3evZNPx4wMeaeKf73Rg91cY8zNo9adsdQwB4/CXu0LwfaksJDD4QU82/XaX9rJtR+ouEKr3TOQmom926qrkCrOkovCw/wPKwcSVM/jlbgzcr4LmDu8CAQxj40G973fqauL7T58iB7pFlcO6gAj8fEcISecQArq2cOJ232C4Z2dqySEP0zRXP++qDa77sKl5u0L4Ve4BAhqFs6d+vbn7aJNIXOwULAXOgz10S/rN7XxPEIIre4dofxDcFgjpXiD8dlcIYj8Q0mYIcj8QOAHYIZV2PthHv5JmCO6eIFDs61wJAlWWvBKEaX+v+tDZuEv9/EBBuGqhFf63g8Npr79PfejOJEx7w+IFRzw7QXBIUancu+o11oU704fuTILs9YkClSBogW4HCADxPtU+8H+JhcV9+ocO7aKq40O3JYjv76+67uA5tG0r+riP8x/DIXsK7970octIhFYDZB+kF3r9+6vu5/S0KuE60TDGw3XIYN8QcGFn6K6GWLAZfuTstiodBU8+4IWiTpWhMWjsNlRCUeC1mjB4cnUIKlr6xo2HvGmErKLcm2XsFgIqRB8mbvjH4Or38TXu4cvExS04Shm6cpL7hDClAq7kpV75ryuHCXagIFnFSA56veHe3ENnyrbiYj4bR9e5soc0t6SF/2VM3kZFS/HNh+CqheJpjOu1fwgunCvv69UVhZ8eg3VZkZPs0kHUISTduQbuZ5/K+X7g7LKZUyXT36B7iMFJojLEtwECikIMDpKCBN7leXUIZBQgj+QtJagM3UUKe4WwwiiB1vGUcwh23OXuvUyIQi/uNFraKwQAMIzJQcp/7WAX1SoLmRQwMjHtnWVzs7rhhnGKB1IbpqT7VfBylxsulcqMEiMFPPpxrxOzkOwPAvdzSHbBnYhd7GJhFLwP3HiFbpdXT/uddHaPYbNykNhdGUuxi0kw2bSIXkraS4BOkmxj0kFLmyBMsHURKxUOcribSeBEknQiISe5Yicp3Uzs3j6qQwjf8BBZY9MOMo7JQaa7aUNRbP3nA+Uk5TFDburSF+/dfa+p3W1q782aiiqzN2vPm9moeHlKDjLPop0hKCf5UFlbnUU1icLgzVoThMpFo4N7g3vtbXCveWdOwg5yyAySXbWB70GI+vCy4iSl2JXCWROE+I0O8UWzIKANd2nC0EEmJMo73XtMb/f3pHaSOWWSsioKeD3s7AoQFv58Pi8ovMkR3msWhIz7SNUw6U6y6Otd7yei9SH6rc5LXGUbqxBGbygKPGh1zXlfcxgcbX+EFy0WYUrSKtlNTnbWBnXjNdKHKcWJsq8dUJMotFFoupcMjdm67m+uIKy/+Q4fjr627NUTqn+U/YNx/MjZ/f6c2j+8HnJ1DVJq3IxqPey7phDY56NNjbShtIGVKJwdbdGIwd2WndwJOcgca+0rPOz7zqc7323KrD48xG2o/dUqXrU4iEIhthlIlQFdAwptawgvjPhV/SMVE1ZYF8Yaq9fFTazV1iXxpbqGo69LCo2iMNoSwllhD4rdvGv0ocbgN0GrIJAo0A5K8A6B81MHd6DTdyIE0yip6GzS6UZRmG1HwQiCuVmZguBvqQxBuyBQMYGDhEnmfc231Nz9Lnx4c9LgZaIuvSOr2xuSKIwaFWIbQVB3UDuxIAwRwqOtIET4HN5RHULi9FZcFSYHCUHC3zq5V20pVMCFvZjSaeUgRldRiEe+/3RRuUBeQ/C3Mwh1BiPlGjiBpJ3EKAjd3NFd3c8/CB6qks3UpGmNorCFQuDWtUWdAUM420IZRCCqEOhVonq24mwfBOHnju7tr+/I6OEFKTpDJQhZY082eggY6KMzv8qAIJxtUgg2CEFQP/OILAJCkFxqj6fzf5N/7OJOtere1QE//3K6gjNoD1Gdj9EWZuERTvYj3+/XBAEh4L6+R5sYkDKM6ydOXFUP7/NlJv2/dPeQByMKQ/Y8fXLErhaF0RspBM71oOoh+xoCb/E828IojuuCkKnVoeFUXUHyg9Pd4z6MKDyUw1JCvXKbVXMdBd/RyVKNwVC/sxbC79oYiJXkqhJfOTmMHzsXHT7tQ4tCNDGXtUpe9kzqorDJLJhCQumiJ4tBfLQFgyZl4OKnRiATz3nd4XNfzANfcCObjCFmQoswwJxVNGvneuNIicNs3i/fmWa+8NfHjO0MxqQMLJ+SQwTX/cp53eljX4wo8MbOJSHnAgtBKHVpvJnCIxL6eema+f7ZBgdZBAhNDAR1aKWKzAjDe93tA4DMww2+5AuRVn3tjMg2lvs03oLCUYwDnlqXzM/PNsSLhoGoMRizZ5iqGIEQyD93LAjFU6ACBwR4ulpCRq3XJeu94qe5bqBAXuDMXBE+PdsQJxldaGCgPMOAeoTr56hm3rddPytQPU8IFEJ5yT455CVuHa3LJ1OYbYwX0CFylHS2KUpiBqJJF/D1AqZ/uUTZXClL80OnrsHa5EsKQRk13TJiuFoup71hckUKR0RhjpWEbRhwFWVUfYwYnwq6saTOMILh8I/ORaePvSnqznijiugh3gVD3fRgeQd372Qooq0UBhsoEITN5mAtA/c7EkvZ15fZyl//Zx8Ph1PPEwKtoMICptSutkX6mXm1zo22oDDvbaqmUBFlHQPOm5bcneFQTpLurWLJNkbi75ShreK+a3augGFqoDDaKAyPKHzur82grUJS/XFBioG75EB+oC6nfgwM9vIEVaMQwctVDBHqcjo1rhnNwlF9kkx9oRUD6kFvuIbBoF0V9CnQMSzxWmqOX1ZxnHp7UYayQmA6CY6yt0IpvLNso6A6PVuHAcPnfqtzHNi1tHUM7qAiLPu4BNvD7dwX+3uIrFYI70d1iz3c0LckClkDBdPt9esPCGHNYsPdQAeiaxjcWfZV8ggwHOfC8fb1lHHzWOnAcfTdgYbYhY0URu3rMG1po/4DtcYyqiKoMHBjdcNDSh69PT5YmhMpOoO+1x7aoTttFLDroyqGQQOEQduC0xcGQTsDPv/SSh69vXgGSyGEo68JIkcZ65lQWUT1cWdW95tX5s4qrsH+kF5pqyJgBsJmQDEz3qaFGET7fNi8xw8QxZN8KTmfnG6gYA+hYdmaygtnTcuwd4PALtRU9axgcHSHOqLuuhU53v4MQsUsCOczdBAghSuicGRRaMBQPPCsaXm6gcCLIGjdpaNtTaIYLJkBbk3pv+8829uDtatr9aB0H5Mlmg4qFOpmvIIh+GIThLsvomDNTqVGBvGAPMNnT55x3rRXCEW0EPyF6q7wz6KQtFEo360q+OKLu3cNBGt/yt3fvPjdWgLNDKbKM/z47GtvL0/VbjKOdGOK4MmP7CF6S6Zwx02YwmgTBQIRBFH04oXzB/9/f4PtxYsXUbQBAB2brY5bYYBJw0evHc+J9msQjHEkB4Sa94AdpaZwKVLe2LYNBcMi1Dd62KJpn5u5SYL2WDMg55h5+zeKtnHUFP7l0u3SeuQplviUH7VavTWFN2paxkDiwjBjnwQMYrxDk6sYRG+DgbkkhmWBxHJAFESYjsJU7VzYBwUtYGgO8MbgKAbLqdopkL5VBk0UMKMUIrzMwrRtm2NnCCA6SEJ3GaZhmCyXy5jv76bkYO+OYR0F0AVxHobifHmJE5Xsg4HZi5KAHNzJmILaLf72GdgUhPdA7Vs5hwk6T9AwZHsQhpG1HQfOECagfZlgwZtcCwOLQsAUoD8SuoVdwwly9yIMHCdnoApkgeFLiqe6LgaGAkUND8Fa4zNGYF4AhrtMl2IfGOgxkEA5XC4BdLoEDwGOMpnIr66JgVOcNsIKNFhnnJ2MvOQyY5XoVicIATnHkL4mcErpykkSXBsDiwJ8ww3gMoW5D2UC04M6kbqdYuCLxBIQAEFKABTw/oxSZtfJQFPgbz8/IJ9AQ0/YNijDnXSHAKHCocMUESf4PzCInL+TNF4PA0fZRfXtt1ImbBNRJbSdJAxZF7YAVYE8Q5KxW6AbtvHgo7cXIzVRcJgCduMD6U6QAjhLEokMSJhL37KdEaC5IYUIkxAxywk+2Diy+nBtFIwkgkq8fgA6mgIDiT4CjCPkU4UkX4lDZv4adUykbBYgTmIxYDEU18tA3e0xUJoBwiBBGFK0j8AhC8lnZO4V5cEQICtD/0AeJlkoCUIqtEm8ZgbKPGqVCP78AKVUEIeEtCFDy5BYHLYDkWXWNcMIlVwjhopobqA9CFgVIroc3HGunYITcE+UMMj0PMVnBaGrUJGkKF0buwFEGQCrVpKhEmToGEgMHisxIHNw/QyUYWCZBKFgDBg8hxNwj+eSLWSSlS8HT5KszgKf8Vi5apxCDpSCFBwDypgRA8cxp70RjYXAUTpBGGRGOoG6INBCZvil8bJ4mUq6ZLb5alc4jAgnmKJPMD4iBl8ZMbgRqmCpBM8KdQ1Ng5TYeyqxgFtPUSUgmBRZnUHzXakTHSfTU6klmto0JGvwuCQGN4eBo0bPE4MY/pswgGEANwGqDHIhhCSRIFWoMChTAKlAYGGoRYH+hQWCmygGZWGoYMjIROL46T+p4h4sE6IKWE+9wJdgBjHixpBYhBQVohKgdzAIAroTdXDjxKAQhjoGMpFoHbICgkBNQYORZvwQZPhHMYSEX1669B5hk2xcBBMwCPB+7d7NEwMjDDxF+qfogTKROGyqBNHckpWA+A/fOse3cnjNbkBkI1IdVCAdGLJTLCGInJsoBkYYKhiCx8QhPEfvBqOaMAQaZJhpPjkHAPQWiU2KhkSo0UsKD/Gh8YSAjcJNRaAxRMJgiJDDAzWf0sg3mUocI8dUBGHCapOSJkiq0qUKAmpNYCNwbjICg8FIAz1DKfjKcKC8hyAQEcGSABEmBAv8ir6gCpzXCODTggnBTWdgKUXEZuJvHi6xBY+NIxCk8xT84fdzgpCTK0XRCM9BAtIagVuFwMJQ9Bn1AjiwgYARwizjg0hh+AgBdSKnr6gAavzwnQCoIaNw3SYEBkMkrI7jUxKEsZTMAic8zPEZxTm+pme+nPJbNgDWKc+5XQg0Bu49ibNSalp8BhKPab5P7WbIwPt6/J5TYnnLEKjl6xIHBcKLInslPhAsEhmv1Ed6/D+/NmoU3UYhqIgDP2VP2zcDCGBg490aEQ5ej/PiZ0XLInBrERTiwFNqq3lj++kn/UeRAvAOEChmvQDBGu+1fjRSdkPxwo++AwzKIDyzL0mrgW7aTlhm8V0iUAGhJjyydyopy2B/wnvHhl8GsX503js9/tpAm5tzaId2aId2aId2aId2aId2aId2aId2aId2aLek/R+kA3xl8o+lgAAAAABJRU5ErkJggg==';
 
 let TOKEN = sessionStorage.getItem('ebidang_token') || null;
 let SESI = null;
@@ -236,7 +270,9 @@ const LALUAN_IKON = {
   jam: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v5l3 2"/>',
   senaraiSemak: '<path d="M9 12.5 11.2 15 16 9"/><circle cx="12" cy="12" r="9"/>',
   bangunan: '<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M9 8h1.5M13.5 8H15M9 12h1.5M13.5 12H15M9 16h1.5M13.5 16H15"/>',
-  togol: '<path d="M12 4v7"/><path d="M7.5 6.5a7 7 0 1 0 9 0"/>'
+  togol: '<path d="M12 4v7"/><path d="M7.5 6.5a7 7 0 1 0 9 0"/>',
+  pesananMakmal: '<path d="M9 3h6a1 1 0 0 1 1 1v1h1.5A1.5 1.5 0 0 1 19 6.5v13A1.5 1.5 0 0 1 17.5 21h-11A1.5 1.5 0 0 1 5 19.5v-13A1.5 1.5 0 0 1 6.5 5H8V4a1 1 0 0 1 1-1Z"/><path d="M9 3v3h6V3"/><path d="M8.5 12h7M8.5 15.5h4.5"/>',
+  cetak: '<path d="M7 8.5V4.5A1 1 0 0 1 8 3.5h8a1 1 0 0 1 1 1v4"/><rect x="4.5" y="8.5" width="15" height="8" rx="1.5"/><rect x="7.5" y="13" width="9" height="7" rx="1"/>'
 };
 function ikon(nama, kelasTambahan) {
   return `<svg class="ikon ${kelasTambahan || ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${LALUAN_IKON[nama] || ''}</svg>`;
@@ -340,11 +376,17 @@ function mulakanApp() {
   document.getElementById('avatarPengguna').textContent = inisialDaripadaNama(SESI.nama);
 
   const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
+  const pembantuMakmal = SESI.peranan === 'PEMBANTU_MAKMAL';
+  const bolehPesananMakmal = PERANAN_LIHAT_SEMUA_PESANAN.indexOf(SESI.peranan) !== -1 ||
+    (['GURU', 'KETUA_PANITIA'].indexOf(SESI.peranan) !== -1 && PANITIA_MAKMAL.indexOf(SESI.panitia) !== -1);
   document.getElementById('navPanitia').classList.toggle('hidden', !aksesPenuh);
   document.getElementById('navPengguna').classList.toggle('hidden', !aksesPenuh);
   document.getElementById('navAudit').classList.toggle('hidden', !aksesPenuh);
+  document.getElementById('navPesananMakmal').classList.toggle('hidden', !bolehPesananMakmal);
+  ['navDokumen', 'navMesyuarat', 'navTindakan', 'navProgram'].forEach(id => document.getElementById(id).classList.toggle('hidden', pembantuMakmal));
+
   PANITIA_AKTIF = aksesPenuh ? SENARAI_PANITIA[0] : SESI.panitia;
-  document.getElementById('labelPanitiaAktif').textContent = PANITIA_AKTIF;
+  document.getElementById('labelPanitiaAktif').textContent = pembantuMakmal ? 'Semua Panitia Makmal' : PANITIA_AKTIF;
 
   document.querySelectorAll('.item-nav').forEach(a => a.addEventListener('click', ev => {
     ev.preventDefault();
@@ -367,8 +409,8 @@ function navigasi(view) {
   document.querySelectorAll('.item-nav').forEach(a => a.classList.toggle('aktif', a.dataset.view === view));
   const peta = {
     dashboard: paparDashboard, dokumen: paparDokumen, mesyuarat: paparMesyuarat,
-    tindakan: paparTindakan, program: paparProgram, panitia: paparPanitia,
-    pengguna: paparPengguna, audit: paparAudit
+    tindakan: paparTindakan, program: paparProgram, pesananMakmal: paparPesananMakmal,
+    panitia: paparPanitia, pengguna: paparPengguna, audit: paparAudit
   };
   (peta[view] || paparDashboard)();
 }
@@ -429,19 +471,41 @@ function pasangPemilihPanitia(muatSemula) {
 /* ============================ DASHBOARD ============================ */
 function paparDashboard() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = `<div class="kad"><h3>${ikon('dashboard', 'ikon-h3')}Ringkasan Kelengkapan Fail Panitia</h3><p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Klik kad panitia untuk terus ke Fail &amp; Dokumen.</p><div id="gridRingkasan" class="grid-kad"></div></div>` +
+  const tunjukRingkasanPanitia = SESI.peranan !== 'PEMBANTU_MAKMAL';
+  const tunjukPesananMakmal = bolehUrusSemuaPesananJS();
+
+  k.innerHTML =
+    (tunjukRingkasanPanitia ? `<div class="kad"><h3>${ikon('dashboard', 'ikon-h3')}Ringkasan Kelengkapan Fail Panitia</h3><p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Klik kad panitia untuk terus ke Fail &amp; Dokumen.</p><div id="gridRingkasan" class="grid-kad"></div></div>` : '') +
+    (tunjukPesananMakmal ? `<div class="kad"><h3>${ikon('pesananMakmal', 'ikon-h3')}Pesanan Radas &amp; Bahan Makmal</h3><p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Klik kad status untuk terus ke Pesanan Makmal.</p><div id="gridPesananMakmal" class="grid-kad"></div><div id="jadualPesananTerkini" style="margin-top:14px"></div></div>` : '') +
     `<div class="kad"><h3>${ikon('senaraiSemak', 'ikon-h3')}Tindakan Susulan Saya (Belum Selesai)</h3><div id="jadualTindakanSaya"></div></div>`;
+
   panggilApi('apiDashboard').then(hasil => {
-    document.getElementById('gridRingkasan').innerHTML = hasil.ringkasanPanitia.map(r => `
-      <div class="kad kad-statistik" style="margin-bottom:0" onclick="bukaPanitiaDariDashboard('${r.panitia}')" tabindex="0" role="button" aria-label="Buka Fail &amp; Dokumen ${r.panitia}">
-        <div class="label">${r.panitia}</div>
-        <div class="nilai">${r.jumlahDokumen} <span style="font-size:12px;color:var(--kelabu)">dokumen</span></div>
-        <div style="font-size:12px;color:var(--kelabu)">Checklist wajib lengkap: ${r.peratusChecklist}%</div>
-        <div class="bar-progres"><div style="width:${r.peratusChecklist}%"></div></div>
-        <div style="font-size:12px;margin-top:8px;color:var(--kelabu)">${ikon('kalendar', 'ikon-sahaja')} ${r.mesyuaratAkanDatang} akan datang &nbsp; ${ikon('senaraiSemak', 'ikon-sahaja')} ${r.tindakanTertunggak} tertunggak</div>
-      </div>`).join('') + (hasil.jumlahPenggunaAktif !== null ? `
-      <div class="kad kad-statistik tanpa-aksi" style="margin-bottom:0"><div class="label">Pengguna Aktif</div><div class="nilai">${hasil.jumlahPenggunaAktif}</div></div>` : '');
-    document.querySelectorAll('#gridRingkasan .kad-statistik:not(.tanpa-aksi)').forEach(el => {
+    if (tunjukRingkasanPanitia) {
+      document.getElementById('gridRingkasan').innerHTML = hasil.ringkasanPanitia.map(r => `
+        <div class="kad kad-statistik" style="margin-bottom:0" onclick="bukaPanitiaDariDashboard('${r.panitia}')" tabindex="0" role="button" aria-label="Buka Fail &amp; Dokumen ${r.panitia}">
+          <div class="label">${r.panitia}</div>
+          <div class="nilai">${r.jumlahDokumen} <span style="font-size:12px;color:var(--kelabu)">dokumen</span></div>
+          <div style="font-size:12px;color:var(--kelabu)">Checklist wajib lengkap: ${r.peratusChecklist}%</div>
+          <div class="bar-progres"><div style="width:${r.peratusChecklist}%"></div></div>
+          <div style="font-size:12px;margin-top:8px;color:var(--kelabu)">${ikon('kalendar', 'ikon-sahaja')} ${r.mesyuaratAkanDatang} akan datang &nbsp; ${ikon('senaraiSemak', 'ikon-sahaja')} ${r.tindakanTertunggak} tertunggak${r.pesananMenunggu !== null ? ` &nbsp; ${ikon('pesananMakmal', 'ikon-sahaja')} ${r.pesananMenunggu} pesanan` : ''}</div>
+        </div>`).join('') + (hasil.jumlahPenggunaAktif !== null ? `
+        <div class="kad kad-statistik tanpa-aksi" style="margin-bottom:0"><div class="label">Pengguna Aktif</div><div class="nilai">${hasil.jumlahPenggunaAktif}</div></div>` : '');
+    }
+
+    if (hasil.ringkasanPesananMakmal) {
+      const r = hasil.ringkasanPesananMakmal;
+      document.getElementById('gridPesananMakmal').innerHTML = `
+        <div class="kad kad-statistik" style="margin-bottom:0" onclick="navigasi('pesananMakmal')" tabindex="0" role="button" aria-label="Buka Pesanan Makmal"><div class="label">Menunggu</div><div class="nilai">${r.menunggu}</div></div>
+        <div class="kad kad-statistik" style="margin-bottom:0" onclick="navigasi('pesananMakmal')" tabindex="0" role="button" aria-label="Buka Pesanan Makmal"><div class="label">Dalam Proses</div><div class="nilai">${r.dalamProses}</div></div>
+        <div class="kad kad-statistik" style="margin-bottom:0" onclick="navigasi('pesananMakmal')" tabindex="0" role="button" aria-label="Buka Pesanan Makmal"><div class="label">Siap</div><div class="nilai">${r.siap}</div></div>`;
+      document.getElementById('jadualPesananTerkini').innerHTML = r.terkini.length ? `<table><thead><tr>
+        <th>Panitia</th><th>Guru</th><th>Kelas</th><th>Tajuk Eksperimen</th><th>Tarikh Diperlukan</th><th>Status</th></tr></thead><tbody>` +
+        r.terkini.map(ps => `<tr><td>${ps.panitia}</td><td>${ps.namaGuru}</td><td>${ps.kelas}</td><td>${ps.tajukEksperimen}</td><td>${ps.tarikhDiperlukan}</td>
+          <td><span class="lencana ${LENCANA_STATUS_PESANAN[ps.status]}">${LABEL_STATUS_PESANAN[ps.status]}</span></td></tr>`).join('') +
+        `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada pesanan menunggu tindakan.</p>';
+    }
+
+    document.querySelectorAll('#gridRingkasan .kad-statistik:not(.tanpa-aksi), #gridPesananMakmal .kad-statistik').forEach(el => {
       el.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); el.click(); } });
     });
 
@@ -779,6 +843,164 @@ function padamEvidens(idEvidens, idProgram, namaProgram) {
   panggilApi('apiPadamEvidens', { idEvidens }).then(() => { papartToast('Evidens dipadam.'); bukaEvidens(idProgram, namaProgram); });
 }
 
+/* ============================ PESANAN RADAS & BAHAN MAKMAL ============================ */
+function bolehBuatPesananMakmalJS() {
+  return ['GURU', 'KETUA_PANITIA'].indexOf(SESI.peranan) !== -1 && PANITIA_MAKMAL.indexOf(SESI.panitia) !== -1;
+}
+function bolehUrusSemuaPesananJS() { return PERANAN_LIHAT_SEMUA_PESANAN.indexOf(SESI.peranan) !== -1; }
+
+function paparPesananMakmal() {
+  const k = document.getElementById('kandungan');
+  const penapisPanitia = bolehUrusSemuaPesananJS()
+    ? `<select id="penapisPanitiaPesanan" style="width:auto"><option value="">Semua Panitia Makmal</option>${PANITIA_MAKMAL.map(pn => `<option value="${pn}">${pn}</option>`).join('')}</select>` : '';
+  const penapisStatus = `<select id="penapisStatusPesanan" style="width:auto"><option value="">Semua Status</option>${Object.keys(LABEL_STATUS_PESANAN).map(s => `<option value="${s}">${LABEL_STATUS_PESANAN[s]}</option>`).join('')}</select>`;
+  k.innerHTML = `<div class="baris-alat">${penapisPanitia}${penapisStatus}${bolehBuatPesananMakmalJS() ? `<button class="btn" id="btnPesananBaharu">${ikon('tambah')}Pesanan Baharu</button>` : ''}</div>
+    <div class="kad"><h3>${ikon('pesananMakmal', 'ikon-h3')}Senarai Pesanan Radas &amp; Bahan Makmal</h3><div id="jadualPesananMakmal"></div></div>`;
+
+  const btnBaharu = document.getElementById('btnPesananBaharu');
+  if (btnBaharu) btnBaharu.addEventListener('click', bukaBorangPesananMakmal);
+  const pp = document.getElementById('penapisPanitiaPesanan');
+  if (pp) pp.addEventListener('change', muatSemulaPesananMakmal);
+  document.getElementById('penapisStatusPesanan').addEventListener('change', muatSemulaPesananMakmal);
+  muatSemulaPesananMakmal();
+}
+
+function muatSemulaPesananMakmal() {
+  const param = { status: (document.getElementById('penapisStatusPesanan') || {}).value || '' };
+  const pp = document.getElementById('penapisPanitiaPesanan');
+  if (pp) param.panitia = pp.value;
+
+  panggilApi('apiSenaraiPesanan', param).then(hasil => {
+    const urusSemua = bolehUrusSemuaPesananJS();
+    document.getElementById('jadualPesananMakmal').innerHTML = hasil.senarai.length ? `<table><thead><tr>
+      <th>Tarikh Pesanan</th>${urusSemua ? '<th>Panitia</th>' : ''}<th>Guru</th><th>Kelas</th><th>Tajuk Eksperimen</th><th>Tarikh Diperlukan</th><th>Status</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(ps => `<tr>
+        <td>${ps.TarikhCipta}</td>${urusSemua ? `<td>${ps.Panitia}</td>` : ''}<td>${ps.NamaGuru}</td><td>${ps.Kelas}</td><td>${ps.TajukEksperimen}</td><td>${ps.TarikhDiperlukan}</td>
+        <td><span class="lencana ${LENCANA_STATUS_PESANAN[ps.Status]}">${LABEL_STATUS_PESANAN[ps.Status]}</span></td>
+        <td>
+          <button class="btn kecil luar" onclick="cetakPesanan('${ps.IDPesanan}')">${ikon('cetak')}Cetak / PDF</button>
+          ${urusSemua ? `<button class="btn kecil luar" onclick="bukaKemaskiniStatusPesanan('${ps.IDPesanan}', '${ps.Status}')">${ikon('sunting')}Kemaskini Status</button>` : ''}
+          ${ps.Status === 'MENUNGGU' ? `<button class="btn kecil merah" onclick="batalPesananMakmal('${ps.IDPesanan}')">${ikon('padam')}Batal</button>` : ''}
+          ${SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG' ? `<button class="btn kecil merah" onclick="padamPesananMakmal('${ps.IDPesanan}')">${ikon('padam')}Padam</button>` : ''}
+        </td></tr>`).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada pesanan direkod.</p>';
+  });
+}
+
+function bukaBorangPesananMakmal() {
+  bukaModal(ikon('pesananMakmal', 'ikon-h3') + 'Pesanan Baharu — ' + SESI.panitia, `
+    <form id="borangPesananMakmal">
+      <div class="grid-borang">
+        <div class="medan"><label>Kelas</label><input type="text" name="kelas" placeholder="cth. 5 Bestari" required></div>
+        <div class="medan"><label>Tarikh Diperlukan</label><input type="date" name="tarikhDiperlukan" required></div>
+        <div class="medan lebar-penuh"><label>Tajuk Eksperimen/Aktiviti</label><input type="text" name="tajukEksperimen" required></div>
+        <div class="medan lebar-penuh"><label>Catatan Am (pilihan)</label><input type="text" name="catatanAm"></div>
+      </div>
+      <h4 style="margin:16px 0 8px;font-size:13px;color:var(--kelabu);text-transform:uppercase">Senarai Bahan &amp; Radas</h4>
+      <div id="barisItemPesanan"></div>
+      <button type="button" class="btn kecil luar" id="btnTambahBarisItem" style="margin-top:2px">${ikon('tambah')}Tambah Baris</button>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">${ikon('pesananMakmal')}Hantar Pesanan</button></div>
+    </form>`);
+  tambahBarisItemPesanan();
+  document.getElementById('btnTambahBarisItem').addEventListener('click', () => tambahBarisItemPesanan());
+  document.getElementById('borangPesananMakmal').addEventListener('submit', hantarBorangPesananMakmal);
+}
+
+function tambahBarisItemPesanan() {
+  const kontainer = document.getElementById('barisItemPesanan');
+  const baris = document.createElement('div');
+  baris.className = 'baris-item-pesanan';
+  baris.innerHTML = `
+    <input type="text" placeholder="Nama Bahan/Radas" data-medan="namaBahanRadas" required>
+    <input type="number" min="1" step="1" placeholder="Kuantiti" data-medan="kuantiti" required>
+    <input type="text" placeholder="Unit (cth. botol, g)" data-medan="unit">
+    <input type="text" placeholder="Catatan" data-medan="catatan">
+    <button type="button" class="btn kecil merah" onclick="this.parentElement.remove()" aria-label="Buang baris">${ikon('padam', 'ikon-sahaja')}</button>`;
+  kontainer.appendChild(baris);
+}
+
+function hantarBorangPesananMakmal(ev) {
+  ev.preventDefault();
+  const f = new FormData(ev.target);
+  const item = Array.from(document.querySelectorAll('.baris-item-pesanan')).map(baris => {
+    const obj = {};
+    baris.querySelectorAll('[data-medan]').forEach(el => { obj[el.dataset.medan] = el.value; });
+    return obj;
+  });
+  panggilApi('apiSimpanPesanan', {
+    kelas: f.get('kelas'), tajukEksperimen: f.get('tajukEksperimen'),
+    tarikhDiperlukan: f.get('tarikhDiperlukan'), catatanAm: f.get('catatanAm'), item
+  }).then(() => { papartToast('Pesanan berjaya dihantar.'); tutupModal(); muatSemulaPesananMakmal(); });
+}
+
+function batalPesananMakmal(idPesanan) {
+  if (!confirm('Batalkan pesanan ini?')) return;
+  panggilApi('apiBatalPesanan', { idPesanan }).then(() => { papartToast('Pesanan dibatalkan.'); muatSemulaPesananMakmal(); });
+}
+
+function padamPesananMakmal(idPesanan) {
+  if (!confirm('Padam pesanan ini secara kekal?')) return;
+  panggilApi('apiPadamPesanan', { idPesanan }).then(() => { papartToast('Pesanan dipadam.'); muatSemulaPesananMakmal(); });
+}
+
+function bukaKemaskiniStatusPesanan(idPesanan, statusSemasa) {
+  bukaModal(ikon('sunting', 'ikon-h3') + 'Kemaskini Status Pesanan', `
+    <form id="borangStatusPesanan">
+      <div class="medan"><label>Status</label><select name="status">${Object.keys(LABEL_STATUS_PESANAN).map(s => `<option value="${s}" ${s === statusSemasa ? 'selected' : ''}>${LABEL_STATUS_PESANAN[s]}</option>`).join('')}</select></div>
+      <div class="medan"><label>Catatan Pembantu Makmal</label><textarea name="catatanPembantu" rows="3"></textarea></div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangStatusPesanan').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiKemaskiniStatusPesanan', { idPesanan, status: f.get('status'), catatanPembantu: f.get('catatanPembantu') })
+      .then(() => { papartToast('Status pesanan dikemaskini.'); tutupModal(); muatSemulaPesananMakmal(); });
+  });
+}
+
+/* Jana borang formal (dengan logo sekolah) & buka dialog cetak pelayar —
+   pengguna boleh pilih "Save as PDF" pada dialog cetak untuk muat turun. */
+function cetakPesanan(idPesanan) {
+  panggilApi('apiButiranPesanan', { idPesanan }).then(hasil => {
+    const ps = hasil.pesanan;
+    const item = hasil.item;
+    const barisKosong = Array.from({ length: Math.max(0, 3 - item.length) })
+      .map(() => '<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>').join('');
+
+    document.getElementById('kawasanCetak').innerHTML = `
+      <div class="dokumen-cetak">
+        <div class="kepala-cetak">
+          <img src="${LOGO_SEKOLAH_BASE64}" alt="Logo Sekolah">
+          <div>
+            <h1>SEKOLAH MENENGAH KEBANGSAAN ASAJAYA</h1>
+            <h2>Borang Pesanan Radas &amp; Bahan Makmal</h2>
+            <p>Bidang Sains &amp; Matematik — Panitia ${ps.Panitia}</p>
+          </div>
+        </div>
+        <table class="jadual-meta-cetak">
+          <tr><td><b>No. Rujukan</b></td><td>${ps.IDPesanan}</td><td><b>Tarikh Pesanan</b></td><td>${ps.TarikhCipta}</td></tr>
+          <tr><td><b>Nama Guru</b></td><td>${ps.NamaGuru}</td><td><b>Kelas</b></td><td>${ps.Kelas}</td></tr>
+          <tr><td><b>Tajuk Eksperimen/Aktiviti</b></td><td colspan="3">${ps.TajukEksperimen}</td></tr>
+          <tr><td><b>Tarikh Diperlukan</b></td><td>${ps.TarikhDiperlukan}</td><td><b>Status</b></td><td>${LABEL_STATUS_PESANAN[ps.Status] || ps.Status}</td></tr>
+          ${ps.CatatanAm ? `<tr><td><b>Catatan Am</b></td><td colspan="3">${ps.CatatanAm}</td></tr>` : ''}
+        </table>
+        <table class="jadual-item-cetak">
+          <thead><tr><th>Bil.</th><th>Nama Bahan / Radas</th><th>Kuantiti</th><th>Unit</th><th>Catatan</th></tr></thead>
+          <tbody>
+            ${item.map((it, i) => `<tr><td>${i + 1}</td><td>${it.NamaBahanRadas}</td><td>${it.Kuantiti}</td><td>${it.Unit || '-'}</td><td>${it.Catatan || '-'}</td></tr>`).join('')}
+            ${barisKosong}
+          </tbody>
+        </table>
+        ${ps.CatatanPembantu ? `<p class="catatan-pembantu-cetak"><b>Catatan Pembantu Makmal:</b> ${ps.CatatanPembantu}</p>` : ''}
+        <div class="blok-tandatangan">
+          <div><p class="garis-tandatangan">....................................</p><p>Disediakan oleh (Guru)<br>${ps.NamaGuru}</p></div>
+          <div><p class="garis-tandatangan">....................................</p><p>Disahkan oleh (Ketua Panitia)</p></div>
+          <div><p class="garis-tandatangan">....................................</p><p>Diproses oleh (Pembantu Makmal)<br>${ps.DiprosesOleh || ''}</p></div>
+        </div>
+      </div>`;
+    setTimeout(() => window.print(), 150);
+  });
+}
+
 /* ============================ PANITIA (ADMIN/KETUA_BIDANG) ============================ */
 function paparPanitia() {
   const k = document.getElementById('kandungan');
@@ -835,11 +1057,17 @@ function bukaBorangPengguna(u) {
         <div class="medan"><label>Nama Penuh</label><input type="text" name="nama" value="${u ? u.nama : ''}" required></div>
         <div class="medan"><label>Peranan</label><select name="peranan" id="pilihPerananPengguna">
           ${Object.keys(LABEL_PERANAN).map(r => `<option value="${r}" ${u && u.peranan === r ? 'selected' : ''}>${LABEL_PERANAN[r]}</option>`).join('')}</select></div>
-        <div class="medan"><label>Panitia</label><select name="panitia">${SENARAI_PANITIA.map(p => `<option value="${p}" ${u && u.panitia === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
+        <div class="medan" id="medanPanitiaPengguna"><label>Panitia</label><select name="panitia">${SENARAI_PANITIA.map(p => `<option value="${p}" ${u && u.panitia === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
       </div>
       ${!u ? '<p style="font-size:12px;color:var(--kelabu)">Kata laluan lalai = 6 digit terakhir No. KP; sistem akan paksa tukar kata laluan semasa log masuk pertama.</p>' : ''}
       <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
     </form>`);
+  const togolMedanPanitia = () => {
+    const perluPanitia = ['KETUA_PANITIA', 'GURU'].indexOf(document.getElementById('pilihPerananPengguna').value) !== -1;
+    document.getElementById('medanPanitiaPengguna').classList.toggle('hidden', !perluPanitia);
+  };
+  togolMedanPanitia();
+  document.getElementById('pilihPerananPengguna').addEventListener('change', togolMedanPanitia);
   document.getElementById('borangPengguna').addEventListener('submit', ev => {
     ev.preventDefault();
     const f = new FormData(ev.target);
