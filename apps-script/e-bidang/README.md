@@ -46,11 +46,29 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   ditambah/dibuang secara dinamik). Peranan `PEMBANTU_MAKMAL` (+
   Admin/Ketua Bidang) melihat & memproses pesanan merentasi semua panitia
   makmal, menukar status (Menunggu → Dalam Proses → Siap, atau Ditolak) dan
-  mencatat nota pemprosesan. Pemohon boleh membatalkan pesanan sendiri
-  selagi masih berstatus Menunggu. **Borang formal** (dengan logo sekolah,
-  no. rujukan, jadual bahan/radas, dan blok tandatangan Guru/Ketua
-  Panitia/Pembantu Makmal) dijana terus di pelayar dan dicetak/dimuat turun
-  sebagai PDF melalui dialog cetak pelayar (butang "Cetak / PDF").
+  mencatat nota pemprosesan. Pemohon (atau Ketua Panitia/Admin/Ketua Bidang
+  bagi panitia berkenaan) boleh **menyunting atau membatalkan** pesanan
+  sendiri selagi masih berstatus Menunggu — selepas pemprosesan bermula,
+  pembetulan perlu dibuat terus bersama Pembantu Makmal. **Borang formal**
+  (dengan logo sekolah, no. rujukan, jadual bahan/radas, dan blok
+  tandatangan Guru/Ketua Panitia/Pembantu Makmal) dijana terus di pelayar
+  dan dicetak/dimuat turun sebagai PDF melalui dialog cetak pelayar (butang
+  "Cetak / PDF").
+- **Kalendar Bersepadu (Google Calendar)** — setiap Mesyuarat dan Program/PLC
+  disegerakkan secara automatik sebagai *event* sehari (atau julat hari bagi
+  Program dengan Tarikh Tamat) ke satu Kalendar Google khusus bernama
+  **"E-Bidang Sains & Matematik"**, dicipta automatik (di bawah akaun Google
+  yang men-deploy sistem) apabila mesyuarat/program pertama disimpan.
+  Kemaskini/padam rekod turut mengemaskini/memadam *event* berkaitan.
+  Kongsikan kalendar ini dengan staf (rujuk **Cara Pasang** langkah 14) —
+  kegagalan penyegerakan Kalendar (cth. kuota) tidak menghalang mesyuarat/
+  program itu sendiri daripada disimpan.
+- **Notifikasi E-mel Harian** — pencetus terjadual (diaktifkan sekali melalui
+  menu Sheet) menghantar e-mel setiap hari lebih kurang jam 7 pagi kepada:
+  (a) guru/ketua panitia yang mempunyai **Tindakan Susulan** tertunggak/tamat
+  tempoh, dan (b) Pembantu Makmal/Admin/Ketua Bidang jika ada **Pesanan
+  Makmal** berstatus Menunggu. Hanya pengguna dengan lajur **Emel** diisi
+  (menu Pengguna) akan menerima notifikasi — pengguna lain dilangkau senyap.
 
 ## Struktur
 
@@ -64,8 +82,13 @@ sebagai database dan Google Apps Script sebagai backend + frontend
 - `DocumentService.gs` — kategori dokumen, dokumen, checklist kelengkapan fail.
 - `MeetingService.gs` — mesyuarat, kehadiran, tindakan susulan.
 - `ProgramService.gs` — program/PLC & evidens.
-- `PesananMakmalService.gs` — Pesanan Radas & Bahan Makmal (cipta/batal oleh
-  Guru/Ketua Panitia; kemaskini status/padam oleh Pembantu Makmal/Admin/Ketua Bidang).
+- `PesananMakmalService.gs` — Pesanan Radas & Bahan Makmal (cipta/sunting/batal
+  oleh Guru/Ketua Panitia; kemaskini status/padam oleh Pembantu Makmal/Admin/Ketua Bidang).
+- `CalendarService.gs` — cipta/kemaskini/padam *event* Google Calendar bagi
+  Mesyuarat & Program (dipanggil dari MeetingService.gs/ProgramService.gs).
+- `NotifikasiService.gs` — e-mel harian (tindakan tertunggak + pesanan makmal
+  menunggu), dicetuskan oleh pencetus terjadual — rujuk `sediakanNotifikasiHarian()`
+  dalam `Code.gs`.
 - `DashboardService.gs` — ringkasan statistik (termasuk ringkasan Pesanan Makmal).
 - `AuditService.gs` — catat & semak log audit.
 - `appsscript.json`, `Index.html` — manifest & frontend SPA tunggal.
@@ -84,8 +107,9 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
    (`Code.gs`, `Config.gs`, `Utils.gs`, `AuthService.gs`, `UserService.gs`,
    `PanitiaService.gs`, `DriveService.gs`, `DocumentService.gs`,
    `MeetingService.gs`, `ProgramService.gs`, `PesananMakmalService.gs`,
-   `DashboardService.gs`, `AuditService.gs`), cipta fail Script baharu dengan
-   nama yang sama (tanpa `.gs`) dan salin-tampal kandungannya.
+   `CalendarService.gs`, `NotifikasiService.gs`, `DashboardService.gs`,
+   `AuditService.gs`), cipta fail Script baharu dengan nama yang sama (tanpa
+   `.gs`) dan salin-tampal kandungannya.
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json
@@ -93,17 +117,19 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
 6. Kembali ke Sheet, refresh halaman. Menu baharu **"Sistem E-Bidang"** akan
    muncul di bar menu.
 7. Klik **Sistem E-Bidang → 1. Sediakan Sistem (Jalankan Sekali)**. Benarkan
-   kebenaran yang diminta (Sheets + Drive). Ini mencipta semua 12 Sheet:
+   kebenaran yang diminta (Sheets, Drive, Calendar, Gmail/hantar e-mel,
+   urus pencetus). Ini mencipta semua 12 Sheet:
    `USERS`, `PANITIA`, `KATEGORI_DOKUMEN`, `DOKUMEN`, `MESYUARAT`,
    `KEHADIRAN_MESYUARAT`, `TINDAKAN_SUSULAN`, `PROGRAM`, `EVIDENS`, `AUDIT_LOG`,
    `PESANAN_MAKMAL`, `ITEM_PESANAN_MAKMAL`.
 8. **Log masuk kali pertama** guna No. KP `000000000000` dan kata laluan
    `000000` (akaun "ADMIN CONTOH"). Sistem akan paksa tukar kata laluan.
 9. Tambah pengguna sebenar di menu **Pengguna** (No. KP, Nama, Peranan,
-   Panitia). Kata laluan lalai = 6 digit terakhir No. KP setiap pengguna.
-   Padam/nyahaktifkan akaun "ADMIN CONTOH" selepas admin sebenar ditambah.
-   Tambah sekurang-kurangnya seorang pengguna berperanan **Pembantu Makmal**
-   untuk memproses Pesanan Radas & Bahan.
+   Panitia, dan **Emel** jika mahu pengguna itu menerima notifikasi e-mel).
+   Kata laluan lalai = 6 digit terakhir No. KP setiap pengguna. Padam/
+   nyahaktifkan akaun "ADMIN CONTOH" selepas admin sebenar ditambah. Tambah
+   sekurang-kurangnya seorang pengguna berperanan **Pembantu Makmal** untuk
+   memproses Pesanan Radas & Bahan.
 10. Tetapkan **Ketua Panitia** setiap panitia di menu **Panitia** (pengguna
     berkenaan mesti sudah didaftarkan dengan Panitia yang sepadan di menu
     Pengguna terlebih dahulu).
@@ -119,6 +145,29 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
     pertama dimuat naik) dengan staf berkenaan — pautan fail (`FailUrl`)
     yang dipaparkan dalam sistem hanya boleh dibuka oleh sesiapa yang
     mempunyai akses kepada folder/fail tersebut di Google Drive.
+14. **Kongsikan Kalendar "E-Bidang Sains & Matematik"** dengan staf berkenaan —
+    dicipta automatik (di bawah akaun Google yang men-deploy sistem) sebaik
+    sahaja Mesyuarat/Program pertama disimpan. Buka [Google Calendar](https://calendar.google.com),
+    cari kalendar tersebut di bawah "Kalendar Saya", **Tetapan dan perkongsian**,
+    kongsikan dengan staf (cth. "Lihat semua butiran acara") supaya tarikh
+    mesyuarat/program panitia kelihatan dalam kalendar peribadi mereka.
+15. **(Pilihan) Aktifkan notifikasi e-mel harian** — pastikan pengguna
+    berkenaan sudah ada Emel diisi (langkah 9), kemudian klik **Sistem
+    E-Bidang → 3. Aktifkan Notifikasi E-mel Harian**. `MailApp` tertakluk
+    kepada kuota harian akaun Google (~100 e-mel/hari bagi akaun Gmail
+    percuma) — memadai bagi bilangan staf sekolah biasa.
+
+## Naik Taraf Deployment Sedia Ada
+
+Jika sistem ini sudah dideploy **sebelum** ciri Pesanan Makmal/Emel/Kalendar/
+Notifikasi ditambah: gantikan kandungan semua fail `.gs` dan `Index`/
+`appsscript.json` dengan versi terkini (termasuk fail baharu
+`PesananMakmalService.gs`, `CalendarService.gs`, `NotifikasiService.gs`),
+**Deploy semula** (Deploy → Manage deployments → Edit → New version), kemudian
+klik **Sistem E-Bidang → 2. Kemaskini Struktur (Emel & Kalendar)** SEKALI
+sahaja — ini menambah lajur `Emel` (USERS) dan `EventIdKalendar`
+(MESYUARAT/PROGRAM) yang hilang tanpa menjejaskan data sedia ada. Selamat
+dijalankan berulang kali (tiada kesan jika struktur sudah terkini).
 
 ## Struktur Folder Drive
 
@@ -143,14 +192,13 @@ akademik lanjutan berikut **belum** dibina dan boleh ditambah kemudian jika
 diperlukan:
 
 - ⏳ Analisis pencapaian akademik pelajar (PBD/peperiksaan) & intervensi murid.
-- ⏳ Kalendar bersepadu (Google Calendar) — tarikh mesyuarat & program buat
-  masa ini hanya dipaparkan sebagai jadual dalam sistem.
-- ⏳ Notifikasi automatik (e-mel/peringatan) bagi tindakan tertunggak/pesanan
-  makmal menunggu — buat masa ini status hanya dipaparkan di Dashboard.
 - ⏳ Eksport laporan (PDF/CSV) bagi jadual lain (Dokumen, Mesyuarat, dsb.) —
   buat masa ini guna Cetak/Print pelayar pada jadual sedia ada. Borang
   Pesanan Radas & Bahan Makmal sahaja yang mempunyai reka bentuk cetak
   formal khusus (dengan logo sekolah) buat masa ini.
-- ⏳ Sunting pesanan makmal selepas dihantar — buat masa ini pemohon hanya
-  boleh batalkan (selagi status Menunggu) dan hantar semula pesanan baharu
-  jika perlu pembetulan.
+- ⏳ Notifikasi e-mel semasa (segera bila status berubah) — buat masa ini
+  notifikasi berbentuk **digest harian** sahaja (rujuk "Notifikasi E-mel
+  Harian" di atas), bukan setiap kali satu rekod berubah.
+- ⏳ Pilihan masa (bukan sekadar tarikh) bagi Mesyuarat/Program — *event*
+  Kalendar yang disegerakkan buat masa ini sentiasa "sehari penuh" (all-day)
+  kerana borang sedia ada hanya kumpul tarikh, bukan masa.

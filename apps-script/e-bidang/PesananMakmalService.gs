@@ -109,6 +109,13 @@ function apiSimpanPesanan(p) {
   return jaya({ idPesanan });
 }
 
+/* Sama ada sesi boleh batal/sunting pesanan ini — pemohon asal, atau
+   Ketua Panitia/Admin/Ketua Bidang bagi panitia berkenaan. */
+function bolehUbahPesanan(sesi, pesanan) {
+  return sesi.nokp === pesanan.NoKPGuru ||
+    (PERANAN_URUS_PANITIA.indexOf(sesi.peranan) !== -1 && wajibAksesPanitia(sesi, pesanan.Panitia));
+}
+
 function apiBatalPesanan(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
@@ -116,14 +123,65 @@ function apiBatalPesanan(p) {
   const pesanan = cariBarisMengikutId(SHEET_PESANAN_MAKMAL, 'IDPesanan', p.idPesanan);
   if (!pesanan) return ralat('Pesanan tidak dijumpai.');
   if (pesanan.Status !== STATUS_PESANAN_MENUNGGU) return ralat('Hanya pesanan berstatus Menunggu boleh dibatalkan.');
-
-  const dibenarkan = sesi.nokp === pesanan.NoKPGuru ||
-    (PERANAN_URUS_PANITIA.indexOf(sesi.peranan) !== -1 && wajibAksesPanitia(sesi, pesanan.Panitia));
-  if (!dibenarkan) return ralat('Anda tidak mempunyai kebenaran untuk membatalkan pesanan ini.');
+  if (!bolehUbahPesanan(sesi, pesanan)) return ralat('Anda tidak mempunyai kebenaran untuk membatalkan pesanan ini.');
 
   pesanan.Status = STATUS_PESANAN_DIBATALKAN;
   kemaskiniBaris(SHEET_PESANAN_MAKMAL, pesanan.__row, pesanan, HEADER_PESANAN_MAKMAL);
   catatAudit(sesi, 'BATAL', 'PESANAN_MAKMAL', pesanan.IDPesanan, 'Batal pesanan: ' + pesanan.TajukEksperimen);
+  return jaya({});
+}
+
+/* Sunting pesanan sedia ada (kelas/tajuk/tarikh/catatan + gantikan senarai item)
+   — hanya dibenarkan selagi status masih Menunggu, supaya Pembantu Makmal tidak
+   memproses berdasarkan maklumat yang berubah tanpa disedari selepas pemprosesan
+   bermula. Untuk pembetulan selepas itu, pemohon batalkan & hantar pesanan baharu. */
+function apiKemaskiniPesanan(p) {
+  const sesi = wajibPeranan(p.token, null);
+  if (sesi.success === false) return sesi;
+
+  const pesanan = cariBarisMengikutId(SHEET_PESANAN_MAKMAL, 'IDPesanan', p.idPesanan);
+  if (!pesanan) return ralat('Pesanan tidak dijumpai.');
+  if (pesanan.Status !== STATUS_PESANAN_MENUNGGU) return ralat('Hanya pesanan berstatus Menunggu boleh disunting.');
+  if (!bolehUbahPesanan(sesi, pesanan)) return ralat('Anda tidak mempunyai kebenaran untuk menyunting pesanan ini.');
+
+  const kelas = String(p.kelas || '').trim();
+  const tajukEksperimen = String(p.tajukEksperimen || '').trim();
+  const tarikhDiperlukan = String(p.tarikhDiperlukan || '').trim();
+  const senaraiItem = (p.item || [])
+    .map(it => ({
+      namaBahanRadas: String(it.namaBahanRadas || '').trim(),
+      kuantiti: String(it.kuantiti || '').trim(),
+      unit: String(it.unit || '').trim(),
+      catatan: String(it.catatan || '').trim()
+    }))
+    .filter(it => it.namaBahanRadas);
+
+  if (!kelas || !tajukEksperimen || !tarikhDiperlukan) return ralat('Sila lengkapkan kelas, tajuk eksperimen dan tarikh diperlukan.');
+  if (!senaraiItem.length) return ralat('Sila tambah sekurang-kurangnya satu bahan/radas.');
+
+  pesanan.Kelas = kelas;
+  pesanan.TajukEksperimen = tajukEksperimen;
+  pesanan.TarikhDiperlukan = tarikhDiperlukan;
+  pesanan.CatatanAm = String(p.catatanAm || '').trim();
+  kemaskiniBaris(SHEET_PESANAN_MAKMAL, pesanan.__row, pesanan, HEADER_PESANAN_MAKMAL);
+
+  bacaSheetSebagaiObjek(SHEET_ITEM_PESANAN_MAKMAL)
+    .filter(i => i.IDPesanan === pesanan.IDPesanan)
+    .sort((a, b) => b.__row - a.__row)
+    .forEach(i => padamBaris(SHEET_ITEM_PESANAN_MAKMAL, i.__row));
+
+  senaraiItem.forEach(it => {
+    tambahBaris(SHEET_ITEM_PESANAN_MAKMAL, {
+      IDItem: janaId('ITM'),
+      IDPesanan: pesanan.IDPesanan,
+      NamaBahanRadas: it.namaBahanRadas,
+      Kuantiti: it.kuantiti,
+      Unit: it.unit,
+      Catatan: it.catatan
+    }, HEADER_ITEM_PESANAN_MAKMAL);
+  });
+
+  catatAudit(sesi, 'KEMASKINI', 'PESANAN_MAKMAL', pesanan.IDPesanan, 'Sunting pesanan: ' + tajukEksperimen);
   return jaya({});
 }
 

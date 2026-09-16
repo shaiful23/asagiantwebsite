@@ -4,9 +4,11 @@
  * Sistem pengurusan fail digital bagi Bidang Sains & Matematik (Panitia
  * Matematik, Sains, Kimia, Biologi, Fizik), termasuk Pesanan Radas & Bahan
  * Makmal (Sains/Kimia/Biologi/Fizik) yang diproses oleh peranan Pembantu
- * Makmal. Dihoskan dalam Google Apps Script, terikat pada satu Google Sheet
- * sebagai database. Backend modular (Config/Utils/Auth/User/Panitia/
- * Document/Drive/Meeting/Program/PesananMakmal/Dashboard/Audit Service)
+ * Makmal, penyegerakan tarikh Mesyuarat/Program ke Google Calendar, dan
+ * notifikasi e-mel harian bagi tindakan/pesanan tertunggak. Dihoskan dalam
+ * Google Apps Script, terikat pada satu Google Sheet sebagai database.
+ * Backend modular (Config/Utils/Auth/User/Panitia/Document/Drive/Meeting/
+ * Program/PesananMakmal/Calendar/Notifikasi/Dashboard/Audit Service)
  * menyajikan satu frontend SPA (Index.html) melalui doGet().
  *
  * CARA PASANG: rujuk README.md dalam folder ini.
@@ -17,6 +19,8 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Sistem E-Bidang')
     .addItem('1. Sediakan Sistem (Jalankan Sekali)', 'sediakanSistemEBidang')
+    .addItem('2. Kemaskini Struktur (Emel & Kalendar)', 'kemaskiniStrukturSistem')
+    .addItem('3. Aktifkan Notifikasi E-mel Harian', 'sediakanNotifikasiHarian')
     .addToUi();
 }
 
@@ -38,7 +42,7 @@ function sediakanSistemEBidang() {
   };
 
   pastikanSheet(SHEET_USERS, HEADER_USERS,
-    [['000000000000', cincangKataLaluan('000000'), ROLE_ADMIN, 'ADMIN CONTOH', '', 'YA', 'AKTIF']]);
+    [['000000000000', cincangKataLaluan('000000'), ROLE_ADMIN, 'ADMIN CONTOH', '', 'YA', 'AKTIF', '']]);
 
   pastikanSheet(SHEET_PANITIA, HEADER_PANITIA,
     SENARAI_PANITIA.map(nama => [nama.toUpperCase(), nama, '', 'AKTIF']));
@@ -63,7 +67,44 @@ function sediakanSistemEBidang() {
     'sistem akan paksa tukar kata laluan selepas log masuk pertama). Padam baris "ADMIN CONTOH" ' +
     'selepas admin sebenar ditambah. Tetapkan Ketua Panitia setiap panitia di menu Panitia. ' +
     'Tambah sekurang-kurangnya seorang pengguna berperanan "Pembantu Makmal" untuk memproses ' +
-    'Pesanan Radas & Bahan daripada Panitia Sains/Kimia/Biologi/Fizik.'
+    'Pesanan Radas & Bahan daripada Panitia Sains/Kimia/Biologi/Fizik. Jika mahu aktifkan ' +
+    'notifikasi e-mel, isi lajur "Emel" bagi setiap pengguna (di menu Pengguna) kemudian jalankan ' +
+    '"3. Aktifkan Notifikasi E-mel Harian".'
+  );
+}
+
+/* Tambah lajur baharu (Emel pada USERS; EventIdKalendar pada MESYUARAT & PROGRAM)
+   pada deployment SEDIA ADA yang dinaik taraf daripada versi sebelum ciri Emel/
+   Kalendar wujud. Sheet baharu (dicipta oleh sediakanSistemEBidang di atas) sudah
+   terus ada lajur ini — fungsi ini hanya diperlukan sekali sahaja selepas naik
+   taraf kod, dan selamat dijalankan berulang kali (tiada kesan jika sudah terkini). */
+function kemaskiniStrukturSistem() {
+  const perubahan = [];
+  if (tambahLajurJikaTiada(SHEET_USERS, 'Emel')) perubahan.push('USERS.Emel');
+  if (tambahLajurJikaTiada(SHEET_MESYUARAT, 'EventIdKalendar')) perubahan.push('MESYUARAT.EventIdKalendar');
+  if (tambahLajurJikaTiada(SHEET_PROGRAM, 'EventIdKalendar')) perubahan.push('PROGRAM.EventIdKalendar');
+
+  SpreadsheetApp.getUi().alert(perubahan.length
+    ? 'Struktur dikemaskini: ' + perubahan.join(', ') + '.\n\nIsi lajur Emel bagi setiap ' +
+      'pengguna (menu Pengguna) untuk notifikasi e-mel; lajur EventIdKalendar diisi automatik ' +
+      'oleh sistem apabila Mesyuarat/Program disimpan seterusnya.'
+    : 'Tiada kemaskini diperlukan — struktur sudah terkini.');
+}
+
+/* Tetapkan pencetus terjadual (time-driven trigger) untuk hantarNotifikasiHarian()
+   (NotifikasiService.gs) setiap hari lebih kurang jam 7 pagi. Jalankan SEKALI
+   sahaja; selamat dijalankan berulang kali (pencetus lama bagi fungsi yang sama
+   dipadam dahulu supaya tidak bertindan/berganda). */
+function sediakanNotifikasiHarian() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === 'hantarNotifikasiHarian') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('hantarNotifikasiHarian').timeBased().everyDays(1).atHour(7).create();
+  SpreadsheetApp.getUi().alert(
+    'Notifikasi e-mel harian diaktifkan — akan dihantar automatik lebih kurang jam 7 pagi ' +
+    'setiap hari kepada: (a) guru/ketua panitia yang mempunyai tindakan susulan tertunggak/ ' +
+    'tamat tempoh, dan (b) Pembantu Makmal/Admin/Ketua Bidang jika ada Pesanan Makmal menunggu ' +
+    'tindakan. Hanya pengguna dengan lajur Emel diisi akan menerima e-mel.'
   );
 }
 
