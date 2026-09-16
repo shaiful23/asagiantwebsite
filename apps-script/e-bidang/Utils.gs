@@ -72,6 +72,35 @@ function formatTarikhMasa(tarikh) {
   return Utilities.formatDate(tarikh, Session.getScriptTimeZone() || 'Asia/Kuching', 'yyyy-MM-dd HH:mm:ss');
 }
 
+/* Tukar rentetan "yyyy-MM-dd" (format input tarikh HTML) kepada objek Date
+   tempatan — guna oleh CalendarService.gs untuk cipta event sehari penuh. */
+function keTarikhObjek(nilaiTarikh) {
+  const bahagian = String(nilaiTarikh || '').trim().split('-');
+  if (bahagian.length !== 3) return null;
+  const tahun = Number(bahagian[0]), bulan = Number(bahagian[1]), hari = Number(bahagian[2]);
+  if (!tahun || !bulan || !hari) return null;
+  return new Date(tahun, bulan - 1, hari);
+}
+
+/* Tambah satu lajur baharu pada penghujung Sheet sedia ada jika belum wujud
+   (idempoten — selamat dijalankan berulang kali). Guna oleh fungsi migrasi
+   struktur dalam Code.gs apabila menaik taraf deployment sedia ada. */
+function tambahLajurJikaTiada(namaSheet, namaLajur) {
+  const sh = dapatkanSheet(namaSheet);
+  const lajurSemasa = Math.max(sh.getLastColumn(), 1);
+  const header = sh.getRange(1, 1, 1, lajurSemasa).getValues()[0];
+  if (header.indexOf(namaLajur) !== -1) return false;
+  sh.getRange(1, lajurSemasa + 1).setValue(namaLajur).setFontWeight('bold');
+  return true;
+}
+
+/* Lajur Panitia (USERS) boleh simpan lebih daripada satu panitia dipisah
+   koma (cth. "Kimia, Sains") bagi guru yang mengajar > 1 mata pelajaran.
+   Guna fungsi ini di mana-mana sahaja lajur itu dibaca — jangan baca terus. */
+function senaraiPanitiaDaripadaMedan(nilai) {
+  return String(nilai || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+
 function ralat(mesej) {
   return { success: false, message: mesej };
 }

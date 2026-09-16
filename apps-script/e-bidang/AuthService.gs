@@ -5,7 +5,7 @@
  * sentiasa di server — jangan benarkan frontend sahaja menentukan akses.
  * ========================================================================= */
 
-const HEADER_USERS = ['NoKP', 'Password', 'Peranan', 'NamaPenuh', 'Panitia', 'MestiTukarPassword', 'Status'];
+const HEADER_USERS = ['NoKP', 'Password', 'Peranan', 'NamaPenuh', 'Panitia', 'MestiTukarPassword', 'Status', 'Emel'];
 
 /* ------------------------- KATA LALUAN ------------------------- */
 function cincangKataLaluan(kataLaluan) {
@@ -25,7 +25,7 @@ function ciptaSesi(pengguna) {
     nokp: pengguna.NoKP,
     nama: pengguna.NamaPenuh,
     peranan: pengguna.Peranan,
-    panitia: pengguna.Panitia || ''
+    panitia: senaraiPanitiaDaripadaMedan(pengguna.Panitia)
   }), TEMPOH_SESI_SAAT);
   return token;
 }
@@ -47,11 +47,12 @@ function wajibPeranan(token, perananDibenarkan) {
   return sesi;
 }
 
-/* Sekat akses kepada data panitia sendiri sahaja bagi KETUA_PANITIA/GURU.
+/* Sekat akses kepada panitia sendiri sahaja bagi KETUA_PANITIA/GURU (sesi.panitia
+   ialah SENARAI — guru boleh mengajar > 1 mata pelajaran/panitia, cth. ['Kimia','Sains']).
    ADMIN & KETUA_BIDANG boleh akses semua panitia. */
 function wajibAksesPanitia(sesi, panitia) {
   if (PERANAN_AKSES_PENUH.indexOf(sesi.peranan) !== -1) return true;
-  return String(sesi.panitia || '') === String(panitia || '');
+  return (sesi.panitia || []).indexOf(String(panitia || '')) !== -1;
 }
 
 /* ------------------------- LOG MASUK / LOG KELUAR ------------------------- */
@@ -70,7 +71,7 @@ function apiLogin(p) {
     token,
     nama: pengguna.NamaPenuh,
     peranan: pengguna.Peranan,
-    panitia: pengguna.Panitia || '',
+    panitia: senaraiPanitiaDaripadaMedan(pengguna.Panitia),
     mestiTukarPassword: String(pengguna.MestiTukarPassword).toUpperCase() === 'YA'
   });
 }

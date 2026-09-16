@@ -5,7 +5,7 @@
  * ========================================================================= */
 
 const HEADER_PROGRAM = ['IDProgram', 'Panitia', 'NamaProgram', 'JenisProgram', 'TarikhMula',
-  'TarikhTamat', 'Objektif', 'Status', 'DiciptaOleh'];
+  'TarikhTamat', 'Objektif', 'Status', 'DiciptaOleh', 'EventIdKalendar'];
 const HEADER_EVIDENS = ['IDEvidens', 'IDProgram', 'Panitia', 'Keterangan', 'FailUrl', 'FailId',
   'DimuatNaikOleh', 'TarikhMuatNaik'];
 
@@ -48,8 +48,12 @@ function apiSimpanProgram(p) {
     TarikhTamat: p.tarikhTamat || (sediaAda ? sediaAda.TarikhTamat : ''),
     Objektif: String(p.objektif || '').trim(),
     Status: status,
-    DiciptaOleh: sediaAda ? sediaAda.DiciptaOleh : sesi.nama
+    DiciptaOleh: sediaAda ? sediaAda.DiciptaOleh : sesi.nama,
+    EventIdKalendar: sediaAda ? sediaAda.EventIdKalendar : ''
   };
+
+  // Kalendar bukan sumber kebenaran — kegagalan (kuota/akses) tidak menghalang program disimpan.
+  try { objek.EventIdKalendar = segerakEventProgram(objek); } catch (e) { /* kekalkan nilai sediaAda */ }
 
   if (sediaAda) {
     kemaskiniBaris(SHEET_PROGRAM, sediaAda.__row, objek, HEADER_PROGRAM);
@@ -74,6 +78,7 @@ function apiPadamProgram(p) {
     .sort((a, b) => b.__row - a.__row)
     .forEach(ev => { padamFailDrive(ev.FailId); padamBaris(SHEET_EVIDENS, ev.__row); });
 
+  try { padamEventKalendar(program.EventIdKalendar); } catch (e) { /* abaikan — rekod Sheet tetap dipadam */ }
   padamBaris(SHEET_PROGRAM, program.__row);
   catatAudit(sesi, 'PADAM', 'PROGRAM', program.IDProgram, 'Padam program: ' + program.NamaProgram);
   return jaya({});

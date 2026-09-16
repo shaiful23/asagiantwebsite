@@ -8,8 +8,7 @@ function apiDashboard(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
 
-  const panitiaSkop = PERANAN_AKSES_PENUH.indexOf(sesi.peranan) !== -1 ? SENARAI_PANITIA
-    : (sesi.panitia ? [sesi.panitia] : []);
+  const panitiaSkop = PERANAN_AKSES_PENUH.indexOf(sesi.peranan) !== -1 ? SENARAI_PANITIA : (sesi.panitia || []);
   const semuaDokumen = bacaSheetSebagaiObjek(SHEET_DOKUMEN).filter(d => String(d.Status).toUpperCase() !== 'DIPADAM');
   const kategoriWajib = bacaSheetSebagaiObjek(SHEET_KATEGORI_DOKUMEN).filter(k => k.Wajib === 'YA');
   const semuaMesyuarat = bacaSheetSebagaiObjek(SHEET_MESYUARAT);
