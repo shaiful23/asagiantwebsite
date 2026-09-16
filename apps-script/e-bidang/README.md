@@ -22,6 +22,7 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   | `KETUA_BIDANG` | Penuh — semua panitia, urus pengguna, log audit |
   | `KETUA_PANITIA` | Terhad kepada panitia sendiri; boleh urus mesyuarat, tindakan susulan, program & fail panitia sendiri |
   | `GURU` | Terhad kepada panitia sendiri; boleh muat naik/lihat fail, lihat mesyuarat/program, kemaskini status tindakan yang ditugaskan kepadanya |
+  | `PEMBANTU_MAKMAL` | Tiada panitia sendiri; lihat & proses Pesanan Radas & Bahan Makmal merentasi SEMUA panitia makmal (Sains/Kimia/Biologi/Fizik) sahaja — tiada akses ke Dokumen/Mesyuarat/Program/Panitia/Pengguna/Audit |
 
 - **Pengurusan Fail Panitia** (modul teras) — kategori dokumen berpiawai
   (Minit Mesyuarat, RPT, Takwim, Pekeliling, Laporan Program, Instrumen
@@ -38,6 +39,18 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   serta senarai tindakan susulan peribadi.
 - **Log Audit** — setiap tindakan TAMBAH/KEMASKINI/PADAM/LOGIN/tukar kata
   laluan direkod (Admin/Ketua Bidang sahaja boleh semak).
+- **Pesanan Radas & Bahan Makmal** (Panitia Sains/Kimia/Biologi/Fizik sahaja —
+  Matematik tidak menjalankan eksperimen makmal) — Guru/Ketua Panitia
+  panitia berkenaan membuat pesanan (kelas, tajuk eksperimen, tarikh
+  diperlukan, senarai bahan/radas dengan kuantiti & unit, baris boleh
+  ditambah/dibuang secara dinamik). Peranan `PEMBANTU_MAKMAL` (+
+  Admin/Ketua Bidang) melihat & memproses pesanan merentasi semua panitia
+  makmal, menukar status (Menunggu → Dalam Proses → Siap, atau Ditolak) dan
+  mencatat nota pemprosesan. Pemohon boleh membatalkan pesanan sendiri
+  selagi masih berstatus Menunggu. **Borang formal** (dengan logo sekolah,
+  no. rujukan, jadual bahan/radas, dan blok tandatangan Guru/Ketua
+  Panitia/Pembantu Makmal) dijana terus di pelayar dan dicetak/dimuat turun
+  sebagai PDF melalui dialog cetak pelayar (butang "Cetak / PDF").
 
 ## Struktur
 
@@ -51,7 +64,9 @@ sebagai database dan Google Apps Script sebagai backend + frontend
 - `DocumentService.gs` — kategori dokumen, dokumen, checklist kelengkapan fail.
 - `MeetingService.gs` — mesyuarat, kehadiran, tindakan susulan.
 - `ProgramService.gs` — program/PLC & evidens.
-- `DashboardService.gs` — ringkasan statistik.
+- `PesananMakmalService.gs` — Pesanan Radas & Bahan Makmal (cipta/batal oleh
+  Guru/Ketua Panitia; kemaskini status/padam oleh Pembantu Makmal/Admin/Ketua Bidang).
+- `DashboardService.gs` — ringkasan statistik (termasuk ringkasan Pesanan Makmal).
 - `AuditService.gs` — catat & semak log audit.
 - `appsscript.json`, `Index.html` — manifest & frontend SPA tunggal.
 
@@ -68,9 +83,9 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
 3. Padam kandungan `Code.gs` lalai. Untuk setiap fail `.gs` dalam folder ini
    (`Code.gs`, `Config.gs`, `Utils.gs`, `AuthService.gs`, `UserService.gs`,
    `PanitiaService.gs`, `DriveService.gs`, `DocumentService.gs`,
-   `MeetingService.gs`, `ProgramService.gs`, `DashboardService.gs`,
-   `AuditService.gs`), cipta fail Script baharu dengan nama yang sama (tanpa
-   `.gs`) dan salin-tampal kandungannya.
+   `MeetingService.gs`, `ProgramService.gs`, `PesananMakmalService.gs`,
+   `DashboardService.gs`, `AuditService.gs`), cipta fail Script baharu dengan
+   nama yang sama (tanpa `.gs`) dan salin-tampal kandungannya.
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json
@@ -78,14 +93,17 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
 6. Kembali ke Sheet, refresh halaman. Menu baharu **"Sistem E-Bidang"** akan
    muncul di bar menu.
 7. Klik **Sistem E-Bidang → 1. Sediakan Sistem (Jalankan Sekali)**. Benarkan
-   kebenaran yang diminta (Sheets + Drive). Ini mencipta semua 9 Sheet:
+   kebenaran yang diminta (Sheets + Drive). Ini mencipta semua 12 Sheet:
    `USERS`, `PANITIA`, `KATEGORI_DOKUMEN`, `DOKUMEN`, `MESYUARAT`,
-   `KEHADIRAN_MESYUARAT`, `TINDAKAN_SUSULAN`, `PROGRAM`, `EVIDENS`, `AUDIT_LOG`.
+   `KEHADIRAN_MESYUARAT`, `TINDAKAN_SUSULAN`, `PROGRAM`, `EVIDENS`, `AUDIT_LOG`,
+   `PESANAN_MAKMAL`, `ITEM_PESANAN_MAKMAL`.
 8. **Log masuk kali pertama** guna No. KP `000000000000` dan kata laluan
    `000000` (akaun "ADMIN CONTOH"). Sistem akan paksa tukar kata laluan.
 9. Tambah pengguna sebenar di menu **Pengguna** (No. KP, Nama, Peranan,
    Panitia). Kata laluan lalai = 6 digit terakhir No. KP setiap pengguna.
    Padam/nyahaktifkan akaun "ADMIN CONTOH" selepas admin sebenar ditambah.
+   Tambah sekurang-kurangnya seorang pengguna berperanan **Pembantu Makmal**
+   untuk memproses Pesanan Radas & Bahan.
 10. Tetapkan **Ketua Panitia** setiap panitia di menu **Panitia** (pengguna
     berkenaan mesti sudah didaftarkan dengan Panitia yang sepadan di menu
     Pengguna terlebih dahulu).
@@ -127,7 +145,12 @@ diperlukan:
 - ⏳ Analisis pencapaian akademik pelajar (PBD/peperiksaan) & intervensi murid.
 - ⏳ Kalendar bersepadu (Google Calendar) — tarikh mesyuarat & program buat
   masa ini hanya dipaparkan sebagai jadual dalam sistem.
-- ⏳ Notifikasi automatik (e-mel/peringatan) bagi tindakan tertunggak —
-  buat masa ini status tindakan hanya dipaparkan di Dashboard.
-- ⏳ Eksport laporan (PDF/CSV) — buat masa ini guna Cetak/Print pelayar pada
-  jadual sedia ada.
+- ⏳ Notifikasi automatik (e-mel/peringatan) bagi tindakan tertunggak/pesanan
+  makmal menunggu — buat masa ini status hanya dipaparkan di Dashboard.
+- ⏳ Eksport laporan (PDF/CSV) bagi jadual lain (Dokumen, Mesyuarat, dsb.) —
+  buat masa ini guna Cetak/Print pelayar pada jadual sedia ada. Borang
+  Pesanan Radas & Bahan Makmal sahaja yang mempunyai reka bentuk cetak
+  formal khusus (dengan logo sekolah) buat masa ini.
+- ⏳ Sunting pesanan makmal selepas dihantar — buat masa ini pemohon hanya
+  boleh batalkan (selagi status Menunggu) dan hantar semula pesanan baharu
+  jika perlu pembetulan.

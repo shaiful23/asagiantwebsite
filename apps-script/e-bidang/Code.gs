@@ -2,10 +2,12 @@
  * SISTEM E-BIDANG SAINS & MATEMATIK SMK ASAJAYA
  * -------------------------------------------------------------------------
  * Sistem pengurusan fail digital bagi Bidang Sains & Matematik (Panitia
- * Matematik, Sains, Kimia, Biologi, Fizik). Dihoskan dalam Google Apps
- * Script, terikat pada satu Google Sheet sebagai database. Backend modular
- * (Config/Utils/Auth/User/Panitia/Document/Drive/Meeting/Program/Dashboard/
- * Audit Service) menyajikan satu frontend SPA (Index.html) melalui doGet().
+ * Matematik, Sains, Kimia, Biologi, Fizik), termasuk Pesanan Radas & Bahan
+ * Makmal (Sains/Kimia/Biologi/Fizik) yang diproses oleh peranan Pembantu
+ * Makmal. Dihoskan dalam Google Apps Script, terikat pada satu Google Sheet
+ * sebagai database. Backend modular (Config/Utils/Auth/User/Panitia/
+ * Document/Drive/Meeting/Program/PesananMakmal/Dashboard/Audit Service)
+ * menyajikan satu frontend SPA (Index.html) melalui doGet().
  *
  * CARA PASANG: rujuk README.md dalam folder ini.
  * ========================================================================= */
@@ -49,14 +51,19 @@ function sediakanSistemEBidang() {
   pastikanSheet(SHEET_PROGRAM, HEADER_PROGRAM, []);
   pastikanSheet(SHEET_EVIDENS, HEADER_EVIDENS, []);
   pastikanSheet(SHEET_AUDIT_LOG, HEADER_AUDIT_LOG, []);
+  pastikanSheet(SHEET_PESANAN_MAKMAL, HEADER_PESANAN_MAKMAL, []);
+  pastikanSheet(SHEET_ITEM_PESANAN_MAKMAL, HEADER_ITEM_PESANAN_MAKMAL, []);
 
   SpreadsheetApp.getUi().alert(
-    'Sistem sedia. Semua 9 Sheet (USERS, PANITIA, KATEGORI_DOKUMEN, DOKUMEN, MESYUARAT, ' +
-    'KEHADIRAN_MESYUARAT, TINDAKAN_SUSULAN, PROGRAM, EVIDENS, AUDIT_LOG) telah dicipta.\n\n' +
+    'Sistem sedia. Semua 12 Sheet (USERS, PANITIA, KATEGORI_DOKUMEN, DOKUMEN, MESYUARAT, ' +
+    'KEHADIRAN_MESYUARAT, TINDAKAN_SUSULAN, PROGRAM, EVIDENS, AUDIT_LOG, PESANAN_MAKMAL, ' +
+    'ITEM_PESANAN_MAKMAL) telah dicipta.\n\n' +
     'Log masuk kali pertama guna No. KP "000000000000" dan kata laluan "000000", kemudian ' +
     'tambah pengguna sebenar dalam menu Pengguna (kata laluan lalai = 6 digit terakhir No. KP, ' +
     'sistem akan paksa tukar kata laluan selepas log masuk pertama). Padam baris "ADMIN CONTOH" ' +
-    'selepas admin sebenar ditambah. Tetapkan Ketua Panitia setiap panitia di menu Panitia.'
+    'selepas admin sebenar ditambah. Tetapkan Ketua Panitia setiap panitia di menu Panitia. ' +
+    'Tambah sekurang-kurangnya seorang pengguna berperanan "Pembantu Makmal" untuk memproses ' +
+    'Pesanan Radas & Bahan daripada Panitia Sains/Kimia/Biologi/Fizik.'
   );
 }
 
