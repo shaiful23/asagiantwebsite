@@ -24,8 +24,9 @@ const ROLE_KETUA_BIDANG = 'KETUA_BIDANG';
 const ROLE_KETUA_PANITIA = 'KETUA_PANITIA';
 const ROLE_GURU = 'GURU';
 const ROLE_PEMBANTU_MAKMAL = 'PEMBANTU_MAKMAL';
+const ROLE_KETUA_PEMBANTU_MAKMAL = 'KETUA_PEMBANTU_MAKMAL';
 
-const SEMUA_PERANAN = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_KETUA_PANITIA, ROLE_GURU, ROLE_PEMBANTU_MAKMAL];
+const SEMUA_PERANAN = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_KETUA_PANITIA, ROLE_GURU, ROLE_PEMBANTU_MAKMAL, ROLE_KETUA_PEMBANTU_MAKMAL];
 
 // Peranan yang boleh melihat/menguruskan SEMUA panitia (bukan hanya panitia sendiri)
 const PERANAN_AKSES_PENUH = [ROLE_ADMIN, ROLE_KETUA_BIDANG];
@@ -33,14 +34,28 @@ const PERANAN_AKSES_PENUH = [ROLE_ADMIN, ROLE_KETUA_BIDANG];
 // Peranan yang boleh menguruskan (cipta/kemaskini/padam) mesyuarat & program panitia
 const PERANAN_URUS_PANITIA = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_KETUA_PANITIA];
 
-// Peranan yang boleh melihat/memproses Pesanan Makmal merentasi SEMUA panitia
-const PERANAN_LIHAT_SEMUA_PESANAN = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_PEMBANTU_MAKMAL];
+// Peranan yang boleh melihat/memproses Pesanan Makmal merentasi SEMUA makmal (bukan hanya makmal sendiri).
+// PEMBANTU_MAKMAL biasa TIDAK termasuk di sini — setiap Pembantu Makmal hanya melihat pesanan
+// bagi Makmal yang dijaganya sendiri (rujuk USERS.MakmalDijaga). KETUA_PEMBANTU_MAKMAL wujud
+// khusus untuk mengawasi SEMUA makmal (cth. penyelia makmal).
+const PERANAN_LIHAT_SEMUA_PESANAN = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_KETUA_PEMBANTU_MAKMAL];
+
+// Peranan yang boleh memproses (tukar status) Pesanan Makmal — lebih luas daripada
+// PERANAN_LIHAT_SEMUA_PESANAN kerana PEMBANTU_MAKMAL biasa juga boleh memproses,
+// tetapi terhad kepada Makmal sendiri sahaja (disemak berasingan melalui bolehLihatPesanan()).
+const PERANAN_PROSES_PESANAN = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_KETUA_PEMBANTU_MAKMAL, ROLE_PEMBANTU_MAKMAL];
 
 /* ------------------------- PANITIA BIDANG SAINS & MATEMATIK ------------------------- */
 const SENARAI_PANITIA = ['Matematik', 'Sains', 'Kimia', 'Biologi', 'Fizik'];
 
 // Panitia yang menjalankan eksperimen makmal (boleh buat Pesanan Radas & Bahan) — Matematik tidak termasuk.
 const PANITIA_MAKMAL = ['Sains', 'Kimia', 'Biologi', 'Fizik'];
+
+/* ------------------------- MAKMAL SAINS (LOKASI FIZIKAL) ------------------------- */
+// Bilik makmal sebenar tempat eksperimen dijalankan — setiap Pesanan Makmal memilih SATU
+// daripada ini, dan setiap Pembantu Makmal dijaga kepada satu/lebih daripada ini
+// (USERS.MakmalDijaga) supaya pesanan terus disalurkan kepada Pembantu Makmal yang betul.
+const SENARAI_MAKMAL = ['Makmal Sains 1', 'Makmal Sains 2', 'Makmal Sains 3', 'Makmal Sains 4'];
 
 /* ------------------------- KATEGORI DOKUMEN LALAI ------------------------- */
 function kategoriDokumenLalai() {

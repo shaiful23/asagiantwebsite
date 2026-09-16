@@ -94,11 +94,17 @@ function tambahLajurJikaTiada(namaSheet, namaLajur) {
   return true;
 }
 
-/* Lajur Panitia (USERS) boleh simpan lebih daripada satu panitia dipisah
-   koma (cth. "Kimia, Sains") bagi guru yang mengajar > 1 mata pelajaran.
-   Guna fungsi ini di mana-mana sahaja lajur itu dibaca — jangan baca terus. */
-function senaraiPanitiaDaripadaMedan(nilai) {
+/* Pisah satu medan teks dipisah koma (cth. "Kimia, Sains") kepada senarai/array,
+   trim & buang entri kosong. Corak umum bagi lajur "berbilang nilai" (Panitia,
+   MakmalDijaga) — guna fungsi ini di mana-mana sahaja lajur sedemikian dibaca. */
+function senaraiDaripadaMedan(nilai) {
   return String(nilai || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+
+/* Lajur Panitia (USERS) boleh simpan lebih daripada satu panitia dipisah
+   koma bagi guru yang mengajar > 1 mata pelajaran. */
+function senaraiPanitiaDaripadaMedan(nilai) {
+  return senaraiDaripadaMedan(nilai);
 }
 
 function ralat(mesej) {

@@ -42,7 +42,7 @@ function sediakanSistemEBidang() {
   };
 
   pastikanSheet(SHEET_USERS, HEADER_USERS,
-    [['000000000000', cincangKataLaluan('000000'), ROLE_ADMIN, 'ADMIN CONTOH', '', 'YA', 'AKTIF', '']]);
+    [['000000000000', cincangKataLaluan('000000'), ROLE_ADMIN, 'ADMIN CONTOH', '', 'YA', 'AKTIF', '', '']]);
 
   pastikanSheet(SHEET_PANITIA, HEADER_PANITIA,
     SENARAI_PANITIA.map(nama => [nama.toUpperCase(), nama, '', 'AKTIF']));
@@ -66,10 +66,12 @@ function sediakanSistemEBidang() {
     'tambah pengguna sebenar dalam menu Pengguna (kata laluan lalai = 6 digit terakhir No. KP, ' +
     'sistem akan paksa tukar kata laluan selepas log masuk pertama). Padam baris "ADMIN CONTOH" ' +
     'selepas admin sebenar ditambah. Tetapkan Ketua Panitia setiap panitia di menu Panitia. ' +
-    'Tambah sekurang-kurangnya seorang pengguna berperanan "Pembantu Makmal" untuk memproses ' +
-    'Pesanan Radas & Bahan daripada Panitia Sains/Kimia/Biologi/Fizik. Jika mahu aktifkan ' +
-    'notifikasi e-mel, isi lajur "Emel" bagi setiap pengguna (di menu Pengguna) kemudian jalankan ' +
-    '"3. Aktifkan Notifikasi E-mel Harian".'
+    'Tambah sekurang-kurangnya seorang pengguna berperanan "Pembantu Makmal" bagi SETIAP Makmal ' +
+    '(Makmal Sains 1-4) — setiap Pembantu Makmal ditetapkan kepada Makmal yang dijaganya sendiri ' +
+    'di borang Pengguna, dan hanya akan menerima Pesanan Radas & Bahan bagi Makmal berkenaan. ' +
+    'Peranan "Ketua Pembantu Makmal" (pilihan) boleh ditambah untuk melihat/memproses pesanan ' +
+    'merentasi SEMUA Makmal. Jika mahu aktifkan notifikasi e-mel, isi lajur "Emel" bagi setiap ' +
+    'pengguna (di menu Pengguna) kemudian jalankan "3. Aktifkan Notifikasi E-mel Harian".'
   );
 }
 
@@ -83,11 +85,18 @@ function kemaskiniStrukturSistem() {
   if (tambahLajurJikaTiada(SHEET_USERS, 'Emel')) perubahan.push('USERS.Emel');
   if (tambahLajurJikaTiada(SHEET_MESYUARAT, 'EventIdKalendar')) perubahan.push('MESYUARAT.EventIdKalendar');
   if (tambahLajurJikaTiada(SHEET_PROGRAM, 'EventIdKalendar')) perubahan.push('PROGRAM.EventIdKalendar');
+  if (tambahLajurJikaTiada(SHEET_USERS, 'MakmalDijaga')) perubahan.push('USERS.MakmalDijaga');
+  if (tambahLajurJikaTiada(SHEET_PESANAN_MAKMAL, 'Makmal')) perubahan.push('PESANAN_MAKMAL.Makmal');
+  if (tambahLajurJikaTiada(SHEET_PESANAN_MAKMAL, 'MasaMula')) perubahan.push('PESANAN_MAKMAL.MasaMula');
+  if (tambahLajurJikaTiada(SHEET_PESANAN_MAKMAL, 'MasaTamat')) perubahan.push('PESANAN_MAKMAL.MasaTamat');
 
   SpreadsheetApp.getUi().alert(perubahan.length
     ? 'Struktur dikemaskini: ' + perubahan.join(', ') + '.\n\nIsi lajur Emel bagi setiap ' +
       'pengguna (menu Pengguna) untuk notifikasi e-mel; lajur EventIdKalendar diisi automatik ' +
-      'oleh sistem apabila Mesyuarat/Program disimpan seterusnya.'
+      'oleh sistem apabila Mesyuarat/Program disimpan seterusnya. Tetapkan lajur MakmalDijaga ' +
+      'bagi setiap Pembantu Makmal sedia ada (menu Pengguna) supaya penyaluran Pesanan Makmal ' +
+      'mengikut Makmal berfungsi dengan betul; pesanan sedia ada tanpa nilai Makmal perlu ' +
+      'disunting semula (oleh guru berkenaan) untuk mengisi Makmal, Masa Mula & Masa Tamat.'
     : 'Tiada kemaskini diperlukan — struktur sudah terkini.');
 }
 

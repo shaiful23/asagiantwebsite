@@ -43,20 +43,28 @@ function apiDashboard(p) {
 
   let ringkasanPesananMakmal = null;
   if (PERANAN_LIHAT_SEMUA_PESANAN.indexOf(sesi.peranan) !== -1) {
-    ringkasanPesananMakmal = {
-      menunggu: semuaPesanan.filter(ps => ps.Status === STATUS_PESANAN_MENUNGGU).length,
-      dalamProses: semuaPesanan.filter(ps => ps.Status === STATUS_PESANAN_DALAM_PROSES).length,
-      siap: semuaPesanan.filter(ps => ps.Status === STATUS_PESANAN_SIAP).length,
-      terkini: semuaPesanan
-        .filter(ps => ps.Status === STATUS_PESANAN_MENUNGGU || ps.Status === STATUS_PESANAN_DALAM_PROSES)
-        .sort((a, b) => String(a.TarikhDiperlukan).localeCompare(String(b.TarikhDiperlukan)))
-        .slice(0, 8)
-        .map(ps => ({
-          idPesanan: ps.IDPesanan, panitia: ps.Panitia, namaGuru: ps.NamaGuru, kelas: ps.Kelas,
-          tajukEksperimen: ps.TajukEksperimen, tarikhDiperlukan: ps.TarikhDiperlukan, status: ps.Status
-        }))
-    };
+    ringkasanPesananMakmal = ringkasanPesananDaripadaSenarai(semuaPesanan);
+  } else if (sesi.peranan === ROLE_PEMBANTU_MAKMAL) {
+    // Pembantu Makmal biasa hanya nampak ringkasan bagi Makmal yang dijaganya sendiri.
+    const pesananMakmalSaya = semuaPesanan.filter(ps => (sesi.makmal || []).indexOf(ps.Makmal) !== -1);
+    ringkasanPesananMakmal = ringkasanPesananDaripadaSenarai(pesananMakmalSaya);
   }
 
   return jaya({ ringkasanPanitia, tindakanSaya, jumlahPenggunaAktif, ringkasanPesananMakmal });
+}
+
+function ringkasanPesananDaripadaSenarai(senarai) {
+  return {
+    menunggu: senarai.filter(ps => ps.Status === STATUS_PESANAN_MENUNGGU).length,
+    dalamProses: senarai.filter(ps => ps.Status === STATUS_PESANAN_DALAM_PROSES).length,
+    siap: senarai.filter(ps => ps.Status === STATUS_PESANAN_SIAP).length,
+    terkini: senarai
+      .filter(ps => ps.Status === STATUS_PESANAN_MENUNGGU || ps.Status === STATUS_PESANAN_DALAM_PROSES)
+      .sort((a, b) => String(a.TarikhDiperlukan).localeCompare(String(b.TarikhDiperlukan)))
+      .slice(0, 8)
+      .map(ps => ({
+        idPesanan: ps.IDPesanan, panitia: ps.Panitia, makmal: ps.Makmal, namaGuru: ps.NamaGuru, kelas: ps.Kelas,
+        tajukEksperimen: ps.TajukEksperimen, tarikhDiperlukan: ps.TarikhDiperlukan, status: ps.Status
+      }))
+  };
 }
