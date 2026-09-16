@@ -43,22 +43,36 @@ function hantarNotifikasiTindakanTertunggak() {
   });
 }
 
-/* Satu e-mel setiap Pembantu Makmal/Admin/Ketua Bidang aktif jika ada
-   Pesanan Radas & Bahan Makmal berstatus Menunggu (merentasi semua panitia). */
+/* Satu e-mel setiap penerima aktif jika ada Pesanan Radas & Bahan Makmal berstatus
+   Menunggu YANG RELEVAN kepadanya — Admin/Ketua Bidang/Ketua Pembantu Makmal menerima
+   senarai PENUH merentasi semua Makmal; Pembantu Makmal biasa hanya menerima pesanan
+   bagi Makmal yang dijaganya sendiri (USERS.MakmalDijaga). */
 function hantarNotifikasiPesananMenunggu() {
   const menunggu = bacaSheetSebagaiObjek(SHEET_PESANAN_MAKMAL).filter(ps => ps.Status === STATUS_PESANAN_MENUNGGU);
   if (!menunggu.length) return;
 
-  const penerima = bacaSheetSebagaiObjek(SHEET_USERS)
-    .filter(u => PERANAN_LIHAT_SEMUA_PESANAN.indexOf(u.Peranan) !== -1 && String(u.Status).toUpperCase() === 'AKTIF' && u.Emel);
-  if (!penerima.length) return;
+  const penggunaAktif = bacaSheetSebagaiObjek(SHEET_USERS)
+    .filter(u => String(u.Status).toUpperCase() === 'AKTIF' && u.Emel);
 
-  const badan = 'Salam,\n\n' +
-    'Terdapat ' + menunggu.length + ' Pesanan Radas & Bahan Makmal menunggu tindakan di Sistem E-Bidang:\n\n' +
-    menunggu.map(ps => '- [' + ps.Panitia + '] ' + ps.TajukEksperimen + ' (' + ps.Kelas + ') — diperlukan ' + ps.TarikhDiperlukan + ', oleh ' + ps.NamaGuru).join('\n') +
-    '\n\nSila log masuk ke Sistem E-Bidang untuk memproses pesanan.\n\n— E-Bidang Sains & Matematik, SMK Asajaya';
+  penggunaAktif.forEach(u => {
+    let senarai;
+    if (PERANAN_LIHAT_SEMUA_PESANAN.indexOf(u.Peranan) !== -1) {
+      senarai = menunggu;
+    } else if (u.Peranan === ROLE_PEMBANTU_MAKMAL) {
+      const makmalSendiri = senaraiDaripadaMedan(u.MakmalDijaga);
+      senarai = menunggu.filter(ps => makmalSendiri.indexOf(ps.Makmal) !== -1);
+    } else {
+      return;
+    }
+    if (!senarai.length) return;
 
-  penerima.forEach(u => MailApp.sendEmail(u.Emel, 'Peringatan: ' + menunggu.length + ' Pesanan Makmal Menunggu Tindakan', badan));
+    const badan = 'Salam ' + u.NamaPenuh + ',\n\n' +
+      'Terdapat ' + senarai.length + ' Pesanan Radas & Bahan Makmal menunggu tindakan di Sistem E-Bidang:\n\n' +
+      senarai.map(ps => '- [' + ps.Makmal + '] ' + ps.TajukEksperimen + ' (' + ps.Kelas + ') — diperlukan ' + ps.TarikhDiperlukan + ', oleh ' + ps.NamaGuru).join('\n') +
+      '\n\nSila log masuk ke Sistem E-Bidang untuk memproses pesanan.\n\n— E-Bidang Sains & Matematik, SMK Asajaya';
+
+    MailApp.sendEmail(u.Emel, 'Peringatan: ' + senarai.length + ' Pesanan Makmal Menunggu Tindakan', badan);
+  });
 }
 
 const LABEL_STATUS_TINDAKAN_EMEL = { BELUM_MULA: 'Belum Mula', DALAM_PROSES: 'Dalam Proses', SELESAI: 'Selesai' };

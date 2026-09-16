@@ -5,7 +5,7 @@
  * sentiasa di server — jangan benarkan frontend sahaja menentukan akses.
  * ========================================================================= */
 
-const HEADER_USERS = ['NoKP', 'Password', 'Peranan', 'NamaPenuh', 'Panitia', 'MestiTukarPassword', 'Status', 'Emel'];
+const HEADER_USERS = ['NoKP', 'Password', 'Peranan', 'NamaPenuh', 'Panitia', 'MestiTukarPassword', 'Status', 'Emel', 'MakmalDijaga'];
 
 /* ------------------------- KATA LALUAN ------------------------- */
 function cincangKataLaluan(kataLaluan) {
@@ -25,7 +25,8 @@ function ciptaSesi(pengguna) {
     nokp: pengguna.NoKP,
     nama: pengguna.NamaPenuh,
     peranan: pengguna.Peranan,
-    panitia: senaraiPanitiaDaripadaMedan(pengguna.Panitia)
+    panitia: senaraiPanitiaDaripadaMedan(pengguna.Panitia),
+    makmal: senaraiDaripadaMedan(pengguna.MakmalDijaga)
   }), TEMPOH_SESI_SAAT);
   return token;
 }
@@ -72,6 +73,7 @@ function apiLogin(p) {
     nama: pengguna.NamaPenuh,
     peranan: pengguna.Peranan,
     panitia: senaraiPanitiaDaripadaMedan(pengguna.Panitia),
+    makmal: senaraiDaripadaMedan(pengguna.MakmalDijaga),
     mestiTukarPassword: String(pengguna.MestiTukarPassword).toUpperCase() === 'YA'
   });
 }
@@ -79,7 +81,7 @@ function apiLogin(p) {
 function apiSemakSesi(p) {
   const sesi = sahkanSesi(p.token);
   if (!sesi) return ralat('Sesi tamat tempoh. Sila log masuk semula.');
-  return jaya({ nama: sesi.nama, peranan: sesi.peranan, panitia: sesi.panitia });
+  return jaya({ nama: sesi.nama, peranan: sesi.peranan, panitia: sesi.panitia, makmal: sesi.makmal });
 }
 
 function apiLogout(p) {

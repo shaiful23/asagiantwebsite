@@ -22,7 +22,8 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   | `KETUA_BIDANG` | Penuh — semua panitia, urus pengguna, log audit |
   | `KETUA_PANITIA` | Terhad kepada panitia sendiri (boleh > 1); boleh urus mesyuarat, tindakan susulan, program & fail bagi setiap panitia dalam senarai panitia sendiri |
   | `GURU` | Terhad kepada panitia sendiri (boleh > 1); boleh muat naik/lihat fail, lihat mesyuarat/program, kemaskini status tindakan yang ditugaskan kepadanya |
-  | `PEMBANTU_MAKMAL` | Tiada panitia sendiri; lihat & proses Pesanan Radas & Bahan Makmal merentasi SEMUA panitia makmal (Sains/Kimia/Biologi/Fizik) sahaja — tiada akses ke Dokumen/Mesyuarat/Program/Panitia/Pengguna/Audit |
+  | `PEMBANTU_MAKMAL` | Tiada panitia sendiri; lihat & proses Pesanan Radas & Bahan Makmal bagi Makmal yang **dijaganya sendiri** (`USERS.MakmalDijaga`, boleh > 1) sahaja — tidak nampak pesanan bagi Makmal lain, tiada akses ke Dokumen/Mesyuarat/Program/Panitia/Pengguna/Audit |
+  | `KETUA_PEMBANTU_MAKMAL` | Tiada panitia sendiri; lihat & proses Pesanan Radas & Bahan Makmal merentasi **SEMUA** Makmal (penyelia makmal) — tiada akses ke Dokumen/Mesyuarat/Program/Panitia/Pengguna/Audit |
 
 - **Sokongan pertindihan peranan & > 1 panitia** — seorang guru yang mengajar
   lebih daripada satu mata pelajaran (cth. Kimia & Sains, atau Matematik &
@@ -51,22 +52,32 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   serta senarai tindakan susulan peribadi.
 - **Log Audit** — setiap tindakan TAMBAH/KEMASKINI/PADAM/LOGIN/tukar kata
   laluan direkod (Admin/Ketua Bidang sahaja boleh semak).
+- **Format paparan tarikh** — semua tarikh yang dipaparkan di UI (jadual,
+  dashboard, log audit, borang cetak) dipaparkan dalam format **dd/MM/yyyy**
+  (cth. 16/09/2026). Ini hanya format paparan — nilai disimpan dalam Sheet
+  dan medan `<input type="date">` kekal format ISO (yyyy-MM-dd) seperti biasa,
+  supaya penyusunan/perbandingan tarikh di pelayan tidak terjejas.
 - **Pesanan Radas & Bahan Makmal** (Panitia Sains/Kimia/Biologi/Fizik sahaja —
   Matematik tidak menjalankan eksperimen makmal) — Guru/Ketua Panitia
   panitia berkenaan (atau Admin/Ketua Bidang, bagi mana-mana panitia makmal)
-  membuat pesanan (pilih Panitia jika > 1 pilihan, kelas, tajuk eksperimen,
-  tarikh diperlukan, senarai bahan/radas dengan kuantiti & unit, baris boleh
-  ditambah/dibuang secara dinamik). Peranan `PEMBANTU_MAKMAL` (+
-  Admin/Ketua Bidang) melihat & memproses pesanan merentasi semua panitia
-  makmal, menukar status (Menunggu → Dalam Proses → Siap, atau Ditolak) dan
-  mencatat nota pemprosesan. Pemohon (atau Ketua Panitia/Admin/Ketua Bidang
+  membuat pesanan (pilih Panitia jika > 1 pilihan, **Makmal** — satu daripada
+  Makmal Sains 1/2/3/4, kelas, tajuk eksperimen, tarikh diperlukan, **masa
+  mula & masa tamat** penggunaan makmal, senarai bahan/radas dengan kuantiti
+  & unit, baris boleh ditambah/dibuang secara dinamik).
+  **Penyaluran mengikut Makmal:** setiap pesanan disalurkan HANYA kepada
+  Pembantu Makmal yang dijaga kepada Makmal yang dipilih itu (`USERS.MakmalDijaga`)
+  — Pembantu Makmal lain tidak nampak pesanan tersebut. Peranan
+  `KETUA_PEMBANTU_MAKMAL` (+ Admin/Ketua Bidang) melihat & memproses SEMUA
+  pesanan merentasi semua Makmal/panitia. Sesiapa yang boleh melihat/memproses
+  pesanan boleh menukar status (Menunggu → Dalam Proses → Siap, atau Ditolak)
+  dan mencatat nota pemprosesan. Pemohon (atau Ketua Panitia/Admin/Ketua Bidang
   bagi panitia berkenaan) boleh **menyunting atau membatalkan** pesanan
   sendiri selagi masih berstatus Menunggu — selepas pemprosesan bermula,
   pembetulan perlu dibuat terus bersama Pembantu Makmal. **Borang formal**
-  (dengan logo sekolah, no. rujukan, jadual bahan/radas, dan blok
-  tandatangan Guru/Ketua Panitia/Pembantu Makmal) dijana terus di pelayar
-  dan dicetak/dimuat turun sebagai PDF melalui dialog cetak pelayar (butang
-  "Cetak / PDF").
+  (dengan logo sekolah, no. rujukan, Makmal & masa, jadual bahan/radas, dan
+  blok tandatangan Guru/Ketua Panitia/Pembantu Makmal) dijana terus di
+  pelayar dan dicetak/dimuat turun sebagai PDF melalui dialog cetak pelayar
+  (butang "Cetak / PDF").
 - **Kalendar Bersepadu (Google Calendar)** — setiap Mesyuarat dan Program/PLC
   disegerakkan secara automatik sebagai *event* sehari (atau julat hari bagi
   Program dengan Tarikh Tamat) ke satu Kalendar Google khusus bernama
@@ -79,8 +90,10 @@ sebagai database dan Google Apps Script sebagai backend + frontend
 - **Notifikasi E-mel Harian** — pencetus terjadual (diaktifkan sekali melalui
   menu Sheet) menghantar e-mel setiap hari lebih kurang jam 7 pagi kepada:
   (a) guru/ketua panitia yang mempunyai **Tindakan Susulan** tertunggak/tamat
-  tempoh, dan (b) Pembantu Makmal/Admin/Ketua Bidang jika ada **Pesanan
-  Makmal** berstatus Menunggu. Hanya pengguna dengan lajur **Emel** diisi
+  tempoh, dan (b) sesiapa yang boleh memproses **Pesanan Makmal** berstatus
+  Menunggu — Admin/Ketua Bidang/Ketua Pembantu Makmal menerima senarai PENUH
+  merentasi semua Makmal, Pembantu Makmal biasa hanya menerima pesanan bagi
+  Makmal yang dijaganya sendiri. Hanya pengguna dengan lajur **Emel** diisi
   (menu Pengguna) akan menerima notifikasi — pengguna lain dilangkau senyap.
 
 ## Struktur
@@ -96,7 +109,8 @@ sebagai database dan Google Apps Script sebagai backend + frontend
 - `MeetingService.gs` — mesyuarat, kehadiran, tindakan susulan.
 - `ProgramService.gs` — program/PLC & evidens.
 - `PesananMakmalService.gs` — Pesanan Radas & Bahan Makmal (cipta/sunting/batal
-  oleh Guru/Ketua Panitia; kemaskini status/padam oleh Pembantu Makmal/Admin/Ketua Bidang).
+  oleh Guru/Ketua Panitia; kemaskini status oleh Pembantu Makmal — Makmal sendiri
+  sahaja — atau Ketua Pembantu Makmal/Admin/Ketua Bidang; padam oleh Admin/Ketua Bidang).
 - `CalendarService.gs` — cipta/kemaskini/padam *event* Google Calendar bagi
   Mesyuarat & Program (dipanggil dari MeetingService.gs/ProgramService.gs).
 - `NotifikasiService.gs` — e-mel harian (tindakan tertunggak + pesanan makmal
@@ -138,11 +152,15 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
 8. **Log masuk kali pertama** guna No. KP `000000000000` dan kata laluan
    `000000` (akaun "ADMIN CONTOH"). Sistem akan paksa tukar kata laluan.
 9. Tambah pengguna sebenar di menu **Pengguna** (No. KP, Nama, Peranan,
-   Panitia, dan **Emel** jika mahu pengguna itu menerima notifikasi e-mel).
-   Kata laluan lalai = 6 digit terakhir No. KP setiap pengguna. Padam/
-   nyahaktifkan akaun "ADMIN CONTOH" selepas admin sebenar ditambah. Tambah
-   sekurang-kurangnya seorang pengguna berperanan **Pembantu Makmal** untuk
-   memproses Pesanan Radas & Bahan.
+   Panitia, **Makmal Dijaga** bagi peranan Pembantu Makmal, dan **Emel** jika
+   mahu pengguna itu menerima notifikasi e-mel). Kata laluan lalai = 6 digit
+   terakhir No. KP setiap pengguna. Padam/nyahaktifkan akaun "ADMIN CONTOH"
+   selepas admin sebenar ditambah. Tambah sekurang-kurangnya seorang pengguna
+   berperanan **Pembantu Makmal** bagi SETIAP Makmal (Makmal Sains 1-4) yang
+   digunakan, dan tetapkan Makmal yang dijaganya di borang Pengguna — pesanan
+   hanya akan disalurkan kepada Pembantu Makmal yang dijaga kepada Makmal
+   berkenaan. Peranan **Ketua Pembantu Makmal** (pilihan) boleh ditambah untuk
+   melihat/memproses pesanan merentasi SEMUA Makmal.
 10. Tetapkan **Ketua Panitia** setiap panitia di menu **Panitia** (pengguna
     berkenaan mesti sudah didaftarkan dengan Panitia yang sepadan di menu
     Pengguna terlebih dahulu).
