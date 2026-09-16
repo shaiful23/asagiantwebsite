@@ -7,50 +7,73 @@
   <title>E-Bidang Sains &amp; Matematik</title>
   <style>
     :root {
-      --biru: #1d4ed8; --biru-gelap: #1e3a8a; --hijau: #15803d; --merah: #b91c1c;
+      --biru: #1d4ed8; --biru-gelap: #1e3a8a; --biru-terang: #0ea5e9; --hijau: #15803d; --merah: #b91c1c;
       --kuning: #b45309; --kelabu: #64748b; --latar: #f1f5f9; --kad: #ffffff; --sempadan: #e2e8f0;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: var(--latar); color: #0f172a; }
+    body { margin: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: var(--latar); color: #0f172a; -webkit-font-smoothing: antialiased; }
     button { cursor: pointer; font-family: inherit; }
-    input, select, textarea { font-family: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--sempadan); border-radius: 6px; width: 100%; }
-    .btn { border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; font-weight: 600; background: var(--biru); color: #fff; }
-    .btn:hover { background: var(--biru-gelap); }
-    .btn.kecil { padding: 4px 10px; font-size: 12px; }
-    .btn.merah { background: var(--merah); } .btn.merah:hover { background: #7f1d1d; }
-    .btn.kelabu { background: var(--kelabu); } .btn.kelabu:hover { background: #475569; }
-    .btn.luar { background: #fff; color: var(--biru); border: 1px solid var(--biru); }
+    input, select, textarea { font-family: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--sempadan); border-radius: 6px; width: 100%; transition: border-color .15s ease, box-shadow .15s ease; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--biru); box-shadow: 0 0 0 3px rgba(29,78,216,.14); }
+    a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--biru); outline-offset: 2px; border-radius: 4px; }
+
+    .ikon { width: 16px; height: 16px; flex-shrink: 0; vertical-align: -3px; margin-right: 6px; }
+    .ikon-h3 { width: 18px; height: 18px; vertical-align: -4px; margin-right: 8px; color: var(--biru); }
+    .ikon-sahaja { margin-right: 0; }
+
+    .btn { display: inline-flex; align-items: center; border: none; border-radius: 7px; padding: 8px 14px; font-size: 14px; font-weight: 600; background: var(--biru); color: #fff; box-shadow: 0 1px 2px rgba(29,78,216,.3); transition: background-color .15s ease, box-shadow .15s ease, transform .1s ease; }
+    .btn:hover { background: var(--biru-gelap); box-shadow: 0 4px 10px rgba(29,78,216,.32); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(29,78,216,.3); }
+    .btn.kecil { padding: 5px 10px; font-size: 12px; box-shadow: none; }
+    .btn.kecil:hover { transform: none; box-shadow: none; }
+    .btn.merah { background: var(--merah); box-shadow: 0 1px 2px rgba(185,28,28,.3); } .btn.merah:hover { background: #7f1d1d; box-shadow: 0 4px 10px rgba(185,28,28,.32); }
+    .btn.kelabu { background: var(--kelabu); box-shadow: 0 1px 2px rgba(100,116,139,.3); } .btn.kelabu:hover { background: #475569; box-shadow: 0 4px 10px rgba(100,116,139,.32); }
+    .btn.luar { background: #fff; color: var(--biru); border: 1px solid var(--sempadan); box-shadow: none; } .btn.luar:hover { border-color: var(--biru); background: #eff6ff; box-shadow: none; transform: none; }
     .hidden { display: none !important; }
 
     /* ---------- Log Masuk ---------- */
     #skrinLogin { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--biru-gelap), var(--hijau)); }
-    .kad-login { background: #fff; padding: 32px 28px; border-radius: 12px; width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
-    .kad-login h1 { font-size: 18px; margin: 0 0 4px; color: var(--biru-gelap); }
-    .kad-login p.sub { margin: 0 0 20px; font-size: 13px; color: var(--kelabu); }
+    .kad-login { background: #fff; padding: 32px 28px; border-radius: 16px; width: 340px; box-shadow: 0 20px 45px rgba(2,6,23,.35); }
+    .logo-login { width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, var(--biru), var(--biru-terang)); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 8px 18px rgba(29,78,216,.35); }
+    .logo-login svg { width: 28px; height: 28px; color: #fff; }
+    .kad-login h1 { font-size: 18px; margin: 0 0 4px; color: var(--biru-gelap); text-align: center; }
+    .kad-login p.sub { margin: 0 0 22px; font-size: 13px; color: var(--kelabu); text-align: center; }
     .medan { margin-bottom: 14px; }
     .medan label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
     .ralat-login { color: var(--merah); font-size: 13px; margin-top: 10px; min-height: 16px; }
 
     /* ---------- Rangka Aplikasi ---------- */
     #aplikasi { display: flex; min-height: 100vh; }
-    #bilahSisi { width: 230px; background: var(--biru-gelap); color: #fff; flex-shrink: 0; padding: 18px 0; }
-    #bilahSisi h2 { font-size: 15px; padding: 0 18px 14px; margin: 0; border-bottom: 1px solid rgba(255,255,255,.15); }
-    .item-nav { display: block; padding: 11px 18px; color: #cbd5e1; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+    #bilahSisi { width: 240px; background: linear-gradient(180deg, var(--biru-gelap), #16265c); color: #fff; flex-shrink: 0; padding: 18px 0; }
+    #bilahSisi .jenama { display: flex; align-items: center; gap: 10px; padding: 0 18px 16px; margin: 0 0 4px; border-bottom: 1px solid rgba(255,255,255,.15); }
+    #bilahSisi .jenama .lambang { width: 34px; height: 34px; border-radius: 9px; background: rgba(255,255,255,.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    #bilahSisi .jenama .lambang svg { width: 20px; height: 20px; color: #7dd3fc; }
+    #bilahSisi .jenama span { font-size: 14px; font-weight: 700; line-height: 1.25; }
+    .item-nav { display: flex; align-items: center; gap: 10px; padding: 11px 18px; color: #cbd5e1; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; transition: background-color .15s ease, color .15s ease; }
+    .item-nav svg { opacity: .8; transition: opacity .15s ease; }
     .item-nav:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .item-nav:hover svg { opacity: 1; }
     .item-nav.aktif { background: rgba(255,255,255,.12); color: #fff; border-left-color: #facc15; font-weight: 600; }
+    .item-nav.aktif svg { opacity: 1; color: #facc15; }
     #kawasanUtama { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-    #barAtas { background: #fff; border-bottom: 1px solid var(--sempadan); padding: 12px 22px; display: flex; justify-content: space-between; align-items: center; }
-    #barAtas .info-pengguna { font-size: 13px; color: var(--kelabu); }
+    #barAtas { background: #fff; border-bottom: 1px solid var(--sempadan); padding: 12px 22px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(15,23,42,.03); position: sticky; top: 0; z-index: 20; }
+    #barAtas .info-pengguna { font-size: 13px; color: var(--kelabu); display: flex; align-items: center; gap: 10px; }
     #barAtas .info-pengguna b { color: #0f172a; }
+    .avatar-inisial { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--biru), var(--biru-terang)); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
     #kandungan { padding: 22px; overflow-x: auto; }
 
-    .kad { background: var(--kad); border: 1px solid var(--sempadan); border-radius: 10px; padding: 18px; margin-bottom: 18px; }
-    .kad h3 { margin: 0 0 14px; font-size: 15px; color: var(--biru-gelap); }
+    .kad { background: var(--kad); border: 1px solid var(--sempadan); border-radius: 12px; padding: 18px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(15,23,42,.05); transition: box-shadow .2s ease, border-color .2s ease; }
+    .kad:hover { box-shadow: 0 8px 20px rgba(15,23,42,.08); border-color: #cbd5e1; }
+    .kad h3 { margin: 0 0 14px; font-size: 15px; color: var(--biru-gelap); display: flex; align-items: center; }
     .grid-kad { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    .kad-statistik { cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .kad-statistik:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rgba(29,78,216,.16); border-color: var(--biru-terang); }
+    .kad-statistik.tanpa-aksi { cursor: default; }
+    .kad-statistik.tanpa-aksi:hover { transform: none; box-shadow: 0 8px 20px rgba(15,23,42,.08); border-color: #cbd5e1; }
     .kad-statistik .label { font-size: 12px; color: var(--kelabu); text-transform: uppercase; letter-spacing: .03em; }
     .kad-statistik .nilai { font-size: 26px; font-weight: 700; color: var(--biru-gelap); margin: 6px 0; }
     .bar-progres { background: #e2e8f0; border-radius: 6px; height: 8px; overflow: hidden; margin-top: 6px; }
-    .bar-progres > div { height: 100%; background: var(--hijau); }
+    .bar-progres > div { height: 100%; background: var(--hijau); transition: width .4s ease; }
 
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--sempadan); vertical-align: top; }
@@ -78,10 +101,14 @@
 
     @media (max-width: 820px) {
       #aplikasi { flex-direction: column; }
-      #bilahSisi { width: 100%; display: flex; overflow-x: auto; padding: 10px; }
-      #bilahSisi h2 { display: none; }
+      #bilahSisi { width: 100%; display: flex; align-items: center; overflow-x: auto; padding: 10px; }
+      #bilahSisi .jenama { border-bottom: none; border-right: 1px solid rgba(255,255,255,.15); padding: 0 14px 0 4px; margin: 0 8px 0 0; flex-shrink: 0; }
+      #bilahSisi .jenama span { display: none; }
       .item-nav { padding: 8px 12px; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; }
       .item-nav.aktif { border-left-color: transparent; border-bottom-color: #facc15; }
+      .item-nav span:last-child { display: none; }
+      #barAtas { flex-wrap: wrap; gap: 8px 14px; padding: 10px 14px; }
+      #barAtas .info-pengguna { flex-wrap: wrap; row-gap: 6px; }
       .grid-borang { grid-template-columns: 1fr; }
     }
   </style>
@@ -91,6 +118,14 @@
   <!-- ============================ LOG MASUK ============================ -->
   <div id="skrinLogin">
     <form class="kad-login" id="borangLogin">
+      <div class="logo-login">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <ellipse cx="12" cy="12" rx="9.5" ry="4"/>
+          <ellipse cx="12" cy="12" rx="9.5" ry="4" transform="rotate(60 12 12)"/>
+          <ellipse cx="12" cy="12" rx="9.5" ry="4" transform="rotate(120 12 12)"/>
+          <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
       <h1>E-Bidang Sains &amp; Matematik</h1>
       <p class="sub">SMK Asajaya — Sistem Pengurusan Fail Panitia</p>
       <div class="medan">
@@ -129,22 +164,34 @@
   <!-- ============================ APLIKASI ============================ -->
   <div id="aplikasi" class="hidden">
     <div id="bilahSisi">
-      <h2>E-Bidang Sains &amp; Matematik</h2>
-      <a href="#" class="item-nav" data-view="dashboard">📊 Dashboard</a>
-      <a href="#" class="item-nav" data-view="dokumen">🗂️ Fail &amp; Dokumen</a>
-      <a href="#" class="item-nav" data-view="mesyuarat">🗓️ Mesyuarat</a>
-      <a href="#" class="item-nav" data-view="tindakan">✅ Tindakan Susulan</a>
-      <a href="#" class="item-nav" data-view="program">🎯 Program &amp; PLC</a>
-      <a href="#" class="item-nav" data-view="panitia" id="navPanitia">🏫 Panitia</a>
-      <a href="#" class="item-nav" data-view="pengguna" id="navPengguna">👤 Pengguna</a>
-      <a href="#" class="item-nav" data-view="audit" id="navAudit">📜 Log Audit</a>
+      <div class="jenama">
+        <span class="lambang">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <ellipse cx="12" cy="12" rx="9.5" ry="4"/>
+            <ellipse cx="12" cy="12" rx="9.5" ry="4" transform="rotate(60 12 12)"/>
+            <ellipse cx="12" cy="12" rx="9.5" ry="4" transform="rotate(120 12 12)"/>
+            <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+          </svg>
+        </span>
+        <span>E-Bidang<br>Sains &amp; Matematik</span>
+      </div>
+      <a href="#" class="item-nav" data-view="dashboard" aria-label="Dashboard"><span class="nav-ikon"></span><span>Dashboard</span></a>
+      <a href="#" class="item-nav" data-view="dokumen" aria-label="Fail &amp; Dokumen"><span class="nav-ikon"></span><span>Fail &amp; Dokumen</span></a>
+      <a href="#" class="item-nav" data-view="mesyuarat" aria-label="Mesyuarat"><span class="nav-ikon"></span><span>Mesyuarat</span></a>
+      <a href="#" class="item-nav" data-view="tindakan" aria-label="Tindakan Susulan"><span class="nav-ikon"></span><span>Tindakan Susulan</span></a>
+      <a href="#" class="item-nav" data-view="program" aria-label="Program &amp; PLC"><span class="nav-ikon"></span><span>Program &amp; PLC</span></a>
+      <a href="#" class="item-nav" data-view="panitia" id="navPanitia" aria-label="Panitia"><span class="nav-ikon"></span><span>Panitia</span></a>
+      <a href="#" class="item-nav" data-view="pengguna" id="navPengguna" aria-label="Pengguna"><span class="nav-ikon"></span><span>Pengguna</span></a>
+      <a href="#" class="item-nav" data-view="audit" id="navAudit" aria-label="Log Audit"><span class="nav-ikon"></span><span>Log Audit</span></a>
     </div>
     <div id="kawasanUtama">
       <div id="barAtas">
         <div class="info-pengguna">Panitia semasa: <b id="labelPanitiaAktif">-</b></div>
-        <div class="info-pengguna"><b id="labelNamaPengguna"></b> (<span id="labelPerananPengguna"></span>) &nbsp;
-          <button class="btn kecil kelabu" id="btnTukarPasswordSendiri">Tukar Kata Laluan</button>
-          <button class="btn kecil merah" id="btnLogout">Log Keluar</button>
+        <div class="info-pengguna">
+          <span class="avatar-inisial" id="avatarPengguna"></span>
+          <span><b id="labelNamaPengguna"></b> (<span id="labelPerananPengguna"></span>)</span>
+          <button class="btn kecil kelabu" id="btnTukarPasswordSendiri"></button>
+          <button class="btn kecil merah" id="btnLogout"></button>
         </div>
       </div>
       <div id="kandungan"></div>
@@ -167,6 +214,39 @@ let TOKEN = sessionStorage.getItem('ebidang_token') || null;
 let SESI = null;
 let KATA_LALUAN_SEMENTARA = '';
 let PANITIA_AKTIF = null;
+
+/* ------------------------- IKON SVG (satu sumber untuk seluruh SPA) ------------------------- */
+const LALUAN_IKON = {
+  dashboard: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+  dokumen: '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H13l5 5v12.5A1.5 1.5 0 0 1 16.5 22h-11A1.5 1.5 0 0 1 4 20.5v-16Z"/><path d="M13 3v5h5"/>',
+  mesyuarat: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
+  tindakan: '<path d="M9 12.5 11.2 15 16 9"/><circle cx="12" cy="12" r="9"/>',
+  program: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".9" fill="currentColor" stroke="none"/>',
+  panitia: '<path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M6.5 10.5V16c0 1.4 2.5 2.5 5.5 2.5s5.5-1.1 5.5-2.5v-5.5"/>',
+  pengguna: '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
+  audit: '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3h9L20 8.5V19.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-15Z"/><path d="M14 3v5.5H20M8 12h8M8 15.5h5"/>',
+  tambah: '<path d="M12 5v14M5 12h14"/>',
+  muatNaik: '<path d="M12 15.5V4.5M8 8.5l4-4 4 4"/><path d="M4.5 15.5v3A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-3"/>',
+  sunting: '<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4.2 1.2L4 16Z"/>',
+  padam: '<path d="M4 7h16M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7m-8 0 .8 12.1A2 2 0 0 0 9.8 21h4.4a2 2 0 0 0 2-1.9L17 7"/>',
+  lihat: '<path d="M14 4h6v6M20 4 11 13"/><path d="M9 5H6.5A1.5 1.5 0 0 0 5 6.5v11A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5V15"/>',
+  kunci: '<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',
+  keluar: '<path d="M9 21H5.5A1.5 1.5 0 0 1 4 19.5v-15A1.5 1.5 0 0 1 5.5 3H9"/><path d="M16 17l5-5-5-5M21 12H9"/>',
+  kalendar: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
+  jam: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v5l3 2"/>',
+  senaraiSemak: '<path d="M9 12.5 11.2 15 16 9"/><circle cx="12" cy="12" r="9"/>',
+  bangunan: '<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M9 8h1.5M13.5 8H15M9 12h1.5M13.5 12H15M9 16h1.5M13.5 16H15"/>',
+  togol: '<path d="M12 4v7"/><path d="M7.5 6.5a7 7 0 1 0 9 0"/>'
+};
+function ikon(nama, kelasTambahan) {
+  return `<svg class="ikon ${kelasTambahan || ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${LALUAN_IKON[nama] || ''}</svg>`;
+}
+
+document.querySelectorAll('.item-nav .nav-ikon').forEach(span => {
+  span.innerHTML = ikon(span.closest('.item-nav').dataset.view);
+});
+document.getElementById('btnTukarPasswordSendiri').innerHTML = ikon('kunci') + 'Tukar Kata Laluan';
+document.getElementById('btnLogout').innerHTML = ikon('keluar') + 'Log Keluar';
 
 function panggil(namaFungsi, param) {
   return new Promise((selesai, gagal) => {
@@ -228,7 +308,7 @@ document.getElementById('borangTukarPassword').addEventListener('submit', functi
 });
 
 document.getElementById('btnTukarPasswordSendiri').addEventListener('click', () => {
-  bukaModal('Tukar Kata Laluan', `
+  bukaModal(ikon('kunci', 'ikon-h3') + 'Tukar Kata Laluan', `
     <form id="borangTukarPasswordSendiri">
       <div class="medan"><label>Kata Laluan Semasa</label><input type="password" name="lama" required></div>
       <div class="medan"><label>Kata Laluan Baharu</label><input type="password" name="baharu" minlength="6" required></div>
@@ -257,6 +337,7 @@ function mulakanApp() {
   document.getElementById('aplikasi').classList.remove('hidden');
   document.getElementById('labelNamaPengguna').textContent = SESI.nama;
   document.getElementById('labelPerananPengguna').textContent = LABEL_PERANAN[SESI.peranan] || SESI.peranan;
+  document.getElementById('avatarPengguna').textContent = inisialDaripadaNama(SESI.nama);
 
   const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
   document.getElementById('navPanitia').classList.toggle('hidden', !aksesPenuh);
@@ -316,6 +397,19 @@ function pilihanPanitiaHtml(namaAtribut, nilaiSemasa) {
 
 function selEmpangan(baris) { return baris === undefined || baris === null ? '' : baris; }
 
+function inisialDaripadaNama(nama) {
+  const perkataan = String(nama || '').trim().split(/\s+/).filter(Boolean);
+  if (!perkataan.length) return '?';
+  return (perkataan[0][0] + (perkataan.length > 1 ? perkataan[perkataan.length - 1][0] : '')).toUpperCase();
+}
+
+/* Kad ringkasan panitia di Dashboard boleh diklik terus ke Fail & Dokumen panitia berkenaan. */
+function bukaPanitiaDariDashboard(namaPanitia) {
+  PANITIA_AKTIF = namaPanitia;
+  document.getElementById('labelPanitiaAktif').textContent = namaPanitia;
+  navigasi('dokumen');
+}
+
 /* Selektor Panitia (ADMIN/KETUA_BIDANG sahaja) — dipaparkan di atas setiap view berkenaan. */
 function pemilihPanitiaHtml() {
   const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
@@ -335,18 +429,21 @@ function pasangPemilihPanitia(muatSemula) {
 /* ============================ DASHBOARD ============================ */
 function paparDashboard() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = '<div class="kad"><h3>Ringkasan Kelengkapan Fail Panitia</h3><div id="gridRingkasan" class="grid-kad"></div></div>' +
-    '<div class="kad"><h3>Tindakan Susulan Saya (Belum Selesai)</h3><div id="jadualTindakanSaya"></div></div>';
+  k.innerHTML = `<div class="kad"><h3>${ikon('dashboard', 'ikon-h3')}Ringkasan Kelengkapan Fail Panitia</h3><p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Klik kad panitia untuk terus ke Fail &amp; Dokumen.</p><div id="gridRingkasan" class="grid-kad"></div></div>` +
+    `<div class="kad"><h3>${ikon('senaraiSemak', 'ikon-h3')}Tindakan Susulan Saya (Belum Selesai)</h3><div id="jadualTindakanSaya"></div></div>`;
   panggilApi('apiDashboard').then(hasil => {
     document.getElementById('gridRingkasan').innerHTML = hasil.ringkasanPanitia.map(r => `
-      <div class="kad kad-statistik" style="margin-bottom:0">
+      <div class="kad kad-statistik" style="margin-bottom:0" onclick="bukaPanitiaDariDashboard('${r.panitia}')" tabindex="0" role="button" aria-label="Buka Fail &amp; Dokumen ${r.panitia}">
         <div class="label">${r.panitia}</div>
         <div class="nilai">${r.jumlahDokumen} <span style="font-size:12px;color:var(--kelabu)">dokumen</span></div>
         <div style="font-size:12px;color:var(--kelabu)">Checklist wajib lengkap: ${r.peratusChecklist}%</div>
         <div class="bar-progres"><div style="width:${r.peratusChecklist}%"></div></div>
-        <div style="font-size:12px;margin-top:8px">🗓️ ${r.mesyuaratAkanDatang} mesyuarat akan datang · ✅ ${r.tindakanTertunggak} tindakan tertunggak</div>
+        <div style="font-size:12px;margin-top:8px;color:var(--kelabu)">${ikon('kalendar', 'ikon-sahaja')} ${r.mesyuaratAkanDatang} akan datang &nbsp; ${ikon('senaraiSemak', 'ikon-sahaja')} ${r.tindakanTertunggak} tertunggak</div>
       </div>`).join('') + (hasil.jumlahPenggunaAktif !== null ? `
-      <div class="kad kad-statistik" style="margin-bottom:0"><div class="label">Pengguna Aktif</div><div class="nilai">${hasil.jumlahPenggunaAktif}</div></div>` : '');
+      <div class="kad kad-statistik tanpa-aksi" style="margin-bottom:0"><div class="label">Pengguna Aktif</div><div class="nilai">${hasil.jumlahPenggunaAktif}</div></div>` : '');
+    document.querySelectorAll('#gridRingkasan .kad-statistik:not(.tanpa-aksi)').forEach(el => {
+      el.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); el.click(); } });
+    });
 
     document.getElementById('jadualTindakanSaya').innerHTML = hasil.tindakanSaya.length ? `<table><thead><tr>
       <th>Panitia</th><th>Perkara</th><th>Tarikh Akhir</th><th>Status</th></tr></thead><tbody>` +
@@ -360,9 +457,9 @@ function paparDashboard() {
 function paparDokumen() {
   const k = document.getElementById('kandungan');
   k.innerHTML = `
-    <div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn" id="btnMuatNaikDokumen">+ Muat Naik Dokumen</button></div>
-    <div class="kad"><h3>Checklist Kelengkapan Fail</h3><div id="jadualChecklist"></div></div>
-    <div class="kad"><h3>Senarai Dokumen</h3><div id="jadualDokumen"></div></div>`;
+    <div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn" id="btnMuatNaikDokumen">${ikon('muatNaik')}Muat Naik Dokumen</button></div>
+    <div class="kad"><h3>${ikon('senaraiSemak', 'ikon-h3')}Checklist Kelengkapan Fail</h3><div id="jadualChecklist"></div></div>
+    <div class="kad"><h3>${ikon('dokumen', 'ikon-h3')}Senarai Dokumen</h3><div id="jadualDokumen"></div></div>`;
   pasangPemilihPanitia(muatSemulaDokumen);
   document.getElementById('btnMuatNaikDokumen').addEventListener('click', bukaBorangMuatNaikDokumen);
   muatSemulaDokumen();
@@ -383,16 +480,16 @@ function muatSemulaDokumen() {
       <th>Nama Dokumen</th><th>Kategori</th><th>Tarikh</th><th>Dimuat Naik Oleh</th><th>Fail</th><th>Catatan</th><th></th></tr></thead><tbody>` +
       dokumen.senarai.map(d => `<tr>
         <td>${d.namaDokumen}</td><td>${d.namaKategori}</td><td>${d.tarikhDokumen}</td><td>${d.dimuatNaikOleh}</td>
-        <td><a href="${d.failUrl}" target="_blank">Lihat Fail</a></td><td>${d.catatan || ''}</td>
-        <td><button class="btn kecil luar" onclick='bukaBorangSuntingDokumen(${JSON.stringify(d)})'>Sunting</button>
-          <button class="btn kecil merah" onclick="padamDokumen('${d.idDokumen}')">Padam</button></td>
+        <td><a href="${d.failUrl}" target="_blank">${ikon('lihat')}Lihat Fail</a></td><td>${d.catatan || ''}</td>
+        <td><button class="btn kecil luar" onclick='bukaBorangSuntingDokumen(${JSON.stringify(d)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamDokumen('${d.idDokumen}')">${ikon('padam')}Padam</button></td>
       </tr>`).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada dokumen lagi.</p>';
   });
 }
 
 function bukaBorangMuatNaikDokumen() {
   panggilApi('apiSenaraiKategoriDokumen').then(hasil => {
-    bukaModal('Muat Naik Dokumen — ' + PANITIA_AKTIF, `
+    bukaModal(ikon('muatNaik', 'ikon-h3') + 'Muat Naik Dokumen — ' + PANITIA_AKTIF, `
       <form id="borangMuatNaikDokumen">
         <div class="grid-borang">
           <div class="medan lebar-penuh"><label>Kategori</label>
@@ -420,7 +517,7 @@ function hantarBorangMuatNaikDokumen(ev) {
 }
 
 function bukaBorangSuntingDokumen(d) {
-  bukaModal('Sunting Dokumen', `
+  bukaModal(ikon('sunting', 'ikon-h3') + 'Sunting Dokumen', `
     <form id="borangSuntingDokumen">
       <div class="grid-borang">
         <div class="medan lebar-penuh"><label>Nama Dokumen</label><input type="text" name="namaDokumen" value="${d.namaDokumen}" required></div>
@@ -459,8 +556,8 @@ function bolehUrusPanitia() { return ['ADMIN', 'KETUA_BIDANG', 'KETUA_PANITIA'].
 
 function paparMesyuarat() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}${bolehUrusPanitia() ? '<button class="btn" id="btnTambahMesyuarat">+ Mesyuarat Baharu</button>' : ''}</div>
-    <div class="kad"><h3>Senarai Mesyuarat</h3><div id="jadualMesyuarat"></div></div>`;
+  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}${bolehUrusPanitia() ? `<button class="btn" id="btnTambahMesyuarat">${ikon('tambah')}Mesyuarat Baharu</button>` : ''}</div>
+    <div class="kad"><h3>${ikon('mesyuarat', 'ikon-h3')}Senarai Mesyuarat</h3><div id="jadualMesyuarat"></div></div>`;
   pasangPemilihPanitia(muatSemulaMesyuarat);
   const btn = document.getElementById('btnTambahMesyuarat');
   if (btn) btn.addEventListener('click', () => bukaBorangMesyuarat(null));
@@ -473,17 +570,17 @@ function muatSemulaMesyuarat() {
       <th>Tarikh</th><th>Tajuk</th><th>Minit</th><th></th></tr></thead><tbody>` +
       hasil.senarai.map(m => `<tr>
         <td>${m.TarikhMesyuarat}</td><td>${m.Tajuk}</td>
-        <td>${m.MinitUrl ? `<a href="${m.MinitUrl}" target="_blank">Lihat Minit</a>` : '-'}</td>
+        <td>${m.MinitUrl ? `<a href="${m.MinitUrl}" target="_blank">${ikon('lihat')}Lihat Minit</a>` : '-'}</td>
         <td>
-          <button class="btn kecil luar" onclick='bukaKehadiran(${JSON.stringify(m.IDMesyuarat)}, ${JSON.stringify(m.Tajuk)})'>Kehadiran</button>
-          ${bolehUrusPanitia() ? `<button class="btn kecil luar" onclick='bukaBorangMesyuarat(${JSON.stringify(m)})'>Sunting</button>
-          <button class="btn kecil merah" onclick="padamMesyuarat('${m.IDMesyuarat}')">Padam</button>` : ''}
+          <button class="btn kecil luar" onclick='bukaKehadiran(${JSON.stringify(m.IDMesyuarat)}, ${JSON.stringify(m.Tajuk)})'>${ikon('pengguna')}Kehadiran</button>
+          ${bolehUrusPanitia() ? `<button class="btn kecil luar" onclick='bukaBorangMesyuarat(${JSON.stringify(m)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamMesyuarat('${m.IDMesyuarat}')">${ikon('padam')}Padam</button>` : ''}
         </td></tr>`).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada mesyuarat direkod.</p>';
   });
 }
 
 function bukaBorangMesyuarat(m) {
-  bukaModal(m ? 'Sunting Mesyuarat' : 'Mesyuarat Baharu', `
+  bukaModal(ikon('mesyuarat', 'ikon-h3') + (m ? 'Sunting Mesyuarat' : 'Mesyuarat Baharu'), `
     <form id="borangMesyuarat">
       <div class="grid-borang">
         <div class="medan"><label>Tarikh</label><input type="date" name="tarikhMesyuarat" value="${m ? m.TarikhMesyuarat : ''}" required></div>
@@ -515,7 +612,7 @@ function bukaKehadiran(idMesyuarat, tajuk) {
   ]).then(([ahli, kehadiranSediaAda]) => {
     const petaSediaAda = {};
     kehadiranSediaAda.senarai.forEach(k => { petaSediaAda[k.NamaAhli] = k.Status; });
-    bukaModal('Kehadiran — ' + tajuk, `
+    bukaModal(ikon('pengguna', 'ikon-h3') + 'Kehadiran — ' + tajuk, `
       <form id="borangKehadiran">
         <table><thead><tr><th>Nama</th><th>Hadir?</th></tr></thead><tbody>
           ${ahli.senarai.map(a => `<tr><td>${a.nama}</td><td>
@@ -539,8 +636,8 @@ function bukaKehadiran(idMesyuarat, tajuk) {
 /* ============================ TINDAKAN SUSULAN ============================ */
 function paparTindakan() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}${bolehUrusPanitia() ? '<button class="btn" id="btnTambahTindakan">+ Tindakan Baharu</button>' : ''}</div>
-    <div class="kad"><h3>Senarai Tindakan Susulan</h3><div id="jadualTindakan"></div></div>`;
+  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}${bolehUrusPanitia() ? `<button class="btn" id="btnTambahTindakan">${ikon('tambah')}Tindakan Baharu</button>` : ''}</div>
+    <div class="kad"><h3>${ikon('tindakan', 'ikon-h3')}Senarai Tindakan Susulan</h3><div id="jadualTindakan"></div></div>`;
   pasangPemilihPanitia(muatSemulaTindakan);
   const btn = document.getElementById('btnTambahTindakan');
   if (btn) btn.addEventListener('click', () => bukaBorangTindakan(null));
@@ -560,15 +657,15 @@ function muatSemulaTindakan() {
         <td><select onchange="tukarStatusTindakan('${t.IDTindakan}', this.value)">
           ${Object.keys(LABEL_STATUS_TINDAKAN).map(s => `<option value="${s}" ${s === t.Status ? 'selected' : ''}>${LABEL_STATUS_TINDAKAN[s]}</option>`).join('')}
         </select></td>
-        <td>${bolehUrusPanitia() ? `<button class="btn kecil luar" onclick='bukaBorangTindakan(${JSON.stringify(t)})'>Sunting</button>
-          <button class="btn kecil merah" onclick="padamTindakan('${t.IDTindakan}')">Padam</button>` : ''}</td></tr>`;
+        <td>${bolehUrusPanitia() ? `<button class="btn kecil luar" onclick='bukaBorangTindakan(${JSON.stringify(t)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamTindakan('${t.IDTindakan}')">${ikon('padam')}Padam</button>` : ''}</td></tr>`;
       }).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada tindakan susulan.</p>';
   });
 }
 
 function bukaBorangTindakan(t) {
   const ahli = window.__ahliPanitiaSemasa || [];
-  bukaModal(t ? 'Sunting Tindakan' : 'Tindakan Susulan Baharu', `
+  bukaModal(ikon('tindakan', 'ikon-h3') + (t ? 'Sunting Tindakan' : 'Tindakan Susulan Baharu'), `
     <form id="borangTindakan">
       <div class="grid-borang">
         <div class="medan lebar-penuh"><label>Perkara</label><input type="text" name="perkara" value="${t ? t.Perkara : ''}" required></div>
@@ -598,8 +695,8 @@ function padamTindakan(idTindakan) {
 /* ============================ PROGRAM & PLC ============================ */
 function paparProgram() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}${bolehUrusPanitia() ? '<button class="btn" id="btnTambahProgram">+ Program/PLC Baharu</button>' : ''}</div>
-    <div class="kad"><h3>Senarai Program &amp; PLC</h3><div id="jadualProgram"></div></div>`;
+  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}${bolehUrusPanitia() ? `<button class="btn" id="btnTambahProgram">${ikon('tambah')}Program/PLC Baharu</button>` : ''}</div>
+    <div class="kad"><h3>${ikon('program', 'ikon-h3')}Senarai Program &amp; PLC</h3><div id="jadualProgram"></div></div>`;
   pasangPemilihPanitia(muatSemulaProgram);
   const btn = document.getElementById('btnTambahProgram');
   if (btn) btn.addEventListener('click', () => bukaBorangProgram(null));
@@ -613,15 +710,15 @@ function muatSemulaProgram() {
       hasil.senarai.map(pr => `<tr>
         <td>${pr.NamaProgram}</td><td>${pr.JenisProgram}</td><td>${pr.TarikhMula || '-'} &rarr; ${pr.TarikhTamat || '-'}</td>
         <td><span class="lencana ${pr.Status === 'SELESAI' ? 'hijau' : pr.Status === 'BERJALAN' ? 'kuning' : 'kelabu'}">${pr.Status}</span></td>
-        <td><button class="btn kecil luar" onclick='bukaEvidens(${JSON.stringify(pr.IDProgram)}, ${JSON.stringify(pr.NamaProgram)})'>Evidens</button>
-          ${bolehUrusPanitia() ? `<button class="btn kecil luar" onclick='bukaBorangProgram(${JSON.stringify(pr)})'>Sunting</button>
-          <button class="btn kecil merah" onclick="padamProgram('${pr.IDProgram}')">Padam</button>` : ''}</td>
+        <td><button class="btn kecil luar" onclick='bukaEvidens(${JSON.stringify(pr.IDProgram)}, ${JSON.stringify(pr.NamaProgram)})'>${ikon('dokumen')}Evidens</button>
+          ${bolehUrusPanitia() ? `<button class="btn kecil luar" onclick='bukaBorangProgram(${JSON.stringify(pr)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamProgram('${pr.IDProgram}')">${ikon('padam')}Padam</button>` : ''}</td>
       </tr>`).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada program direkod.</p>';
   });
 }
 
 function bukaBorangProgram(pr) {
-  bukaModal(pr ? 'Sunting Program' : 'Program/PLC Baharu', `
+  bukaModal(ikon('program', 'ikon-h3') + (pr ? 'Sunting Program' : 'Program/PLC Baharu'), `
     <form id="borangProgram">
       <div class="grid-borang">
         <div class="medan lebar-penuh"><label>Nama Program</label><input type="text" name="namaProgram" value="${pr ? pr.NamaProgram : ''}" required></div>
@@ -656,15 +753,15 @@ function padamProgram(idProgram) {
 
 function bukaEvidens(idProgram, namaProgram) {
   panggilApi('apiSenaraiEvidens', { idProgram }).then(hasil => {
-    bukaModal('Evidens — ' + namaProgram, `
+    bukaModal(ikon('dokumen', 'ikon-h3') + 'Evidens — ' + namaProgram, `
       <div id="jadualEvidens">${hasil.senarai.length ? `<table><thead><tr><th>Keterangan</th><th>Fail</th><th></th></tr></thead><tbody>` +
-        hasil.senarai.map(ev => `<tr><td>${ev.Keterangan || '-'}</td><td><a href="${ev.FailUrl}" target="_blank">Lihat</a></td>
-          <td><button class="btn kecil merah" onclick="padamEvidens('${ev.IDEvidens}', '${idProgram}', '${namaProgram.replace(/'/g, "\\'")}')">Padam</button></td></tr>`).join('') +
+        hasil.senarai.map(ev => `<tr><td>${ev.Keterangan || '-'}</td><td><a href="${ev.FailUrl}" target="_blank">${ikon('lihat')}Lihat</a></td>
+          <td><button class="btn kecil merah" onclick="padamEvidens('${ev.IDEvidens}', '${idProgram}', '${namaProgram.replace(/'/g, "\\'")}')">${ikon('padam')}Padam</button></td></tr>`).join('') +
         `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada evidens lagi.</p>'}</div>
       <form id="borangEvidens" style="margin-top:14px">
         <div class="medan"><label>Keterangan</label><input type="text" name="keterangan"></div>
         <div class="medan"><label>Fail</label><input type="file" name="fail" required></div>
-        <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Tutup</button><button type="submit" class="btn">Muat Naik Evidens</button></div>
+        <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Tutup</button><button type="submit" class="btn">${ikon('muatNaik')}Muat Naik Evidens</button></div>
       </form>`);
     document.getElementById('borangEvidens').addEventListener('submit', ev => {
       ev.preventDefault();
@@ -685,7 +782,7 @@ function padamEvidens(idEvidens, idProgram, namaProgram) {
 /* ============================ PANITIA (ADMIN/KETUA_BIDANG) ============================ */
 function paparPanitia() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = '<div class="kad"><h3>Panitia Bidang Sains &amp; Matematik</h3><div id="jadualPanitia"></div></div>';
+  k.innerHTML = `<div class="kad"><h3>${ikon('bangunan', 'ikon-h3')}Panitia Bidang Sains &amp; Matematik</h3><div id="jadualPanitia"></div></div>`;
   panggilApi('apiSenaraiPanitia').then(hasil => {
     document.getElementById('jadualPanitia').innerHTML = `<table><thead><tr>
       <th>Panitia</th><th>Ketua Panitia Semasa</th><th>Tetapkan Ketua Panitia</th></tr></thead><tbody>` +
@@ -712,7 +809,7 @@ function muatPemilihKetua(pn) {
 /* ============================ PENGGUNA (ADMIN/KETUA_BIDANG) ============================ */
 function paparPengguna() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = '<div class="baris-alat"><span></span><button class="btn" id="btnTambahPengguna">+ Pengguna Baharu</button></div><div class="kad"><h3>Senarai Pengguna</h3><div id="jadualPengguna"></div></div>';
+  k.innerHTML = `<div class="baris-alat"><span></span><button class="btn" id="btnTambahPengguna">${ikon('tambah')}Pengguna Baharu</button></div><div class="kad"><h3>${ikon('pengguna', 'ikon-h3')}Senarai Pengguna</h3><div id="jadualPengguna"></div></div>`;
   document.getElementById('btnTambahPengguna').addEventListener('click', () => bukaBorangPengguna(null));
   muatSemulaPengguna();
 }
@@ -723,15 +820,15 @@ function muatSemulaPengguna() {
       <th>No. KP</th><th>Nama</th><th>Peranan</th><th>Panitia</th><th>Status</th><th></th></tr></thead><tbody>` +
       hasil.senarai.map(u => `<tr><td>${u.nokp}</td><td>${u.nama}</td><td>${LABEL_PERANAN[u.peranan] || u.peranan}</td><td>${u.panitia || '-'}</td>
         <td><span class="lencana ${u.status === 'AKTIF' ? 'hijau' : 'merah'}">${u.status}</span></td>
-        <td><button class="btn kecil luar" onclick='bukaBorangPengguna(${JSON.stringify(u)})'>Sunting</button>
-          <button class="btn kecil kelabu" onclick="setSemulaPasswordPengguna('${u.nokp}')">Set Semula Kata Laluan</button>
-          <button class="btn kecil merah" onclick="tukarStatusPengguna('${u.nokp}')">${u.status === 'AKTIF' ? 'Nyahaktif' : 'Aktifkan'}</button></td>
+        <td><button class="btn kecil luar" onclick='bukaBorangPengguna(${JSON.stringify(u)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil kelabu" onclick="setSemulaPasswordPengguna('${u.nokp}')">${ikon('kunci')}Set Semula Kata Laluan</button>
+          <button class="btn kecil merah" onclick="tukarStatusPengguna('${u.nokp}')">${ikon('togol')}${u.status === 'AKTIF' ? 'Nyahaktif' : 'Aktifkan'}</button></td>
       </tr>`).join('') + `</tbody></table>`;
   });
 }
 
 function bukaBorangPengguna(u) {
-  bukaModal(u ? 'Sunting Pengguna' : 'Pengguna Baharu', `
+  bukaModal(ikon('pengguna', 'ikon-h3') + (u ? 'Sunting Pengguna' : 'Pengguna Baharu'), `
     <form id="borangPengguna">
       <div class="grid-borang">
         <div class="medan"><label>No. KP</label><input type="text" name="nokp" value="${u ? u.nokp : ''}" ${u ? 'readonly' : ''} required></div>
@@ -762,7 +859,7 @@ function tukarStatusPengguna(nokp) {
 /* ============================ LOG AUDIT (ADMIN/KETUA_BIDANG) ============================ */
 function paparAudit() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = '<div class="kad"><h3>Log Audit (300 rekod terkini)</h3><div id="jadualAudit"></div></div>';
+  k.innerHTML = `<div class="kad"><h3>${ikon('audit', 'ikon-h3')}Log Audit (300 rekod terkini)</h3><div id="jadualAudit"></div></div>`;
   panggilApi('apiSenaraiAudit').then(hasil => {
     document.getElementById('jadualAudit').innerHTML = `<table><thead><tr>
       <th>Tarikh</th><th>Nama</th><th>Peranan</th><th>Tindakan</th><th>Modul</th><th>Butiran</th></tr></thead><tbody>` +
