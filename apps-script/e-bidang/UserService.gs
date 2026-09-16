@@ -9,7 +9,7 @@ function apiSenaraiPengguna(p) {
   const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
   if (sesi.success === false) return sesi;
   const senarai = bacaSheetSebagaiObjek(SHEET_USERS).map(u => ({
-    nokp: u.NoKP, nama: u.NamaPenuh, peranan: u.Peranan, panitia: u.Panitia,
+    nokp: u.NoKP, nama: u.NamaPenuh, peranan: u.Peranan, panitia: u.Panitia, emel: u.Emel || '',
     mestiTukarPassword: u.MestiTukarPassword, status: u.Status, __row: u.__row
   }));
   return jaya({ senarai });
@@ -36,10 +36,12 @@ function apiSimpanPengguna(p) {
   const nama = String(p.nama || '').trim();
   const peranan = String(p.peranan || '').trim();
   const panitia = String(p.panitia || '').trim();
+  const emel = String(p.emel || '').trim();
   if (!nokp || !nama || SEMUA_PERANAN.indexOf(peranan) === -1) return ralat('Data pengguna tidak lengkap/sah.');
   if ((peranan === ROLE_KETUA_PANITIA || peranan === ROLE_GURU) && SENARAI_PANITIA.indexOf(panitia) === -1) {
     return ralat('Sila pilih Panitia yang sah bagi peranan ' + peranan + '.');
   }
+  if (emel && emel.indexOf('@') === -1) return ralat('Format e-mel tidak sah.');
 
   const sediaAda = cariBarisMengikutId(SHEET_USERS, 'NoKP', nokp);
   const objek = {
@@ -49,7 +51,8 @@ function apiSimpanPengguna(p) {
     NamaPenuh: nama,
     Panitia: (peranan === ROLE_KETUA_PANITIA || peranan === ROLE_GURU) ? panitia : '',
     MestiTukarPassword: sediaAda ? sediaAda.MestiTukarPassword : 'YA',
-    Status: sediaAda ? sediaAda.Status : 'AKTIF'
+    Status: sediaAda ? sediaAda.Status : 'AKTIF',
+    Emel: emel
   };
 
   if (sediaAda) {

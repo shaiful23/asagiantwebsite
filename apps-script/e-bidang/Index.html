@@ -848,6 +848,11 @@ function bolehBuatPesananMakmalJS() {
   return ['GURU', 'KETUA_PANITIA'].indexOf(SESI.peranan) !== -1 && PANITIA_MAKMAL.indexOf(SESI.panitia) !== -1;
 }
 function bolehUrusSemuaPesananJS() { return PERANAN_LIHAT_SEMUA_PESANAN.indexOf(SESI.peranan) !== -1; }
+/* Sama ada boleh batal/sunting pesanan (pemohon panitia makmal, atau Admin/Ketua Bidang) —
+   Pembantu Makmal sengaja dikecualikan, peranan itu hanya memproses status, bukan kandungan pesanan. */
+function bolehBatalSuntingPesananJS() {
+  return bolehBuatPesananMakmalJS() || SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
+}
 
 function paparPesananMakmal() {
   const k = document.getElementById('kandungan');
@@ -858,7 +863,7 @@ function paparPesananMakmal() {
     <div class="kad"><h3>${ikon('pesananMakmal', 'ikon-h3')}Senarai Pesanan Radas &amp; Bahan Makmal</h3><div id="jadualPesananMakmal"></div></div>`;
 
   const btnBaharu = document.getElementById('btnPesananBaharu');
-  if (btnBaharu) btnBaharu.addEventListener('click', bukaBorangPesananMakmal);
+  if (btnBaharu) btnBaharu.addEventListener('click', () => bukaBorangPesananMakmal());
   const pp = document.getElementById('penapisPanitiaPesanan');
   if (pp) pp.addEventListener('change', muatSemulaPesananMakmal);
   document.getElementById('penapisStatusPesanan').addEventListener('change', muatSemulaPesananMakmal);
@@ -872,6 +877,7 @@ function muatSemulaPesananMakmal() {
 
   panggilApi('apiSenaraiPesanan', param).then(hasil => {
     const urusSemua = bolehUrusSemuaPesananJS();
+    const bolehUbah = bolehBatalSuntingPesananJS();
     document.getElementById('jadualPesananMakmal').innerHTML = hasil.senarai.length ? `<table><thead><tr>
       <th>Tarikh Pesanan</th>${urusSemua ? '<th>Panitia</th>' : ''}<th>Guru</th><th>Kelas</th><th>Tajuk Eksperimen</th><th>Tarikh Diperlukan</th><th>Status</th><th></th></tr></thead><tbody>` +
       hasil.senarai.map(ps => `<tr>
@@ -880,45 +886,57 @@ function muatSemulaPesananMakmal() {
         <td>
           <button class="btn kecil luar" onclick="cetakPesanan('${ps.IDPesanan}')">${ikon('cetak')}Cetak / PDF</button>
           ${urusSemua ? `<button class="btn kecil luar" onclick="bukaKemaskiniStatusPesanan('${ps.IDPesanan}', '${ps.Status}')">${ikon('sunting')}Kemaskini Status</button>` : ''}
-          ${ps.Status === 'MENUNGGU' ? `<button class="btn kecil merah" onclick="batalPesananMakmal('${ps.IDPesanan}')">${ikon('padam')}Batal</button>` : ''}
+          ${ps.Status === 'MENUNGGU' && bolehUbah ? `<button class="btn kecil luar" onclick="bukaSuntingPesanan('${ps.IDPesanan}')">${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="batalPesananMakmal('${ps.IDPesanan}')">${ikon('padam')}Batal</button>` : ''}
           ${SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG' ? `<button class="btn kecil merah" onclick="padamPesananMakmal('${ps.IDPesanan}')">${ikon('padam')}Padam</button>` : ''}
         </td></tr>`).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada pesanan direkod.</p>';
   });
 }
 
-function bukaBorangPesananMakmal() {
-  bukaModal(ikon('pesananMakmal', 'ikon-h3') + 'Pesanan Baharu — ' + SESI.panitia, `
+/* pesananSedia/itemSedia diisi hanya semasa Sunting (bukaSuntingPesanan) — kosong bermaksud Pesanan Baharu. */
+function bukaBorangPesananMakmal(pesananSedia, itemSedia) {
+  const suntingMod = !!pesananSedia;
+  bukaModal(ikon('pesananMakmal', 'ikon-h3') + (suntingMod ? 'Sunting Pesanan' : ('Pesanan Baharu — ' + SESI.panitia)), `
     <form id="borangPesananMakmal">
       <div class="grid-borang">
-        <div class="medan"><label>Kelas</label><input type="text" name="kelas" placeholder="cth. 5 Bestari" required></div>
-        <div class="medan"><label>Tarikh Diperlukan</label><input type="date" name="tarikhDiperlukan" required></div>
-        <div class="medan lebar-penuh"><label>Tajuk Eksperimen/Aktiviti</label><input type="text" name="tajukEksperimen" required></div>
-        <div class="medan lebar-penuh"><label>Catatan Am (pilihan)</label><input type="text" name="catatanAm"></div>
+        <div class="medan"><label>Kelas</label><input type="text" name="kelas" value="${suntingMod ? pesananSedia.Kelas : ''}" placeholder="cth. 5 Bestari" required></div>
+        <div class="medan"><label>Tarikh Diperlukan</label><input type="date" name="tarikhDiperlukan" value="${suntingMod ? pesananSedia.TarikhDiperlukan : ''}" required></div>
+        <div class="medan lebar-penuh"><label>Tajuk Eksperimen/Aktiviti</label><input type="text" name="tajukEksperimen" value="${suntingMod ? pesananSedia.TajukEksperimen : ''}" required></div>
+        <div class="medan lebar-penuh"><label>Catatan Am (pilihan)</label><input type="text" name="catatanAm" value="${suntingMod ? (pesananSedia.CatatanAm || '') : ''}"></div>
       </div>
       <h4 style="margin:16px 0 8px;font-size:13px;color:var(--kelabu);text-transform:uppercase">Senarai Bahan &amp; Radas</h4>
       <div id="barisItemPesanan"></div>
       <button type="button" class="btn kecil luar" id="btnTambahBarisItem" style="margin-top:2px">${ikon('tambah')}Tambah Baris</button>
-      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">${ikon('pesananMakmal')}Hantar Pesanan</button></div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">${ikon('pesananMakmal')}${suntingMod ? 'Simpan Perubahan' : 'Hantar Pesanan'}</button></div>
     </form>`);
-  tambahBarisItemPesanan();
+  if (suntingMod && itemSedia.length) {
+    itemSedia.forEach(it => tambahBarisItemPesanan({ namaBahanRadas: it.NamaBahanRadas, kuantiti: it.Kuantiti, unit: it.Unit, catatan: it.Catatan }));
+  } else {
+    tambahBarisItemPesanan();
+  }
   document.getElementById('btnTambahBarisItem').addEventListener('click', () => tambahBarisItemPesanan());
-  document.getElementById('borangPesananMakmal').addEventListener('submit', hantarBorangPesananMakmal);
+  document.getElementById('borangPesananMakmal').addEventListener('submit', ev => hantarBorangPesananMakmal(ev, suntingMod ? pesananSedia.IDPesanan : null));
 }
 
-function tambahBarisItemPesanan() {
+function bukaSuntingPesanan(idPesanan) {
+  panggilApi('apiButiranPesanan', { idPesanan }).then(hasil => bukaBorangPesananMakmal(hasil.pesanan, hasil.item));
+}
+
+function tambahBarisItemPesanan(nilaiSedia) {
+  const v = nilaiSedia || {};
   const kontainer = document.getElementById('barisItemPesanan');
   const baris = document.createElement('div');
   baris.className = 'baris-item-pesanan';
   baris.innerHTML = `
-    <input type="text" placeholder="Nama Bahan/Radas" data-medan="namaBahanRadas" required>
-    <input type="number" min="1" step="1" placeholder="Kuantiti" data-medan="kuantiti" required>
-    <input type="text" placeholder="Unit (cth. botol, g)" data-medan="unit">
-    <input type="text" placeholder="Catatan" data-medan="catatan">
+    <input type="text" placeholder="Nama Bahan/Radas" data-medan="namaBahanRadas" value="${v.namaBahanRadas || ''}" required>
+    <input type="number" min="1" step="1" placeholder="Kuantiti" data-medan="kuantiti" value="${v.kuantiti || ''}" required>
+    <input type="text" placeholder="Unit (cth. botol, g)" data-medan="unit" value="${v.unit || ''}">
+    <input type="text" placeholder="Catatan" data-medan="catatan" value="${v.catatan || ''}">
     <button type="button" class="btn kecil merah" onclick="this.parentElement.remove()" aria-label="Buang baris">${ikon('padam', 'ikon-sahaja')}</button>`;
   kontainer.appendChild(baris);
 }
 
-function hantarBorangPesananMakmal(ev) {
+function hantarBorangPesananMakmal(ev, idPesananSunting) {
   ev.preventDefault();
   const f = new FormData(ev.target);
   const item = Array.from(document.querySelectorAll('.baris-item-pesanan')).map(baris => {
@@ -926,10 +944,18 @@ function hantarBorangPesananMakmal(ev) {
     baris.querySelectorAll('[data-medan]').forEach(el => { obj[el.dataset.medan] = el.value; });
     return obj;
   });
-  panggilApi('apiSimpanPesanan', {
+  const data = {
     kelas: f.get('kelas'), tajukEksperimen: f.get('tajukEksperimen'),
     tarikhDiperlukan: f.get('tarikhDiperlukan'), catatanAm: f.get('catatanAm'), item
-  }).then(() => { papartToast('Pesanan berjaya dihantar.'); tutupModal(); muatSemulaPesananMakmal(); });
+  };
+  const panggilan = idPesananSunting
+    ? panggilApi('apiKemaskiniPesanan', Object.assign({ idPesanan: idPesananSunting }, data))
+    : panggilApi('apiSimpanPesanan', data);
+  panggilan.then(() => {
+    papartToast(idPesananSunting ? 'Pesanan dikemaskini.' : 'Pesanan berjaya dihantar.');
+    tutupModal();
+    muatSemulaPesananMakmal();
+  });
 }
 
 function batalPesananMakmal(idPesanan) {
@@ -1039,8 +1065,8 @@ function paparPengguna() {
 function muatSemulaPengguna() {
   panggilApi('apiSenaraiPengguna').then(hasil => {
     document.getElementById('jadualPengguna').innerHTML = `<table><thead><tr>
-      <th>No. KP</th><th>Nama</th><th>Peranan</th><th>Panitia</th><th>Status</th><th></th></tr></thead><tbody>` +
-      hasil.senarai.map(u => `<tr><td>${u.nokp}</td><td>${u.nama}</td><td>${LABEL_PERANAN[u.peranan] || u.peranan}</td><td>${u.panitia || '-'}</td>
+      <th>No. KP</th><th>Nama</th><th>Peranan</th><th>Panitia</th><th>E-mel</th><th>Status</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(u => `<tr><td>${u.nokp}</td><td>${u.nama}</td><td>${LABEL_PERANAN[u.peranan] || u.peranan}</td><td>${u.panitia || '-'}</td><td>${u.emel || '-'}</td>
         <td><span class="lencana ${u.status === 'AKTIF' ? 'hijau' : 'merah'}">${u.status}</span></td>
         <td><button class="btn kecil luar" onclick='bukaBorangPengguna(${JSON.stringify(u)})'>${ikon('sunting')}Sunting</button>
           <button class="btn kecil kelabu" onclick="setSemulaPasswordPengguna('${u.nokp}')">${ikon('kunci')}Set Semula Kata Laluan</button>
@@ -1058,6 +1084,7 @@ function bukaBorangPengguna(u) {
         <div class="medan"><label>Peranan</label><select name="peranan" id="pilihPerananPengguna">
           ${Object.keys(LABEL_PERANAN).map(r => `<option value="${r}" ${u && u.peranan === r ? 'selected' : ''}>${LABEL_PERANAN[r]}</option>`).join('')}</select></div>
         <div class="medan" id="medanPanitiaPengguna"><label>Panitia</label><select name="panitia">${SENARAI_PANITIA.map(p => `<option value="${p}" ${u && u.panitia === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
+        <div class="medan lebar-penuh"><label>E-mel (untuk notifikasi, pilihan)</label><input type="email" name="emel" value="${u ? (u.emel || '') : ''}" placeholder="nama@contoh.edu.my"></div>
       </div>
       ${!u ? '<p style="font-size:12px;color:var(--kelabu)">Kata laluan lalai = 6 digit terakhir No. KP; sistem akan paksa tukar kata laluan semasa log masuk pertama.</p>' : ''}
       <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
@@ -1071,7 +1098,7 @@ function bukaBorangPengguna(u) {
   document.getElementById('borangPengguna').addEventListener('submit', ev => {
     ev.preventDefault();
     const f = new FormData(ev.target);
-    panggilApi('apiSimpanPengguna', { nokp: f.get('nokp'), nama: f.get('nama'), peranan: f.get('peranan'), panitia: f.get('panitia') })
+    panggilApi('apiSimpanPengguna', { nokp: f.get('nokp'), nama: f.get('nama'), peranan: f.get('peranan'), panitia: f.get('panitia'), emel: f.get('emel') })
       .then(() => { papartToast('Pengguna disimpan.'); tutupModal(); muatSemulaPengguna(); });
   });
 }

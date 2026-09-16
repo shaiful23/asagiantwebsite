@@ -5,7 +5,7 @@
  * ========================================================================= */
 
 const HEADER_MESYUARAT = ['IDMesyuarat', 'Panitia', 'TarikhMesyuarat', 'Tajuk', 'Agenda',
-  'MinitUrl', 'MinitFailId', 'DiciptaOleh', 'TarikhCipta'];
+  'MinitUrl', 'MinitFailId', 'DiciptaOleh', 'TarikhCipta', 'EventIdKalendar'];
 const HEADER_KEHADIRAN_MESYUARAT = ['IDKehadiran', 'IDMesyuarat', 'NamaAhli', 'Status', 'Catatan'];
 const HEADER_TINDAKAN_SUSULAN = ['IDTindakan', 'IDMesyuarat', 'Panitia', 'Perkara',
   'TanggungjawabNoKP', 'TarikhAkhir', 'Status', 'CatatanKemaskini'];
@@ -41,7 +41,8 @@ function apiSimpanMesyuarat(p) {
     MinitUrl: sediaAda ? sediaAda.MinitUrl : '',
     MinitFailId: sediaAda ? sediaAda.MinitFailId : '',
     DiciptaOleh: sediaAda ? sediaAda.DiciptaOleh : sesi.nama,
-    TarikhCipta: sediaAda ? sediaAda.TarikhCipta : formatTarikhMasa(new Date())
+    TarikhCipta: sediaAda ? sediaAda.TarikhCipta : formatTarikhMasa(new Date()),
+    EventIdKalendar: sediaAda ? sediaAda.EventIdKalendar : ''
   };
 
   if (p.namaFail && p.dataBase64) {
@@ -50,6 +51,9 @@ function apiSimpanMesyuarat(p) {
     objek.MinitUrl = failDrive.url;
     objek.MinitFailId = failDrive.fileId;
   }
+
+  // Kalendar bukan sumber kebenaran — kegagalan (kuota/akses) tidak menghalang mesyuarat disimpan.
+  try { objek.EventIdKalendar = segerakEventMesyuarat(objek); } catch (e) { /* kekalkan nilai sediaAda */ }
 
   if (sediaAda) {
     kemaskiniBaris(SHEET_MESYUARAT, sediaAda.__row, objek, HEADER_MESYUARAT);
@@ -70,6 +74,7 @@ function apiPadamMesyuarat(p) {
   if (!wajibAksesPanitia(sesi, mesyuarat.Panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
 
   padamFailDrive(mesyuarat.MinitFailId);
+  try { padamEventKalendar(mesyuarat.EventIdKalendar); } catch (e) { /* abaikan — rekod Sheet tetap dipadam */ }
   padamBaris(SHEET_MESYUARAT, mesyuarat.__row);
 
   bacaSheetSebagaiObjek(SHEET_KEHADIRAN_MESYUARAT)
