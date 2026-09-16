@@ -45,13 +45,22 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   peratus kategori wajib yang sudah lengkap bagi setiap panitia.
 - **Mesyuarat Panitia** — minit (fail Drive), kehadiran ahli, dan tindakan
   susulan (status Belum Mula/Dalam Proses/Selesai, tanggungjawab, tarikh akhir).
+  **Masa Mula & Masa Tamat** (pilihan) boleh diisi — jika kedua-duanya diisi,
+  *event* Kalendar berkaitan dicipta BERMASA (bukan sehari penuh).
 - **Program & PLC** — rekod program/aktiviti panitia (termasuk sesi PLC)
-  berserta evidens pelaksanaan (fail Drive).
+  berserta evidens pelaksanaan (fail Drive). **Masa Mula & Masa Tamat**
+  (pilihan) boleh diisi sama seperti Mesyuarat.
 - **Dashboard** — ringkasan kelengkapan fail, mesyuarat akan datang &
   tindakan tertunggak bagi setiap panitia (dalam skop akses peranan semasa),
   serta senarai tindakan susulan peribadi.
 - **Log Audit** — setiap tindakan TAMBAH/KEMASKINI/PADAM/LOGIN/tukar kata
   laluan direkod (Admin/Ketua Bidang sahaja boleh semak).
+- **Eksport CSV** — jadual Dokumen, Mesyuarat, Tindakan Susulan, Program & PLC,
+  dan Log Audit masing-masing mempunyai butang **"Eksport CSV"** yang memuat
+  turun terus data yang dipaparkan (tanpa panggilan pelayan tambahan) sebagai
+  fail `.csv` — sesuai dibuka di Excel/Google Sheets. Pesanan Radas & Bahan
+  Makmal tidak memerlukan ini kerana sudah ada borang cetak formal tersendiri
+  (rujuk di bawah).
 - **Format paparan tarikh** — semua tarikh yang dipaparkan di UI (jadual,
   dashboard, log audit, borang cetak) dipaparkan dalam format **dd/MM/yyyy**
   (cth. 16/09/2026). Ini hanya format paparan — nilai disimpan dalam Sheet
@@ -79,22 +88,32 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   pelayar dan dicetak/dimuat turun sebagai PDF melalui dialog cetak pelayar
   (butang "Cetak / PDF").
 - **Kalendar Bersepadu (Google Calendar)** — setiap Mesyuarat dan Program/PLC
-  disegerakkan secara automatik sebagai *event* sehari (atau julat hari bagi
-  Program dengan Tarikh Tamat) ke satu Kalendar Google khusus bernama
+  disegerakkan secara automatik ke satu Kalendar Google khusus bernama
   **"E-Bidang Sains & Matematik"**, dicipta automatik (di bawah akaun Google
-  yang men-deploy sistem) apabila mesyuarat/program pertama disimpan.
-  Kemaskini/padam rekod turut mengemaskini/memadam *event* berkaitan.
-  Kongsikan kalendar ini dengan staf (rujuk **Cara Pasang** langkah 14) —
-  kegagalan penyegerakan Kalendar (cth. kuota) tidak menghalang mesyuarat/
-  program itu sendiri daripada disimpan.
-- **Notifikasi E-mel Harian** — pencetus terjadual (diaktifkan sekali melalui
-  menu Sheet) menghantar e-mel setiap hari lebih kurang jam 7 pagi kepada:
-  (a) guru/ketua panitia yang mempunyai **Tindakan Susulan** tertunggak/tamat
-  tempoh, dan (b) sesiapa yang boleh memproses **Pesanan Makmal** berstatus
-  Menunggu — Admin/Ketua Bidang/Ketua Pembantu Makmal menerima senarai PENUH
-  merentasi semua Makmal, Pembantu Makmal biasa hanya menerima pesanan bagi
-  Makmal yang dijaganya sendiri. Hanya pengguna dengan lajur **Emel** diisi
-  (menu Pengguna) akan menerima notifikasi — pengguna lain dilangkau senyap.
+  yang men-deploy sistem) apabila mesyuarat/program pertama disimpan. Jika
+  Masa Mula & Masa Tamat diisi, *event* dicipta **bermasa** (waktu sebenar);
+  jika tidak, *event* sehari penuh (atau julat hari bagi Program dengan
+  Tarikh Tamat) seperti asal. Kemaskini/padam rekod turut mengemaskini/
+  memadam *event* berkaitan. Kongsikan kalendar ini dengan staf (rujuk
+  **Cara Pasang** langkah 14) — kegagalan penyegerakan Kalendar (cth. kuota)
+  tidak menghalang mesyuarat/program itu sendiri daripada disimpan.
+- **Notifikasi E-mel** — dua bentuk:
+  - **Digest Harian** — pencetus terjadual (diaktifkan sekali melalui menu
+    Sheet) menghantar e-mel setiap hari lebih kurang jam 7 pagi kepada:
+    (a) guru/ketua panitia yang mempunyai **Tindakan Susulan** tertunggak/
+    tamat tempoh, dan (b) sesiapa yang boleh memproses **Pesanan Makmal**
+    berstatus Menunggu — Admin/Ketua Bidang/Ketua Pembantu Makmal menerima
+    senarai PENUH merentasi semua Makmal, Pembantu Makmal biasa hanya
+    menerima pesanan bagi Makmal yang dijaganya sendiri.
+  - **Segera (real-time)** — dihantar TERUS (bukan menunggu digest harian)
+    apabila: (a) status **Pesanan Makmal** ditukar — pemohon asal (Guru)
+    dimaklumkan status terkini; (b) **Tindakan Susulan** baharu ditugaskan
+    atau tanggungjawabnya ditukar kepada orang lain — penerima baharu
+    dimaklumkan serta-merta (kemaskini lain seperti tukar perkara/tarikh
+    tanpa tukar tanggungjawab tidak menghantar e-mel berulang).
+  - Kedua-duanya: hanya pengguna dengan lajur **Emel** diisi (menu Pengguna)
+    akan menerima notifikasi — pengguna lain dilangkau senyap; kegagalan
+    e-mel (kuota/ralat) tidak menghalang tindakan utama.
 
 ## Struktur
 
@@ -113,9 +132,10 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   sahaja — atau Ketua Pembantu Makmal/Admin/Ketua Bidang; padam oleh Admin/Ketua Bidang).
 - `CalendarService.gs` — cipta/kemaskini/padam *event* Google Calendar bagi
   Mesyuarat & Program (dipanggil dari MeetingService.gs/ProgramService.gs).
-- `NotifikasiService.gs` — e-mel harian (tindakan tertunggak + pesanan makmal
-  menunggu), dicetuskan oleh pencetus terjadual — rujuk `sediakanNotifikasiHarian()`
-  dalam `Code.gs`.
+- `NotifikasiService.gs` — e-mel digest harian (tindakan tertunggak + pesanan
+  makmal menunggu, dicetuskan oleh pencetus terjadual — rujuk
+  `sediakanNotifikasiHarian()` dalam `Code.gs`) DAN `hantarEmelSegera()`
+  (dipanggil terus daripada PesananMakmalService.gs/MeetingService.gs).
 - `DashboardService.gs` — ringkasan statistik (termasuk ringkasan Pesanan Makmal).
 - `AuditService.gs` — catat & semak log audit.
 - `appsscript.json`, `Index.html` — manifest & frontend SPA tunggal.
@@ -223,13 +243,10 @@ akademik lanjutan berikut **belum** dibina dan boleh ditambah kemudian jika
 diperlukan:
 
 - ⏳ Analisis pencapaian akademik pelajar (PBD/peperiksaan) & intervensi murid.
-- ⏳ Eksport laporan (PDF/CSV) bagi jadual lain (Dokumen, Mesyuarat, dsb.) —
-  buat masa ini guna Cetak/Print pelayar pada jadual sedia ada. Borang
-  Pesanan Radas & Bahan Makmal sahaja yang mempunyai reka bentuk cetak
-  formal khusus (dengan logo sekolah) buat masa ini.
-- ⏳ Notifikasi e-mel semasa (segera bila status berubah) — buat masa ini
-  notifikasi berbentuk **digest harian** sahaja (rujuk "Notifikasi E-mel
-  Harian" di atas), bukan setiap kali satu rekod berubah.
-- ⏳ Pilihan masa (bukan sekadar tarikh) bagi Mesyuarat/Program — *event*
-  Kalendar yang disegerakkan buat masa ini sentiasa "sehari penuh" (all-day)
-  kerana borang sedia ada hanya kumpul tarikh, bukan masa.
+
+Ciri yang **sudah** dilaksanakan (sebelum ini disenaraikan di sini sebagai
+belum dibina): eksport CSV bagi jadual Dokumen/Mesyuarat/Tindakan Susulan/
+Program & PLC/Log Audit, notifikasi e-mel segera (bukan sekadar digest
+harian) bila status Pesanan Makmal berubah atau Tindakan Susulan baharu
+ditugaskan, dan pilihan Masa Mula/Tamat (pilihan) bagi Mesyuarat & Program
+— rujuk **Ciri Utama** di atas untuk butiran.

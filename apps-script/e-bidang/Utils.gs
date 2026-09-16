@@ -82,6 +82,18 @@ function keTarikhObjek(nilaiTarikh) {
   return new Date(tahun, bulan - 1, hari);
 }
 
+/* Gabungkan objek Date (tarikh sahaja, dari keTarikhObjek) dengan rentetan
+   "HH:mm" (format input masa HTML) menjadi satu objek Date lengkap — guna
+   oleh CalendarService.gs untuk cipta event Kalendar bermasa (bukan sehari
+   penuh) bagi Mesyuarat/Program yang mengisi Masa Mula & Masa Tamat. */
+function gabungTarikhMasa(tarikhObjek, masaHHmm) {
+  const bahagian = String(masaHHmm || '').trim().split(':');
+  const jam = Number(bahagian[0]) || 0, minit = Number(bahagian[1]) || 0;
+  const hasil = new Date(tarikhObjek.getTime());
+  hasil.setHours(jam, minit, 0, 0);
+  return hasil;
+}
+
 /* Tambah satu lajur baharu pada penghujung Sheet sedia ada jika belum wujud
    (idempoten — selamat dijalankan berulang kali). Guna oleh fungsi migrasi
    struktur dalam Code.gs apabila menaik taraf deployment sedia ada. */

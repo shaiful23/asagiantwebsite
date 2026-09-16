@@ -1,10 +1,11 @@
 /* =========================================================================
  * NotifikasiService.gs — Notifikasi e-mel harian bagi Tindakan Susulan
  * tertunggak/tamat tempoh dan Pesanan Radas & Bahan Makmal menunggu
- * tindakan. Dicetuskan oleh pencetus terjadual (time-driven trigger) yang
- * ditetapkan melalui menu Sheet "3. Aktifkan Notifikasi E-mel Harian"
- * (sediakanNotifikasiHarian(), Code.gs) — tidak dipanggil oleh mana-mana
- * fungsi api*() klien.
+ * tindakan (dicetuskan oleh pencetus terjadual — sediakanNotifikasiHarian(),
+ * Code.gs), DAN notifikasi e-mel SEGERA (hantarEmelSegera()) yang dipanggil
+ * terus daripada PesananMakmalService.gs/MeetingService.gs sebaik sahaja
+ * satu peristiwa berlaku (status pesanan ditukar / tindakan baharu
+ * ditugaskan) — bukan menunggu pencetus harian.
  *
  * Hanya pengguna dengan lajur Emel (USERS) diisi akan menerima e-mel;
  * pengguna lain dilangkau senyap (bukan ralat).
@@ -13,6 +14,14 @@
 function hantarNotifikasiHarian() {
   hantarNotifikasiTindakanTertunggak();
   hantarNotifikasiPesananMenunggu();
+}
+
+/* E-mel SEGERA (bukan digest) — dipanggil terus daripada service berkaitan
+   sebaik sahaja peristiwa berlaku. Kuota/ralat MailApp tidak menghalang
+   tindakan utama (simpan/kemaskini rekod) — dibalut try/catch di sini. */
+function hantarEmelSegera(emelPenerima, tajuk, badan) {
+  if (!emelPenerima) return;
+  try { MailApp.sendEmail(emelPenerima, tajuk, badan); } catch (e) { /* abaikan — bukan sumber kebenaran */ }
 }
 
 /* Satu e-mel setiap guru/ketua panitia yang mempunyai tindakan susulan
@@ -76,3 +85,4 @@ function hantarNotifikasiPesananMenunggu() {
 }
 
 const LABEL_STATUS_TINDAKAN_EMEL = { BELUM_MULA: 'Belum Mula', DALAM_PROSES: 'Dalam Proses', SELESAI: 'Selesai' };
+const LABEL_STATUS_PESANAN_EMEL = { MENUNGGU: 'Menunggu', DALAM_PROSES: 'Dalam Proses', SIAP: 'Siap', DITOLAK: 'Ditolak', DIBATALKAN: 'Dibatalkan' };

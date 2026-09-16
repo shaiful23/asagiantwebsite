@@ -19,7 +19,9 @@ function dapatkanKalendarEBidang() {
   return CalendarApp.createCalendar(NAMA_KALENDAR_EBIDANG);
 }
 
-/* Cipta/kemaskini event sehari (all-day) bagi satu Mesyuarat. Pulangkan ID
+/* Cipta/kemaskini event bagi satu Mesyuarat. Jika MasaMula & MasaTamat kedua-duanya
+   diisi, event dicipta BERMASA (bukan sehari penuh); jika tidak, sehari penuh (all-day)
+   seperti sebelum ini — supaya rekod lama (tiada masa) kekal serasi. Pulangkan ID
    event untuk disimpan dalam lajur EventIdKalendar (HEADER_MESYUARAT). */
 function segerakEventMesyuarat(mesyuarat) {
   const tarikh = keTarikhObjek(mesyuarat.TarikhMesyuarat);
@@ -27,41 +29,54 @@ function segerakEventMesyuarat(mesyuarat) {
 
   const kalendar = dapatkanKalendarEBidang();
   const tajuk = '[Mesyuarat Panitia ' + mesyuarat.Panitia + '] ' + mesyuarat.Tajuk;
+  const gunaMasa = !!(mesyuarat.MasaMula && mesyuarat.MasaTamat);
+  const mula = gunaMasa ? gabungTarikhMasa(tarikh, mesyuarat.MasaMula) : tarikh;
+  const tamat = gunaMasa ? gabungTarikhMasa(tarikh, mesyuarat.MasaTamat) : null;
 
   if (mesyuarat.EventIdKalendar) {
     const eventSediaAda = kalendar.getEventById(mesyuarat.EventIdKalendar);
     if (eventSediaAda) {
       eventSediaAda.setTitle(tajuk);
-      eventSediaAda.setAllDayDate(tarikh);
+      if (gunaMasa) eventSediaAda.setTime(mula, tamat); else eventSediaAda.setAllDayDate(tarikh);
       eventSediaAda.setDescription(mesyuarat.Agenda || '');
       return mesyuarat.EventIdKalendar;
     }
   }
-  return kalendar.createAllDayEvent(tajuk, tarikh, { description: mesyuarat.Agenda || '' }).getId();
+  return (gunaMasa
+    ? kalendar.createEvent(tajuk, mula, tamat, { description: mesyuarat.Agenda || '' })
+    : kalendar.createAllDayEvent(tajuk, tarikh, { description: mesyuarat.Agenda || '' })
+  ).getId();
 }
 
-/* Cipta/kemaskini event (satu hari atau julat) bagi satu Program/PLC.
-   Pulangkan ID event untuk disimpan dalam lajur EventIdKalendar (HEADER_PROGRAM). */
+/* Cipta/kemaskini event bagi satu Program/PLC. Jika MasaMula & MasaTamat kedua-duanya
+   diisi, event dicipta BERMASA (Masa Mula pada TarikhMula, Masa Tamat pada TarikhTamat
+   — boleh merentasi > 1 hari); jika tidak, sehari/julat penuh (all-day) seperti sebelum
+   ini. Pulangkan ID event untuk disimpan dalam lajur EventIdKalendar (HEADER_PROGRAM). */
 function segerakEventProgram(program) {
   const mula = keTarikhObjek(program.TarikhMula);
   if (!mula) return '';
 
   const kalendar = dapatkanKalendarEBidang();
   const tamatMentah = keTarikhObjek(program.TarikhTamat) || mula;
-  // createAllDayEvent(start, end) — 'end' EKSKLUSIF, +1 hari supaya hari akhir turut disertakan.
-  const tamat = new Date(tamatMentah.getTime() + 24 * 60 * 60 * 1000);
   const tajuk = '[' + (program.JenisProgram === 'PLC' ? 'PLC' : 'Program') + ' ' + program.Panitia + '] ' + program.NamaProgram;
+  const gunaMasa = !!(program.MasaMula && program.MasaTamat);
+  const mulaEvent = gunaMasa ? gabungTarikhMasa(mula, program.MasaMula) : mula;
+  // all-day createAllDayEvent(start, end) — 'end' EKSKLUSIF, +1 hari supaya hari akhir turut disertakan.
+  const tamatEvent = gunaMasa ? gabungTarikhMasa(tamatMentah, program.MasaTamat) : new Date(tamatMentah.getTime() + 24 * 60 * 60 * 1000);
 
   if (program.EventIdKalendar) {
     const eventSediaAda = kalendar.getEventById(program.EventIdKalendar);
     if (eventSediaAda) {
       eventSediaAda.setTitle(tajuk);
-      eventSediaAda.setAllDayDates(mula, tamat);
+      if (gunaMasa) eventSediaAda.setTime(mulaEvent, tamatEvent); else eventSediaAda.setAllDayDates(mulaEvent, tamatEvent);
       eventSediaAda.setDescription(program.Objektif || '');
       return program.EventIdKalendar;
     }
   }
-  return kalendar.createAllDayEvent(tajuk, mula, tamat, { description: program.Objektif || '' }).getId();
+  return (gunaMasa
+    ? kalendar.createEvent(tajuk, mulaEvent, tamatEvent, { description: program.Objektif || '' })
+    : kalendar.createAllDayEvent(tajuk, mulaEvent, tamatEvent, { description: program.Objektif || '' })
+  ).getId();
 }
 
 function padamEventKalendar(idEvent) {

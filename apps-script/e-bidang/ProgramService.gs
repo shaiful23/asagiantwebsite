@@ -5,7 +5,7 @@
  * ========================================================================= */
 
 const HEADER_PROGRAM = ['IDProgram', 'Panitia', 'NamaProgram', 'JenisProgram', 'TarikhMula',
-  'TarikhTamat', 'Objektif', 'Status', 'DiciptaOleh', 'EventIdKalendar'];
+  'TarikhTamat', 'Objektif', 'Status', 'DiciptaOleh', 'EventIdKalendar', 'MasaMula', 'MasaTamat'];
 const HEADER_EVIDENS = ['IDEvidens', 'IDProgram', 'Panitia', 'Keterangan', 'FailUrl', 'FailId',
   'DimuatNaikOleh', 'TarikhMuatNaik'];
 
@@ -36,6 +36,9 @@ function apiSimpanProgram(p) {
   if (SEMUA_JENIS_PROGRAM.indexOf(jenisProgram) === -1) return ralat('Jenis program tidak sah.');
 
   const sediaAda = p.idProgram ? cariBarisMengikutId(SHEET_PROGRAM, 'IDProgram', p.idProgram) : null;
+  const masaMula = String(p.masaMula || (sediaAda ? sediaAda.MasaMula : '') || '').trim();
+  const masaTamat = String(p.masaTamat || (sediaAda ? sediaAda.MasaTamat : '') || '').trim();
+  if (masaMula && masaTamat && masaTamat <= masaMula) return ralat('Masa tamat mesti selepas masa mula.');
   const status = p.status && SEMUA_STATUS_PROGRAM.indexOf(p.status) !== -1
     ? p.status : (sediaAda ? sediaAda.Status : STATUS_PROGRAM_DIRANCANG);
 
@@ -49,7 +52,9 @@ function apiSimpanProgram(p) {
     Objektif: String(p.objektif || '').trim(),
     Status: status,
     DiciptaOleh: sediaAda ? sediaAda.DiciptaOleh : sesi.nama,
-    EventIdKalendar: sediaAda ? sediaAda.EventIdKalendar : ''
+    EventIdKalendar: sediaAda ? sediaAda.EventIdKalendar : '',
+    MasaMula: masaMula,
+    MasaTamat: masaTamat
   };
 
   // Kalendar bukan sumber kebenaran — kegagalan (kuota/akses) tidak menghalang program disimpan.

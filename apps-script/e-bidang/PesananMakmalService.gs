@@ -242,6 +242,20 @@ function apiKemaskiniStatusPesanan(p) {
   pesanan.TarikhDiproses = formatTarikhMasa(new Date());
   kemaskiniBaris(SHEET_PESANAN_MAKMAL, pesanan.__row, pesanan, HEADER_PESANAN_MAKMAL);
   catatAudit(sesi, 'TUKAR_STATUS', 'PESANAN_MAKMAL', pesanan.IDPesanan, 'Status ditukar kepada ' + p.status);
+
+  // E-mel segera kepada pemohon asal (bukan menunggu digest harian) — kegagalan e-mel
+  // (kuota/tiada Emel diisi) tidak menghalang kemaskini status (dibalut dalam hantarEmelSegera()).
+  const pemohon = cariBarisMengikutId(SHEET_USERS, 'NoKP', pesanan.NoKPGuru);
+  if (pemohon && pemohon.Emel) {
+    hantarEmelSegera(pemohon.Emel,
+      'Pesanan Makmal Anda Dikemaskini: ' + pesanan.TajukEksperimen,
+      'Salam ' + pemohon.NamaPenuh + ',\n\n' +
+      'Pesanan Radas & Bahan Makmal anda (' + pesanan.Makmal + ' — ' + pesanan.TajukEksperimen + ', ' + pesanan.Kelas + ') kini berstatus: ' +
+      (LABEL_STATUS_PESANAN_EMEL[pesanan.Status] || pesanan.Status) + '.\n\n' +
+      (pesanan.CatatanPembantu ? ('Catatan Pembantu Makmal: ' + pesanan.CatatanPembantu + '\n\n') : '') +
+      'Sila log masuk ke Sistem E-Bidang untuk butiran lanjut.\n\n— E-Bidang Sains & Matematik, SMK Asajaya');
+  }
+
   return jaya({});
 }
 

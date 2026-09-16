@@ -464,6 +464,26 @@ function formatTarikhMasaPaparan(iso) {
   return bahagian[1] ? (tarikh + ' ' + bahagian[1]) : tarikh;
 }
 
+/* Eksport senarai (array baris) sebagai fail CSV & muat turun terus di pelayar —
+   tiada panggilan pelayan, guna data yang sudah dimuatkan pada jadual semasa.
+   `header` & `baris` ialah array rentetan/array-array rentetan (bukan objek). */
+function eksportCSV(namaFail, header, baris) {
+  const escapeCSV = nilai => {
+    const s = nilai === undefined || nilai === null ? '' : String(nilai);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const isi = [header].concat(baris).map(b => b.map(escapeCSV).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + isi], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = namaFail;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 function inisialDaripadaNama(nama) {
   const perkataan = String(nama || '').trim().split(/\s+/).filter(Boolean);
   if (!perkataan.length) return '?';
@@ -549,19 +569,26 @@ function paparDashboard() {
 function paparDokumen() {
   const k = document.getElementById('kandungan');
   k.innerHTML = `
-    <div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn" id="btnMuatNaikDokumen">${ikon('muatNaik')}Muat Naik Dokumen</button></div>
+    <div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn kecil luar" id="btnEksportDokumen">${ikon('cetak')}Eksport CSV</button><button class="btn" id="btnMuatNaikDokumen">${ikon('muatNaik')}Muat Naik Dokumen</button></div>
     <div class="kad"><h3>${ikon('senaraiSemak', 'ikon-h3')}Checklist Kelengkapan Fail</h3><div id="jadualChecklist"></div></div>
     <div class="kad"><h3>${ikon('dokumen', 'ikon-h3')}Senarai Dokumen</h3><div id="jadualDokumen"></div></div>`;
   pasangPemilihPanitia(muatSemulaDokumen);
   document.getElementById('btnMuatNaikDokumen').addEventListener('click', bukaBorangMuatNaikDokumen);
+  document.getElementById('btnEksportDokumen').addEventListener('click', () => eksportCSV(
+    'Dokumen_' + PANITIA_AKTIF + '.csv',
+    ['Nama Dokumen', 'Kategori', 'Tarikh', 'Dimuat Naik Oleh', 'Catatan'],
+    (SENARAI_DOKUMEN_SEMASA || []).map(d => [d.namaDokumen, d.namaKategori, formatTarikhPaparan(d.tarikhDokumen), d.dimuatNaikOleh, d.catatan || ''])
+  ));
   muatSemulaDokumen();
 }
 
+let SENARAI_DOKUMEN_SEMASA = [];
 function muatSemulaDokumen() {
   Promise.all([
     panggilApi('apiChecklistDokumen', { panitia: PANITIA_AKTIF }),
     panggilApi('apiSenaraiDokumen', { panitia: PANITIA_AKTIF })
   ]).then(([checklist, dokumen]) => {
+    SENARAI_DOKUMEN_SEMASA = dokumen.senarai;
     document.getElementById('jadualChecklist').innerHTML = `<table><thead><tr>
       <th>Kategori</th><th>Wajib?</th><th>Bilangan Fail</th><th>Status</th></tr></thead><tbody>` +
       checklist.checklist.map(c => `<tr><td>${c.namaKategori}</td><td>${c.wajib === 'YA' ? 'Ya' : 'Tidak'}</td><td>${c.bilangan}</td>
@@ -648,20 +675,27 @@ function bolehUrusPanitia() { return ['ADMIN', 'KETUA_BIDANG', 'KETUA_PANITIA'].
 
 function paparMesyuarat() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}${bolehUrusPanitia() ? `<button class="btn" id="btnTambahMesyuarat">${ikon('tambah')}Mesyuarat Baharu</button>` : ''}</div>
+  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn kecil luar" id="btnEksportMesyuarat">${ikon('cetak')}Eksport CSV</button>${bolehUrusPanitia() ? `<button class="btn" id="btnTambahMesyuarat">${ikon('tambah')}Mesyuarat Baharu</button>` : ''}</div>
     <div class="kad"><h3>${ikon('mesyuarat', 'ikon-h3')}Senarai Mesyuarat</h3><div id="jadualMesyuarat"></div></div>`;
   pasangPemilihPanitia(muatSemulaMesyuarat);
   const btn = document.getElementById('btnTambahMesyuarat');
   if (btn) btn.addEventListener('click', () => bukaBorangMesyuarat(null));
+  document.getElementById('btnEksportMesyuarat').addEventListener('click', () => eksportCSV(
+    'Mesyuarat_' + PANITIA_AKTIF + '.csv',
+    ['Tarikh', 'Masa', 'Tajuk', 'Minit'],
+    (SENARAI_MESYUARAT_SEMASA || []).map(m => [formatTarikhPaparan(m.TarikhMesyuarat), m.MasaMula && m.MasaTamat ? (m.MasaMula + '-' + m.MasaTamat) : '-', m.Tajuk, m.MinitUrl || '-'])
+  ));
   muatSemulaMesyuarat();
 }
 
+let SENARAI_MESYUARAT_SEMASA = [];
 function muatSemulaMesyuarat() {
   panggilApi('apiSenaraiMesyuarat', { panitia: PANITIA_AKTIF }).then(hasil => {
+    SENARAI_MESYUARAT_SEMASA = hasil.senarai;
     document.getElementById('jadualMesyuarat').innerHTML = hasil.senarai.length ? `<table><thead><tr>
-      <th>Tarikh</th><th>Tajuk</th><th>Minit</th><th></th></tr></thead><tbody>` +
+      <th>Tarikh</th><th>Masa</th><th>Tajuk</th><th>Minit</th><th></th></tr></thead><tbody>` +
       hasil.senarai.map(m => `<tr>
-        <td>${formatTarikhPaparan(m.TarikhMesyuarat)}</td><td>${m.Tajuk}</td>
+        <td>${formatTarikhPaparan(m.TarikhMesyuarat)}</td><td>${m.MasaMula && m.MasaTamat ? (m.MasaMula + '&ndash;' + m.MasaTamat) : '-'}</td><td>${m.Tajuk}</td>
         <td>${m.MinitUrl ? `<a href="${m.MinitUrl}" target="_blank">${ikon('lihat')}Lihat Minit</a>` : '-'}</td>
         <td>
           <button class="btn kecil luar" onclick='bukaKehadiran(${JSON.stringify(m.IDMesyuarat)}, ${JSON.stringify(m.Tajuk)})'>${ikon('pengguna')}Kehadiran</button>
@@ -677,6 +711,8 @@ function bukaBorangMesyuarat(m) {
       <div class="grid-borang">
         <div class="medan"><label>Tarikh</label><input type="date" name="tarikhMesyuarat" value="${m ? m.TarikhMesyuarat : ''}" required></div>
         <div class="medan"><label>Tajuk</label><input type="text" name="tajuk" value="${m ? m.Tajuk : ''}" required></div>
+        <div class="medan"><label>Masa Mula (pilihan)</label><input type="time" name="masaMula" value="${m ? (m.MasaMula || '') : ''}"></div>
+        <div class="medan"><label>Masa Tamat (pilihan)</label><input type="time" name="masaTamat" value="${m ? (m.MasaTamat || '') : ''}"></div>
         <div class="medan lebar-penuh"><label>Agenda</label><textarea name="agenda" rows="3">${m ? (m.Agenda || '') : ''}</textarea></div>
         <div class="medan lebar-penuh"><label>Fail Minit (pilihan)</label><input type="file" name="fail"></div>
       </div>
@@ -685,8 +721,13 @@ function bukaBorangMesyuarat(m) {
   document.getElementById('borangMesyuarat').addEventListener('submit', ev => {
     ev.preventDefault();
     const f = new FormData(ev.target);
+    const masaMula = f.get('masaMula'), masaTamat = f.get('masaTamat');
+    if (masaMula && masaTamat && masaTamat <= masaMula) { papartToast('Masa tamat mesti selepas masa mula.', 'gagal'); return; }
     const fail = f.get('fail');
-    const param = { idMesyuarat: m ? m.IDMesyuarat : '', panitia: PANITIA_AKTIF, tarikhMesyuarat: f.get('tarikhMesyuarat'), tajuk: f.get('tajuk'), agenda: f.get('agenda') };
+    const param = {
+      idMesyuarat: m ? m.IDMesyuarat : '', panitia: PANITIA_AKTIF, tarikhMesyuarat: f.get('tarikhMesyuarat'),
+      tajuk: f.get('tajuk'), masaMula, masaTamat, agenda: f.get('agenda')
+    };
     const proses = (fail && fail.size) ? bacaFailSebagaiBase64(fail).then(b64 => Object.assign(param, { namaFail: fail.name, jenisMime: fail.type, dataBase64: b64 })) : Promise.resolve(param);
     proses.then(p => panggilApi('apiSimpanMesyuarat', p)).then(() => { papartToast('Mesyuarat disimpan.'); tutupModal(); muatSemulaMesyuarat(); });
   });
@@ -728,19 +769,26 @@ function bukaKehadiran(idMesyuarat, tajuk) {
 /* ============================ TINDAKAN SUSULAN ============================ */
 function paparTindakan() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}${bolehUrusPanitia() ? `<button class="btn" id="btnTambahTindakan">${ikon('tambah')}Tindakan Baharu</button>` : ''}</div>
+  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn kecil luar" id="btnEksportTindakan">${ikon('cetak')}Eksport CSV</button>${bolehUrusPanitia() ? `<button class="btn" id="btnTambahTindakan">${ikon('tambah')}Tindakan Baharu</button>` : ''}</div>
     <div class="kad"><h3>${ikon('tindakan', 'ikon-h3')}Senarai Tindakan Susulan</h3><div id="jadualTindakan"></div></div>`;
   pasangPemilihPanitia(muatSemulaTindakan);
   const btn = document.getElementById('btnTambahTindakan');
   if (btn) btn.addEventListener('click', () => bukaBorangTindakan(null));
+  document.getElementById('btnEksportTindakan').addEventListener('click', () => eksportCSV(
+    'Tindakan_Susulan_' + PANITIA_AKTIF + '.csv',
+    ['Perkara', 'Tanggungjawab', 'Tarikh Akhir', 'Status'],
+    (SENARAI_TINDAKAN_SEMASA || []).map(t => [t.Perkara, (window.__ahliPanitiaSemasa.find(a => a.nokp === t.TanggungjawabNoKP) || {}).nama || t.TanggungjawabNoKP, formatTarikhPaparan(t.TarikhAkhir), LABEL_STATUS_TINDAKAN[t.Status] || t.Status])
+  ));
   muatSemulaTindakan();
 }
 
+let SENARAI_TINDAKAN_SEMASA = [];
 function muatSemulaTindakan() {
   panggilApi('apiSenaraiAhliPanitia', { panitia: PANITIA_AKTIF }).then(ahli => {
     window.__ahliPanitiaSemasa = ahli.senarai;
     return panggilApi('apiSenaraiTindakanSusulan', { panitia: PANITIA_AKTIF });
   }).then(hasil => {
+    SENARAI_TINDAKAN_SEMASA = hasil.senarai;
     document.getElementById('jadualTindakan').innerHTML = hasil.senarai.length ? `<table><thead><tr>
       <th>Perkara</th><th>Tanggungjawab</th><th>Tarikh Akhir</th><th>Status</th><th></th></tr></thead><tbody>` +
       hasil.senarai.map(t => {
@@ -787,20 +835,28 @@ function padamTindakan(idTindakan) {
 /* ============================ PROGRAM & PLC ============================ */
 function paparProgram() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}${bolehUrusPanitia() ? `<button class="btn" id="btnTambahProgram">${ikon('tambah')}Program/PLC Baharu</button>` : ''}</div>
+  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn kecil luar" id="btnEksportProgram">${ikon('cetak')}Eksport CSV</button>${bolehUrusPanitia() ? `<button class="btn" id="btnTambahProgram">${ikon('tambah')}Program/PLC Baharu</button>` : ''}</div>
     <div class="kad"><h3>${ikon('program', 'ikon-h3')}Senarai Program &amp; PLC</h3><div id="jadualProgram"></div></div>`;
   pasangPemilihPanitia(muatSemulaProgram);
   const btn = document.getElementById('btnTambahProgram');
   if (btn) btn.addEventListener('click', () => bukaBorangProgram(null));
+  document.getElementById('btnEksportProgram').addEventListener('click', () => eksportCSV(
+    'Program_PLC_' + PANITIA_AKTIF + '.csv',
+    ['Nama', 'Jenis', 'Tarikh Mula', 'Tarikh Tamat', 'Masa', 'Status'],
+    (SENARAI_PROGRAM_SEMASA || []).map(pr => [pr.NamaProgram, pr.JenisProgram, pr.TarikhMula ? formatTarikhPaparan(pr.TarikhMula) : '-', pr.TarikhTamat ? formatTarikhPaparan(pr.TarikhTamat) : '-', pr.MasaMula && pr.MasaTamat ? (pr.MasaMula + '-' + pr.MasaTamat) : '-', pr.Status])
+  ));
   muatSemulaProgram();
 }
 
+let SENARAI_PROGRAM_SEMASA = [];
 function muatSemulaProgram() {
   panggilApi('apiSenaraiProgram', { panitia: PANITIA_AKTIF }).then(hasil => {
+    SENARAI_PROGRAM_SEMASA = hasil.senarai;
     document.getElementById('jadualProgram').innerHTML = hasil.senarai.length ? `<table><thead><tr>
-      <th>Nama</th><th>Jenis</th><th>Tarikh</th><th>Status</th><th></th></tr></thead><tbody>` +
+      <th>Nama</th><th>Jenis</th><th>Tarikh</th><th>Masa</th><th>Status</th><th></th></tr></thead><tbody>` +
       hasil.senarai.map(pr => `<tr>
         <td>${pr.NamaProgram}</td><td>${pr.JenisProgram}</td><td>${pr.TarikhMula ? formatTarikhPaparan(pr.TarikhMula) : '-'} &rarr; ${pr.TarikhTamat ? formatTarikhPaparan(pr.TarikhTamat) : '-'}</td>
+        <td>${pr.MasaMula && pr.MasaTamat ? (pr.MasaMula + '&ndash;' + pr.MasaTamat) : '-'}</td>
         <td><span class="lencana ${pr.Status === 'SELESAI' ? 'hijau' : pr.Status === 'BERJALAN' ? 'kuning' : 'kelabu'}">${pr.Status}</span></td>
         <td><button class="btn kecil luar" onclick='bukaEvidens(${JSON.stringify(pr.IDProgram)}, ${JSON.stringify(pr.NamaProgram)})'>${ikon('dokumen')}Evidens</button>
           ${bolehUrusPanitia() ? `<button class="btn kecil luar" onclick='bukaBorangProgram(${JSON.stringify(pr)})'>${ikon('sunting')}Sunting</button>
@@ -823,6 +879,8 @@ function bukaBorangProgram(pr) {
           <option value="SELESAI" ${pr && pr.Status === 'SELESAI' ? 'selected' : ''}>Selesai</option></select></div>
         <div class="medan"><label>Tarikh Mula</label><input type="date" name="tarikhMula" value="${pr ? pr.TarikhMula : ''}"></div>
         <div class="medan"><label>Tarikh Tamat</label><input type="date" name="tarikhTamat" value="${pr ? pr.TarikhTamat : ''}"></div>
+        <div class="medan"><label>Masa Mula (pilihan)</label><input type="time" name="masaMula" value="${pr ? (pr.MasaMula || '') : ''}"></div>
+        <div class="medan"><label>Masa Tamat (pilihan)</label><input type="time" name="masaTamat" value="${pr ? (pr.MasaTamat || '') : ''}"></div>
         <div class="medan lebar-penuh"><label>Objektif</label><textarea name="objektif" rows="2">${pr ? (pr.Objektif || '') : ''}</textarea></div>
       </div>
       <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
@@ -830,10 +888,12 @@ function bukaBorangProgram(pr) {
   document.getElementById('borangProgram').addEventListener('submit', ev => {
     ev.preventDefault();
     const f = new FormData(ev.target);
+    const masaMula = f.get('masaMula'), masaTamat = f.get('masaTamat');
+    if (masaMula && masaTamat && masaTamat <= masaMula) { papartToast('Masa tamat mesti selepas masa mula.', 'gagal'); return; }
     panggilApi('apiSimpanProgram', {
       idProgram: pr ? pr.IDProgram : '', panitia: PANITIA_AKTIF, namaProgram: f.get('namaProgram'),
       jenisProgram: f.get('jenisProgram'), status: f.get('status'), tarikhMula: f.get('tarikhMula'),
-      tarikhTamat: f.get('tarikhTamat'), objektif: f.get('objektif')
+      tarikhTamat: f.get('tarikhTamat'), masaMula, masaTamat, objektif: f.get('objektif')
     }).then(() => { papartToast('Program disimpan.'); tutupModal(); muatSemulaProgram(); });
   });
 }
@@ -1187,14 +1247,22 @@ function tukarStatusPengguna(nokp) {
 /* ============================ LOG AUDIT (ADMIN/KETUA_BIDANG) ============================ */
 function paparAudit() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = `<div class="kad"><h3>${ikon('audit', 'ikon-h3')}Log Audit (300 rekod terkini)</h3><div id="jadualAudit"></div></div>`;
+  k.innerHTML = `<div class="baris-alat"><span></span><button class="btn kecil luar" id="btnEksportAudit">${ikon('cetak')}Eksport CSV</button></div>
+    <div class="kad"><h3>${ikon('audit', 'ikon-h3')}Log Audit (300 rekod terkini)</h3><div id="jadualAudit"></div></div>`;
+  document.getElementById('btnEksportAudit').addEventListener('click', () => eksportCSV(
+    'Log_Audit.csv',
+    ['Tarikh', 'Nama', 'Peranan', 'Tindakan', 'Modul', 'Butiran'],
+    (SENARAI_AUDIT_SEMASA || []).map(a => [formatTarikhMasaPaparan(a.Tarikh), a.Nama, LABEL_PERANAN[a.Peranan] || a.Peranan, a.Tindakan, a.Modul, a.Butiran])
+  ));
   panggilApi('apiSenaraiAudit').then(hasil => {
+    SENARAI_AUDIT_SEMASA = hasil.senarai;
     document.getElementById('jadualAudit').innerHTML = `<table><thead><tr>
       <th>Tarikh</th><th>Nama</th><th>Peranan</th><th>Tindakan</th><th>Modul</th><th>Butiran</th></tr></thead><tbody>` +
       hasil.senarai.map(a => `<tr><td>${formatTarikhMasaPaparan(a.Tarikh)}</td><td>${a.Nama}</td><td>${LABEL_PERANAN[a.Peranan] || a.Peranan}</td>
         <td>${a.Tindakan}</td><td>${a.Modul}</td><td>${a.Butiran}</td></tr>`).join('') + `</tbody></table>`;
   });
 }
+let SENARAI_AUDIT_SEMASA = [];
 </script>
 </body>
 </html>
