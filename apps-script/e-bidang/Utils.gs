@@ -94,6 +94,13 @@ function tambahLajurJikaTiada(namaSheet, namaLajur) {
   return true;
 }
 
+/* Lajur Panitia (USERS) boleh simpan lebih daripada satu panitia dipisah
+   koma (cth. "Kimia, Sains") bagi guru yang mengajar > 1 mata pelajaran.
+   Guna fungsi ini di mana-mana sahaja lajur itu dibaca — jangan baca terus. */
+function senaraiPanitiaDaripadaMedan(nilai) {
+  return String(nilai || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+
 function ralat(mesej) {
   return { success: false, message: mesej };
 }

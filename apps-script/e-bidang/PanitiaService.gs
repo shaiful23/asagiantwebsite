@@ -36,7 +36,7 @@ function apiTetapkanKetuaPanitia(p) {
   if (nokpKetua) {
     const pengguna = cariBarisMengikutId(SHEET_USERS, 'NoKP', nokpKetua);
     if (!pengguna) return ralat('Pengguna (bakal Ketua Panitia) tidak dijumpai.');
-    if (String(pengguna.Panitia) !== String(panitia.NamaPanitia)) {
+    if (senaraiPanitiaDaripadaMedan(pengguna.Panitia).indexOf(panitia.NamaPanitia) === -1) {
       return ralat('Pengguna ini bukan ahli panitia ' + panitia.NamaPanitia + '. Kemaskini panitia pengguna dahulu.');
     }
     if (pengguna.Peranan !== ROLE_KETUA_PANITIA) {

@@ -20,10 +20,22 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   | --- | --- |
   | `ADMIN` | Penuh — semua panitia, urus pengguna, log audit |
   | `KETUA_BIDANG` | Penuh — semua panitia, urus pengguna, log audit |
-  | `KETUA_PANITIA` | Terhad kepada panitia sendiri; boleh urus mesyuarat, tindakan susulan, program & fail panitia sendiri |
-  | `GURU` | Terhad kepada panitia sendiri; boleh muat naik/lihat fail, lihat mesyuarat/program, kemaskini status tindakan yang ditugaskan kepadanya |
+  | `KETUA_PANITIA` | Terhad kepada panitia sendiri (boleh > 1); boleh urus mesyuarat, tindakan susulan, program & fail bagi setiap panitia dalam senarai panitia sendiri |
+  | `GURU` | Terhad kepada panitia sendiri (boleh > 1); boleh muat naik/lihat fail, lihat mesyuarat/program, kemaskini status tindakan yang ditugaskan kepadanya |
   | `PEMBANTU_MAKMAL` | Tiada panitia sendiri; lihat & proses Pesanan Radas & Bahan Makmal merentasi SEMUA panitia makmal (Sains/Kimia/Biologi/Fizik) sahaja — tiada akses ke Dokumen/Mesyuarat/Program/Panitia/Pengguna/Audit |
 
+- **Sokongan pertindihan peranan & > 1 panitia** — seorang guru yang mengajar
+  lebih daripada satu mata pelajaran (cth. Kimia & Sains, atau Matematik &
+  Fizik) boleh didaftarkan dengan **lebih daripada satu Panitia** (tandakan
+  semua yang berkenaan semasa tambah/sunting pengguna di menu **Pengguna**);
+  sistem akan sediakan pemilih Panitia bagi setiap modul (Dokumen, Mesyuarat,
+  Tindakan, Program, Pesanan Makmal) supaya pengguna itu boleh bertukar
+  antara panitia sendiri. Seseorang yang juga `ADMIN`/`KETUA_BIDANG` tidak
+  perlu akaun berasingan bagi peranan Ketua Panitia — akses penuh sedia ada
+  sudah merangkumi semua panitia. **Nota:** jika seseorang `KETUA_PANITIA`
+  didaftarkan bagi > 1 panitia, dia memperoleh kuasa peringkat ketua
+  (urus mesyuarat/tindakan/program) bagi **kesemua** panitia yang
+  disenaraikan, bukan hanya panitia yang beliau rasmi diketuai.
 - **Pengurusan Fail Panitia** (modul teras) — kategori dokumen berpiawai
   (Minit Mesyuarat, RPT, Takwim, Pekeliling, Laporan Program, Instrumen
   Pentaksiran, Analisis Peperiksaan, Fail Kewangan), setiap fail dimuat naik
@@ -41,8 +53,9 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   laluan direkod (Admin/Ketua Bidang sahaja boleh semak).
 - **Pesanan Radas & Bahan Makmal** (Panitia Sains/Kimia/Biologi/Fizik sahaja —
   Matematik tidak menjalankan eksperimen makmal) — Guru/Ketua Panitia
-  panitia berkenaan membuat pesanan (kelas, tajuk eksperimen, tarikh
-  diperlukan, senarai bahan/radas dengan kuantiti & unit, baris boleh
+  panitia berkenaan (atau Admin/Ketua Bidang, bagi mana-mana panitia makmal)
+  membuat pesanan (pilih Panitia jika > 1 pilihan, kelas, tajuk eksperimen,
+  tarikh diperlukan, senarai bahan/radas dengan kuantiti & unit, baris boleh
   ditambah/dibuang secara dinamik). Peranan `PEMBANTU_MAKMAL` (+
   Admin/Ketua Bidang) melihat & memproses pesanan merentasi semua panitia
   makmal, menukar status (Menunggu → Dalam Proses → Siap, atau Ditolak) dan
