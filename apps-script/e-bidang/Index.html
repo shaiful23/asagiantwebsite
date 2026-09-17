@@ -672,24 +672,25 @@ function paparProfilSaya() {
   const k = document.getElementById('kandungan');
   k.innerHTML = `<div class="kad"><h3>${ikon('profilSaya', 'ikon-h3')}Profil Saya</h3>
     <p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Maklumat ini dipaparkan di Carta Organisasi &amp; boleh dilihat oleh staf lain.</p>
+    <p id="statusMuatProfilSaya" style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Memuatkan profil sedia ada&hellip;</p>
     <div class="medan-gambar-profil">
       <div class="avatar-carta besar" id="avatarProfilSaya"></div>
       <div>
-        <input type="file" id="inputGambarProfilSaya" accept="image/*">
+        <input type="file" id="inputGambarProfilSaya" accept="image/*" disabled>
         <p style="font-size:11px;color:var(--kelabu);margin:4px 0 0">Gambar akan dikecilkan secara automatik.</p>
       </div>
     </div>
     <form id="borangProfilSaya">
       <div class="grid-borang">
-        <div class="medan"><label>Jawatan/Gelaran</label><input type="text" name="jawatan" placeholder="cth. Ketua Panitia Kimia, Guru Cemerlang"></div>
-        <div class="medan"><label>Gred Jawatan</label><input type="text" name="gredJawatan" placeholder="cth. DG44"></div>
-        <div class="medan"><label>No. Telefon</label><input type="tel" name="noTelefon" placeholder="cth. 012-3456789"></div>
-        <div class="medan"><label>Tahun Mula Mengajar Subjek Semasa</label><input type="number" name="tahunMulaSubjekSemasa" min="1980" max="2100" placeholder="cth. 2019"></div>
-        <div class="medan lebar-penuh"><label>Opsyen/Bidang Pengkhususan Mengajar</label><input type="text" name="opsyenPengkhususan" placeholder="cth. Kimia &amp; Sains"></div>
-        <div class="medan lebar-penuh"><label>Kelayakan Akademik</label><input type="text" name="kelayakanAkademik" placeholder="cth. Ijazah Sarjana Muda Pendidikan Kimia, UPM"></div>
-        <div class="medan lebar-penuh"><label>Kelas Yang Diajar</label><input type="text" name="kelasDiajar" placeholder="cth. 5 Bestari, 4 Cemerlang, 1 Arif"></div>
+        <div class="medan"><label>Jawatan/Gelaran</label><input type="text" name="jawatan" placeholder="cth. Ketua Panitia Kimia, Guru Cemerlang" disabled></div>
+        <div class="medan"><label>Gred Jawatan</label><input type="text" name="gredJawatan" placeholder="cth. DG44" disabled></div>
+        <div class="medan"><label>No. Telefon</label><input type="tel" name="noTelefon" placeholder="cth. 012-3456789" disabled></div>
+        <div class="medan"><label>Tahun Mula Mengajar Subjek Semasa</label><input type="number" name="tahunMulaSubjekSemasa" min="1980" max="2100" placeholder="cth. 2019" disabled></div>
+        <div class="medan lebar-penuh"><label>Opsyen/Bidang Pengkhususan Mengajar</label><input type="text" name="opsyenPengkhususan" placeholder="cth. Kimia &amp; Sains" disabled></div>
+        <div class="medan lebar-penuh"><label>Kelayakan Akademik</label><input type="text" name="kelayakanAkademik" placeholder="cth. Ijazah Sarjana Muda Pendidikan Kimia, UPM" disabled></div>
+        <div class="medan lebar-penuh"><label>Kelas Yang Diajar</label><input type="text" name="kelasDiajar" placeholder="cth. 5 Bestari, 4 Cemerlang, 1 Arif" disabled></div>
       </div>
-      <div class="aksi-modal" style="justify-content:flex-start"><button type="submit" class="btn">Simpan Profil</button></div>
+      <div class="aksi-modal" style="justify-content:flex-start"><button type="submit" class="btn" disabled>Simpan Profil</button></div>
     </form>`;
 
   document.getElementById('inputGambarProfilSaya').addEventListener('change', ev => {
@@ -715,7 +716,16 @@ function paparProfilSaya() {
     const borang = document.getElementById('borangProfilSaya');
     ['jawatan', 'gredJawatan', 'noTelefon', 'tahunMulaSubjekSemasa', 'opsyenPengkhususan', 'kelayakanAkademik', 'kelasDiajar'].forEach(medan => {
       borang.elements[medan].value = pr[medan] || '';
+      borang.elements[medan].disabled = false;
     });
+    document.getElementById('inputGambarProfilSaya').disabled = false;
+    borang.querySelector('button[type=submit]').disabled = false;
+    document.getElementById('statusMuatProfilSaya').remove();
+  }).catch(() => {
+    // panggilApi() sudah papar toast ralat; kekalkan medan dilumpuhkan (bukan
+    // kosong senyap) supaya pengguna tidak tersimpan borang kosong menimpa
+    // profil sedia ada akibat gagal memuatkan data asal.
+    document.getElementById('statusMuatProfilSaya').textContent = 'Gagal memuatkan profil sedia ada. Sila muat semula halaman.';
   });
 
   document.getElementById('borangProfilSaya').addEventListener('submit', ev => {
