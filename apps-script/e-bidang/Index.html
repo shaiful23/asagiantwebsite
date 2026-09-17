@@ -700,6 +700,12 @@ function paparProfilSaya() {
     ).then(hasil => {
       document.getElementById('avatarProfilSaya').innerHTML = `<img src="${hasil.gambarDataUri}" alt="Gambar profil">`;
       papartToast('Gambar profil dikemaskini.');
+    }).catch(e => {
+      // panggilApi() sudah papar toast bagi ralat peringkat aplikasi (success:false);
+      // .catch() ini hanya untuk tangkap ralat RPC/pelayar yang tidak dijangka supaya
+      // muat naik gambar yang gagal senyap tidak lagi kelihatan seolah-olah berjaya.
+      papartToast(e.message || 'Gagal memuat naik gambar profil.', 'gagal');
+      ev.target.value = '';
     });
   });
 
