@@ -235,7 +235,9 @@
       <a href="#" class="item-nav" data-view="tindakan" id="navTindakan" aria-label="Tindakan Susulan"><span class="nav-ikon"></span><span>Tindakan Susulan</span></a>
       <a href="#" class="item-nav" data-view="program" id="navProgram" aria-label="Program &amp; PLC"><span class="nav-ikon"></span><span>Program &amp; PLC</span></a>
       <a href="#" class="item-nav" data-view="perancangan" id="navPerancangan" aria-label="Perancangan Strategik"><span class="nav-ikon"></span><span>Perancangan Strategik</span></a>
+      <a href="#" class="item-nav" data-view="pencerapan" id="navPencerapan" aria-label="Pencerapan &amp; Semakan"><span class="nav-ikon"></span><span>Pencerapan &amp; Semakan</span></a>
       <a href="#" class="item-nav" data-view="pesananMakmal" id="navPesananMakmal" aria-label="Pesanan Makmal"><span class="nav-ikon"></span><span>Pesanan Makmal</span></a>
+      <a href="#" class="item-nav" data-view="makmalOps" id="navMakmalOps" aria-label="Pengurusan Makmal"><span class="nav-ikon"></span><span>Pengurusan Makmal</span></a>
       <a href="#" class="item-nav" data-view="panitia" id="navPanitia" aria-label="Panitia"><span class="nav-ikon"></span><span>Panitia</span></a>
       <a href="#" class="item-nav" data-view="pengguna" id="navPengguna" aria-label="Pengguna"><span class="nav-ikon"></span><span>Pengguna</span></a>
       <a href="#" class="item-nav" data-view="audit" id="navAudit" aria-label="Log Audit"><span class="nav-ikon"></span><span>Log Audit</span></a>
@@ -267,6 +269,14 @@ const PANITIA_MAKMAL = ['Sains', 'Kimia', 'Biologi', 'Fizik'];
 const SENARAI_MAKMAL = ['Makmal Sains 1', 'Makmal Sains 2', 'Makmal Sains 3', 'Makmal Sains 4'];
 const SKOP_BIDANG = 'BIDANG';
 const BULAN_TAHUNAN = ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogos', 'Sep', 'Okt', 'Nov', 'Dis'];
+const SENARAI_SEMAK_KESELAMATAN_MAKMAL = [
+  ['AlatPemadamApi', 'Alat Pemadam Api berfungsi & tidak luput tempoh'],
+  ['KotakPertolonganCemas', 'Kotak Pertolongan Cemas lengkap'],
+  ['PapanArahKeselamatan', 'Papan arahan/carta alir keselamatan dipamerkan'],
+  ['SistemPengudaraan', 'Sistem pengudaraan/kipas ekzos berfungsi'],
+  ['LaluanKecemasan', 'Laluan kecemasan tidak terhalang'],
+  ['PelabelanBahanKimia', 'Bahan kimia dilabel & disimpan dengan betul']
+];
 // PEMBANTU_MAKMAL biasa TIDAK termasuk — hanya nampak pesanan bagi Makmal sendiri (SESI.makmal).
 const PERANAN_LIHAT_SEMUA_PESANAN = ['ADMIN', 'KETUA_BIDANG', 'KETUA_PEMBANTU_MAKMAL'];
 const LABEL_PERANAN = { ADMIN: 'Admin', KETUA_BIDANG: 'Ketua Bidang', KETUA_PANITIA: 'Ketua Panitia', GURU: 'Guru', PEMBANTU_MAKMAL: 'Pembantu Makmal', KETUA_PEMBANTU_MAKMAL: 'Ketua Pembantu Makmal' };
@@ -308,6 +318,8 @@ const LALUAN_IKON = {
   cetak: '<path d="M7 8.5V4.5A1 1 0 0 1 8 3.5h8a1 1 0 0 1 1 1v4"/><rect x="4.5" y="8.5" width="15" height="8" rx="1.5"/><rect x="7.5" y="13" width="9" height="7" rx="1"/>',
   cartaOrganisasi: '<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="12" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v5M12 12.5H5v4M12 12.5h7v4"/>',
   perancangan: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r=".9" fill="currentColor" stroke="none"/>',
+  pencerapan: '<path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z"/><circle cx="12" cy="12" r="3"/>',
+  makmalOps: '<path d="M9 3h6M10 3v5.5L4.8 18a2 2 0 0 0 1.7 3h11a2 2 0 0 0 1.7-3L14 8.5V3"/><path d="M7.5 14h9"/>',
   profilSaya: '<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>',
   kamera: '<path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1-2h7l1 2h2A1.5 1.5 0 0 1 20 8.5v10A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5v-10Z"/><circle cx="12" cy="13" r="3.5"/>'
 };
@@ -420,7 +432,8 @@ function mulakanApp() {
   document.getElementById('navPengguna').classList.toggle('hidden', !aksesPenuh);
   document.getElementById('navAudit').classList.toggle('hidden', !aksesPenuh);
   document.getElementById('navPesananMakmal').classList.toggle('hidden', !bolehPesananMakmal);
-  ['navDokumen', 'navMesyuarat', 'navTindakan', 'navProgram', 'navPerancangan'].forEach(id => document.getElementById(id).classList.toggle('hidden', pembantuMakmal));
+  document.getElementById('navMakmalOps').classList.toggle('hidden', !bolehPesananMakmal);
+  ['navDokumen', 'navMesyuarat', 'navTindakan', 'navProgram', 'navPerancangan', 'navPencerapan'].forEach(id => document.getElementById(id).classList.toggle('hidden', pembantuMakmal));
 
   PANITIA_AKTIF = aksesPenuh ? SENARAI_PANITIA[0] : ((SESI.panitia && SESI.panitia[0]) || null);
   document.getElementById('labelPanitiaAktif').textContent = SESI.peranan === 'KETUA_PEMBANTU_MAKMAL'
@@ -448,7 +461,8 @@ function navigasi(view) {
   const peta = {
     dashboard: paparDashboard, cartaOrganisasi: paparCartaOrganisasi, profilSaya: paparProfilSaya,
     dokumen: paparDokumen, mesyuarat: paparMesyuarat,
-    tindakan: paparTindakan, program: paparProgram, perancangan: paparPerancangan, pesananMakmal: paparPesananMakmal,
+    tindakan: paparTindakan, program: paparProgram, perancangan: paparPerancangan, pencerapan: paparPencerapan,
+    pesananMakmal: paparPesananMakmal, makmalOps: paparMakmalOps,
     panitia: paparPanitia, pengguna: paparPengguna, audit: paparAudit
   };
   (peta[view] || paparDashboard)();
@@ -1397,6 +1411,147 @@ function padamGantt(idAktiviti) {
   panggilApi('apiPadamAktivitiTahunan', { idAktiviti }).then(() => { papartToast('Dipadam.'); muatSemulaGantt(); });
 }
 
+/* ============================ PENCERAPAN PdP & SEMAKAN BUKU LATIHAN ============================ */
+let TAB_PENCERAPAN_AKTIF = 'pdp';
+
+function paparPencerapan() {
+  const k = document.getElementById('kandungan');
+  const tab = (kunci, label) => `<button type="button" data-tab="${kunci}" class="${TAB_PENCERAPAN_AKTIF === kunci ? 'aktif' : ''}">${label}</button>`;
+  k.innerHTML = `<div class="kad"><h3>${ikon('pencerapan', 'ikon-h3')}Pencerapan &amp; Semakan</h3>
+    <p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Pencerapan PdP (pemerhatian pengajaran guru) dan Semakan Buku Latihan murid.</p>
+    <div class="baris-alat">${pemilihPanitiaHtml()}</div>
+    <div class="bar-tab">${tab('pdp', 'Pencerapan PdP')}${tab('buku', 'Semakan Buku Latihan')}</div>
+    <div id="kandunganTabPencerapan"></div></div>`;
+  pasangPemilihPanitia(muatSemulaTabPencerapan);
+  document.querySelectorAll('.bar-tab button').forEach(btn => btn.addEventListener('click', () => { TAB_PENCERAPAN_AKTIF = btn.dataset.tab; paparPencerapan(); }));
+  muatSemulaTabPencerapan();
+}
+
+function muatSemulaTabPencerapan() {
+  ({ pdp: muatSemulaPencerapanPdp, buku: muatSemulaSemakanBuku })[TAB_PENCERAPAN_AKTIF]();
+}
+
+/* ---------- Pencerapan PdP ---------- */
+let SENARAI_AHLI_PANITIA_PENCERAPAN = [];
+function muatSemulaPencerapanPdp() {
+  const bolehUrus = bolehUrusPanitia();
+  const k = document.getElementById('kandunganTabPencerapan');
+  k.innerHTML = `<div class="baris-alat">${bolehUrus ? `<button class="btn" id="btnTambahPencerapan">${ikon('tambah')}Pencerapan Baharu</button>` : '<span></span>'}</div><div id="jadualPencerapan"></div>`;
+  Promise.all([
+    panggilApi('apiSenaraiAhliPanitia', { panitia: PANITIA_AKTIF }),
+    panggilApi('apiSenaraiPencerapan', { panitia: PANITIA_AKTIF })
+  ]).then(([ahli, hasil]) => {
+    SENARAI_AHLI_PANITIA_PENCERAPAN = ahli.senarai;
+    const btn = document.getElementById('btnTambahPencerapan');
+    if (btn) btn.addEventListener('click', () => bukaBorangPencerapan(null));
+    document.getElementById('jadualPencerapan').innerHTML = hasil.senarai.length ? `<table><thead><tr>
+      <th>Guru Diperc</th><th>Pencerap</th><th>Tarikh</th><th>Mata Pelajaran/Tingkatan</th><th>Instrumen/Skor</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(pc => {
+        const namaGuru = (SENARAI_AHLI_PANITIA_PENCERAPAN.find(a => a.nokp === pc.GuruDipercNoKP) || {}).nama || pc.GuruDipercNoKP;
+        return `<tr><td>${namaGuru}</td><td>${pc.Pencerap}</td><td>${formatTarikhPaparan(pc.TarikhPencerapan)}</td>
+          <td>${pc.MataPelajaran || '-'}${pc.Tingkatan ? (' / ' + pc.Tingkatan) : ''}</td><td>${pc.Instrumen || '-'}${pc.Skor ? (' (' + pc.Skor + ')') : ''}</td>
+          <td>${pc.FailBorangUrl ? `<a href="${pc.FailBorangUrl}" target="_blank">${ikon('lihat')}Borang</a>` : ''}
+          ${bolehUrus ? `<button class="btn kecil luar" onclick='bukaBorangPencerapan(${JSON.stringify(pc)})'>${ikon('sunting')}</button>
+          <button class="btn kecil merah" onclick="padamPencerapan('${pc.IDPencerapan}')">${ikon('padam')}</button>` : ''}</td></tr>`;
+      }).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada pencerapan direkod.</p>';
+  });
+}
+
+function bukaBorangPencerapan(pc) {
+  bukaModal(ikon('pencerapan', 'ikon-h3') + (pc ? 'Sunting Pencerapan PdP' : 'Pencerapan PdP Baharu'), `
+    <form id="borangPencerapan">
+      <div class="grid-borang">
+        <div class="medan lebar-penuh"><label>Guru Diperc</label><select name="guruDipercNoKP" required>
+          <option value="">- Pilih -</option>
+          ${SENARAI_AHLI_PANITIA_PENCERAPAN.map(a => `<option value="${a.nokp}" ${pc && pc.GuruDipercNoKP === a.nokp ? 'selected' : ''}>${a.nama}</option>`).join('')}
+        </select></div>
+        <div class="medan"><label>Pencerap</label><input type="text" name="pencerap" value="${pc ? pc.Pencerap : ''}" required></div>
+        <div class="medan"><label>Tarikh Pencerapan</label><input type="date" name="tarikhPencerapan" value="${pc ? pc.TarikhPencerapan : ''}" required></div>
+        <div class="medan"><label>Mata Pelajaran</label><input type="text" name="mataPelajaran" value="${pc ? (pc.MataPelajaran || '') : ''}"></div>
+        <div class="medan"><label>Tingkatan</label><input type="text" name="tingkatan" value="${pc ? (pc.Tingkatan || '') : ''}"></div>
+        <div class="medan"><label>Instrumen</label><input type="text" name="instrumen" value="${pc ? (pc.Instrumen || '') : ''}" placeholder="cth. SKPMg2"></div>
+        <div class="medan"><label>Skor/Gred</label><input type="text" name="skor" value="${pc ? (pc.Skor || '') : ''}"></div>
+        <div class="medan lebar-penuh"><label>Catatan</label><textarea name="catatan" rows="2">${pc ? (pc.Catatan || '') : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Fail Borang Pencerapan (pilihan)</label><input type="file" id="inputFailPencerapan">
+          ${pc && pc.FailBorangUrl ? `<p style="font-size:11px;margin:4px 0 0"><a href="${pc.FailBorangUrl}" target="_blank">Lihat fail sedia ada</a></p>` : ''}</div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangPencerapan').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    const fail = document.getElementById('inputFailPencerapan').files[0];
+    panggilApi('apiSimpanPencerapan', {
+      idPencerapan: pc ? pc.IDPencerapan : '', panitia: PANITIA_AKTIF, guruDipercNoKP: f.get('guruDipercNoKP'),
+      pencerap: f.get('pencerap'), tarikhPencerapan: f.get('tarikhPencerapan'), mataPelajaran: f.get('mataPelajaran'),
+      tingkatan: f.get('tingkatan'), instrumen: f.get('instrumen'), skor: f.get('skor'), catatan: f.get('catatan')
+    }).then(hasil => {
+      const idPencerapan = pc ? pc.IDPencerapan : hasil.idPencerapan;
+      if (fail) return bacaFailSebagaiBase64(fail).then(b64 => panggilApi('apiMuatNaikBorangPencerapan', {
+        idPencerapan, namaFail: fail.name, jenisMime: fail.type, dataBase64: b64
+      }));
+    }).then(() => { papartToast('Pencerapan disimpan.'); tutupModal(); muatSemulaPencerapanPdp(); });
+  });
+}
+
+function padamPencerapan(idPencerapan) {
+  if (!confirm('Padam rekod pencerapan ini?')) return;
+  panggilApi('apiPadamPencerapan', { idPencerapan }).then(() => { papartToast('Dipadam.'); muatSemulaPencerapanPdp(); });
+}
+
+/* ---------- Semakan Buku Latihan ---------- */
+function muatSemulaSemakanBuku() {
+  const bolehUrus = bolehUrusPanitia();
+  const k = document.getElementById('kandunganTabPencerapan');
+  k.innerHTML = `<div class="baris-alat">${bolehUrus ? `<button class="btn" id="btnTambahSemakanBuku">${ikon('tambah')}Semakan Baharu</button>` : '<span></span>'}</div><div id="jadualSemakanBuku"></div>`;
+  const btn = document.getElementById('btnTambahSemakanBuku');
+  if (btn) btn.addEventListener('click', () => bukaBorangSemakanBuku(null));
+  panggilApi('apiSenaraiSemakanBuku', { panitia: PANITIA_AKTIF }).then(hasil => {
+    document.getElementById('jadualSemakanBuku').innerHTML = hasil.senarai.length ? `<table><thead><tr>
+      <th>Tingkatan/Kelas</th><th>Kali Ke</th><th>Tarikh</th><th>Pemeriksa</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(sm => `<tr><td>${sm.TingkatanKelas}</td><td>${sm.BilanganKe || '-'}</td><td>${formatTarikhPaparan(sm.TarikhSemakan)}</td><td>${sm.Pemeriksa}</td>
+        <td>${sm.FailLaporanUrl ? `<a href="${sm.FailLaporanUrl}" target="_blank">${ikon('lihat')}Laporan</a>` : ''}
+        ${bolehUrus ? `<button class="btn kecil luar" onclick='bukaBorangSemakanBuku(${JSON.stringify(sm)})'>${ikon('sunting')}</button>
+        <button class="btn kecil merah" onclick="padamSemakanBuku('${sm.IDSemakan}')">${ikon('padam')}</button>` : ''}</td></tr>`).join('') +
+      `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada semakan buku latihan direkod.</p>';
+  });
+}
+
+function bukaBorangSemakanBuku(sm) {
+  bukaModal(ikon('pencerapan', 'ikon-h3') + (sm ? 'Sunting Semakan Buku Latihan' : 'Semakan Buku Latihan Baharu'), `
+    <form id="borangSemakanBuku">
+      <div class="grid-borang">
+        <div class="medan"><label>Tingkatan/Kelas</label><input type="text" name="tingkatanKelas" value="${sm ? sm.TingkatanKelas : ''}" required></div>
+        <div class="medan"><label>Semakan Kali Ke</label><input type="text" name="bilanganKe" value="${sm ? (sm.BilanganKe || '') : ''}" placeholder="cth. 1"></div>
+        <div class="medan"><label>Tarikh Semakan</label><input type="date" name="tarikhSemakan" value="${sm ? sm.TarikhSemakan : ''}" required></div>
+        <div class="medan"><label>Pemeriksa</label><input type="text" name="pemeriksa" value="${sm ? sm.Pemeriksa : ''}" required></div>
+        <div class="medan lebar-penuh"><label>Catatan</label><textarea name="catatan" rows="2">${sm ? (sm.Catatan || '') : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Fail Laporan (pilihan)</label><input type="file" id="inputFailSemakanBuku">
+          ${sm && sm.FailLaporanUrl ? `<p style="font-size:11px;margin:4px 0 0"><a href="${sm.FailLaporanUrl}" target="_blank">Lihat fail sedia ada</a></p>` : ''}</div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangSemakanBuku').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    const fail = document.getElementById('inputFailSemakanBuku').files[0];
+    panggilApi('apiSimpanSemakanBuku', {
+      idSemakan: sm ? sm.IDSemakan : '', panitia: PANITIA_AKTIF, tingkatanKelas: f.get('tingkatanKelas'),
+      bilanganKe: f.get('bilanganKe'), tarikhSemakan: f.get('tarikhSemakan'), pemeriksa: f.get('pemeriksa'), catatan: f.get('catatan')
+    }).then(hasil => {
+      const idSemakan = sm ? sm.IDSemakan : hasil.idSemakan;
+      if (fail) return bacaFailSebagaiBase64(fail).then(b64 => panggilApi('apiMuatNaikLaporanSemakanBuku', {
+        idSemakan, namaFail: fail.name, jenisMime: fail.type, dataBase64: b64
+      }));
+    }).then(() => { papartToast('Semakan buku latihan disimpan.'); tutupModal(); muatSemulaSemakanBuku(); });
+  });
+}
+
+function padamSemakanBuku(idSemakan) {
+  if (!confirm('Padam rekod semakan ini?')) return;
+  panggilApi('apiPadamSemakanBuku', { idSemakan }).then(() => { papartToast('Dipadam.'); muatSemulaSemakanBuku(); });
+}
+
 /* ============================ PESANAN RADAS & BAHAN MAKMAL ============================ */
 /* Senarai panitia makmal yang pengguna semasa boleh buat pesanan bagi pihaknya —
    ADMIN/KETUA_BIDANG boleh bagi semua panitia makmal; GURU/KETUA_PANITIA hanya
@@ -1616,6 +1771,145 @@ function cetakPesanan(idPesanan) {
       </div>`;
     setTimeout(() => window.print(), 150);
   });
+}
+
+/* ============================ PENGURUSAN MAKMAL (INVENTORI & KESELAMATAN) ============================ */
+/* Lanjutan Pesanan Makmal di atas (permintaan) — modul ini uruskan STOK sedia
+   ada & pematuhan keselamatan. Skop mengikut Makmal (bukan Panitia). */
+function senaraiMakmalBolehDilihat() {
+  return SESI.peranan === 'PEMBANTU_MAKMAL' ? (SESI.makmal || []) : SENARAI_MAKMAL;
+}
+function bolehUrusMakmalJS(makmal) {
+  if (PERANAN_LIHAT_SEMUA_PESANAN.indexOf(SESI.peranan) !== -1) return true;
+  return SESI.peranan === 'PEMBANTU_MAKMAL' && (SESI.makmal || []).indexOf(makmal) !== -1;
+}
+
+let MAKMAL_OPS_AKTIF = null;
+let TAB_MAKMAL_OPS_AKTIF = 'inventori';
+
+function paparMakmalOps() {
+  if (!MAKMAL_OPS_AKTIF) MAKMAL_OPS_AKTIF = senaraiMakmalBolehDilihat()[0];
+  const k = document.getElementById('kandungan');
+  const pilihanMakmal = senaraiMakmalBolehDilihat().map(mk => `<option value="${mk}" ${mk === MAKMAL_OPS_AKTIF ? 'selected' : ''}>${mk}</option>`).join('');
+  const tab = (kunci, label) => `<button type="button" data-tab="${kunci}" class="${TAB_MAKMAL_OPS_AKTIF === kunci ? 'aktif' : ''}">${label}</button>`;
+  k.innerHTML = `<div class="kad"><h3>${ikon('makmalOps', 'ikon-h3')}Pengurusan Makmal</h3>
+    <p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Inventori radas/bahan dan senarai semak keselamatan setiap Makmal.</p>
+    <div class="baris-alat"><label style="font-size:13px;font-weight:600">Makmal:</label><select id="pemilihMakmalOps" style="width:auto">${pilihanMakmal}</select></div>
+    <div class="bar-tab">${tab('inventori', 'Inventori')}${tab('keselamatan', 'Semakan Keselamatan')}</div>
+    <div id="kandunganTabMakmalOps"></div></div>`;
+
+  document.getElementById('pemilihMakmalOps').addEventListener('change', ev => { MAKMAL_OPS_AKTIF = ev.target.value; muatSemulaTabMakmalOps(); });
+  document.querySelectorAll('.bar-tab button').forEach(btn => btn.addEventListener('click', () => { TAB_MAKMAL_OPS_AKTIF = btn.dataset.tab; paparMakmalOps(); }));
+  muatSemulaTabMakmalOps();
+}
+
+function muatSemulaTabMakmalOps() {
+  ({ inventori: muatSemulaInventori, keselamatan: muatSemulaKeselamatan })[TAB_MAKMAL_OPS_AKTIF]();
+}
+
+/* ---------- Inventori ---------- */
+function muatSemulaInventori() {
+  const bolehUrus = bolehUrusMakmalJS(MAKMAL_OPS_AKTIF);
+  const k = document.getElementById('kandunganTabMakmalOps');
+  k.innerHTML = `<div class="baris-alat">${bolehUrus ? `<button class="btn" id="btnTambahInventori">${ikon('tambah')}Item Baharu</button>` : '<span></span>'}</div><div id="jadualInventori"></div>`;
+  const btn = document.getElementById('btnTambahInventori');
+  if (btn) btn.addEventListener('click', () => bukaBorangInventori(null));
+  panggilApi('apiSenaraiInventoriMakmal', { makmal: MAKMAL_OPS_AKTIF }).then(hasil => {
+    document.getElementById('jadualInventori').innerHTML = hasil.senarai.length ? `<table><thead><tr>
+      <th>Nama Item</th><th>Kategori</th><th>Kuantiti</th><th>Status</th><th>Kemaskini</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(inv => `<tr><td>${inv.NamaItem}</td><td>${inv.Kategori === 'BAHAN_KIMIA' ? 'Bahan Kimia' : 'Radas'}</td>
+        <td>${inv.Kuantiti || '-'} ${inv.Unit || ''}</td><td><span class="lencana ${inv.Status === 'BAIK' ? 'hijau' : inv.Status === 'ROSAK' ? 'merah' : 'kuning'}">${inv.Status}</span></td>
+        <td>${formatTarikhPaparan(inv.TarikhKemaskini)}</td>
+        <td>${bolehUrus ? `<button class="btn kecil luar" onclick='bukaBorangInventori(${JSON.stringify(inv)})'>${ikon('sunting')}</button>
+        <button class="btn kecil merah" onclick="padamInventori('${inv.IDInventori}')">${ikon('padam')}</button>` : ''}</td></tr>`).join('') +
+      `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada item inventori direkod bagi Makmal ini.</p>';
+  });
+}
+
+function bukaBorangInventori(inv) {
+  bukaModal(ikon('makmalOps', 'ikon-h3') + (inv ? 'Sunting Item Inventori' : 'Item Inventori Baharu') + ' — ' + MAKMAL_OPS_AKTIF, `
+    <form id="borangInventori">
+      <div class="grid-borang">
+        <div class="medan lebar-penuh"><label>Nama Item</label><input type="text" name="namaItem" value="${inv ? inv.NamaItem : ''}" required></div>
+        <div class="medan"><label>Kategori</label><select name="kategori">
+          <option value="RADAS" ${inv && inv.Kategori === 'RADAS' ? 'selected' : ''}>Radas</option>
+          <option value="BAHAN_KIMIA" ${inv && inv.Kategori === 'BAHAN_KIMIA' ? 'selected' : ''}>Bahan Kimia</option></select></div>
+        <div class="medan"><label>Status</label><select name="status">
+          <option value="BAIK" ${inv && inv.Status === 'BAIK' ? 'selected' : ''}>Baik</option>
+          <option value="ROSAK" ${inv && inv.Status === 'ROSAK' ? 'selected' : ''}>Rosak</option>
+          <option value="PELUPUSAN" ${inv && inv.Status === 'PELUPUSAN' ? 'selected' : ''}>Pelupusan</option></select></div>
+        <div class="medan"><label>Kuantiti</label><input type="text" name="kuantiti" value="${inv ? (inv.Kuantiti || '') : ''}"></div>
+        <div class="medan"><label>Unit</label><input type="text" name="unit" value="${inv ? (inv.Unit || '') : ''}" placeholder="cth. botol, unit, kg"></div>
+        <div class="medan lebar-penuh"><label>Catatan</label><textarea name="catatan" rows="2">${inv ? (inv.Catatan || '') : ''}</textarea></div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangInventori').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiSimpanInventoriMakmal', {
+      idInventori: inv ? inv.IDInventori : '', makmal: MAKMAL_OPS_AKTIF, namaItem: f.get('namaItem'), kategori: f.get('kategori'),
+      status: f.get('status'), kuantiti: f.get('kuantiti'), unit: f.get('unit'), catatan: f.get('catatan')
+    }).then(() => { papartToast('Inventori disimpan.'); tutupModal(); muatSemulaInventori(); });
+  });
+}
+
+function padamInventori(idInventori) {
+  if (!confirm('Padam item inventori ini?')) return;
+  panggilApi('apiPadamInventoriMakmal', { idInventori }).then(() => { papartToast('Dipadam.'); muatSemulaInventori(); });
+}
+
+/* ---------- Semakan Keselamatan ---------- */
+function muatSemulaKeselamatan() {
+  const bolehUrus = bolehUrusMakmalJS(MAKMAL_OPS_AKTIF);
+  const k = document.getElementById('kandunganTabMakmalOps');
+  k.innerHTML = `<div class="baris-alat">${bolehUrus ? `<button class="btn" id="btnTambahKeselamatan">${ikon('tambah')}Semakan Baharu</button>` : '<span></span>'}</div><div id="jadualKeselamatan"></div>`;
+  const btn = document.getElementById('btnTambahKeselamatan');
+  if (btn) btn.addEventListener('click', () => bukaBorangKeselamatan(null));
+  panggilApi('apiSenaraiSemakanKeselamatan', { makmal: MAKMAL_OPS_AKTIF }).then(hasil => {
+    document.getElementById('jadualKeselamatan').innerHTML = hasil.senarai.length ? hasil.senarai.map(sm => {
+      const bilLulus = SENARAI_SEMAK_KESELAMATAN_MAKMAL.filter(item => sm[item[0]] === 'YA').length;
+      return `<div class="kad" style="margin-bottom:12px">
+        <div class="baris-alat" style="margin-bottom:8px"><b>${formatTarikhPaparan(sm.TarikhSemakan)} — ${sm.Pemeriksa}</b>
+          <span><span class="lencana ${bilLulus === SENARAI_SEMAK_KESELAMATAN_MAKMAL.length ? 'hijau' : 'kuning'}">${bilLulus}/${SENARAI_SEMAK_KESELAMATAN_MAKMAL.length} lulus</span>
+          ${bolehUrus ? ` <button class="btn kecil luar" onclick='bukaBorangKeselamatan(${JSON.stringify(sm)})'>${ikon('sunting')}</button>
+          <button class="btn kecil merah" onclick="padamKeselamatan('${sm.IDSemakanKeselamatan}')">${ikon('padam')}</button>` : ''}</span></div>
+        <ul style="margin:0;padding-left:18px;font-size:13px">
+          ${SENARAI_SEMAK_KESELAMATAN_MAKMAL.map(item => `<li style="color:${sm[item[0]] === 'YA' ? 'var(--hijau)' : 'var(--merah)'}">${sm[item[0]] === 'YA' ? '✓' : '✗'} ${item[1]}</li>`).join('')}
+        </ul>
+        ${sm.Catatan ? `<p style="font-size:12px;color:var(--kelabu);margin:8px 0 0">Catatan: ${sm.Catatan}</p>` : ''}
+      </div>`;
+    }).join('') : '<p style="color:var(--kelabu);font-size:13px">Tiada semakan keselamatan direkod bagi Makmal ini.</p>';
+  });
+}
+
+function bukaBorangKeselamatan(sm) {
+  bukaModal(ikon('makmalOps', 'ikon-h3') + (sm ? 'Sunting Semakan Keselamatan' : 'Semakan Keselamatan Baharu') + ' — ' + MAKMAL_OPS_AKTIF, `
+    <form id="borangKeselamatan">
+      <div class="grid-borang">
+        <div class="medan"><label>Tarikh Semakan</label><input type="date" name="tarikhSemakan" value="${sm ? sm.TarikhSemakan : ''}" required></div>
+        <div class="medan"><label>Pemeriksa</label><input type="text" name="pemeriksa" value="${sm ? sm.Pemeriksa : ''}" required></div>
+      </div>
+      <div class="medan lebar-penuh" style="margin-top:10px"><label>Senarai Semak</label>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">${SENARAI_SEMAK_KESELAMATAN_MAKMAL.map(item => `
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;width:auto"><input type="checkbox" name="itemLulus" value="${item[0]}" style="width:auto" ${sm && sm[item[0]] === 'YA' ? 'checked' : ''}>${item[1]}</label>`).join('')}</div>
+      </div>
+      <div class="medan lebar-penuh" style="margin-top:10px"><label>Catatan</label><textarea name="catatan" rows="2">${sm ? (sm.Catatan || '') : ''}</textarea></div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangKeselamatan').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiSimpanSemakanKeselamatan', {
+      idSemakanKeselamatan: sm ? sm.IDSemakanKeselamatan : '', makmal: MAKMAL_OPS_AKTIF, tarikhSemakan: f.get('tarikhSemakan'),
+      pemeriksa: f.get('pemeriksa'), catatan: f.get('catatan'), itemLulus: f.getAll('itemLulus')
+    }).then(() => { papartToast('Semakan keselamatan disimpan.'); tutupModal(); muatSemulaKeselamatan(); });
+  });
+}
+
+function padamKeselamatan(idSemakanKeselamatan) {
+  if (!confirm('Padam rekod semakan keselamatan ini?')) return;
+  panggilApi('apiPadamSemakanKeselamatan', { idSemakanKeselamatan }).then(() => { papartToast('Dipadam.'); muatSemulaKeselamatan(); });
 }
 
 /* ============================ PANITIA (ADMIN/KETUA_BIDANG) ============================ */

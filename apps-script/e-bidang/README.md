@@ -85,6 +85,27 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   sendiri; hanya Admin/Ketua Bidang boleh **urus** skop Bidang, dan
   Admin/Ketua Bidang/Ketua Panitia panitia berkenaan boleh urus skop
   Panitia (sama seperti kebenaran Mesyuarat/Program).
+- **Pencerapan &amp; Semakan** — menu berasingan dengan 2 tab (per Panitia,
+  sama kebenaran seperti Mesyuarat/Program):
+  - **Pencerapan PdP** — rekod pemerhatian pengajaran guru (guru diperc
+    dipilih daripada ahli panitia, pencerap, tarikh, mata pelajaran/
+    tingkatan, instrumen cth. SKPMg2, skor, catatan) berserta muat naik
+    borang pencerapan (fail Drive).
+  - **Semakan Buku Latihan** — rekod semakan buku latihan murid (tingkatan/
+    kelas, semakan kali ke-, tarikh, pemeriksa, catatan) berserta muat naik
+    laporan (fail Drive).
+- **Pengurusan Makmal** — menu berasingan dengan 2 tab, berskop **Makmal**
+  (bukan Panitia) — lanjutan Pesanan Radas & Bahan Makmal (di bawah) yang
+  hanya uruskan PERMINTAAN, bukan stok sedia ada. Lihat: sama seperti
+  Pesanan Makmal (Pembantu Makmal/Ketua Pembantu Makmal/Admin/Ketua Bidang,
+  atau Guru/Ketua Panitia panitia makmal). Urus (tambah/sunting/padam):
+  Admin/Ketua Bidang/Ketua Pembantu Makmal (semua Makmal) atau Pembantu
+  Makmal biasa (Makmal yang dijaganya sendiri sahaja).
+  - **Inventori** — senarai radas/bahan kimia setiap Makmal (kuantiti, unit,
+    status Baik/Rosak/Pelupusan, catatan).
+  - **Semakan Keselamatan** — senarai semak keselamatan tetap (alat pemadam
+    api, kotak pertolongan cemas, papan arahan, pengudaraan, laluan
+    kecemasan, pelabelan bahan kimia) berserta tarikh, pemeriksa, catatan.
 - **Log Audit** — setiap tindakan TAMBAH/KEMASKINI/PADAM/LOGIN/tukar kata
   laluan direkod (Admin/Ketua Bidang sahaja boleh semak).
 - **Eksport CSV** — jadual Dokumen, Mesyuarat, Tindakan Susulan, Program & PLC,
@@ -175,6 +196,11 @@ sebagai database dan Google Apps Script sebagai backend + frontend
 - `PerancanganService.gs` — Perancangan Strategik (PS), Pelan Taktikal (PT),
   Pelan Operasi (PO), dan Carta Gantt aktiviti tahunan — setiap satu boleh
   berskop Bidang (merentasi semua panitia) atau satu Panitia tertentu.
+- `PencerapanService.gs` — Pencerapan PdP & Semakan Buku Latihan (berskop
+  Panitia, sama kebenaran seperti Mesyuarat/Program).
+- `MakmalOpsService.gs` — Inventori Radas & Bahan dan Semakan Keselamatan
+  bagi setiap Makmal — lanjutan `PesananMakmalService.gs` (permintaan) yang
+  uruskan STOK sedia ada & pematuhan keselamatan.
 - `AuditService.gs` — catat & semak log audit.
 - `appsscript.json`, `Index.html` — manifest & frontend SPA tunggal.
 
@@ -193,8 +219,9 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
    `PanitiaService.gs`, `DriveService.gs`, `DocumentService.gs`,
    `MeetingService.gs`, `ProgramService.gs`, `PesananMakmalService.gs`,
    `CalendarService.gs`, `NotifikasiService.gs`, `DashboardService.gs`,
-   `ProfilService.gs`, `PerancanganService.gs`, `AuditService.gs`), cipta fail
-   Script baharu dengan nama yang sama (tanpa `.gs`) dan salin-tampal kandungannya.
+   `ProfilService.gs`, `PerancanganService.gs`, `PencerapanService.gs`,
+   `MakmalOpsService.gs`, `AuditService.gs`), cipta fail Script baharu dengan
+   nama yang sama (tanpa `.gs`) dan salin-tampal kandungannya.
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json
@@ -203,11 +230,12 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
    muncul di bar menu.
 7. Klik **Sistem E-Bidang → 1. Sediakan Sistem (Jalankan Sekali)**. Benarkan
    kebenaran yang diminta (Sheets, Drive, Calendar, Gmail/hantar e-mel,
-   urus pencetus). Ini mencipta semua 16 Sheet:
+   urus pencetus). Ini mencipta semua 20 Sheet:
    `USERS`, `PANITIA`, `KATEGORI_DOKUMEN`, `DOKUMEN`, `MESYUARAT`,
    `KEHADIRAN_MESYUARAT`, `TINDAKAN_SUSULAN`, `PROGRAM`, `EVIDENS`, `AUDIT_LOG`,
    `PESANAN_MAKMAL`, `ITEM_PESANAN_MAKMAL`, `PERANCANGAN_STRATEGIK`,
-   `PELAN_TAKTIKAL`, `PELAN_OPERASI`, `AKTIVITI_TAHUNAN`.
+   `PELAN_TAKTIKAL`, `PELAN_OPERASI`, `AKTIVITI_TAHUNAN`, `PENCERAPAN_PDP`,
+   `SEMAKAN_BUKU_LATIHAN`, `INVENTORI_MAKMAL`, `SEMAKAN_KESELAMATAN_MAKMAL`.
 8. **Log masuk kali pertama** guna No. KP `000000000000` dan kata laluan
    `000000` (akaun "ADMIN CONTOH"). Sistem akan paksa tukar kata laluan.
 9. Tambah pengguna sebenar di menu **Pengguna** (No. KP, Nama, Peranan,
@@ -252,20 +280,23 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
 ## Naik Taraf Deployment Sedia Ada
 
 Jika sistem ini sudah dideploy **sebelum** ciri Pesanan Makmal/Emel/Kalendar/
-Notifikasi/Carta Organisasi/Perancangan Strategik ditambah: gantikan kandungan
-semua fail `.gs` dan `Index`/`appsscript.json` dengan versi terkini (termasuk
-fail baharu `PesananMakmalService.gs`, `CalendarService.gs`,
-`NotifikasiService.gs`, `ProfilService.gs`, `PerancanganService.gs`),
-**Deploy semula** (Deploy → Manage deployments → Edit → New version),
-kemudian klik **Sistem E-Bidang → 2. Kemaskini Struktur (Emel & Kalendar)**
-SEKALI sahaja — ini menambah semua lajur yang hilang (`Emel`,
-`EventIdKalendar`, `MakmalDijaga`, medan Makmal/Masa Pesanan Makmal &
-Mesyuarat/Program, medan profil `GambarProfilUrl`/`GambarProfilFailId`/
+Notifikasi/Carta Organisasi/Perancangan Strategik/Pencerapan/Pengurusan
+Makmal ditambah: gantikan kandungan semua fail `.gs` dan
+`Index`/`appsscript.json` dengan versi terkini (termasuk fail baharu
+`PesananMakmalService.gs`, `CalendarService.gs`, `NotifikasiService.gs`,
+`ProfilService.gs`, `PerancanganService.gs`, `PencerapanService.gs`,
+`MakmalOpsService.gs`), **Deploy semula** (Deploy → Manage deployments →
+Edit → New version), kemudian klik **Sistem E-Bidang → 2. Kemaskini
+Struktur (Emel & Kalendar)** SEKALI sahaja — ini menambah semua lajur yang
+hilang (`Emel`, `EventIdKalendar`, `MakmalDijaga`, medan Makmal/Masa Pesanan
+Makmal & Mesyuarat/Program, medan profil `GambarProfilUrl`/`GambarProfilFailId`/
 `Jawatan`/`NoTelefon`/`KelayakanAkademik`/`OpsyenPengkhususan`/`GredJawatan`/
-`KelasDiajar`/`TahunMulaSubjekSemasa` pada USERS, serta 4 Sheet baharu
-`PERANCANGAN_STRATEGIK`/`PELAN_TAKTIKAL`/`PELAN_OPERASI`/`AKTIVITI_TAHUNAN`)
-tanpa menjejaskan data sedia ada. Selamat dijalankan berulang kali (tiada
-kesan jika struktur sudah terkini). **Penting:** naik taraf editor Apps
+`KelasDiajar`/`TahunMulaSubjekSemasa` pada USERS, serta 8 Sheet baharu
+`PERANCANGAN_STRATEGIK`/`PELAN_TAKTIKAL`/`PELAN_OPERASI`/`AKTIVITI_TAHUNAN`/
+`PENCERAPAN_PDP`/`SEMAKAN_BUKU_LATIHAN`/`INVENTORI_MAKMAL`/
+`SEMAKAN_KESELAMATAN_MAKMAL`) tanpa menjejaskan data sedia ada. Selamat
+dijalankan berulang kali (tiada kesan jika struktur sudah terkini).
+**Penting:** naik taraf editor Apps
 Script BUKAN sahaja "Save" fail — Web App yang sudah dideploy kekal guna
 kod versi lama sehingga anda benar-benar buat **Deploy → Manage deployments
 → Edit (ikon pensel) → Version: New version → Deploy** pada deployment

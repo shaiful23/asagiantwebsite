@@ -21,6 +21,10 @@ const SHEET_PERANCANGAN_STRATEGIK = 'PERANCANGAN_STRATEGIK';
 const SHEET_PELAN_TAKTIKAL = 'PELAN_TAKTIKAL';
 const SHEET_PELAN_OPERASI = 'PELAN_OPERASI';
 const SHEET_AKTIVITI_TAHUNAN = 'AKTIVITI_TAHUNAN';
+const SHEET_PENCERAPAN_PDP = 'PENCERAPAN_PDP';
+const SHEET_SEMAKAN_BUKU_LATIHAN = 'SEMAKAN_BUKU_LATIHAN';
+const SHEET_INVENTORI_MAKMAL = 'INVENTORI_MAKMAL';
+const SHEET_SEMAKAN_KESELAMATAN_MAKMAL = 'SEMAKAN_KESELAMATAN_MAKMAL';
 
 /* ------------------------- PERANAN (ROLES) ------------------------- */
 const ROLE_ADMIN = 'ADMIN';
@@ -66,6 +70,19 @@ const PANITIA_MAKMAL = ['Sains', 'Kimia', 'Biologi', 'Fizik'];
 // daripada ini, dan setiap Pembantu Makmal dijaga kepada satu/lebih daripada ini
 // (USERS.MakmalDijaga) supaya pesanan terus disalurkan kepada Pembantu Makmal yang betul.
 const SENARAI_MAKMAL = ['Makmal Sains 1', 'Makmal Sains 2', 'Makmal Sains 3', 'Makmal Sains 4'];
+
+/* ------------------------- PENGURUSAN MAKMAL (INVENTORI & KESELAMATAN) ------------------------- */
+const KATEGORI_INVENTORI_MAKMAL = ['RADAS', 'BAHAN_KIMIA'];
+const STATUS_INVENTORI_MAKMAL = ['BAIK', 'ROSAK', 'PELUPUSAN'];
+// [namaLajur, label paparan] — setiap item disemak YA/TIDAK bagi Semakan Keselamatan Makmal.
+const SENARAI_SEMAK_KESELAMATAN_MAKMAL = [
+  ['AlatPemadamApi', 'Alat Pemadam Api berfungsi & tidak luput tempoh'],
+  ['KotakPertolonganCemas', 'Kotak Pertolongan Cemas lengkap'],
+  ['PapanArahKeselamatan', 'Papan arahan/carta alir keselamatan dipamerkan'],
+  ['SistemPengudaraan', 'Sistem pengudaraan/kipas ekzos berfungsi'],
+  ['LaluanKecemasan', 'Laluan kecemasan tidak terhalang'],
+  ['PelabelanBahanKimia', 'Bahan kimia dilabel & disimpan dengan betul']
+];
 
 /* ------------------------- KATEGORI DOKUMEN LALAI ------------------------- */
 function kategoriDokumenLalai() {
