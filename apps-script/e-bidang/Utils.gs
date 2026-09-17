@@ -37,9 +37,22 @@ function bacaSheetSebagaiObjek(namaSheet) {
     });
 }
 
+/* Baca baris 1 SEBENAR terus daripada Sheet (bukan andaian daripada pemalar
+   HEADER_X di kod) — supaya susunan lajur yang ditulis SENTIASA sepadan dengan
+   susunan yang dibaca semula oleh bacaSheetSebagaiObjek(), walaupun lajur
+   pernah ditambah pada urutan/masa berbeza daripada senarai HEADER_X semasa
+   (cth. migrasi tambahLajurJikaTiada() dijalankan berperingkat merentasi
+   beberapa kemaskini kod). Parameter `header` (HEADER_X) dikekalkan pada
+   tandatangan fungsi untuk keserasian panggilan sedia ada tetapi tidak lagi
+   dipercayai untuk menentukan susunan lajur sebenar. */
+function headerSebenarSheet(sh) {
+  return sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0];
+}
+
 function tambahBaris(namaSheet, objek, header) {
   const sh = dapatkanSheet(namaSheet);
-  const baris = header.map(h => (objek[h] !== undefined && objek[h] !== null ? objek[h] : ''));
+  const headerSebenar = headerSebenarSheet(sh);
+  const baris = headerSebenar.map(h => (objek[h] !== undefined && objek[h] !== null ? objek[h] : ''));
   sh.appendRow(baris);
   return sh.getLastRow();
 }
@@ -47,8 +60,9 @@ function tambahBaris(namaSheet, objek, header) {
 /* Kemaskini satu baris (mengikut __row yang diperoleh dari bacaSheetSebagaiObjek). */
 function kemaskiniBaris(namaSheet, nomborBaris, objek, header) {
   const sh = dapatkanSheet(namaSheet);
-  const baris = header.map(h => (objek[h] !== undefined && objek[h] !== null ? objek[h] : ''));
-  sh.getRange(nomborBaris, 1, 1, header.length).setValues([baris]);
+  const headerSebenar = headerSebenarSheet(sh);
+  const baris = headerSebenar.map(h => (objek[h] !== undefined && objek[h] !== null ? objek[h] : ''));
+  sh.getRange(nomborBaris, 1, 1, headerSebenar.length).setValues([baris]);
 }
 
 function padamBaris(namaSheet, nomborBaris) {
