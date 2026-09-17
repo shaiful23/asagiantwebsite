@@ -89,6 +89,10 @@ function kemaskiniStrukturSistem() {
   if (tambahLajurJikaTiada(SHEET_PESANAN_MAKMAL, 'Makmal')) perubahan.push('PESANAN_MAKMAL.Makmal');
   if (tambahLajurJikaTiada(SHEET_PESANAN_MAKMAL, 'MasaMula')) perubahan.push('PESANAN_MAKMAL.MasaMula');
   if (tambahLajurJikaTiada(SHEET_PESANAN_MAKMAL, 'MasaTamat')) perubahan.push('PESANAN_MAKMAL.MasaTamat');
+  if (tambahLajurJikaTiada(SHEET_MESYUARAT, 'MasaMula')) perubahan.push('MESYUARAT.MasaMula');
+  if (tambahLajurJikaTiada(SHEET_MESYUARAT, 'MasaTamat')) perubahan.push('MESYUARAT.MasaTamat');
+  if (tambahLajurJikaTiada(SHEET_PROGRAM, 'MasaMula')) perubahan.push('PROGRAM.MasaMula');
+  if (tambahLajurJikaTiada(SHEET_PROGRAM, 'MasaTamat')) perubahan.push('PROGRAM.MasaTamat');
 
   SpreadsheetApp.getUi().alert(perubahan.length
     ? 'Struktur dikemaskini: ' + perubahan.join(', ') + '.\n\nIsi lajur Emel bagi setiap ' +
@@ -96,7 +100,9 @@ function kemaskiniStrukturSistem() {
       'oleh sistem apabila Mesyuarat/Program disimpan seterusnya. Tetapkan lajur MakmalDijaga ' +
       'bagi setiap Pembantu Makmal sedia ada (menu Pengguna) supaya penyaluran Pesanan Makmal ' +
       'mengikut Makmal berfungsi dengan betul; pesanan sedia ada tanpa nilai Makmal perlu ' +
-      'disunting semula (oleh guru berkenaan) untuk mengisi Makmal, Masa Mula & Masa Tamat.'
+      'disunting semula (oleh guru berkenaan) untuk mengisi Makmal, Masa Mula & Masa Tamat. ' +
+      'Masa Mula/Tamat pada Mesyuarat & Program adalah PILIHAN — jika dibiarkan kosong, ' +
+      'event Kalendar berkaitan kekal sehari penuh (all-day) seperti sebelum ini.'
     : 'Tiada kemaskini diperlukan — struktur sudah terkini.');
 }
 

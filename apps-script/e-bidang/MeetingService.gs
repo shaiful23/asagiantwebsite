@@ -5,7 +5,7 @@
  * ========================================================================= */
 
 const HEADER_MESYUARAT = ['IDMesyuarat', 'Panitia', 'TarikhMesyuarat', 'Tajuk', 'Agenda',
-  'MinitUrl', 'MinitFailId', 'DiciptaOleh', 'TarikhCipta', 'EventIdKalendar'];
+  'MinitUrl', 'MinitFailId', 'DiciptaOleh', 'TarikhCipta', 'EventIdKalendar', 'MasaMula', 'MasaTamat'];
 const HEADER_KEHADIRAN_MESYUARAT = ['IDKehadiran', 'IDMesyuarat', 'NamaAhli', 'Status', 'Catatan'];
 const HEADER_TINDAKAN_SUSULAN = ['IDTindakan', 'IDMesyuarat', 'Panitia', 'Perkara',
   'TanggungjawabNoKP', 'TarikhAkhir', 'Status', 'CatatanKemaskini'];
@@ -32,6 +32,9 @@ function apiSimpanMesyuarat(p) {
   if (!tajuk || !tarikh) return ralat('Sila lengkapkan tajuk dan tarikh mesyuarat.');
 
   const sediaAda = p.idMesyuarat ? cariBarisMengikutId(SHEET_MESYUARAT, 'IDMesyuarat', p.idMesyuarat) : null;
+  const masaMula = String(p.masaMula || (sediaAda ? sediaAda.MasaMula : '') || '').trim();
+  const masaTamat = String(p.masaTamat || (sediaAda ? sediaAda.MasaTamat : '') || '').trim();
+  if (masaMula && masaTamat && masaTamat <= masaMula) return ralat('Masa tamat mesti selepas masa mula.');
   const objek = {
     IDMesyuarat: sediaAda ? sediaAda.IDMesyuarat : janaId('MSY'),
     Panitia: p.panitia,
@@ -42,7 +45,9 @@ function apiSimpanMesyuarat(p) {
     MinitFailId: sediaAda ? sediaAda.MinitFailId : '',
     DiciptaOleh: sediaAda ? sediaAda.DiciptaOleh : sesi.nama,
     TarikhCipta: sediaAda ? sediaAda.TarikhCipta : formatTarikhMasa(new Date()),
-    EventIdKalendar: sediaAda ? sediaAda.EventIdKalendar : ''
+    EventIdKalendar: sediaAda ? sediaAda.EventIdKalendar : '',
+    MasaMula: masaMula,
+    MasaTamat: masaTamat
   };
 
   if (p.namaFail && p.dataBase64) {
@@ -161,6 +166,23 @@ function apiSimpanTindakanSusulan(p) {
     tambahBaris(SHEET_TINDAKAN_SUSULAN, objek, HEADER_TINDAKAN_SUSULAN);
     catatAudit(sesi, 'TAMBAH', 'TINDAKAN_SUSULAN', objek.IDTindakan, 'Tambah tindakan: ' + perkara);
   }
+
+  // E-mel segera kepada penerima BAHARU sahaja — bila tindakan ditambah (sediaAda kosong)
+  // atau tanggungjawab ditukar kepada orang lain (bukan bila kemaskini lain tidak melibatkan
+  // pertukaran tanggungjawab, supaya tidak spam e-mel setiap kali perkara/tarikh disunting).
+  const penerimaBerubah = objek.TanggungjawabNoKP && (!sediaAda || sediaAda.TanggungjawabNoKP !== objek.TanggungjawabNoKP);
+  if (penerimaBerubah) {
+    const penerima = cariBarisMengikutId(SHEET_USERS, 'NoKP', objek.TanggungjawabNoKP);
+    if (penerima && penerima.Emel) {
+      hantarEmelSegera(penerima.Emel,
+        'Tindakan Susulan Baharu Ditugaskan: ' + perkara,
+        'Salam ' + penerima.NamaPenuh + ',\n\n' +
+        'Anda telah ditugaskan tindakan susulan baharu bagi Panitia ' + p.panitia + ':\n\n' + perkara +
+        (objek.TarikhAkhir ? ('\nTarikh akhir: ' + objek.TarikhAkhir) : '') +
+        '\n\nSila log masuk ke Sistem E-Bidang untuk kemaskini status.\n\n— E-Bidang Sains & Matematik, SMK Asajaya');
+    }
+  }
+
   return jaya({ idTindakan: objek.IDTindakan });
 }
 
