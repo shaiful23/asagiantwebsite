@@ -67,6 +67,24 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   Gambar dipaparkan terus daripada Drive melalui pelayan (bukan pautan Drive
   terus), jadi paparan tidak bergantung kepada tetapan perkongsian Drive
   setiap pengguna.
+- **Perancangan Strategik** — menu berasingan dengan 4 tab:
+  - **Perancangan Strategik (PS)** — Isu Strategik, Matlamat Strategik,
+    Objektif, KPI, Sasaran (TOV → ETR), dan Strategi/Inisiatif bagi satu
+    tempoh tahun (cth. 2024–2028).
+  - **Pelan Taktikal (PT)** — program/projek tahunan berserta tanggungjawab,
+    tempoh, kos/sumber, KPI, sasaran, dan pelan kontinjensi.
+  - **Pelan Operasi (PO)** — perincian pelaksanaan satu program mengikut 4
+    fasa (Pratugas, Penyediaan Bahan/Publisiti, Pelaksanaan, Penilaian &
+    Post-Mortem).
+  - **Carta Gantt** — jadual visual aktiviti tahunan merentasi 12 bulan
+    (Jan–Dis), bertahun.
+
+  Setiap rekod mempunyai **Skop** — satu Panitia tertentu, ATAU **"Bidang
+  (Keseluruhan)"** (peringkat Ketua Bidang, dikongsi merentasi semua
+  panitia). Sesiapa log masuk boleh **melihat** perancangan Bidang + panitia
+  sendiri; hanya Admin/Ketua Bidang boleh **urus** skop Bidang, dan
+  Admin/Ketua Bidang/Ketua Panitia panitia berkenaan boleh urus skop
+  Panitia (sama seperti kebenaran Mesyuarat/Program).
 - **Log Audit** — setiap tindakan TAMBAH/KEMASKINI/PADAM/LOGIN/tukar kata
   laluan direkod (Admin/Ketua Bidang sahaja boleh semak).
 - **Eksport CSV** — jadual Dokumen, Mesyuarat, Tindakan Susulan, Program & PLC,
@@ -154,6 +172,9 @@ sebagai database dan Google Apps Script sebagai backend + frontend
 - `ProfilService.gs` — Carta Organisasi (`apiCartaOrganisasi`), profil penuh
   (`apiProfilPengguna`), kemaskini/muat naik profil SENDIRI sahaja
   (`apiKemaskiniProfilSendiri`/`apiMuatNaikGambarProfilSendiri`).
+- `PerancanganService.gs` — Perancangan Strategik (PS), Pelan Taktikal (PT),
+  Pelan Operasi (PO), dan Carta Gantt aktiviti tahunan — setiap satu boleh
+  berskop Bidang (merentasi semua panitia) atau satu Panitia tertentu.
 - `AuditService.gs` — catat & semak log audit.
 - `appsscript.json`, `Index.html` — manifest & frontend SPA tunggal.
 
@@ -172,8 +193,8 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
    `PanitiaService.gs`, `DriveService.gs`, `DocumentService.gs`,
    `MeetingService.gs`, `ProgramService.gs`, `PesananMakmalService.gs`,
    `CalendarService.gs`, `NotifikasiService.gs`, `DashboardService.gs`,
-   `ProfilService.gs`, `AuditService.gs`), cipta fail Script baharu dengan
-   nama yang sama (tanpa `.gs`) dan salin-tampal kandungannya.
+   `ProfilService.gs`, `PerancanganService.gs`, `AuditService.gs`), cipta fail
+   Script baharu dengan nama yang sama (tanpa `.gs`) dan salin-tampal kandungannya.
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json
@@ -182,10 +203,11 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
    muncul di bar menu.
 7. Klik **Sistem E-Bidang → 1. Sediakan Sistem (Jalankan Sekali)**. Benarkan
    kebenaran yang diminta (Sheets, Drive, Calendar, Gmail/hantar e-mel,
-   urus pencetus). Ini mencipta semua 12 Sheet:
+   urus pencetus). Ini mencipta semua 16 Sheet:
    `USERS`, `PANITIA`, `KATEGORI_DOKUMEN`, `DOKUMEN`, `MESYUARAT`,
    `KEHADIRAN_MESYUARAT`, `TINDAKAN_SUSULAN`, `PROGRAM`, `EVIDENS`, `AUDIT_LOG`,
-   `PESANAN_MAKMAL`, `ITEM_PESANAN_MAKMAL`.
+   `PESANAN_MAKMAL`, `ITEM_PESANAN_MAKMAL`, `PERANCANGAN_STRATEGIK`,
+   `PELAN_TAKTIKAL`, `PELAN_OPERASI`, `AKTIVITI_TAHUNAN`.
 8. **Log masuk kali pertama** guna No. KP `000000000000` dan kata laluan
    `000000` (akaun "ADMIN CONTOH"). Sistem akan paksa tukar kata laluan.
 9. Tambah pengguna sebenar di menu **Pengguna** (No. KP, Nama, Peranan,
@@ -230,18 +252,24 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
 ## Naik Taraf Deployment Sedia Ada
 
 Jika sistem ini sudah dideploy **sebelum** ciri Pesanan Makmal/Emel/Kalendar/
-Notifikasi/Carta Organisasi ditambah: gantikan kandungan semua fail `.gs` dan
-`Index`/`appsscript.json` dengan versi terkini (termasuk fail baharu
-`PesananMakmalService.gs`, `CalendarService.gs`, `NotifikasiService.gs`,
-`ProfilService.gs`), **Deploy semula** (Deploy → Manage deployments → Edit →
-New version), kemudian klik **Sistem E-Bidang → 2. Kemaskini Struktur (Emel &
-Kalendar)** SEKALI sahaja — ini menambah semua lajur yang hilang (`Emel`,
+Notifikasi/Carta Organisasi/Perancangan Strategik ditambah: gantikan kandungan
+semua fail `.gs` dan `Index`/`appsscript.json` dengan versi terkini (termasuk
+fail baharu `PesananMakmalService.gs`, `CalendarService.gs`,
+`NotifikasiService.gs`, `ProfilService.gs`, `PerancanganService.gs`),
+**Deploy semula** (Deploy → Manage deployments → Edit → New version),
+kemudian klik **Sistem E-Bidang → 2. Kemaskini Struktur (Emel & Kalendar)**
+SEKALI sahaja — ini menambah semua lajur yang hilang (`Emel`,
 `EventIdKalendar`, `MakmalDijaga`, medan Makmal/Masa Pesanan Makmal &
-Mesyuarat/Program, serta medan profil `GambarProfilUrl`/`GambarProfilFailId`/
+Mesyuarat/Program, medan profil `GambarProfilUrl`/`GambarProfilFailId`/
 `Jawatan`/`NoTelefon`/`KelayakanAkademik`/`OpsyenPengkhususan`/`GredJawatan`/
-`KelasDiajar`/`TahunMulaSubjekSemasa` pada USERS) tanpa menjejaskan data
-sedia ada. Selamat dijalankan berulang kali (tiada kesan jika struktur sudah
-terkini).
+`KelasDiajar`/`TahunMulaSubjekSemasa` pada USERS, serta 4 Sheet baharu
+`PERANCANGAN_STRATEGIK`/`PELAN_TAKTIKAL`/`PELAN_OPERASI`/`AKTIVITI_TAHUNAN`)
+tanpa menjejaskan data sedia ada. Selamat dijalankan berulang kali (tiada
+kesan jika struktur sudah terkini). **Penting:** naik taraf editor Apps
+Script BUKAN sahaja "Save" fail — Web App yang sudah dideploy kekal guna
+kod versi lama sehingga anda benar-benar buat **Deploy → Manage deployments
+→ Edit (ikon pensel) → Version: New version → Deploy** pada deployment
+SEDIA ADA (bukan "New deployment" yang cipta pautan baharu).
 
 ## Struktur Folder Drive
 

@@ -86,6 +86,13 @@
     .lencana.kelabu { background: #e2e8f0; color: var(--kelabu); }
     .baris-alat { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
     .baris-alat select { width: auto; }
+    .bar-tab { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--sempadan); flex-wrap: wrap; }
+    .bar-tab button { background: none; border: none; padding: 9px 14px; font-size: 13px; font-weight: 600; color: var(--kelabu); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .bar-tab button.aktif { color: var(--biru); border-bottom-color: var(--biru); }
+    .jadual-gantt { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .jadual-gantt th, .jadual-gantt td { border: 1px solid var(--sempadan); padding: 6px; text-align: center; }
+    .jadual-gantt td:first-child, .jadual-gantt th:first-child { text-align: left; min-width: 160px; }
+    .jadual-gantt td.tanda { background: var(--biru); color: #fff; font-weight: 700; }
 
     /* ---------- Modal ---------- */
     .latar-modal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: flex; align-items: center; justify-content: center; z-index: 50; }
@@ -227,6 +234,7 @@
       <a href="#" class="item-nav" data-view="mesyuarat" id="navMesyuarat" aria-label="Mesyuarat"><span class="nav-ikon"></span><span>Mesyuarat</span></a>
       <a href="#" class="item-nav" data-view="tindakan" id="navTindakan" aria-label="Tindakan Susulan"><span class="nav-ikon"></span><span>Tindakan Susulan</span></a>
       <a href="#" class="item-nav" data-view="program" id="navProgram" aria-label="Program &amp; PLC"><span class="nav-ikon"></span><span>Program &amp; PLC</span></a>
+      <a href="#" class="item-nav" data-view="perancangan" id="navPerancangan" aria-label="Perancangan Strategik"><span class="nav-ikon"></span><span>Perancangan Strategik</span></a>
       <a href="#" class="item-nav" data-view="pesananMakmal" id="navPesananMakmal" aria-label="Pesanan Makmal"><span class="nav-ikon"></span><span>Pesanan Makmal</span></a>
       <a href="#" class="item-nav" data-view="panitia" id="navPanitia" aria-label="Panitia"><span class="nav-ikon"></span><span>Panitia</span></a>
       <a href="#" class="item-nav" data-view="pengguna" id="navPengguna" aria-label="Pengguna"><span class="nav-ikon"></span><span>Pengguna</span></a>
@@ -257,6 +265,8 @@
 const SENARAI_PANITIA = ['Matematik', 'Sains', 'Kimia', 'Biologi', 'Fizik'];
 const PANITIA_MAKMAL = ['Sains', 'Kimia', 'Biologi', 'Fizik'];
 const SENARAI_MAKMAL = ['Makmal Sains 1', 'Makmal Sains 2', 'Makmal Sains 3', 'Makmal Sains 4'];
+const SKOP_BIDANG = 'BIDANG';
+const BULAN_TAHUNAN = ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogos', 'Sep', 'Okt', 'Nov', 'Dis'];
 // PEMBANTU_MAKMAL biasa TIDAK termasuk — hanya nampak pesanan bagi Makmal sendiri (SESI.makmal).
 const PERANAN_LIHAT_SEMUA_PESANAN = ['ADMIN', 'KETUA_BIDANG', 'KETUA_PEMBANTU_MAKMAL'];
 const LABEL_PERANAN = { ADMIN: 'Admin', KETUA_BIDANG: 'Ketua Bidang', KETUA_PANITIA: 'Ketua Panitia', GURU: 'Guru', PEMBANTU_MAKMAL: 'Pembantu Makmal', KETUA_PEMBANTU_MAKMAL: 'Ketua Pembantu Makmal' };
@@ -297,6 +307,7 @@ const LALUAN_IKON = {
   pesananMakmal: '<path d="M9 3h6a1 1 0 0 1 1 1v1h1.5A1.5 1.5 0 0 1 19 6.5v13A1.5 1.5 0 0 1 17.5 21h-11A1.5 1.5 0 0 1 5 19.5v-13A1.5 1.5 0 0 1 6.5 5H8V4a1 1 0 0 1 1-1Z"/><path d="M9 3v3h6V3"/><path d="M8.5 12h7M8.5 15.5h4.5"/>',
   cetak: '<path d="M7 8.5V4.5A1 1 0 0 1 8 3.5h8a1 1 0 0 1 1 1v4"/><rect x="4.5" y="8.5" width="15" height="8" rx="1.5"/><rect x="7.5" y="13" width="9" height="7" rx="1"/>',
   cartaOrganisasi: '<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="12" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v5M12 12.5H5v4M12 12.5h7v4"/>',
+  perancangan: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r=".9" fill="currentColor" stroke="none"/>',
   profilSaya: '<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>',
   kamera: '<path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1-2h7l1 2h2A1.5 1.5 0 0 1 20 8.5v10A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5v-10Z"/><circle cx="12" cy="13" r="3.5"/>'
 };
@@ -409,7 +420,7 @@ function mulakanApp() {
   document.getElementById('navPengguna').classList.toggle('hidden', !aksesPenuh);
   document.getElementById('navAudit').classList.toggle('hidden', !aksesPenuh);
   document.getElementById('navPesananMakmal').classList.toggle('hidden', !bolehPesananMakmal);
-  ['navDokumen', 'navMesyuarat', 'navTindakan', 'navProgram'].forEach(id => document.getElementById(id).classList.toggle('hidden', pembantuMakmal));
+  ['navDokumen', 'navMesyuarat', 'navTindakan', 'navProgram', 'navPerancangan'].forEach(id => document.getElementById(id).classList.toggle('hidden', pembantuMakmal));
 
   PANITIA_AKTIF = aksesPenuh ? SENARAI_PANITIA[0] : ((SESI.panitia && SESI.panitia[0]) || null);
   document.getElementById('labelPanitiaAktif').textContent = SESI.peranan === 'KETUA_PEMBANTU_MAKMAL'
@@ -437,7 +448,7 @@ function navigasi(view) {
   const peta = {
     dashboard: paparDashboard, cartaOrganisasi: paparCartaOrganisasi, profilSaya: paparProfilSaya,
     dokumen: paparDokumen, mesyuarat: paparMesyuarat,
-    tindakan: paparTindakan, program: paparProgram, pesananMakmal: paparPesananMakmal,
+    tindakan: paparTindakan, program: paparProgram, perancangan: paparPerancangan, pesananMakmal: paparPesananMakmal,
     panitia: paparPanitia, pengguna: paparPengguna, audit: paparAudit
   };
   (peta[view] || paparDashboard)();
@@ -1129,6 +1140,261 @@ function bukaEvidens(idProgram, namaProgram) {
 function padamEvidens(idEvidens, idProgram, namaProgram) {
   if (!confirm('Padam evidens ini?')) return;
   panggilApi('apiPadamEvidens', { idEvidens }).then(() => { papartToast('Evidens dipadam.'); bukaEvidens(idProgram, namaProgram); });
+}
+
+/* ============================ PERANCANGAN STRATEGIK (PS/PT/PO) & CARTA GANTT ============================ */
+/* Skop = satu Panitia ATAU SKOP_BIDANG (peringkat Ketua Bidang, merentasi semua panitia).
+   Sesiapa log masuk boleh LIHAT skop Bidang (dikongsi) + panitia sendiri; hanya
+   ADMIN/KETUA_BIDANG boleh URUS skop Bidang, dan ADMIN/KETUA_BIDANG/KETUA_PANITIA
+   panitia berkenaan boleh urus skop Panitia (selaras PERANAN_URUS_PANITIA pelayan). */
+function senaraiSkopBolehDilihat() {
+  const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
+  const panitiaSendiri = aksesPenuh ? SENARAI_PANITIA : (SESI.panitia || []);
+  return [SKOP_BIDANG].concat(panitiaSendiri);
+}
+function labelSkop(skop) { return skop === SKOP_BIDANG ? 'Bidang (Keseluruhan)' : skop; }
+function bolehUrusSkopJS(skop) {
+  const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
+  if (skop === SKOP_BIDANG) return aksesPenuh;
+  return aksesPenuh || (SESI.peranan === 'KETUA_PANITIA' && (SESI.panitia || []).indexOf(skop) !== -1);
+}
+
+let SKOP_PERANCANGAN_AKTIF = null;
+let TAB_PERANCANGAN_AKTIF = 'ps';
+
+function paparPerancangan() {
+  if (!SKOP_PERANCANGAN_AKTIF) SKOP_PERANCANGAN_AKTIF = senaraiSkopBolehDilihat()[0];
+  const k = document.getElementById('kandungan');
+  const pilihanSkop = senaraiSkopBolehDilihat().map(sk => `<option value="${sk}" ${sk === SKOP_PERANCANGAN_AKTIF ? 'selected' : ''}>${labelSkop(sk)}</option>`).join('');
+  const tab = (kunci, label) => `<button type="button" data-tab="${kunci}" class="${TAB_PERANCANGAN_AKTIF === kunci ? 'aktif' : ''}">${label}</button>`;
+  k.innerHTML = `<div class="kad"><h3>${ikon('perancangan', 'ikon-h3')}Perancangan Strategik</h3>
+    <p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Perancangan Strategik (PS), Pelan Taktikal (PT), Pelan Operasi (PO) dan Carta Gantt aktiviti tahunan.</p>
+    <div class="baris-alat"><label style="font-size:13px;font-weight:600">Skop:</label><select id="pemilihSkopPerancangan" style="width:auto">${pilihanSkop}</select></div>
+    <div class="bar-tab">${tab('ps', 'Perancangan Strategik (PS)')}${tab('pt', 'Pelan Taktikal (PT)')}${tab('po', 'Pelan Operasi (PO)')}${tab('gantt', 'Carta Gantt')}</div>
+    <div id="kandunganTabPerancangan"></div></div>`;
+
+  document.getElementById('pemilihSkopPerancangan').addEventListener('change', ev => { SKOP_PERANCANGAN_AKTIF = ev.target.value; muatSemulaTabPerancangan(); });
+  document.querySelectorAll('.bar-tab button').forEach(btn => btn.addEventListener('click', () => { TAB_PERANCANGAN_AKTIF = btn.dataset.tab; paparPerancangan(); }));
+  muatSemulaTabPerancangan();
+}
+
+function muatSemulaTabPerancangan() {
+  ({ ps: muatSemulaPS, pt: muatSemulaPT, po: muatSemulaPO, gantt: muatSemulaGantt })[TAB_PERANCANGAN_AKTIF]();
+}
+
+/* ---------- Perancangan Strategik (PS) ---------- */
+function muatSemulaPS() {
+  const bolehUrus = bolehUrusSkopJS(SKOP_PERANCANGAN_AKTIF);
+  const k = document.getElementById('kandunganTabPerancangan');
+  k.innerHTML = `<div class="baris-alat">${bolehUrus ? `<button class="btn" id="btnTambahPS">${ikon('tambah')}PS Baharu</button>` : '<span></span>'}</div><div id="jadualPS"></div>`;
+  const btn = document.getElementById('btnTambahPS');
+  if (btn) btn.addEventListener('click', () => bukaBorangPS(null));
+  panggilApi('apiSenaraiPS', { skop: SKOP_PERANCANGAN_AKTIF }).then(hasil => {
+    document.getElementById('jadualPS').innerHTML = hasil.senarai.length ? hasil.senarai.map(ps => `
+      <div class="kad" style="margin-bottom:12px">
+        <div class="baris-alat" style="margin-bottom:8px"><b>${ps.TahunMula}&ndash;${ps.TahunTamat}</b>
+          ${bolehUrus ? `<span><button class="btn kecil luar" onclick='bukaBorangPS(${JSON.stringify(ps)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamPS('${ps.IDPS}')">${ikon('padam')}Padam</button></span>` : ''}</div>
+        <table style="width:100%;font-size:13px">
+          <tr><td style="color:var(--kelabu);width:180px;vertical-align:top">Isu Strategik</td><td>${ps.IsuStrategik}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Matlamat Strategik</td><td>${ps.MatlamatStrategik}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Objektif</td><td>${ps.Objektif}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">KPI</td><td>${ps.KPI}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Sasaran (TOV &rarr; ETR)</td><td>${ps.SasaranTOV || '-'} &rarr; ${ps.SasaranETR || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Strategi/Inisiatif</td><td>${ps.Strategi || '-'}</td></tr>
+        </table>
+      </div>`).join('') : '<p style="color:var(--kelabu);font-size:13px">Tiada Perancangan Strategik direkod bagi skop ini.</p>';
+  });
+}
+
+function bukaBorangPS(ps) {
+  bukaModal(ikon('perancangan', 'ikon-h3') + (ps ? 'Sunting Perancangan Strategik' : 'Perancangan Strategik Baharu') + ' — ' + labelSkop(SKOP_PERANCANGAN_AKTIF), `
+    <form id="borangPS">
+      <div class="grid-borang">
+        <div class="medan"><label>Tahun Mula</label><input type="number" name="tahunMula" min="1980" max="2100" value="${ps ? ps.TahunMula : new Date().getFullYear()}" required></div>
+        <div class="medan"><label>Tahun Tamat</label><input type="number" name="tahunTamat" min="1980" max="2100" value="${ps ? ps.TahunTamat : (new Date().getFullYear() + 4)}" required></div>
+        <div class="medan lebar-penuh"><label>Isu Strategik</label><textarea name="isuStrategik" rows="2" required>${ps ? ps.IsuStrategik : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Matlamat Strategik</label><textarea name="matlamatStrategik" rows="2" required>${ps ? ps.MatlamatStrategik : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Objektif</label><textarea name="objektif" rows="2" required>${ps ? ps.Objektif : ''}</textarea></div>
+        <div class="medan"><label>KPI</label><input type="text" name="kpi" value="${ps ? ps.KPI : ''}" required></div>
+        <div class="medan"><label>Sasaran (TOV)</label><input type="text" name="sasaranTOV" value="${ps ? (ps.SasaranTOV || '') : ''}" placeholder="cth. 12%"></div>
+        <div class="medan"><label>Sasaran (ETR)</label><input type="text" name="sasaranETR" value="${ps ? (ps.SasaranETR || '') : ''}" placeholder="cth. 17%"></div>
+        <div class="medan lebar-penuh"><label>Strategi/Inisiatif</label><textarea name="strategi" rows="2">${ps ? (ps.Strategi || '') : ''}</textarea></div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangPS').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiSimpanPS', {
+      idPS: ps ? ps.IDPS : '', skop: SKOP_PERANCANGAN_AKTIF, tahunMula: f.get('tahunMula'), tahunTamat: f.get('tahunTamat'),
+      isuStrategik: f.get('isuStrategik'), matlamatStrategik: f.get('matlamatStrategik'), objektif: f.get('objektif'),
+      kpi: f.get('kpi'), sasaranTOV: f.get('sasaranTOV'), sasaranETR: f.get('sasaranETR'), strategi: f.get('strategi')
+    }).then(() => { papartToast('Perancangan Strategik disimpan.'); tutupModal(); muatSemulaPS(); });
+  });
+}
+
+function padamPS(idPS) {
+  if (!confirm('Padam Perancangan Strategik ini?')) return;
+  panggilApi('apiPadamPS', { idPS }).then(() => { papartToast('Dipadam.'); muatSemulaPS(); });
+}
+
+/* ---------- Pelan Taktikal (PT) ---------- */
+function muatSemulaPT() {
+  const bolehUrus = bolehUrusSkopJS(SKOP_PERANCANGAN_AKTIF);
+  const k = document.getElementById('kandunganTabPerancangan');
+  k.innerHTML = `<div class="baris-alat">${bolehUrus ? `<button class="btn" id="btnTambahPT">${ikon('tambah')}PT Baharu</button>` : '<span></span>'}</div><div id="jadualPT"></div>`;
+  const btn = document.getElementById('btnTambahPT');
+  if (btn) btn.addEventListener('click', () => bukaBorangPT(null));
+  panggilApi('apiSenaraiPT', { skop: SKOP_PERANCANGAN_AKTIF }).then(hasil => {
+    document.getElementById('jadualPT').innerHTML = hasil.senarai.length ? `<table><thead><tr>
+      <th>Tahun</th><th>Program</th><th>Tanggungjawab</th><th>Tempoh/Hari</th><th>KPI</th><th>Sasaran</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(pt => `<tr>
+        <td>${pt.Tahun}</td><td>${pt.Program}</td><td>${pt.Tanggungjawab}</td><td>${pt.TempohHari || '-'}</td><td>${pt.KPI}</td><td>${pt.Sasaran || '-'}</td>
+        <td>${bolehUrus ? `<button class="btn kecil luar" onclick='bukaBorangPT(${JSON.stringify(pt)})'>${ikon('sunting')}</button>
+        <button class="btn kecil merah" onclick="padamPT('${pt.IDPT}')">${ikon('padam')}</button>` : ''}</td>
+      </tr>`).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada Pelan Taktikal direkod bagi skop ini.</p>';
+  });
+}
+
+function bukaBorangPT(pt) {
+  bukaModal(ikon('perancangan', 'ikon-h3') + (pt ? 'Sunting Pelan Taktikal' : 'Pelan Taktikal Baharu') + ' — ' + labelSkop(SKOP_PERANCANGAN_AKTIF), `
+    <form id="borangPT">
+      <div class="grid-borang">
+        <div class="medan"><label>Tahun</label><input type="number" name="tahun" min="1980" max="2100" value="${pt ? pt.Tahun : new Date().getFullYear()}" required></div>
+        <div class="medan lebar-penuh"><label>Program/Projek</label><input type="text" name="program" value="${pt ? pt.Program : ''}" required></div>
+        <div class="medan"><label>Tanggungjawab</label><input type="text" name="tanggungjawab" value="${pt ? pt.Tanggungjawab : ''}" required></div>
+        <div class="medan"><label>Tempoh/Hari</label><input type="text" name="tempohHari" value="${pt ? (pt.TempohHari || '') : ''}" placeholder="cth. Mac &amp; Ogos"></div>
+        <div class="medan"><label>Kos/Sumber</label><input type="text" name="kosSumber" value="${pt ? (pt.KosSumber || '') : ''}" placeholder="cth. RM 300 / PCG Panitia"></div>
+        <div class="medan"><label>KPI</label><input type="text" name="kpi" value="${pt ? pt.KPI : ''}" required></div>
+        <div class="medan"><label>Sasaran</label><input type="text" name="sasaran" value="${pt ? (pt.Sasaran || '') : ''}"></div>
+        <div class="medan lebar-penuh"><label>Pelan Kontinjensi</label><textarea name="pelanKontinjensi" rows="2">${pt ? (pt.PelanKontinjensi || '') : ''}</textarea></div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangPT').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiSimpanPT', {
+      idPT: pt ? pt.IDPT : '', skop: SKOP_PERANCANGAN_AKTIF, tahun: f.get('tahun'), program: f.get('program'),
+      tanggungjawab: f.get('tanggungjawab'), tempohHari: f.get('tempohHari'), kosSumber: f.get('kosSumber'),
+      kpi: f.get('kpi'), sasaran: f.get('sasaran'), pelanKontinjensi: f.get('pelanKontinjensi')
+    }).then(() => { papartToast('Pelan Taktikal disimpan.'); tutupModal(); muatSemulaPT(); });
+  });
+}
+
+function padamPT(idPT) {
+  if (!confirm('Padam Pelan Taktikal ini?')) return;
+  panggilApi('apiPadamPT', { idPT }).then(() => { papartToast('Dipadam.'); muatSemulaPT(); });
+}
+
+/* ---------- Pelan Operasi (PO) ---------- */
+function muatSemulaPO() {
+  const bolehUrus = bolehUrusSkopJS(SKOP_PERANCANGAN_AKTIF);
+  const k = document.getElementById('kandunganTabPerancangan');
+  k.innerHTML = `<div class="baris-alat">${bolehUrus ? `<button class="btn" id="btnTambahPO">${ikon('tambah')}PO Baharu</button>` : '<span></span>'}</div><div id="jadualPO"></div>`;
+  const btn = document.getElementById('btnTambahPO');
+  if (btn) btn.addEventListener('click', () => bukaBorangPO(null));
+  panggilApi('apiSenaraiPO', { skop: SKOP_PERANCANGAN_AKTIF }).then(hasil => {
+    document.getElementById('jadualPO').innerHTML = hasil.senarai.length ? hasil.senarai.map(po => `
+      <div class="kad" style="margin-bottom:12px">
+        <div class="baris-alat" style="margin-bottom:8px"><b>${po.NamaProgram}</b>
+          ${bolehUrus ? `<span><button class="btn kecil luar" onclick='bukaBorangPO(${JSON.stringify(po)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamPO('${po.IDPO}')">${ikon('padam')}Padam</button></span>` : ''}</div>
+        <table style="width:100%;font-size:13px">
+          <tr><td style="color:var(--kelabu);width:200px;vertical-align:top">Objektif</td><td>${po.Objektif || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Kumpulan Sasaran</td><td>${po.KumpulanSasaran || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Pegawai Bertanggungjawab</td><td>${po.PegawaiBertanggungjawab || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Pratugas</td><td style="white-space:pre-wrap">${po.LangkahPratugas || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Penyediaan Bahan/Publisiti</td><td style="white-space:pre-wrap">${po.LangkahPenyediaan || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Pelaksanaan</td><td style="white-space:pre-wrap">${po.LangkahPelaksanaan || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Penilaian &amp; Post-Mortem</td><td style="white-space:pre-wrap">${po.LangkahPenilaian || '-'}</td></tr>
+        </table>
+      </div>`).join('') : '<p style="color:var(--kelabu);font-size:13px">Tiada Pelan Operasi direkod bagi skop ini.</p>';
+  });
+}
+
+function bukaBorangPO(po) {
+  bukaModal(ikon('perancangan', 'ikon-h3') + (po ? 'Sunting Pelan Operasi' : 'Pelan Operasi Baharu') + ' — ' + labelSkop(SKOP_PERANCANGAN_AKTIF), `
+    <form id="borangPO">
+      <div class="grid-borang">
+        <div class="medan lebar-penuh"><label>Nama Program</label><input type="text" name="namaProgram" value="${po ? po.NamaProgram : ''}" required></div>
+        <div class="medan lebar-penuh"><label>Objektif</label><textarea name="objektif" rows="2">${po ? (po.Objektif || '') : ''}</textarea></div>
+        <div class="medan"><label>Kumpulan Sasaran</label><input type="text" name="kumpulanSasaran" value="${po ? (po.KumpulanSasaran || '') : ''}"></div>
+        <div class="medan"><label>Pegawai Bertanggungjawab</label><input type="text" name="pegawaiBertanggungjawab" value="${po ? (po.PegawaiBertanggungjawab || '') : ''}"></div>
+        <div class="medan lebar-penuh"><label>Langkah — Pratugas</label><textarea name="langkahPratugas" rows="2">${po ? (po.LangkahPratugas || '') : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Langkah — Penyediaan Bahan/Publisiti</label><textarea name="langkahPenyediaan" rows="2">${po ? (po.LangkahPenyediaan || '') : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Langkah — Pelaksanaan (Hari Kejadian)</label><textarea name="langkahPelaksanaan" rows="2">${po ? (po.LangkahPelaksanaan || '') : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Langkah — Penilaian &amp; Post-Mortem</label><textarea name="langkahPenilaian" rows="2">${po ? (po.LangkahPenilaian || '') : ''}</textarea></div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangPO').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiSimpanPO', {
+      idPO: po ? po.IDPO : '', skop: SKOP_PERANCANGAN_AKTIF, namaProgram: f.get('namaProgram'), objektif: f.get('objektif'),
+      kumpulanSasaran: f.get('kumpulanSasaran'), pegawaiBertanggungjawab: f.get('pegawaiBertanggungjawab'),
+      langkahPratugas: f.get('langkahPratugas'), langkahPenyediaan: f.get('langkahPenyediaan'),
+      langkahPelaksanaan: f.get('langkahPelaksanaan'), langkahPenilaian: f.get('langkahPenilaian')
+    }).then(() => { papartToast('Pelan Operasi disimpan.'); tutupModal(); muatSemulaPO(); });
+  });
+}
+
+function padamPO(idPO) {
+  if (!confirm('Padam Pelan Operasi ini?')) return;
+  panggilApi('apiPadamPO', { idPO }).then(() => { papartToast('Dipadam.'); muatSemulaPO(); });
+}
+
+/* ---------- Carta Gantt (Aktiviti Tahunan) ---------- */
+let TAHUN_GANTT_AKTIF = new Date().getFullYear();
+function muatSemulaGantt() {
+  const bolehUrus = bolehUrusSkopJS(SKOP_PERANCANGAN_AKTIF);
+  const k = document.getElementById('kandunganTabPerancangan');
+  k.innerHTML = `<div class="baris-alat">
+      <label style="font-size:13px;font-weight:600">Tahun:</label><input type="number" id="inputTahunGantt" style="width:90px" value="${TAHUN_GANTT_AKTIF}">
+      ${bolehUrus ? `<button class="btn" id="btnTambahGantt">${ikon('tambah')}Aktiviti Baharu</button>` : '<span></span>'}
+    </div><div id="jadualGantt" style="overflow-x:auto"></div>`;
+  document.getElementById('inputTahunGantt').addEventListener('change', ev => { TAHUN_GANTT_AKTIF = ev.target.value; muatSemulaGantt(); });
+  const btn = document.getElementById('btnTambahGantt');
+  if (btn) btn.addEventListener('click', () => bukaBorangGantt(null));
+  panggilApi('apiSenaraiAktivitiTahunan', { skop: SKOP_PERANCANGAN_AKTIF, tahun: TAHUN_GANTT_AKTIF }).then(hasil => {
+    document.getElementById('jadualGantt').innerHTML = hasil.senarai.length ? `<table class="jadual-gantt"><thead><tr>
+      <th>Aktiviti/Program</th>${BULAN_TAHUNAN.map(b => `<th>${b}</th>`).join('')}${bolehUrus ? '<th></th>' : ''}</tr></thead><tbody>` +
+      hasil.senarai.map(ak => `<tr><td>${ak.Aktiviti}</td>${BULAN_TAHUNAN.map(b => `<td class="${ak[b] === 'YA' ? 'tanda' : ''}">${ak[b] === 'YA' ? 'X' : ''}</td>`).join('')}
+        ${bolehUrus ? `<td><button class="btn kecil luar" onclick='bukaBorangGantt(${JSON.stringify(ak)})'>${ikon('sunting')}</button>
+        <button class="btn kecil merah" onclick="padamGantt('${ak.IDAktiviti}')">${ikon('padam')}</button></td>` : ''}</tr>`).join('') +
+      `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada aktiviti direkod bagi tahun/skop ini.</p>';
+  });
+}
+
+function bukaBorangGantt(ak) {
+  const bulanTertanda = ak ? BULAN_TAHUNAN.filter(b => ak[b] === 'YA') : [];
+  bukaModal(ikon('perancangan', 'ikon-h3') + (ak ? 'Sunting Aktiviti' : 'Aktiviti Baharu') + ' — ' + labelSkop(SKOP_PERANCANGAN_AKTIF), `
+    <form id="borangGantt">
+      <div class="grid-borang">
+        <div class="medan"><label>Tahun</label><input type="number" name="tahun" min="1980" max="2100" value="${ak ? ak.Tahun : TAHUN_GANTT_AKTIF}" required></div>
+        <div class="medan lebar-penuh"><label>Aktiviti/Program</label><input type="text" name="aktiviti" value="${ak ? ak.Aktiviti : ''}" required></div>
+      </div>
+      <div class="medan lebar-penuh" style="margin-top:10px"><label>Bulan Pelaksanaan</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">${BULAN_TAHUNAN.map(b => `
+          <label style="display:flex;align-items:center;gap:4px;font-weight:400;width:auto"><input type="checkbox" name="bulan" value="${b}" style="width:auto" ${bulanTertanda.indexOf(b) !== -1 ? 'checked' : ''}>${b}</label>`).join('')}</div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangGantt').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiSimpanAktivitiTahunan', {
+      idAktiviti: ak ? ak.IDAktiviti : '', skop: SKOP_PERANCANGAN_AKTIF, tahun: f.get('tahun'), aktiviti: f.get('aktiviti'),
+      bulan: f.getAll('bulan')
+    }).then(() => { papartToast('Aktiviti disimpan.'); tutupModal(); muatSemulaGantt(); });
+  });
+}
+
+function padamGantt(idAktiviti) {
+  if (!confirm('Padam aktiviti ini?')) return;
+  panggilApi('apiPadamAktivitiTahunan', { idAktiviti }).then(() => { papartToast('Dipadam.'); muatSemulaGantt(); });
 }
 
 /* ============================ PESANAN RADAS & BAHAN MAKMAL ============================ */

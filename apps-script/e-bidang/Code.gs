@@ -58,11 +58,15 @@ function sediakanSistemEBidang() {
   pastikanSheet(SHEET_AUDIT_LOG, HEADER_AUDIT_LOG, []);
   pastikanSheet(SHEET_PESANAN_MAKMAL, HEADER_PESANAN_MAKMAL, []);
   pastikanSheet(SHEET_ITEM_PESANAN_MAKMAL, HEADER_ITEM_PESANAN_MAKMAL, []);
+  pastikanSheet(SHEET_PERANCANGAN_STRATEGIK, HEADER_PERANCANGAN_STRATEGIK, []);
+  pastikanSheet(SHEET_PELAN_TAKTIKAL, HEADER_PELAN_TAKTIKAL, []);
+  pastikanSheet(SHEET_PELAN_OPERASI, HEADER_PELAN_OPERASI, []);
+  pastikanSheet(SHEET_AKTIVITI_TAHUNAN, HEADER_AKTIVITI_TAHUNAN, []);
 
   SpreadsheetApp.getUi().alert(
-    'Sistem sedia. Semua 12 Sheet (USERS, PANITIA, KATEGORI_DOKUMEN, DOKUMEN, MESYUARAT, ' +
+    'Sistem sedia. Semua 16 Sheet (USERS, PANITIA, KATEGORI_DOKUMEN, DOKUMEN, MESYUARAT, ' +
     'KEHADIRAN_MESYUARAT, TINDAKAN_SUSULAN, PROGRAM, EVIDENS, AUDIT_LOG, PESANAN_MAKMAL, ' +
-    'ITEM_PESANAN_MAKMAL) telah dicipta.\n\n' +
+    'ITEM_PESANAN_MAKMAL, PERANCANGAN_STRATEGIK, PELAN_TAKTIKAL, PELAN_OPERASI, AKTIVITI_TAHUNAN) telah dicipta.\n\n' +
     'Log masuk kali pertama guna No. KP "000000000000" dan kata laluan "000000", kemudian ' +
     'tambah pengguna sebenar dalam menu Pengguna (kata laluan lalai = 6 digit terakhir No. KP, ' +
     'sistem akan paksa tukar kata laluan selepas log masuk pertama). Padam baris "ADMIN CONTOH" ' +
@@ -100,6 +104,14 @@ function kemaskiniStrukturSistem() {
     'OpsyenPengkhususan', 'GredJawatan', 'KelasDiajar', 'TahunMulaSubjekSemasa'].forEach(lajur => {
     if (tambahLajurJikaTiada(SHEET_USERS, lajur)) perubahan.push('USERS.' + lajur);
   });
+  [
+    [SHEET_PERANCANGAN_STRATEGIK, HEADER_PERANCANGAN_STRATEGIK],
+    [SHEET_PELAN_TAKTIKAL, HEADER_PELAN_TAKTIKAL],
+    [SHEET_PELAN_OPERASI, HEADER_PELAN_OPERASI],
+    [SHEET_AKTIVITI_TAHUNAN, HEADER_AKTIVITI_TAHUNAN]
+  ].forEach(([nama, header]) => {
+    if (ciptaSheetBaharuJikaTiada(nama, header)) perubahan.push(nama + ' (Sheet baharu)');
+  });
 
   SpreadsheetApp.getUi().alert(perubahan.length
     ? 'Struktur dikemaskini: ' + perubahan.join(', ') + '.\n\nIsi lajur Emel bagi setiap ' +
@@ -112,7 +124,9 @@ function kemaskiniStrukturSistem() {
       'event Kalendar berkaitan kekal sehari penuh (all-day) seperti sebelum ini. Setiap ' +
       'pengguna boleh lengkapkan profil sendiri (gambar, jawatan, no. telefon, kelayakan, ' +
       'opsyen, gred jawatan, kelas diajar, tahun mula mengajar subjek semasa) di menu ' +
-      '"Profil Saya" selepas log masuk — tiada tindakan admin diperlukan bagi lajur ini.'
+      '"Profil Saya" selepas log masuk — tiada tindakan admin diperlukan bagi lajur ini. ' +
+      'Sheet baharu (jika ada) bagi menu "Perancangan Strategik" (PS/PT/PO & Carta Gantt) ' +
+      'sedia digunakan serta-merta — tiada tindakan tambahan diperlukan.'
     : 'Tiada kemaskini diperlukan — struktur sudah terkini.');
 }
 

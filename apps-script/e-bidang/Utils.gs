@@ -108,6 +108,21 @@ function gabungTarikhMasa(tarikhObjek, masaHHmm) {
   return hasil;
 }
 
+/* Cipta satu Sheet BAHARU (modul baharu sepenuhnya, bukan lajur tambahan pada Sheet
+   sedia ada) jika belum wujud — idempoten. Guna oleh kemaskiniStrukturSistem() di
+   Code.gs supaya deployment sedia ada boleh naik taraf tanpa jalankan semula
+   "Sediakan Sistem" (yang hanya cipta Sheet yang tiada, tidak menimpa data sedia ada,
+   tetapi tidak semua admin ingat untuk menjalankannya semula selepas naik taraf kod). */
+function ciptaSheetBaharuJikaTiada(namaSheet, header) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (ss.getSheetByName(namaSheet)) return false;
+  const sh = ss.insertSheet(namaSheet);
+  sh.appendRow(header);
+  sh.setFrozenRows(1);
+  sh.getRange(1, 1, 1, header.length).setFontWeight('bold');
+  return true;
+}
+
 /* Tambah satu lajur baharu pada penghujung Sheet sedia ada jika belum wujud
    (idempoten — selamat dijalankan berulang kali). Guna oleh fungsi migrasi
    struktur dalam Code.gs apabila menaik taraf deployment sedia ada. */

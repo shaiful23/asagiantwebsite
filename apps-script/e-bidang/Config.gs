@@ -17,6 +17,10 @@ const SHEET_EVIDENS = 'EVIDENS';
 const SHEET_AUDIT_LOG = 'AUDIT_LOG';
 const SHEET_PESANAN_MAKMAL = 'PESANAN_MAKMAL';
 const SHEET_ITEM_PESANAN_MAKMAL = 'ITEM_PESANAN_MAKMAL';
+const SHEET_PERANCANGAN_STRATEGIK = 'PERANCANGAN_STRATEGIK';
+const SHEET_PELAN_TAKTIKAL = 'PELAN_TAKTIKAL';
+const SHEET_PELAN_OPERASI = 'PELAN_OPERASI';
+const SHEET_AKTIVITI_TAHUNAN = 'AKTIVITI_TAHUNAN';
 
 /* ------------------------- PERANAN (ROLES) ------------------------- */
 const ROLE_ADMIN = 'ADMIN';
@@ -47,6 +51,12 @@ const PERANAN_PROSES_PESANAN = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_KETUA_PEMBAN
 
 /* ------------------------- PANITIA BIDANG SAINS & MATEMATIK ------------------------- */
 const SENARAI_PANITIA = ['Matematik', 'Sains', 'Kimia', 'Biologi', 'Fizik'];
+
+// Skop khusus bagi Perancangan Strategik/Taktikal/Operasi & Carta Gantt yang
+// merentasi SEMUA panitia (peringkat Ketua Bidang) — bukan satu Panitia tertentu.
+// Digunakan sebagai nilai medan "Skop" (menggantikan nama Panitia biasa).
+const SKOP_BIDANG = 'BIDANG';
+const BULAN_TAHUNAN = ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogos', 'Sep', 'Okt', 'Nov', 'Dis'];
 
 // Panitia yang menjalankan eksperimen makmal (boleh buat Pesanan Radas & Bahan) — Matematik tidak termasuk.
 const PANITIA_MAKMAL = ['Sains', 'Kimia', 'Biologi', 'Fizik'];
