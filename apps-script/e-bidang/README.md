@@ -53,6 +53,20 @@ sebagai database dan Google Apps Script sebagai backend + frontend
 - **Dashboard** — ringkasan kelengkapan fail, mesyuarat akan datang &
   tindakan tertunggak bagi setiap panitia (dalam skop akses peranan semasa),
   serta senarai tindakan susulan peribadi.
+- **Carta Organisasi & Profil Guru** — menu **Carta Organisasi** (boleh
+  diakses semua peranan) memaparkan carta bidang (Admin/Ketua Bidang di atas,
+  Ketua Panitia setiap panitia di bawahnya) serta satu panel berasingan bagi
+  **setiap Panitia** (Ketua Panitia + ahli) dan satu panel Pembantu Makmal.
+  Klik mana-mana nama untuk buka **profil lengkap**: gambar, jawatan/gelaran,
+  gred jawatan, no. telefon, kelayakan akademik, opsyen/pengkhususan, kelas
+  diajar, dan tempoh mengajar subjek semasa (dikira automatik daripada tahun
+  mula). Setiap pengguna kemaskini profil sendiri (termasuk muat naik gambar,
+  dikecilkan automatik di pelayar sebelum dihantar) di menu **Profil Saya**
+  — Admin/Ketua Bidang boleh juga isi medan yang sama bagi pihak pengguna
+  lain di menu Pengguna (kecuali gambar, yang kekal sendiri-isi sahaja).
+  Gambar dipaparkan terus daripada Drive melalui pelayan (bukan pautan Drive
+  terus), jadi paparan tidak bergantung kepada tetapan perkongsian Drive
+  setiap pengguna.
 - **Log Audit** — setiap tindakan TAMBAH/KEMASKINI/PADAM/LOGIN/tukar kata
   laluan direkod (Admin/Ketua Bidang sahaja boleh semak).
 - **Eksport CSV** — jadual Dokumen, Mesyuarat, Tindakan Susulan, Program & PLC,
@@ -137,6 +151,9 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   `sediakanNotifikasiHarian()` dalam `Code.gs`) DAN `hantarEmelSegera()`
   (dipanggil terus daripada PesananMakmalService.gs/MeetingService.gs).
 - `DashboardService.gs` — ringkasan statistik (termasuk ringkasan Pesanan Makmal).
+- `ProfilService.gs` — Carta Organisasi (`apiCartaOrganisasi`), profil penuh
+  (`apiProfilPengguna`), kemaskini/muat naik profil SENDIRI sahaja
+  (`apiKemaskiniProfilSendiri`/`apiMuatNaikGambarProfilSendiri`).
 - `AuditService.gs` — catat & semak log audit.
 - `appsscript.json`, `Index.html` — manifest & frontend SPA tunggal.
 
@@ -155,8 +172,8 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
    `PanitiaService.gs`, `DriveService.gs`, `DocumentService.gs`,
    `MeetingService.gs`, `ProgramService.gs`, `PesananMakmalService.gs`,
    `CalendarService.gs`, `NotifikasiService.gs`, `DashboardService.gs`,
-   `AuditService.gs`), cipta fail Script baharu dengan nama yang sama (tanpa
-   `.gs`) dan salin-tampal kandungannya.
+   `ProfilService.gs`, `AuditService.gs`), cipta fail Script baharu dengan
+   nama yang sama (tanpa `.gs`) dan salin-tampal kandungannya.
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json
@@ -183,7 +200,9 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
    melihat/memproses pesanan merentasi SEMUA Makmal.
 10. Tetapkan **Ketua Panitia** setiap panitia di menu **Panitia** (pengguna
     berkenaan mesti sudah didaftarkan dengan Panitia yang sepadan di menu
-    Pengguna terlebih dahulu).
+    Pengguna terlebih dahulu). Setiap staf boleh (dan digalakkan) lengkapkan
+    profil sendiri — gambar, jawatan, kelayakan, dsb. — di menu **Profil
+    Saya** selepas log masuk, supaya Carta Organisasi lengkap dan berguna.
 11. Klik **Deploy → New deployment**. Pilih jenis **Web app**.
     - Execute as: **Me**
     - Who has access: **Anyone** (kawalan sebenar dibuat oleh log masuk
@@ -211,14 +230,18 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
 ## Naik Taraf Deployment Sedia Ada
 
 Jika sistem ini sudah dideploy **sebelum** ciri Pesanan Makmal/Emel/Kalendar/
-Notifikasi ditambah: gantikan kandungan semua fail `.gs` dan `Index`/
-`appsscript.json` dengan versi terkini (termasuk fail baharu
-`PesananMakmalService.gs`, `CalendarService.gs`, `NotifikasiService.gs`),
-**Deploy semula** (Deploy → Manage deployments → Edit → New version), kemudian
-klik **Sistem E-Bidang → 2. Kemaskini Struktur (Emel & Kalendar)** SEKALI
-sahaja — ini menambah lajur `Emel` (USERS) dan `EventIdKalendar`
-(MESYUARAT/PROGRAM) yang hilang tanpa menjejaskan data sedia ada. Selamat
-dijalankan berulang kali (tiada kesan jika struktur sudah terkini).
+Notifikasi/Carta Organisasi ditambah: gantikan kandungan semua fail `.gs` dan
+`Index`/`appsscript.json` dengan versi terkini (termasuk fail baharu
+`PesananMakmalService.gs`, `CalendarService.gs`, `NotifikasiService.gs`,
+`ProfilService.gs`), **Deploy semula** (Deploy → Manage deployments → Edit →
+New version), kemudian klik **Sistem E-Bidang → 2. Kemaskini Struktur (Emel &
+Kalendar)** SEKALI sahaja — ini menambah semua lajur yang hilang (`Emel`,
+`EventIdKalendar`, `MakmalDijaga`, medan Makmal/Masa Pesanan Makmal &
+Mesyuarat/Program, serta medan profil `GambarProfilUrl`/`GambarProfilFailId`/
+`Jawatan`/`NoTelefon`/`KelayakanAkademik`/`OpsyenPengkhususan`/`GredJawatan`/
+`KelasDiajar`/`TahunMulaSubjekSemasa` pada USERS) tanpa menjejaskan data
+sedia ada. Selamat dijalankan berulang kali (tiada kesan jika struktur sudah
+terkini).
 
 ## Struktur Folder Drive
 

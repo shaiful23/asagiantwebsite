@@ -43,3 +43,35 @@ function padamFailDrive(fileId) {
     // Fail mungkin sudah dipadam/dipindah secara manual — abaikan.
   }
 }
+
+/* Folder khusus gambar profil — bidang-wide (bukan per panitia), sebab satu
+   pengguna (Admin/Ketua Bidang/Pembantu Makmal) tidak semestinya tergolong
+   dalam satu Panitia sahaja. */
+function folderProfilGuru() {
+  return cariAtauCiptaSubfolder(folderIndukEBidang(), 'Profil Guru');
+}
+
+/* dataBase64 tanpa prefix "data:...;base64," — klien WAJIB kecilkan/mampatkan
+   imej dahulu (rujuk resizeGambarSebagaiBase64() dalam Index.html) supaya saiz
+   fail kekal kecil apabila dibenamkan sebagai data URI dalam respons apiCartaOrganisasi()/
+   apiProfilPengguna(). Pulangkan {fileId, url}. */
+function muatNaikGambarProfil(namaFail, dataBase64, jenisMime) {
+  const bait = Utilities.base64Decode(dataBase64);
+  const blob = Utilities.newBlob(bait, jenisMime || 'image/jpeg', namaFail);
+  const fail = folderProfilGuru().createFile(blob);
+  return { fileId: fail.getId(), url: fail.getUrl() };
+}
+
+/* Baca semula gambar dari Drive sebagai data URI base64 — paparan gambar profil
+   sengaja TIDAK bergantung kepada tetapan perkongsian Drive setiap pengguna;
+   pelayan Apps Script sentiasa berjalan sebagai akaun yang men-deploy sistem
+   (pemilik fail), jadi ini berfungsi tanpa mengira akses Drive peribadi penonton. */
+function gambarSebagaiDataUri(fileId) {
+  if (!fileId) return '';
+  try {
+    const blob = DriveApp.getFileById(fileId).getBlob();
+    return 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes());
+  } catch (e) {
+    return '';
+  }
+}
