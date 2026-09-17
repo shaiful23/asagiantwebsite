@@ -12,6 +12,9 @@ function apiSenaraiPengguna(p) {
     nokp: u.NoKP, nama: u.NamaPenuh, peranan: u.Peranan, panitia: u.Panitia,
     panitiaSenarai: senaraiPanitiaDaripadaMedan(u.Panitia), emel: u.Emel || '',
     makmal: u.MakmalDijaga || '', makmalSenarai: senaraiDaripadaMedan(u.MakmalDijaga),
+    jawatan: u.Jawatan || '', noTelefon: u.NoTelefon || '', kelayakanAkademik: u.KelayakanAkademik || '',
+    opsyenPengkhususan: u.OpsyenPengkhususan || '', gredJawatan: u.GredJawatan || '',
+    kelasDiajar: u.KelasDiajar || '', tahunMulaSubjekSemasa: u.TahunMulaSubjekSemasa || '',
     mestiTukarPassword: u.MestiTukarPassword, status: u.Status, __row: u.__row
   }));
   return jaya({ senarai });
@@ -52,6 +55,11 @@ function apiSimpanPengguna(p) {
   if (emel && emel.indexOf('@') === -1) return ralat('Format e-mel tidak sah.');
 
   const sediaAda = cariBarisMengikutId(SHEET_USERS, 'NoKP', nokp);
+  // Medan profil (teks) — pilihan, boleh diisi oleh Admin di sini ATAU oleh pengguna sendiri
+  // di menu "Profil Saya" (ProfilService.gs). Kekalkan nilai sedia ada jika tidak dihantar.
+  const medanProfil = (nilaiBaharu, namaLajur) =>
+    String(nilaiBaharu !== undefined ? nilaiBaharu : (sediaAda ? sediaAda[namaLajur] : '') || '').trim();
+
   const objek = {
     NoKP: nokp,
     Password: sediaAda ? sediaAda.Password : cincangKataLaluan(kataLaluanLalaiDaripadaIC(nokp)),
@@ -61,7 +69,17 @@ function apiSimpanPengguna(p) {
     MestiTukarPassword: sediaAda ? sediaAda.MestiTukarPassword : 'YA',
     Status: sediaAda ? sediaAda.Status : 'AKTIF',
     Emel: emel,
-    MakmalDijaga: peranan === ROLE_PEMBANTU_MAKMAL ? makmalSah.join(', ') : ''
+    MakmalDijaga: peranan === ROLE_PEMBANTU_MAKMAL ? makmalSah.join(', ') : '',
+    // Gambar profil diurus sendiri oleh pengguna (apiMuatNaikGambarProfilSendiri) — kekalkan sahaja di sini.
+    GambarProfilUrl: sediaAda ? sediaAda.GambarProfilUrl : '',
+    GambarProfilFailId: sediaAda ? sediaAda.GambarProfilFailId : '',
+    Jawatan: medanProfil(p.jawatan, 'Jawatan'),
+    NoTelefon: medanProfil(p.noTelefon, 'NoTelefon'),
+    KelayakanAkademik: medanProfil(p.kelayakanAkademik, 'KelayakanAkademik'),
+    OpsyenPengkhususan: medanProfil(p.opsyenPengkhususan, 'OpsyenPengkhususan'),
+    GredJawatan: medanProfil(p.gredJawatan, 'GredJawatan'),
+    KelasDiajar: medanProfil(p.kelasDiajar, 'KelasDiajar'),
+    TahunMulaSubjekSemasa: medanProfil(p.tahunMulaSubjekSemasa, 'TahunMulaSubjekSemasa')
   };
 
   if (sediaAda) {

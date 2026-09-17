@@ -5,7 +5,9 @@
  * sentiasa di server — jangan benarkan frontend sahaja menentukan akses.
  * ========================================================================= */
 
-const HEADER_USERS = ['NoKP', 'Password', 'Peranan', 'NamaPenuh', 'Panitia', 'MestiTukarPassword', 'Status', 'Emel', 'MakmalDijaga'];
+const HEADER_USERS = ['NoKP', 'Password', 'Peranan', 'NamaPenuh', 'Panitia', 'MestiTukarPassword', 'Status', 'Emel', 'MakmalDijaga',
+  'GambarProfilUrl', 'GambarProfilFailId', 'Jawatan', 'NoTelefon', 'KelayakanAkademik', 'OpsyenPengkhususan', 'GredJawatan',
+  'KelasDiajar', 'TahunMulaSubjekSemasa'];
 
 /* ------------------------- KATA LALUAN ------------------------- */
 function cincangKataLaluan(kataLaluan) {

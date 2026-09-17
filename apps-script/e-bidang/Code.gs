@@ -42,7 +42,8 @@ function sediakanSistemEBidang() {
   };
 
   pastikanSheet(SHEET_USERS, HEADER_USERS,
-    [['000000000000', cincangKataLaluan('000000'), ROLE_ADMIN, 'ADMIN CONTOH', '', 'YA', 'AKTIF', '', '']]);
+    [['000000000000', cincangKataLaluan('000000'), ROLE_ADMIN, 'ADMIN CONTOH', '', 'YA', 'AKTIF', '', '',
+      '', '', '', '', '', '', '', '', '']]);
 
   pastikanSheet(SHEET_PANITIA, HEADER_PANITIA,
     SENARAI_PANITIA.map(nama => [nama.toUpperCase(), nama, '', 'AKTIF']));
@@ -71,7 +72,9 @@ function sediakanSistemEBidang() {
     'di borang Pengguna, dan hanya akan menerima Pesanan Radas & Bahan bagi Makmal berkenaan. ' +
     'Peranan "Ketua Pembantu Makmal" (pilihan) boleh ditambah untuk melihat/memproses pesanan ' +
     'merentasi SEMUA Makmal. Jika mahu aktifkan notifikasi e-mel, isi lajur "Emel" bagi setiap ' +
-    'pengguna (di menu Pengguna) kemudian jalankan "3. Aktifkan Notifikasi E-mel Harian".'
+    'pengguna (di menu Pengguna) kemudian jalankan "3. Aktifkan Notifikasi E-mel Harian". ' +
+    'Setiap pengguna boleh lengkapkan profil sendiri (gambar, jawatan, kelayakan, dll.) di ' +
+    'menu "Profil Saya" selepas log masuk — hasilnya dipaparkan di menu "Carta Organisasi".'
   );
 }
 
@@ -93,6 +96,10 @@ function kemaskiniStrukturSistem() {
   if (tambahLajurJikaTiada(SHEET_MESYUARAT, 'MasaTamat')) perubahan.push('MESYUARAT.MasaTamat');
   if (tambahLajurJikaTiada(SHEET_PROGRAM, 'MasaMula')) perubahan.push('PROGRAM.MasaMula');
   if (tambahLajurJikaTiada(SHEET_PROGRAM, 'MasaTamat')) perubahan.push('PROGRAM.MasaTamat');
+  ['GambarProfilUrl', 'GambarProfilFailId', 'Jawatan', 'NoTelefon', 'KelayakanAkademik',
+    'OpsyenPengkhususan', 'GredJawatan', 'KelasDiajar', 'TahunMulaSubjekSemasa'].forEach(lajur => {
+    if (tambahLajurJikaTiada(SHEET_USERS, lajur)) perubahan.push('USERS.' + lajur);
+  });
 
   SpreadsheetApp.getUi().alert(perubahan.length
     ? 'Struktur dikemaskini: ' + perubahan.join(', ') + '.\n\nIsi lajur Emel bagi setiap ' +
@@ -102,7 +109,10 @@ function kemaskiniStrukturSistem() {
       'mengikut Makmal berfungsi dengan betul; pesanan sedia ada tanpa nilai Makmal perlu ' +
       'disunting semula (oleh guru berkenaan) untuk mengisi Makmal, Masa Mula & Masa Tamat. ' +
       'Masa Mula/Tamat pada Mesyuarat & Program adalah PILIHAN — jika dibiarkan kosong, ' +
-      'event Kalendar berkaitan kekal sehari penuh (all-day) seperti sebelum ini.'
+      'event Kalendar berkaitan kekal sehari penuh (all-day) seperti sebelum ini. Setiap ' +
+      'pengguna boleh lengkapkan profil sendiri (gambar, jawatan, no. telefon, kelayakan, ' +
+      'opsyen, gred jawatan, kelas diajar, tahun mula mengajar subjek semasa) di menu ' +
+      '"Profil Saya" selepas log masuk — tiada tindakan admin diperlukan bagi lajur ini.'
     : 'Tiada kemaskini diperlukan — struktur sudah terkini.');
 }
 
