@@ -79,6 +79,62 @@ select option{color:#000}
 textarea{width:100%;height:110px;border-radius:10px;border:1px solid var(--line);padding:10px;font:12px/1.4 ui-monospace,monospace;color:var(--ink)}
 .toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
+
+/* ================= RESPONSIF: semua saiz skrin & orientasi ================= */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{overflow:hidden;overscroll-behavior:none;width:100%}
+/* minmax(0,1fr) menghalang kandungan panjang (cth. nama ujian) melebarkan halaman */
+.app{height:100vh;height:100dvh;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"h" "s" "f"}
+.app>*{min-width:0}
+header{grid-area:h;padding-left:calc(env(safe-area-inset-left,0px) + 14px);padding-right:calc(env(safe-area-inset-right,0px) + 14px)}
+header img{flex:none}
+.link{flex:none;max-width:46%}
+.link span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stage{grid-area:s;container-type:size}
+footer{grid-area:f;padding-left:calc(env(safe-area-inset-left,0px) + 14px);padding-right:calc(env(safe-area-inset-right,0px) + 14px)}
+.tsel{margin-bottom:10px;min-width:0}
+select{display:block;width:100%;min-width:0;max-width:100%;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;font-size:16px;height:40px}
+.inner{width:100%;max-width:560px;margin:0 auto}
+.ctrl{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+/* bingkai panduan mengikut nisbah A4, sentiasa di tengah dan muat dalam skrin */
+.guide{inset:auto;left:50%;top:calc(50% + 20px);transform:translate(-50%,-50%);width:74%;aspect-ratio:210/297;max-height:90%}
+@supports (width:1cqw){ .guide{top:calc(50% + 26px);width:min(86cqw,calc((100cqh - 76px) * .707));max-height:none} }
+.guide i{width:clamp(22px,9%,40px);height:auto;aspect-ratio:1;border-width:clamp(3px,1vmin,5px)}
+.status{top:clamp(8px,2.5%,16px);width:max-content;max-width:calc(100% - 24px);font-size:clamp(12.5px,3.6vw,15px);line-height:1.35;padding:8px 14px;border-radius:16px}
+.start{overflow:auto;padding:max(20px,env(safe-area-inset-left,0px)) max(20px,env(safe-area-inset-right,0px))}
+.shutter{width:clamp(56px,17vw,72px);height:clamp(56px,17vw,72px);flex:none}
+.icon{width:clamp(40px,12vw,48px);height:clamp(40px,12vw,48px);flex:none}
+.sheet{left:50%;right:auto;width:min(100%,560px);transform:translate(-50%,105%);max-height:min(78vh,78dvh)}
+.sheet.open{transform:translate(-50%,0)}
+.sheet .f{padding-left:calc(env(safe-area-inset-left,0px) + 16px);padding-right:calc(env(safe-area-inset-right,0px) + 16px)}
+.toast{bottom:calc(env(safe-area-inset-bottom,0px) + 130px)}
+/* telefon sangat kecil (iPhone SE 1st gen, Android kecil) */
+@media (max-width:359px){
+  header{gap:8px} header img{width:28px;height:28px} header b{font-size:14px}
+  .link #linkTxt{display:none} .link{padding:0 9px}
+  footer{padding-top:8px}
+}
+/* skrin rendah dalam orientasi potret */
+@media (max-height:600px) and (orientation:portrait){ header{padding-bottom:6px} header small{display:none} }
+/* landskap telefon: kawalan di sisi kanan supaya kamera lebih besar */
+@media (orientation:landscape) and (max-height:560px){
+  .app{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr);grid-template-areas:"h h" "s f"}
+  header{padding-top:calc(env(safe-area-inset-top,0px) + 6px);padding-bottom:6px}
+  header small{display:none}
+  footer{width:clamp(170px,26vw,230px);display:flex;flex-direction:column;justify-content:center;padding:10px calc(env(safe-area-inset-right,0px) + 12px) calc(env(safe-area-inset-bottom,0px) + 10px) 12px}
+  .inner{max-width:none}
+  .ctrl{grid-template-columns:1fr;grid-template-rows:auto auto auto;justify-items:center;gap:12px}
+  .ctrl .l,.ctrl .r{justify-content:center}
+  .ctrl .r{order:3} .shutter{order:2} .ctrl .l{order:1}
+  .toast{bottom:calc(env(safe-area-inset-bottom,0px) + 20px)}
+  .sheet{max-height:92dvh}
+}
+/* tablet & desktop */
+@media (min-width:768px) and (min-height:561px){
+  header{padding-top:calc(env(safe-area-inset-top,0px) + 14px);padding-bottom:14px}
+  header img{width:40px;height:40px} header b{font-size:17px}
+  .status{font-size:15px}
+}
 </style>
 </head>
 <body>
@@ -102,11 +158,13 @@ textarea{width:100%;height:110px;border-radius:10px;border:1px solid var(--line)
     </div>
   </div>
   <footer>
-    <div style="margin-bottom:10px"><select id="test" aria-label="Ujian"></select></div>
+    <div class="inner">
+    <div class="tsel"><select id="test" aria-label="Ujian"></select></div>
     <div class="ctrl">
       <div class="l"><button class="btn icon" id="torch" aria-pressed="false" aria-label="Lampu suluh" title="Lampu suluh" hidden><span class="ms">flashlight_on</span></button></div>
       <button class="shutter" id="shot" aria-label="Tangkap sekarang"></button>
       <div class="r"><button class="btn icon count" id="openList" aria-label="Senarai imbasan"><span class="ms">list</span><em id="cnt" hidden>0</em></button></div>
+    </div>
     </div>
   </footer>
 </div>
