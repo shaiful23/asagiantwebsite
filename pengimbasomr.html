@@ -202,32 +202,59 @@ var OMR = (function () {
   var QR = { x: 164, y: 13, s: 26 };
   var GRID_TOP = 101, ROW_H = 6.7, MAX_ROWS = 25;
   var LABEL_W = 9, OPT_P = 6.4, BUB_R = 2.3;
+  // v2: saiz bulatan dibesarkan secara automatik mengikut bilangan soalan
+  var GRID_BOTTOM = 270, GRID_LEFT = 14, GRID_RIGHT = 196, MAX_SCALE = 1.6, ROW_MIN = 6.4, COL_GAP = 5;
+  var LAYOUT_VER = 2;
   var LETTERS = 'ABCDE';
   var MAX_Q = 100;
 
   /* ------------------------------------------------------------ LAYOUT */
-  function layout(numQ, numOpt) {
+  /**
+   * Susun atur bulatan.
+   *  ver 1: saiz tetap (kertas yang dicetak sebelum kemas kini ini).
+   *  ver 2: saiz dibesarkan secara automatik supaya grid memenuhi ruang
+   *         kertas (soalan sedikit = bulatan dan huruf lebih besar).
+   */
+  function layout(numQ, numOpt, ver) {
     numQ = Math.max(1, Math.min(MAX_Q, numQ | 0));
     numOpt = Math.max(2, Math.min(5, numOpt | 0));
-    var cols = Math.min(4, Math.ceil(numQ / 15));
-    var rows = Math.ceil(numQ / cols);
-    var colP = LABEL_W + numOpt * OPT_P + 5;
-    var rowH = Math.min(9.5, (MAX_ROWS * ROW_H) / rows);
+    ver = ver === 1 ? 1 : LAYOUT_VER;
+    var cols, rows, sc, rowH;
+    if (ver === 1) {
+      cols = Math.min(4, Math.ceil(numQ / 15));
+      rows = Math.ceil(numQ / cols);
+      sc = 1;
+      rowH = Math.min(9.5, (MAX_ROWS * ROW_H) / rows);
+    } else {
+      var H = GRID_BOTTOM - GRID_TOP, Wd = GRID_RIGHT - GRID_LEFT, best = null;
+      for (var c = 1; c <= 4; c++) {
+        var r = Math.ceil(numQ / c);
+        if (r > MAX_ROWS) continue;
+        var sW = (Wd / c - COL_GAP) / (LABEL_W + numOpt * OPT_P);
+        var sH = H / (r * ROW_MIN);
+        var k = Math.min(MAX_SCALE, sW, sH);
+        if (k < 0.95) continue;
+        // pilih skala terbesar; jika sama, pilih lajur lebih sedikit
+        if (!best || k > best.k + 0.01) best = { c: c, r: r, k: k };
+      }
+      if (!best) best = { c: 4, r: Math.ceil(numQ / 4), k: 0.95 };
+      cols = best.c; rows = best.r; sc = Math.round(best.k * 100) / 100;
+      rowH = Math.min(sc * 9.5, H / rows);
+    }
+    var labelW = LABEL_W * sc, optP = OPT_P * sc, r0 = BUB_R * sc;
+    var colP = labelW + numOpt * optP + COL_GAP;
     var startX = PAGE_W / 2 - (cols * colP) / 2 + 2;
     var bubbles = [];
     for (var q = 0; q < numQ; q++) {
-      var c = Math.floor(q / rows), r = q % rows, row = [];
+      var cc = Math.floor(q / rows), rr = q % rows, row = [];
       for (var o = 0; o < numOpt; o++) {
-        row.push({
-          x: startX + c * colP + LABEL_W + o * OPT_P + OPT_P / 2,
-          y: GRID_TOP + r * rowH + rowH / 2
-        });
+        row.push({ x: startX + cc * colP + labelW + o * optP + optP / 2, y: GRID_TOP + rr * rowH + rowH / 2 });
       }
       bubbles.push(row);
     }
     return {
-      numQ: numQ, numOpt: numOpt, cols: cols, rows: rows, colP: colP, startX: startX,
-      bubbles: bubbles, r: BUB_R, gridTop: GRID_TOP, rowH: rowH
+      ver: ver, numQ: numQ, numOpt: numOpt, cols: cols, rows: rows, colP: colP, startX: startX, scale: sc,
+      labelW: labelW, optP: optP, bubbles: bubbles, r: r0, gridTop: GRID_TOP, rowH: rowH
     };
   }
 
@@ -241,7 +268,7 @@ var OMR = (function () {
     var n = String(text || '').length || 1;
     return Math.max(2.4, Math.min(base, maxW / (n * 0.56)));
   }
-  function qrData(testId, studentId) { return 'OMRSA|' + testId + '|' + (studentId || '0'); }
+  function qrData(testId, studentId) { return 'OMRSA' + LAYOUT_VER + '|' + testId + '|' + (studentId || '0'); }
 
   /**
    * Hasilkan satu halaman SVG A4.
@@ -251,7 +278,7 @@ var OMR = (function () {
    */
   function renderSheet(test, student, opts) {
     opts = opts || {};
-    var L = layout(test.numQ, test.numOpt);
+    var L = layout(test.numQ, test.numOpt, LAYOUT_VER);
     var s = [];
     var blank = !student || !student.id;
     s.push('<svg class="omr-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" width="210mm" height="297mm" font-family="Arial, Helvetica, sans-serif">');
@@ -307,24 +334,26 @@ var OMR = (function () {
     });
 
     // grid jawapan
+    var k = L.scale, hdrFs = Math.min(4, 2.6 * k), numFs = Math.min(4.6, 3 * k);
+    var letFs = (L.r * 1.25).toFixed(2), letDy = (L.r * 0.44).toFixed(2);
     for (var c = 0; c < L.cols; c++) {
       var cx = L.startX + c * L.colP - 1.5;
       var nRows = Math.min(L.rows, L.numQ - c * L.rows);
-      s.push('<rect x="' + cx + '" y="' + (GRID_TOP - 5.5) + '" width="' + (L.colP - 2) + '" height="' + (nRows * L.rowH + 7) + '" fill="none" stroke="#bbb" stroke-width="0.25" rx="1.2"/>');
+      s.push('<rect x="' + cx.toFixed(2) + '" y="' + (GRID_TOP - 6) + '" width="' + (L.colP - 2).toFixed(2) + '" height="' + (nRows * L.rowH + 7.5).toFixed(2) + '" fill="none" stroke="#999" stroke-width="0.3" rx="1.5"/>');
       for (var o = 0; o < L.numOpt; o++) {
-        s.push('<text x="' + (L.startX + c * L.colP + LABEL_W + o * OPT_P + OPT_P / 2) + '" y="' + (GRID_TOP - 1.6) + '" font-size="2.4" font-weight="700" text-anchor="middle" fill="#555">' + LETTERS[o] + '</text>');
+        s.push('<text x="' + (L.startX + c * L.colP + L.labelW + o * L.optP + L.optP / 2).toFixed(2) + '" y="' + (GRID_TOP - 1.8) + '" font-size="' + hdrFs.toFixed(2) + '" font-weight="700" text-anchor="middle" fill="#222">' + LETTERS[o] + '</text>');
       }
     }
     L.bubbles.forEach(function (row, q) {
       var y = row[0].y;
       var c = Math.floor(q / L.rows);
-      s.push('<text x="' + (L.startX + c * L.colP + LABEL_W - 1.8) + '" y="' + (y + 1) + '" font-size="2.9" font-weight="700" text-anchor="end" fill="#111">' + (q + 1) + '</text>');
+      s.push('<text x="' + (L.startX + c * L.colP + L.labelW - 1.8 * k).toFixed(2) + '" y="' + (y + numFs * 0.36).toFixed(2) + '" font-size="' + numFs.toFixed(2) + '" font-weight="700" text-anchor="end" fill="#000">' + (q + 1) + '</text>');
       if ((q % L.rows) % 5 === 4 && (q % L.rows) !== L.rows - 1 && q !== L.numQ - 1) {
-        s.push('<line x1="' + (L.startX + c * L.colP) + '" y1="' + (y + L.rowH / 2) + '" x2="' + (L.startX + c * L.colP + L.colP - 5) + '" y2="' + (y + L.rowH / 2) + '" stroke="#ddd" stroke-width="0.2"/>');
+        s.push('<line x1="' + (L.startX + c * L.colP).toFixed(2) + '" y1="' + (y + L.rowH / 2).toFixed(2) + '" x2="' + (L.startX + c * L.colP + L.colP - 5).toFixed(2) + '" y2="' + (y + L.rowH / 2).toFixed(2) + '" stroke="#d0d0d0" stroke-width="0.2" stroke-dasharray="1 1"/>');
       }
       row.forEach(function (b, o) {
-        s.push('<circle cx="' + b.x.toFixed(2) + '" cy="' + b.y.toFixed(2) + '" r="' + BUB_R + '" fill="none" stroke="#333" stroke-width="0.28"/>');
-        s.push('<text x="' + b.x.toFixed(2) + '" y="' + (b.y + 0.85).toFixed(2) + '" font-size="2.3" text-anchor="middle" fill="#c4c4c4">' + LETTERS[o] + '</text>');
+        s.push('<circle cx="' + b.x.toFixed(2) + '" cy="' + b.y.toFixed(2) + '" r="' + L.r.toFixed(2) + '" fill="none" stroke="#222" stroke-width="' + Math.min(0.45, 0.3 * k).toFixed(2) + '"/>');
+        s.push('<text x="' + b.x.toFixed(2) + '" y="' + (b.y + +letDy).toFixed(2) + '" font-size="' + letFs + '" font-weight="700" text-anchor="middle" fill="#8c8c8c">' + LETTERS[o] + '</text>');
       });
     });
     s.push('<text x="105" y="276.5" font-size="2.2" text-anchor="middle" fill="#777">Kertas ini diimbas oleh komputer. Jangan lipat, koyak atau kotorkan kertas. ' + esc(test.id) + '</text>');
@@ -439,8 +468,9 @@ var OMR = (function () {
   }
   function parseQR(text) {
     var p = String(text || '').split('|');
-    if (p[0] !== 'OMRSA' || p.length < 3) return null;
-    return { testId: p[1], studentId: p[2] === '0' ? '' : p[2] };
+    var m = /^OMRSA(\d*)$/.exec(p[0]);
+    if (!m || p.length < 3) return null;
+    return { testId: p[1], studentId: p[2] === '0' ? '' : p[2], ver: m[1] ? +m[1] : 1 };
   }
 
   /** Langkah 1: cari penanda sudut, orientasi dan QR. */
@@ -449,23 +479,31 @@ var OMR = (function () {
     var g = toGray(img), b = binarize(g, w, h);
     var cand = components(b, w, h, D * 0.008, D * 0.06);
     if (cand.length < 4) throw new Error('Penanda sudut tidak dijumpai. Pastikan keempat-empat petak hitam kelihatan dalam gambar.');
-    function pick(fn) { var best = null, bv = 1e18; cand.forEach(function (c) { var v = fn(c); if (v < bv) { bv = v; best = c; } }); return best; }
-    var corners = [
-      pick(function (c) { return c.x + c.y; }),
-      pick(function (c) { return (w - c.x) + c.y; }),
-      pick(function (c) { return (w - c.x) + (h - c.y); }),
-      pick(function (c) { return c.x + (h - c.y); })
+    // Pilih gabungan 4 penanda paling konsisten daripada beberapa calon
+    // paling hampir setiap penjuru (bulatan besar yang dihitamkan boleh
+    // menyerupai penanda, jadi calon paling hujung sahaja tidak mencukupi).
+    var fns = [
+      function (c) { return c.x + c.y; }, function (c) { return (w - c.x) + c.y; },
+      function (c) { return (w - c.x) + (h - c.y); }, function (c) { return c.x + (h - c.y); }
     ];
-    // semakan geometri
-    var uniq = corners.filter(function (c, i) { return corners.indexOf(c) === i; });
-    if (uniq.length < 4) throw new Error('Hanya ' + uniq.length + ' penanda sudut dikesan. Ambil gambar seluruh kertas.');
-    var areas = corners.map(function (c) { return c.area; });
-    if (Math.max.apply(null, areas) / Math.min.apply(null, areas) > 4) throw new Error('Penanda sudut tidak konsisten. Elakkan bayang atau objek hitam di tepi kertas.');
+    var tops = fns.map(function (fn) { return cand.slice().sort(function (a, c) { return fn(a) - fn(c); }).slice(0, 4); });
     function dist(a, c) { return Math.hypot(a.x - c.x, a.y - c.y); }
-    var s1 = (dist(corners[0], corners[1]) + dist(corners[3], corners[2])) / 2;
-    var s2 = (dist(corners[0], corners[3]) + dist(corners[1], corners[2])) / 2;
-    var ratio = Math.max(s1, s2) / Math.min(s1, s2);
-    if (ratio < 1.15 || ratio > 1.9) throw new Error('Bentuk kertas tidak dikenali. Ambil gambar dari atas, selari dengan kertas.');
+    function cross(o, a, c) { return (a.x - o.x) * (c.y - o.y) - (a.y - o.y) * (c.x - o.x); }
+    var best = null, bestCost = 1e18, why = 'Penanda sudut tidak konsisten. Elakkan bayang atau objek hitam di tepi kertas.';
+    tops[0].forEach(function (c0, i0) { tops[1].forEach(function (c1, i1) { tops[2].forEach(function (c2, i2) { tops[3].forEach(function (c3, i3) {
+      var q = [c0, c1, c2, c3];
+      if (c0 === c1 || c0 === c2 || c0 === c3 || c1 === c2 || c1 === c3 || c2 === c3) return;
+      var ar = q.map(function (c) { return c.area; }), aR = Math.max.apply(null, ar) / Math.min.apply(null, ar);
+      if (aR > 4) return;
+      var s1 = (dist(c0, c1) + dist(c3, c2)) / 2, s2 = (dist(c0, c3) + dist(c1, c2)) / 2, ratio = Math.max(s1, s2) / Math.min(s1, s2);
+      if (ratio < 1.15 || ratio > 1.9) { why = 'Bentuk kertas tidak dikenali. Ambil gambar dari atas, selari dengan kertas.'; return; }
+      var cr = [cross(c0, c1, c2), cross(c1, c2, c3), cross(c2, c3, c0), cross(c3, c0, c1)];
+      if (!(cr.every(function (v) { return v > 0; }) || cr.every(function (v) { return v < 0; }))) return;
+      var cost = (i0 + i1 + i2 + i3) * 0.6 + Math.log(aR) * 3 + q.reduce(function (t, c) { return t + (1 - Math.min(1, c.fill)) * 4; }, 0) + Math.abs(ratio - 1.414) * 2;
+      if (cost < bestCost) { bestCost = cost; best = q; }
+    }); }); }); });
+    if (!best) throw new Error(why);
+    var corners = best;
 
     // cuba 4 orientasi; QR menentukan yang betul
     var Hs = [0, 1, 2, 3].map(function (k) {
@@ -486,9 +524,13 @@ var OMR = (function () {
         var xs = pts.map(function (p) { return p.x; }), ys = pts.map(function (p) { return p.y; });
         var bwid = Math.max.apply(null, xs) - Math.min.apply(null, xs);
         var sc = bwid < 260 ? Math.min(3, 260 / Math.max(1, bwid)) : 1;
-        var cr = crop(img, Math.min.apply(null, xs), Math.min.apply(null, ys), Math.max.apply(null, xs), Math.max.apply(null, ys), sc);
-        var f2 = cr && decodeQR(cr);
-        if (f2 && parseQR(f2.data)) { k = i; qrText = f2.data; }
+        // cuba beberapa skala; jsQR kadangkala gagal pada satu saiz sahaja
+        [sc, Math.min(4, sc * 1.6), Math.max(0.8, sc * 0.7)].some(function (z) {
+          var cr = crop(img, Math.min.apply(null, xs), Math.min.apply(null, ys), Math.max.apply(null, xs), Math.max.apply(null, ys), z);
+          var f2 = cr && decodeQR(cr);
+          if (f2 && parseQR(f2.data)) { k = i; qrText = f2.data; return true; }
+          return false;
+        });
       }
     }
     if (k < 0) {                                    // tiada QR: anggap kertas tegak
@@ -518,26 +560,28 @@ var OMR = (function () {
   }
 
   /** Langkah 2: baca bulatan. sens: 0.8 (kurang peka) - 1.2 (lebih peka) */
-  function readAnswers(pre, numQ, numOpt, sens) {
+  function readAnswers(pre, numQ, numOpt, sens, ver) {
     sens = sens || 1;
-    var L = layout(numQ, numOpt), H = pre.H, g = pre.g, w = pre.w, h = pre.h;
+    ver = ver || (pre.qr && pre.qr.ver) || LAYOUT_VER;
+    var L = layout(numQ, numOpt, ver), H = pre.H, g = pre.g, w = pre.w, h = pre.h, k = L.scale;
     // putih kertas: sampel di antara baris (ruang kosong)
     var whites = [];
     L.bubbles.forEach(function (row) {
       var a = row[0];
-      [[-OPT_P * 0.5 - 0.2, 0], [0, L.rowH / 2 - 0.15]].forEach(function (o) { var p = apply(H, a.x + o[0], a.y + o[1]); whites.push(sample(g, w, h, p.x, p.y)); });
+      [[-L.optP * 0.5 - 0.2, 0], [0, L.rowH / 2 - 0.15]].forEach(function (o) { var p = apply(H, a.x + o[0], a.y + o[1]); whites.push(sample(g, w, h, p.x, p.y)); });
     });
     whites.sort(function (a, b) { return a - b; });
     var white = whites[Math.floor(whites.length * 0.7)] || 230;
     var black = Math.min(pre.black, white - 60);
     var offs = [];
-    for (var rr = 0; rr <= 1.25; rr += 0.42) {
+    for (var rr = 0; rr <= 1.26; rr += 0.42) {
       var n = rr === 0 ? 1 : Math.round(rr * 7);
-      for (var t = 0; t < n; t++) offs.push([rr * Math.cos(t * 2 * Math.PI / n), rr * Math.sin(t * 2 * Math.PI / n)]);
+      for (var t = 0; t < n; t++) offs.push([rr * k * Math.cos(t * 2 * Math.PI / n), rr * k * Math.sin(t * 2 * Math.PI / n)]);
     }
+    var jit = 0.5 * Math.min(k, 1.3);
     function dark(mx, my) {
       var best = 0;
-      for (var dx = -0.5; dx <= 0.5; dx += 0.5) for (var dy = -0.5; dy <= 0.5; dy += 0.5) {
+      for (var dx = -jit; dx <= jit + 1e-9; dx += jit) for (var dy = -jit; dy <= jit + 1e-9; dy += jit) {
         var s = 0;
         for (var i = 0; i < offs.length; i++) { var p = apply(H, mx + dx + offs[i][0], my + dy + offs[i][1]); s += sample(g, w, h, p.x, p.y); }
         var d = (white - s / offs.length) / (white - black);
@@ -546,8 +590,21 @@ var OMR = (function () {
       return Math.max(0, Math.min(1, best));
     }
     var D = L.bubbles.map(function (row) { return row.map(function (b) { return dark(b.x, b.y); }); });
+    // Tolak dakwat huruf dalam bulatan kosong: garis dasar = kegelapan rendah
+    // (persentil ke-25) bagi setiap pilihan, kerana kebanyakan bulatan kosong.
+    if (ver >= 2 && D.length >= 3) {
+      var pooled = [].concat.apply([], D).sort(function (a, b) { return a - b; });
+      var pBase = pooled[Math.floor((pooled.length - 1) * 0.25)];
+      for (var oi = 0; oi < L.numOpt; oi++) {
+        var col = D.map(function (d) { return d[oi]; }).sort(function (a, b) { return a - b; });
+        // had atas: garis dasar keseluruhan + 0.08, supaya pilihan yang kerap dijawab tidak dianggap kosong
+        var base = Math.min(0.35, pBase + 0.08, col[Math.floor((col.length - 1) * 0.25)]);
+        D.forEach(function (d) { d[oi] = Math.max(0, (d[oi] - base) / (1 - base)); });
+      }
+    }
     var all = [].concat.apply([], D);
-    var th = Math.max(0.3, Math.min(0.6, otsu(all))) / sens;
+    // v2: dakwat huruf sudah ditolak, jadi had bawah ambang boleh lebih rendah
+    var th = Math.max(ver >= 2 ? 0.2 : 0.3, Math.min(0.6, otsu(all))) / sens;
     var answers = [], flags = [];
     D.forEach(function (d) {
       var idx = d.map(function (v, i) { return i; }).sort(function (a, b) { return d[b] - d[a]; });
@@ -560,19 +617,18 @@ var OMR = (function () {
       answers.push(ans); flags.push(flag);
     });
     var img = L.bubbles.map(function (row) { return row.map(function (b) { return apply(H, b.x, b.y); }); });
-    var rpx = Math.hypot(apply(H, 105 + BUB_R, 150).x - apply(H, 105, 150).x, apply(H, 105 + BUB_R, 150).y - apply(H, 105, 150).y);
-    return { answers: answers, flags: flags, darkness: D, threshold: th, bubblesImg: img, rpx: rpx, white: white, black: black };
+    var rpx = Math.hypot(apply(H, 105 + L.r, 150).x - apply(H, 105, 150).x, apply(H, 105 + L.r, 150).y - apply(H, 105, 150).y);
+    return { answers: answers, flags: flags, darkness: D, threshold: th, bubblesImg: img, rpx: rpx, white: white, black: black, ver: ver };
   }
 
   return {
-    PAGE_W: PAGE_W, PAGE_H: PAGE_H, LETTERS: LETTERS, MAX_Q: MAX_Q,
+    PAGE_W: PAGE_W, PAGE_H: PAGE_H, LETTERS: LETTERS, MAX_Q: MAX_Q, LAYOUT_VER: LAYOUT_VER,
     layout: layout, renderSheet: renderSheet, qrData: qrData, parseQR: parseQR,
     prepare: prepare, readAnswers: readAnswers, setQRDecoder: setQRDecoder,
     _h: { homography: homography, apply: apply, MARKER_C: MARKER_C, QR: QR }
   };
 })();
 if (typeof module !== 'undefined') module.exports = OMR;
-
 </script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
