@@ -31,7 +31,8 @@ function ringkasMurid(m, konteks) {
     unit: { PBB: m.PBB_Unit, KP: m.KP_Unit, SP: m.SP_Unit },
     aspek,
     ekstra: konteks.ekstraMap[m.NoKP] || ekstraKosong(m.NoKP),
-    rumusan: konteks.rumusanMap[m.NoKP] || null
+    rumusan: konteks.rumusanMap[m.NoKP] || null,
+    kelengkapan: (function () { const k = semakKelengkapan(m, konteks.aspekMap, konteks.ekstraMap); return { status: k.status, kurang: teksKurang(k) }; })()
   };
 }
 

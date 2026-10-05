@@ -66,3 +66,11 @@ const TEMPOH_SESI_SAAT = 8 * 60 * 60;       // 8 jam
 const HAD_GAGAL_LOGIN = 5;                  // kunci sementara selepas 5 cubaan gagal
 const TEMPOH_KUNCI_LOGIN_SAAT = 10 * 60;    // 10 minit
 const NAMA_FOLDER_ARKIB = 'e-PAJSK SMK Asajaya - Arkib';
+
+/* ------------------------- KELENGKAPAN PENGISIAN (menu Status Pengisian) ------------------------- */
+// Medan yang WAJIB diisi guru kelas bagi setiap aspek yang murid sertai (ada unit). Pencapaian, tambahan
+// aktiviti, khidmat sumbangan dan ekstra kurikulum adalah PILIHAN (tidak semua murid layak).
+// Bentuk: [medan, label]; medan 'KOMITMEN' = sekurang-kurangnya satu daripada Komitmen 1-4.
+const MEDAN_WAJIB_ASPEK = [['Jawatan', 'Jawatan'], ['Libat1', 'Pelibatan'], ['KOMITMEN', 'Komitmen']];
+// CGPA tahun sebelum wajib bagi Tingkatan 2 ke atas (Tingkatan 1 tiada markah PAJSK tahun lepas).
+const WAJIB_CGPA_SEBELUM = true;
