@@ -46,6 +46,8 @@ function apiDashboard(p) {
     guru.forEach(u => senaraiDaripadaMedan(u.KelasDijaga).forEach(kk => { kelasBerguru[kk] = true; }));
     hasil.kelasTanpaGuru = Object.keys(kelas).filter(kunci => !kelasBerguru[kunci]).length;
     hasil.bilPerluSemak = bacaSheetSebagaiObjek(SHEET_MURID).filter(m => String(m.Status).toUpperCase() === 'AKTIF' && m.PerluSemak === 'YA').length;
+    const pengisian = binaStatusPengisian(sesi);
+    hasil.pengisian = { kira: pengisian.kira, guruTanpaKelas: pengisian.guruTanpaKelas.length };
     hasil.arkibTahunIni = !!bacaSheetSebagaiObjek(SHEET_ARKIB).find(a => Number(a.TAHUN) === tahunSemasa());
   }
   return jaya(hasil);
