@@ -214,7 +214,7 @@ function apiSegerakKoko(p) {
   const hasil = denganKunci(() => {
     const laporan = laksanakanSegerak(kelas || null, paksa);
     if (laporan.diubah || paksa) tulisTetapan('SEGERAK_KOKO_TERAKHIR', laporan.masa);
-    if (!kelas && laporan.ts) tulisTetapan('KOKO_TS_TERAKHIR', String(laporan.ts));   // segerak penuh sahaja menandakan fail sudah diproses
+    if (!kelas && laporan.ts) tulisTetapan('KOKO_TS_TERAKHIR', penandaKoko(laporan.ts));   // segerak penuh sahaja menandakan fail sudah diproses
     if (laporan.diubah || paksa) {
       catatAudit(sesi, 'SEGERAK_KOKO', 'MURID', kelas || 'SEMUA',
         laporan.jumlahDiproses + ' murid; ' + laporan.diubah + ' rekod berubah; baharu ' + laporan.baharu + ', kelas berubah ' + laporan.kelasBerubah);

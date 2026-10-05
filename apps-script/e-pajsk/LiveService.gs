@@ -16,6 +16,9 @@ const TET_KOKO_TS = 'KOKO_TS_TERAKHIR';
 const TET_AUTO_STATUS = 'SEGERAK_AUTO_STATUS';
 const MINIT_AUTO_DIBENARKAN = [1, 5, 10, 15, 30];
 const PENGENDALI_AUTO = 'segerakAutoBerjadual';
+// Naikkan nombor ini apabila logik segerak berubah: semua fail e-Kokurikulum akan diproses semula sekali pada semakan seterusnya.
+const VERSI_LOGIK_SEGERAK = '2';
+function penandaKoko(ts) { return String(ts) + ':' + VERSI_LOGIK_SEGERAK; }
 
 function versiData() {
   return [SHEET_MURID, SHEET_ASPEK, SHEET_EKSTRA, SHEET_RUMUSAN, SHEET_PENGGUNA, SHEET_TETAPAN].map(versiSheet).join('|');
@@ -43,11 +46,11 @@ function semakDanSegerakAuto(sumber, paksa) {
   if (!kunci.tryLock(2000)) return { langkau: 'sibuk' };
   try {
     const ts = masaKemaskiniKoko();
-    const lalu = Number(dapatTetapan(TET_KOKO_TS)) || 0;
-    if (!paksa && ts && ts === lalu) return { langkau: 'tiada perubahan' };
+    const lalu = dapatTetapan(TET_KOKO_TS);
+    if (!paksa && ts && penandaKoko(ts) === lalu) return { langkau: 'tiada perubahan' };
     const lap = laksanakanSegerak(null, !!paksa);
     const masa = sekarangTeks();
-    tulisTetapan(TET_KOKO_TS, String(lap.ts || ts || ''));
+    tulisTetapan(TET_KOKO_TS, penandaKoko(lap.ts || ts || ''));
     if (lap.diubah) tulisTetapan('SEGERAK_KOKO_TERAKHIR', masa);
     tulisTetapan(TET_AUTO_STATUS, masa + ' (' + sumber + '): ' + lap.diubah + ' rekod dikemaskini');
     return { diubah: lap.diubah };
