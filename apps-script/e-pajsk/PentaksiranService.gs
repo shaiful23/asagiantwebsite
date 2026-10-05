@@ -44,6 +44,7 @@ function apiDataKelas(p) {
   return jaya({
     kelas, namaKelas: paparKelas(kelas), tahun: tahunSemasa(),
     segerakTerakhir: dapatTetapan('SEGERAK_KOKO_TERAKHIR'),
+    versi: versiData(),
     murid: k.murid.map(m => ringkasMurid(m, k))
   });
 }
@@ -123,8 +124,8 @@ function apiSimpanPentaksiran(p) {
     upsertBanyak(SHEET_RUMUSAN, 'NoKP', [rum]);
     catatAudit(sesi, 'KEMASKINI', 'PENTAKSIRAN', nokp, murid.Nama + ' (' + murid.KunciKelas + ') — CGPA ' + rum.CGPA + ', gred ' + rum.Gred);
 
-    const k2 = muatKonteks(murid.KunciKelas);
-    return jaya({ murid: ringkasMurid(murid, k2) });
+    const rumMap = {}; rumMap[nokp] = rum;
+    return jaya({ murid: ringkasMurid(murid, { aspekMap: konteks.aspekMap, ekstraMap: konteks.ekstraMap, rumusanMap: rumMap }), versi: versiData() });
   });
 }
 

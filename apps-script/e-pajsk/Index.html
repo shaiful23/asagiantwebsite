@@ -96,6 +96,16 @@
     .kotak-semak label { display: flex; align-items: center; gap: 6px; font-weight: 400; font-size: 13px; }
     .kotak-semak input { width: auto; }
 
+    .pager { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 2px 0; }
+    .pager .btn { padding: 5px 10px; font-size: 12px; box-shadow: none; }
+    .pager .btn:disabled { opacity: .4; }
+    .pager-kumpulan { display: flex; gap: 6px; }
+    #bannerBaru { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 95; background: #1e3a8a; color: #fff; padding: 9px 14px; border-radius: 999px; font-size: 13px; box-shadow: 0 6px 18px rgba(2,6,23,.35); display: flex; gap: 10px; align-items: center; }
+    #bannerBaru button { background: #facc15; color: #1e3a8a; border: none; border-radius: 999px; padding: 4px 10px; font-weight: 700; font-size: 12px; }
+    .titik-hidup { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; margin-right: 6px; }
+    .titik-hidup.mati { background: #94a3b8; }
+    .rangka-muat { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: rangka 1.2s infinite; border-radius: 8px; height: 14px; margin: 10px 0; }
+    @keyframes rangka { from { background-position: 200% 0; } to { background-position: -200% 0; } }
     #kontainerToast { position: fixed; top: 14px; right: 14px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
     .toast { padding: 10px 16px; border-radius: 8px; color: #fff; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,.2); max-width: 340px; }
     .toast.jaya { background: var(--hijau); } .toast.gagal { background: var(--merah); } .toast.info { background: var(--biru); }
@@ -183,6 +193,7 @@
 <div id="kawasanCetak"></div>
 <div id="kontainerToast"></div>
 <div id="selimutSibuk" class="hidden">Sila tunggu…</div>
+<div id="bannerBaru" class="hidden"><span>Data baharu tersedia.</span><button type="button" id="btnBannerSegar">Muat semula</button></div>
 
 <script><?!= kodKiraan ?></script>
 <script>
@@ -191,7 +202,7 @@
  * Pengiraan markah (kiraAspekMurni dll.) disalin daripada Scoring.gs oleh pelayan
  * — pratonton di sini hanya untuk paparan; markah SAH dikira semula di pelayan.
  * ========================================================================= */
-var S = { token: null, user: null, ref: null, tetapan: null, kelasSenarai: [], kelasPilihan: '', data: null, halaman: 'dashboard' };
+var S = { token: null, user: null, ref: null, tetapan: null, kelasSenarai: [], kelasPilihan: '', data: null, halaman: 'dashboard', cacheKelas: {}, versi: null, kemaskini: null, segar: null, pg: {}, seq: 0 };
 var ASPEK = ['PBB', 'KP', 'SP'];
 var NAMA_ASPEK = { PBB: 'Pasukan Badan Beruniform', KP: 'Kelab & Persatuan', SP: 'Sukan & Permainan' };
 var ADMIN = 'ADMIN';
@@ -215,12 +226,17 @@ function sibuk(hidup) {
   bilSibuk = Math.max(0, bilSibuk + (hidup ? 1 : -1));
   $('selimutSibuk').classList.toggle('hidden', bilSibuk === 0);
 }
+// Hanya operasi TULIS menyekat skrin; bacaan dipaparkan dengan petunjuk 'memuatkan' setempat supaya terasa pantas.
+var API_TULIS = /^api(Simpan|Segerak|Arkib|Naik|Reset|Padam|Import|Kira|Tukar|Auto|Login)/;
+var RALAT_SEMENTARA = /Service|timed out|Server|bersambung|temporarily|Try again|sibuk/i;
 
-function api(fn, param, tanpaSibuk) {
+function api(fn, param, tanpaSibuk, cubaan) {
   return new Promise(function (res, rej) {
     if (!window.google || !google.script || !google.script.run) { rej(new Error('Tidak bersambung dengan pelayan.')); return; }
-    if (!tanpaSibuk) sibuk(true);
-    var tamat = function () { if (!tanpaSibuk) sibuk(false); };
+    var tulis = API_TULIS.test(fn);
+    var blok = tulis && !tanpaSibuk;
+    if (blok) sibuk(true);
+    var tamat = function () { if (blok) sibuk(false); };
     google.script.run
       .withSuccessHandler(function (r) {
         tamat();
@@ -231,7 +247,15 @@ function api(fn, param, tanpaSibuk) {
         }
         res(r);
       })
-      .withFailureHandler(function (err) { tamat(); rej(new Error(err && err.message ? err.message : String(err))); })[fn](Object.assign({ token: S.token }, param || {}));
+      .withFailureHandler(function (err) {
+        tamat();
+        var mesej = err && err.message ? err.message : String(err);
+        if (!tulis && !cubaan && RALAT_SEMENTARA.test(mesej)) {   // bacaan sahaja boleh diulang dengan selamat
+          setTimeout(function () { api(fn, param, tanpaSibuk, 1).then(res, rej); }, 800);
+          return;
+        }
+        rej(new Error(mesej));
+      })[fn](Object.assign({ token: S.token }, param || {}));
   });
 }
 function gagal(err) { toast(err.message || String(err), 'gagal'); }
@@ -296,22 +320,61 @@ $('btnTukarKW').onclick = function () {
 };
 
 function keluar() {
-  S.token = null; S.user = null; S.data = null; simpanToken(null);
+  S.token = null; S.user = null; S.data = null; S.cacheKelas = {}; S.versi = null; S.segar = null; S.pg = {}; simpanToken(null);
+  clearInterval(pollTimer); $('bannerBaru').classList.add('hidden');
   semuaModalTutup();
   paparSkrin('skrinLogin');
 }
 
-/* ---------- Mula aplikasi ---------- */
+/* ---------- Mula aplikasi (SATU panggilan: pengguna + rujukan skor + tetapan + kelas) ---------- */
 function mulaAplikasi() {
-  Promise.all([api('apiRujukan'), api('apiTetapan'), api('apiSenaraiKelas')]).then(function (h) {
-    S.ref = h[0].rujukan; S.tetapan = h[1]; S.kelasSenarai = h[2].kelas;
-    if (!S.kelasPilihan && S.kelasSenarai.length) S.kelasPilihan = S.kelasSenarai[0].kunci;
+  api('apiMula').then(function (r) {
+    S.user = { nama: r.nama, peranan: r.peranan, kelas: r.kelas };
+    if (r.mestiTukarPassword) { paparSkrin('skrinTukar'); return; }
+    S.ref = r.rujukan; S.tetapan = r.tetapan; S.kelasSenarai = r.kelasSenarai; S.versi = r.versi;
+    if (!S.kelasSenarai.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = S.kelasSenarai.length ? S.kelasSenarai[0].kunci : '';
     paparSkrin('aplikasi');
-    $('infoPengguna').innerHTML = '<b>' + e(S.user.nama) + '</b> · ' + (S.user.peranan === ADMIN ? 'Admin' : 'Guru Kelas') + ' · Tahun pentaksiran <b>' + e(S.tetapan.tahun) + '</b>';
+    $('infoPengguna').innerHTML = '<span class="titik-hidup" id="titikHidup" title="Disegerakkan automatik dengan e-Kokurikulum"></span><b>' + e(S.user.nama) + '</b> · ' + (S.user.peranan === ADMIN ? 'Admin' : 'Guru Kelas') + ' · Tahun pentaksiran <b id="infoTahun">' + e(S.tetapan.tahun) + '</b>';
     binaMenu();
     pergi(S.halaman || 'dashboard');
+    mulaPoll();
   }).catch(function (er) { gagal(er); keluar(); });
 }
+
+/* ---------- Kemas kini langsung ---------- */
+var pollTimer = null, pollDaftar = false, sedangPoll = false;
+function modalTerbuka() { return $('modalRoot').children.length > 0; }
+
+function mulaPoll() {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(semakVersi, 45000);
+  if (!pollDaftar) { pollDaftar = true; document.addEventListener('visibilitychange', function () { if (!document.hidden) semakVersi(); }); }
+}
+
+function semakVersi() {
+  if (!S.token || document.hidden || sedangPoll) return;
+  sedangPoll = true;
+  api('apiVersi', {}, true).then(function (r) {
+    var titik = $('titikHidup'); if (titik) titik.classList.remove('mati');
+    if (S.kemaskini !== null && r.kemaskini && r.kemaskini !== S.kemaskini) toast('Data dikemas kini daripada e-Kokurikulum.', 'info');
+    S.kemaskini = r.kemaskini || '';
+    if (S.versi && r.versi !== S.versi) {
+      S.versi = r.versi;
+      if (modalTerbuka()) { $('bannerBaru').classList.remove('hidden'); } else { segarSenyap(); }
+    } else if (!S.versi) { S.versi = r.versi; }
+  }).catch(function () { var titik = $('titikHidup'); if (titik) titik.classList.add('mati'); }).then(function () { sedangPoll = false; });
+}
+
+function segarSenyap() {
+  $('bannerBaru').classList.add('hidden');
+  api('apiSenaraiKelas', {}, true).then(function (r) {
+    S.kelasSenarai = r.kelas;
+    if (!r.kelas.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = r.kelas.length ? r.kelas[0].kunci : '';
+    S.cacheKelas = {};
+    if (S.segar) S.segar();
+  }).catch(function () {});
+}
+$('btnBannerSegar').onclick = segarSenyap;
 
 var MENU = [
   { id: 'dashboard', label: 'Dashboard', paparan: dashboard },
@@ -331,16 +394,49 @@ function binaMenu() {
   Array.prototype.forEach.call($('menuNav').querySelectorAll('.item-nav'), function (b) { b.onclick = function () { pergi(b.getAttribute('data-id')); }; });
 }
 function pergi(id) {
-  S.halaman = id;
+  S.halaman = id; S.segar = null;
+  $('bannerBaru').classList.add('hidden');
   Array.prototype.forEach.call($('menuNav').querySelectorAll('.item-nav'), function (b) { b.classList.toggle('aktif', b.getAttribute('data-id') === id); });
   var m = MENU.filter(function (x) { return x.id === id; })[0];
-  $('kandungan').innerHTML = '<div class="nota">Memuatkan…</div>';
-  api('apiSenaraiKelas', {}, true).then(function (r) {
-    S.kelasSenarai = r.kelas;
-    if (!r.kelas.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = r.kelas.length ? r.kelas[0].kunci : '';
-    return m.paparan();
-  }).catch(function (er) { $('kandungan').innerHTML = '<div class="amaran-kotak">' + e(er.message) + '</div>'; });
+  $('kandungan').innerHTML = '<div class="rangka-muat" style="width:40%"></div><div class="rangka-muat"></div><div class="rangka-muat" style="width:85%"></div><div class="rangka-muat" style="width:70%"></div>';
+  Promise.resolve().then(function () { return m.paparan(); })
+    .catch(function (er) { $('kandungan').innerHTML = '<div class="amaran-kotak">' + e(er.message) + '</div>'; });
 }
+
+/* Muat semula senarai kelas selepas tindakan yang mengubahnya (segerak, sunting murid, naik tingkatan). */
+function muatSemulaKelas() {
+  return api('apiSenaraiKelas', {}, true).then(function (r) {
+    S.kelasSenarai = r.kelas; S.cacheKelas = {};
+    if (!r.kelas.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = r.kelas.length ? r.kelas[0].kunci : '';
+  });
+}
+
+/* ---------- Penomboran generik (carian & halaman diproses di pelayan) ---------- */
+function PG(k, lalai) { return S.pg[k] = S.pg[k] || Object.assign({ halaman: 1, saiz: 25, cari: '' }, lalai || {}); }
+function palangPg(k, tanpaCari) {
+  return (tanpaCari ? '' : '<input id="' + k + 'Cari" placeholder="Cari nama / No. KP…" style="max-width:240px" aria-label="Carian">') +
+    '<select id="' + k + 'Saiz" aria-label="Baris setiap halaman"><option>10</option><option>25</option><option>50</option><option>100</option></select>';
+}
+function pasangPg(k, muat) {
+  var st = PG(k), c = $(k + 'Cari'), sz = $(k + 'Saiz'), t;
+  if (c) { c.value = st.cari; c.oninput = function () { clearTimeout(t); t = setTimeout(function () { st.cari = c.value; st.halaman = 1; muat(); }, 300); }; }
+  if (sz) { sz.value = String(st.saiz); sz.onchange = function () { st.saiz = Number(sz.value); st.halaman = 1; muat(); }; }
+}
+function pagerHtml(r) {
+  var h = r.halaman, jh = r.jumlahHalaman;
+  return '<div class="pager"><span class="nota">' + r.jumlah + ' rekod · halaman ' + h + ' / ' + jh + '</span><span class="pager-kumpulan">' +
+    '<button type="button" class="btn luar" data-pg="1"' + (h <= 1 ? ' disabled' : '') + '>« Pertama</button>' +
+    '<button type="button" class="btn luar" data-pg="' + (h - 1) + '"' + (h <= 1 ? ' disabled' : '') + '>‹ Sebelum</button>' +
+    '<button type="button" class="btn luar" data-pg="' + (h + 1) + '"' + (h >= jh ? ' disabled' : '') + '>Seterus ›</button>' +
+    '<button type="button" class="btn luar" data-pg="' + jh + '"' + (h >= jh ? ' disabled' : '') + '>Akhir »</button></span></div>';
+}
+function pasangPager(k, kontena, muat) {
+  Array.prototype.forEach.call(kontena.querySelectorAll('[data-pg]'), function (b) {
+    b.onclick = function () { PG(k).halaman = Number(b.getAttribute('data-pg')); muat(); };
+  });
+}
+/* Pastikan hanya jawapan permintaan TERKINI dipaparkan (elak jawapan lambat menimpa yang baharu). */
+function permintaanTerkini() { var n = ++S.seq; return function () { return n === S.seq; }; }
 
 /* ---------- Komponen pilih kelas ---------- */
 function pilihKelasHtml(id, termasukSemua) {
@@ -358,7 +454,9 @@ function adaKelas() {
 
 /* ---------- Dashboard ---------- */
 function dashboard() {
+  S.segar = dashboard;
   return api('apiDashboard').then(function (d) {
+    if (S.halaman !== 'dashboard') return;
     var admin = S.user.peranan === ADMIN;
     var h = '<h2 class="tajuk">Dashboard · ' + e(d.tahun) + '</h2>';
     h += '<div class="grid-kad">' +
@@ -389,12 +487,25 @@ function dashboard() {
 
 /* ---------- Pentaksiran kelas ---------- */
 function muatDataKelas(kelas) {
-  return api('apiDataKelas', { kelas: kelas }).then(function (d) { S.data = d; return d; });
+  return api('apiDataKelas', { kelas: kelas }).then(function (d) { S.data = d; S.cacheKelas[kelas] = d; S.versi = d.versi || S.versi; return d; });
+}
+
+/* "Stale-while-revalidate": jika kelas ini pernah dimuat, paparkan serta-merta kemudian segarkan di latar belakang. */
+function paparKelasSWR(render) {
+  var kelas = S.kelasPilihan, cache = S.cacheKelas[kelas];
+  var segar = muatDataKelas(kelas).then(function (d) {
+    if (kelas !== S.kelasPilihan) return;
+    if (!modalTerbuka() || !cache) render(d);
+  });
+  if (cache) { S.data = cache; render(cache); }
+  return segar;
 }
 
 function halamanPentaksiran() {
   if (!adaKelas()) return;
-  return muatDataKelas(S.kelasPilihan).then(renderPentaksiran);
+  var id = S.halaman;
+  S.segar = function () { if (S.halaman === id) paparKelasSWR(function () { renderPentaksiran(); }); };
+  return paparKelasSWR(function () { if (S.halaman === id) renderPentaksiran(); });
 }
 
 function lencanaGred(g) { return g ? '<span class="lencana ' + e(g) + '">' + e(g) + '</span>' : '<span class="lencana">–</span>'; }
@@ -423,17 +534,18 @@ function renderPentaksiran() {
   Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-nokp]'), function (b) { b.onclick = function () { bukaPentaksiran(b.getAttribute('data-nokp')); }; });
 }
 
-function segerakKoko(kelas, selesai) {
-  api('apiSegerakKoko', { kelas: kelas || '' }).then(function (r) {
+function segerakKoko(kelas, selesai, paksa) {
+  api('apiSegerakKoko', { kelas: kelas || '', paksa: !!paksa }).then(function (r) {
     var l = r.laporan;
-    var h = '<h3>Segerak e-Kokurikulum selesai</h3><p>' + l.jumlahDiproses + ' murid diproses · ' + l.baharu + ' murid baharu · ' + l.dikemaskini + ' dikemaskini · ' + l.kelasBerubah + ' bertukar kelas.</p>';
+    S.versi = r.versi || S.versi;
+    var h = '<h3>Segerak e-Kokurikulum selesai</h3><p>' + l.jumlahDiproses + ' murid disemak · <b>' + l.diubah + ' rekod dikemaskini</b> · ' + l.baharu + ' murid baharu · ' + l.kelasBerubah + ' bertukar kelas.' + (l.dariCache && !l.diubah ? ' <span class="nota">(e-Kokurikulum tiada perubahan sejak segerak terakhir)</span>' : '') + '</p>';
     if (l.tiadaDiKoko) h += '<div class="info-kotak">' + l.tiadaDiKoko + ' murid aktif dalam e-PAJSK tiada lagi dalam e-Kokurikulum (pindah/tamat) — tidak dipadam; Admin boleh menandakannya PINDAH di menu Murid.</div>';
     if (l.tingkatanBeza.length) h += '<div class="amaran-kotak"><b>Tingkatan berbeza (tidak diubah):</b><br>' + l.tingkatanBeza.slice(0, 15).map(e).join('<br>') + (l.tingkatanBeza.length > 15 ? '<br>… dan ' + (l.tingkatanBeza.length - 15) + ' lagi' : '') + '</div>';
     if (l.amaran.length) h += '<div class="amaran-kotak">' + l.amaran.map(e).join('<br>') + '</div>';
     h += '<div class="aksi-modal"><button class="btn" data-x="o">OK</button></div>';
     var m = bukaModal(h, true);
     m.querySelector('[data-x=o]').onclick = function () { tutupModal(m); };
-    if (selesai) selesai();
+    muatSemulaKelas().then(function () { if (selesai) selesai(); });
   }).catch(gagal);
 }
 
@@ -505,6 +617,7 @@ function bukaPentaksiran(nokp) {
     api('apiSimpanPentaksiran', p).then(function (r) {
       var i = S.data.murid.findIndex(function (x) { return x.nokp === m.nokp; });
       if (i >= 0) S.data.murid[i] = r.murid;
+      S.versi = r.versi || S.versi;
       toast('Pentaksiran disimpan.', 'jaya');
       tutupModal(modal);
       renderPentaksiran();
@@ -577,7 +690,9 @@ function muatCadangan(m) {
 /* ---------- Rumusan kelas ---------- */
 function halamanRumusan() {
   if (!adaKelas()) return;
-  return muatDataKelas(S.kelasPilihan).then(function (d) {
+  S.segar = function () { if (S.halaman === 'rumusan') halamanRumusan(); };
+  return paparKelasSWR(function (d) {
+    if (S.halaman !== 'rumusan') return;
     var h = '<h2 class="tajuk">Rumusan Kelas</h2><div class="baris-alat">' + pilihKelasHtml('rmKelas') +
       '<div class="rapat"><button class="btn luar" id="btnCsv">Muat turun CSV</button><button class="btn" id="btnCetakRum">Cetak</button></div></div>';
     h += '<div class="kad" id="kawasanRumusan"><h3>' + e(d.namaKelas) + ' · Tahun ' + e(d.tahun) + '</h3><div class="jadual-skrol"><table id="jadualRumusan"><thead><tr><th>Bil</th><th>Nama</th><th class="n">CGPA lepas</th><th class="n">PBB</th><th class="n">SP</th><th class="n">KP</th><th class="n">Ekstra</th><th class="n">Purata 2 tertinggi</th><th class="n">GPA</th><th class="n">CGPA</th><th class="n">10%</th><th>Gred</th><th>Tahap</th></tr></thead><tbody>' +
@@ -612,7 +727,9 @@ function muatTurunCsv(d) {
 /* ---------- Slip ---------- */
 function halamanSlip() {
   if (!adaKelas()) return;
-  return muatDataKelas(S.kelasPilihan).then(function (d) {
+  S.segar = function () { if (S.halaman === 'slip') halamanSlip(); };
+  return paparKelasSWR(function (d) {
+    if (S.halaman !== 'slip') return;
     var h = '<h2 class="tajuk">Slip PAJSK</h2><div class="baris-alat">' + pilihKelasHtml('slKelas') +
       '<div class="rapat"><button class="btn" id="btnSemuaSlip">Cetak semua slip kelas</button></div></div><div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Bil</th><th>Nama</th><th class="n">CGPA</th><th>Gred</th><th></th></tr></thead><tbody>' +
       d.murid.map(function (m, i) { var r = m.rumusan || {}; return '<tr><td>' + (i + 1) + '</td><td>' + e(m.nama) + '</td><td class="n">' + tanda(r.CGPA) + '</td><td>' + lencanaGred(r.Gred) + '</td><td><button class="btn kecil" data-nokp="' + e(m.nokp) + '">Pratonton / Cetak</button></td></tr>'; }).join('') + '</tbody></table></div></div>';
@@ -680,27 +797,40 @@ function halamanAnalisa() {
     }).catch(gagal);
   };
   $('btnAnalisa').onclick = jalan;
+  S.segar = function () { if (S.halaman === 'analisa') jalan(); };
   jalan();
 }
 
 /* ---------- Murid (Admin) ---------- */
 function halamanMurid() {
+  var k = 'mu';
   var h = '<h2 class="tajuk">Murid</h2><div class="baris-alat"><select id="muStatus"><option value="AKTIF">Aktif</option><option value="PINDAH">Pindah</option><option value="TAMAT">Tamat</option><option value="SEMUA">Semua</option></select>' +
-    pilihKelasHtml('muKelas', true) + '<div class="rapat"><button class="btn hijau" id="btnSegerakSemua">Segerak SEMUA daripada e-Kokurikulum</button></div></div><div id="senaraiMurid"></div>';
+    pilihKelasHtml('muKelas', true) + palangPg(k) + '<div class="rapat"><button class="btn hijau" id="btnSegerakSemua">Segerak SEMUA daripada e-Kokurikulum</button><button class="btn luar" id="btnSegerakPaksa" title="Abaikan cache — baca semula seluruh e-Kokurikulum">Segerak paksa</button></div></div><div id="senaraiMurid"><div class="rangka-muat"></div><div class="rangka-muat"></div></div>';
   $('kandungan').innerHTML = h;
+  var st = PG(k, { status: 'AKTIF', kelas: '' });
+  $('muStatus').value = st.status; $('muKelas').value = st.kelas;
   var muat = function () {
-    api('apiSenaraiMurid', { status: nilaiEl('muStatus'), kelas: nilaiEl('muKelas') }).then(function (r) {
-      $('senaraiMurid').innerHTML = (r.bilPerluSemak ? '<div class="amaran-kotak">' + r.bilPerluSemak + ' murid aktif ditanda <b>Perlu semak</b> (baru dinaikkan tingkatan).</div>' : '') +
-        '<div class="nota" style="margin-bottom:8px">Segerak e-Koko terakhir: ' + e(r.segerakTerakhir || 'belum pernah') + ' · ' + r.senarai.length + ' rekod</div>' +
+    var terkini = permintaanTerkini();
+    api('apiSenaraiMurid', { status: st.status, kelas: st.kelas, halaman: st.halaman, saiz: st.saiz, cari: st.cari }).then(function (r) {
+      if (!terkini() || S.halaman !== 'murid') return;
+      st.halaman = r.halaman;
+      var kont = $('senaraiMurid');
+      kont.innerHTML = (r.bilPerluSemak ? '<div class="amaran-kotak">' + r.bilPerluSemak + ' murid aktif ditanda <b>Perlu semak</b> (baru dinaikkan tingkatan).</div>' : '') +
+        '<div class="nota" style="margin-bottom:8px">Kemas kini terakhir daripada e-Kokurikulum: ' + e(r.segerakTerakhir || 'belum pernah') + '</div>' +
         '<div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Nama</th><th>Kelas</th><th>PBB</th><th>KP</th><th>SP</th><th class="n">CGPA lepas</th><th>Status</th><th></th></tr></thead><tbody>' +
-        r.senarai.map(function (m, i) {
+        (r.senarai.length ? r.senarai.map(function (m, i) {
           return '<tr><td>' + e(m.nama) + '<div class="nota">' + e(m.nokp) + '</div></td><td>' + e(paparKelasJs(m.kunciKelas)) + (m.perluSemak === 'YA' ? ' <span class="lencana kuning">Perlu semak</span>' : '') + '</td><td>' + e(m.pbb) + '</td><td>' + e(m.kp) + '</td><td>' + e(m.sp) + '</td><td class="n">' + tanda(m.cgpaSebelum) + '</td><td><span class="lencana ' + (m.status === 'AKTIF' ? 'hijau' : '') + '">' + e(m.status) + '</span></td><td>' + (m.status === 'TAMAT' ? '' : '<button class="btn kecil" data-i="' + i + '">Sunting</button>') + '</td></tr>';
-        }).join('') + '</tbody></table></div></div>';
-      Array.prototype.forEach.call($('senaraiMurid').querySelectorAll('[data-i]'), function (b) { b.onclick = function () { suntingMurid(r.senarai[Number(b.getAttribute('data-i'))], muat); }; });
+        }).join('') : '<tr><td colspan="8" class="nota">Tiada rekod.</td></tr>') + '</tbody></table></div>' + pagerHtml(r) + '</div>';
+      pasangPager(k, kont, muat);
+      Array.prototype.forEach.call(kont.querySelectorAll('[data-i]'), function (b) { b.onclick = function () { suntingMurid(r.senarai[Number(b.getAttribute('data-i'))], function () { muatSemulaKelas().then(muat); }); }; });
     }).catch(gagal);
   };
-  $('muStatus').onchange = muat; $('muKelas').onchange = muat;
-  $('btnSegerakSemua').onclick = function () { sahkan('Segerak SEMUA murid daripada e-Kokurikulum? Ini boleh mengambil beberapa saat.', function () { segerakKoko('', muat); }, 'Segerak'); };
+  S.segar = muat;
+  pasangPg(k, muat);
+  $('muStatus').onchange = function () { st.status = this.value; st.halaman = 1; muat(); };
+  $('muKelas').onchange = function () { st.kelas = this.value; st.halaman = 1; muat(); };
+  $('btnSegerakSemua').onclick = function () { sahkan('Segerak SEMUA murid daripada e-Kokurikulum? Hanya rekod yang berubah akan dikemas kini.', function () { segerakKoko('', muat); }, 'Segerak'); };
+  $('btnSegerakPaksa').onclick = function () { sahkan('Segerak paksa membaca semula SELURUH e-Kokurikulum (lebih perlahan). Teruskan?', function () { segerakKoko('', muat, true); }, 'Segerak paksa'); };
   muat();
 }
 function suntingMurid(m, selesai) {
@@ -722,32 +852,43 @@ function suntingMurid(m, selesai) {
 
 /* ---------- Pengguna (Admin) ---------- */
 function halamanPengguna() {
-  return api('apiSenaraiPengguna').then(function (r) {
-    var h = '<h2 class="tajuk">Pengguna</h2><div class="baris-alat"><button class="btn" id="btnTambahUser">Tambah Pengguna</button><button class="btn hijau" id="btnImportGuru">Import guru daripada e-Kokurikulum</button>' +
-      '<span class="nota">Kata laluan lalai = 6 digit terakhir No. KP; pengguna dipaksa menukarnya semasa log masuk pertama.</span></div>' +
-      '<div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Nama</th><th>No. KP</th><th>Peranan</th><th>Kelas dijaga</th><th>Status</th><th></th></tr></thead><tbody>' +
-      r.senarai.map(function (u, i) {
-        return '<tr><td>' + e(u.nama) + '</td><td>' + e(u.nokp) + '</td><td>' + (u.peranan === ADMIN ? '<span class="lencana B">Admin</span>' : 'Guru Kelas') + '</td><td>' + (u.kelas.map(paparKelasJs).map(e).join(', ') || '–') + '</td><td><span class="lencana ' + (u.status === 'AKTIF' ? 'hijau' : 'merah') + '">' + e(u.status) + '</span>' + (u.mestiTukarPassword ? ' <span class="lencana kuning">KW lalai</span>' : '') + '</td>' +
-          '<td style="white-space:nowrap"><button class="btn kecil" data-e="' + i + '">Sunting</button> <button class="btn kecil luar" data-r="' + i + '">Reset KW</button> <button class="btn kecil merah" data-d="' + i + '">Padam</button></td></tr>';
-      }).join('') + '</tbody></table></div></div>';
-    $('kandungan').innerHTML = h;
-    $('btnTambahUser').onclick = function () { borangPengguna(null); };
-    $('btnImportGuru').onclick = function () {
-      sahkan('Import semua guru daripada Sheet PENGGUNA e-Kokurikulum (yang belum ada) sebagai Guru Kelas?', function () {
-        api('apiImportGuruKoko').then(function (x) { toast(x.ditambah + ' guru ditambah, ' + x.sediaAda + ' sedia ada dilangkau.', 'jaya'); halamanPengguna(); }).catch(gagal);
-      }, 'Import');
-    };
-    var cari = function (a) { return r.senarai[Number(a)]; };
-    Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-e]'), function (b) { b.onclick = function () { borangPengguna(cari(b.getAttribute('data-e'))); }; });
-    Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-r]'), function (b) {
-      b.onclick = function () { var u = cari(b.getAttribute('data-r')); sahkan('Set semula kata laluan ' + u.nama + ' kepada 6 digit terakhir No. KP?', function () { api('apiResetPassword', { nokp: u.nokp }).then(function () { toast('Kata laluan di-set semula.', 'jaya'); halamanPengguna(); }).catch(gagal); }, 'Reset'); };
-    });
-    Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-d]'), function (b) {
-      b.onclick = function () { var u = cari(b.getAttribute('data-d')); sahkan('Padam pengguna ' + u.nama + '? Pertimbangkan menukar status kepada TIDAK AKTIF sahaja.', function () { api('apiPadamPengguna', { nokp: u.nokp }).then(function () { toast('Dipadam.', 'jaya'); halamanPengguna(); }).catch(gagal); }, 'Padam'); };
-    });
-  });
+  var k = 'pu';
+  $('kandungan').innerHTML = '<h2 class="tajuk">Pengguna</h2><div class="baris-alat"><button class="btn" id="btnTambahUser">Tambah Pengguna</button><button class="btn hijau" id="btnImportGuru">Import guru daripada e-Kokurikulum</button>' + palangPg(k) +
+    '</div><div class="nota" style="margin-bottom:8px">Kata laluan lalai = 6 digit terakhir No. KP; pengguna dipaksa menukarnya semasa log masuk pertama.</div><div id="senaraiPengguna"><div class="rangka-muat"></div><div class="rangka-muat"></div></div>';
+  var st = PG(k);
+  var muat = function () {
+    var terkini = permintaanTerkini();
+    return api('apiSenaraiPengguna', { halaman: st.halaman, saiz: st.saiz, cari: st.cari }).then(function (r) {
+      if (!terkini() || S.halaman !== 'pengguna') return;
+      st.halaman = r.halaman;
+      var kont = $('senaraiPengguna');
+      kont.innerHTML = '<div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Nama</th><th>No. KP</th><th>Peranan</th><th>Kelas dijaga</th><th>Status</th><th></th></tr></thead><tbody>' +
+        (r.senarai.length ? r.senarai.map(function (u, i) {
+          return '<tr><td>' + e(u.nama) + '</td><td>' + e(u.nokp) + '</td><td>' + (u.peranan === ADMIN ? '<span class="lencana B">Admin</span>' : 'Guru Kelas') + '</td><td>' + (u.kelas.map(paparKelasJs).map(e).join(', ') || '–') + '</td><td><span class="lencana ' + (u.status === 'AKTIF' ? 'hijau' : 'merah') + '">' + e(u.status) + '</span>' + (u.mestiTukarPassword ? ' <span class="lencana kuning">KW lalai</span>' : '') + '</td>' +
+            '<td style="white-space:nowrap"><button class="btn kecil" data-e="' + i + '">Sunting</button> <button class="btn kecil luar" data-r="' + i + '">Reset KW</button> <button class="btn kecil merah" data-d="' + i + '">Padam</button></td></tr>';
+        }).join('') : '<tr><td colspan="6" class="nota">Tiada rekod.</td></tr>') + '</tbody></table></div>' + pagerHtml(r) + '</div>';
+      pasangPager(k, kont, muat);
+      var cari = function (a) { return r.senarai[Number(a)]; };
+      Array.prototype.forEach.call(kont.querySelectorAll('[data-e]'), function (b) { b.onclick = function () { borangPengguna(cari(b.getAttribute('data-e')), muat); }; });
+      Array.prototype.forEach.call(kont.querySelectorAll('[data-r]'), function (b) {
+        b.onclick = function () { var u = cari(b.getAttribute('data-r')); sahkan('Set semula kata laluan ' + u.nama + ' kepada 6 digit terakhir No. KP?', function () { api('apiResetPassword', { nokp: u.nokp }).then(function () { toast('Kata laluan di-set semula.', 'jaya'); muat(); }).catch(gagal); }, 'Reset'); };
+      });
+      Array.prototype.forEach.call(kont.querySelectorAll('[data-d]'), function (b) {
+        b.onclick = function () { var u = cari(b.getAttribute('data-d')); sahkan('Padam pengguna ' + u.nama + '? Pertimbangkan menukar status kepada TIDAK AKTIF sahaja.', function () { api('apiPadamPengguna', { nokp: u.nokp }).then(function () { toast('Dipadam.', 'jaya'); muat(); }).catch(gagal); }, 'Padam'); };
+      });
+    }).catch(gagal);
+  };
+  S.segar = muat;
+  pasangPg(k, muat);
+  $('btnTambahUser').onclick = function () { borangPengguna(null, muat); };
+  $('btnImportGuru').onclick = function () {
+    sahkan('Import semua guru daripada Sheet PENGGUNA e-Kokurikulum (yang belum ada) sebagai Guru Kelas?', function () {
+      api('apiImportGuruKoko').then(function (x) { toast(x.ditambah + ' guru ditambah, ' + x.sediaAda + ' sedia ada dilangkau.', 'jaya'); muat(); }).catch(gagal);
+    }, 'Import');
+  };
+  return muat();
 }
-function borangPengguna(u) {
+function borangPengguna(u, selesai) {
   api('apiSenaraiKelas', {}, true).then(function (kr) {
     var baru = !u; u = u || { nokp: '', nama: '', peranan: 'GURU_KELAS', emel: '', kelas: [], status: 'AKTIF' };
     var modal = bukaModal('<h3>' + (baru ? 'Tambah' : 'Sunting') + ' Pengguna</h3><div class="grid-borang">' +
@@ -765,7 +906,7 @@ function borangPengguna(u) {
     modal.querySelector('[data-x=s]').onclick = function () {
       var kelas = Array.prototype.map.call(modal.querySelectorAll('.puKelas:checked'), function (c) { return c.value; });
       api('apiSimpanPengguna', { nokp: nilaiEl('puKp').replace(/\D/g, ''), nama: nilaiEl('puNama'), peranan: nilaiEl('puPeranan'), status: nilaiEl('puStatus'), emel: nilaiEl('puEmel'), kelas: kelas })
-        .then(function () { tutupModal(modal); toast('Disimpan.', 'jaya'); halamanPengguna(); }).catch(gagal);
+        .then(function () { tutupModal(modal); toast('Disimpan.', 'jaya'); if (selesai) selesai(); }).catch(gagal);
     };
   }).catch(gagal);
 }
@@ -781,13 +922,31 @@ function halamanTetapan() {
       '<div class="medan"><label>Nama sekolah</label><input id="teNama" value="' + e(t.namaSekolah) + '"></div>' +
       '<div class="medan"><label>ID Google Sheet e-Kokurikulum</label><input id="teKoko" value="' + e(t.idKoko) + '"><div class="nota">Akaun yang men-deploy e-PAJSK mesti mempunyai akses kepada Sheet ini.</div></div></div>' +
       '<div class="aksi-modal"><button class="btn" id="btnSimpanTet">Simpan Tetapan</button></div></div>' +
+      '<div class="kad"><h3>Segerak automatik dengan e-Kokurikulum</h3>' +
+      '<p class="nota">Sistem menyemak masa kemas kini fail e-Kokurikulum dan <b>hanya jika berubah</b> mengemas kini rekod yang berbeza. Skrin pengguna dimuat semula sendiri apabila data berubah. <b>Pencetus masa</b> memastikan data kekal terkini walaupun tiada sesiapa membuka sistem.</p>' +
+      '<div class="grid-borang"><div class="medan"><label>Auto-segerak</label><select id="asAktif"><option value="1"' + (t.autoSegerak.aktif ? ' selected' : '') + '>Hidup</option><option value="0"' + (!t.autoSegerak.aktif ? ' selected' : '') + '>Mati</option></select></div>' +
+      '<div class="medan"><label>Semak setiap</label><select id="asMinit">' + [1, 5, 10, 15, 30].map(function (m) { return '<option value="' + m + '"' + (t.autoSegerak.minit === m ? ' selected' : '') + '>' + m + ' minit</option>'; }).join('') + '</select><div class="nota">Disyorkan 5 minit.</div></div></div>' +
+      '<p class="nota">Pencetus masa: <b>' + (t.autoSegerak.pencetus ? 'dipasang' : 'belum dipasang') + '</b> · Kemas kini data terakhir: ' + e(t.autoSegerak.kemaskiniTerakhir || '–') + '<br>Status terakhir: ' + e(t.autoSegerak.status || '–') + '</p>' +
+      '<div class="aksi-modal"><button class="btn luar" id="btnSegerakSekarang">Segerak sekarang</button><button class="btn" id="btnSimpanAuto">Simpan &amp; pasang pencetus</button></div>' +
+      '<hr style="border:none;border-top:1px solid var(--sempadan);margin:16px 0"><p class="nota"><b>Segera (pilihan):</b> e-Kokurikulum boleh memanggil URL ping rahsia selepas menyimpan data supaya e-PAJSK segerak serta-merta. Rujuk README untuk kod ringkas bagi e-Kokurikulum.</p>' +
+      '<div class="aksi-modal" style="justify-content:flex-start"><button class="btn luar" id="btnPing">Papar / jana URL ping</button></div><div id="kotakPing"></div></div>' +
       '<div class="kad"><h3>Jadual skor (Sheet REFERENSI)</h3><p class="nota">' + Object.keys(kira).map(function (k) { return e(k) + ': ' + kira[k]; }).join(' · ') + '</p>' +
-      '<p class="nota">Sunting jadual skor terus dalam Sheet <b>REFERENSI</b> (lajur JENIS / KOD / NILAI). Perubahan digunakan dalam masa 5 minit (atau guna menu <i>Sistem e-PAJSK → Kosongkan Cache Rujukan</i>). Kemudian tekan butang di bawah untuk mengira semula semua markah.</p>' +
+      '<p class="nota">Sunting jadual skor terus dalam Sheet <b>REFERENSI</b> (lajur JENIS / KOD / NILAI). Perubahan dikesan serta-merta (atau guna menu <i>Sistem e-PAJSK → Kosongkan Semua Cache</i> jika disunting melalui cara lain). Kemudian tekan butang di bawah untuk mengira semula semua markah.</p>' +
       '<button class="btn luar" id="btnKiraSemula">Kira semula semua markah</button></div>';
     $('btnSimpanTet').onclick = function () {
       api('apiSimpanTetapan', { tahun: nilaiEl('teTahun'), kodSekolah: nilaiEl('teKod'), namaSekolah: nilaiEl('teNama'), idKoko: nilaiEl('teKoko') })
         .then(function () { toast('Tetapan disimpan.', 'jaya'); return api('apiTetapan'); }).then(function (r) { S.tetapan = r; }).catch(gagal);
     };
+    $('btnSimpanAuto').onclick = function () {
+      api('apiAutoSegerak', { aktif: nilaiEl('asAktif') === '1', minit: nilaiEl('asMinit') }).then(function () { toast('Tetapan auto-segerak disimpan.', 'jaya'); halamanTetapan(); }).catch(gagal);
+    };
+    $('btnPing').onclick = function () {
+      api('apiKunciPing', {}).then(function (r) {
+        $('kotakPing').innerHTML = '<div class="info-kotak" style="margin-top:10px;word-break:break-all"><b>URL ping:</b><br>' + (r.url ? '<code>' + e(r.url) + '</code>' : '<i>URL belum ada — deploy sebagai Web App dahulu.</i>') + '<br><br><button class="btn kecil luar" id="btnPingBaru">Jana kunci baharu</button></div>';
+        $('btnPingBaru').onclick = function () { sahkan('Kunci lama akan berhenti berfungsi. Jana kunci baharu?', function () { api('apiKunciPing', { jana: true }).then(function () { $('btnPing').click(); }).catch(gagal); }, 'Jana'); };
+      }).catch(gagal);
+    };
+    $('btnSegerakSekarang').onclick = function () { segerakKoko('', function () { halamanTetapan(); }); };
     $('btnKiraSemula').onclick = function () {
       sahkan('Kira semula semua markah menggunakan jadual REFERENSI semasa?', function () {
         api('apiKiraSemula', {}).then(function (r) { toast(r.murid + ' murid dikira semula.', 'jaya'); return api('apiRujukan', {}, true); }).then(function (r) { S.ref = r.rujukan; }).catch(gagal);
@@ -824,7 +983,7 @@ function halamanArkib() {
         api('apiNaikTingkatan', { pengesahan: nilaiEl('nkSah'), tahunBaharu: nilaiEl('nkTahun'), kosongkanGuruKelas: $('nkGuru').checked }).then(function (r) {
           toast('Selesai: ' + r.naik + ' dinaikkan, ' + r.tamat + ' tamat. Tahun baharu ' + r.tahunBaharu + '.', 'jaya');
           return Promise.all([api('apiTetapan', {}, true), api('apiSenaraiKelas', {}, true)]);
-        }).then(function (x) { S.tetapan = x[0]; S.kelasSenarai = x[1].kelas; $('infoPengguna').innerHTML = $('infoPengguna').innerHTML.replace(/<b>\d{4}<\/b>/, '<b>' + e(S.tetapan.tahun) + '</b>'); halamanArkib(); }).catch(gagal);
+        }).then(function (x) { S.tetapan = x[0]; S.kelasSenarai = x[1].kelas; S.cacheKelas = {}; if ($('infoTahun')) $('infoTahun').textContent = S.tetapan.tahun; halamanArkib(); }).catch(gagal);
       }, 'Naik Tingkatan');
     };
     Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-lihat]'), function (b) {
@@ -833,20 +992,40 @@ function halamanArkib() {
   });
 }
 function lihatArkib(id, kelas) {
-  api('apiLihatArkib', { id: id, kelas: kelas }).then(function (r) {
-    $('paparArkib').innerHTML = '<div class="kad"><h3>Arkib ' + e(r.tahun) + '</h3><div class="baris-alat"><select id="arkKelas"><option value="">Semua kelas</option>' + r.kelas.map(function (k) { return '<option value="' + e(k) + '"' + (k === kelas ? ' selected' : '') + '>' + e(paparKelasJs(k)) + '</option>'; }).join('') + '</select></div><div class="jadual-skrol"><table><thead><tr><th>Nama</th><th>Kelas</th><th class="n">PBB</th><th class="n">SP</th><th class="n">KP</th><th class="n">GPA</th><th class="n">CGPA</th><th>Gred</th></tr></thead><tbody>' +
-      r.senarai.map(function (m) { return '<tr><td>' + e(m.nama) + '</td><td>' + e(paparKelasJs(m.kunciKelas)) + '</td><td class="n">' + tanda(m.pbb) + '</td><td class="n">' + tanda(m.sp) + '</td><td class="n">' + tanda(m.kp) + '</td><td class="n">' + tanda(m.gpa) + '</td><td class="n"><b>' + tanda(m.cgpa) + '</b></td><td>' + lencanaGred(m.gred) + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
-    $('arkKelas').onchange = function () { lihatArkib(id, this.value); };
-    $('paparArkib').scrollIntoView({ behavior: 'smooth' });
+  var k = 'ark', st = PG(k), baru = st.id !== id;
+  if (baru) { st.id = id; st.halaman = 1; st.cari = ''; }
+  st.kelas = kelas === undefined ? st.kelas : kelas;
+  api('apiLihatArkib', { id: id, kelas: st.kelas || '', halaman: st.halaman, saiz: st.saiz, cari: st.cari }).then(function (r) {
+    st.halaman = r.halaman;
+    $('paparArkib').innerHTML = '<div class="kad"><h3>Arkib ' + e(r.tahun) + '</h3><div class="baris-alat"><select id="arkKelas"><option value="">Semua kelas</option>' + r.kelas.map(function (kk) { return '<option value="' + e(kk) + '"' + (kk === st.kelas ? ' selected' : '') + '>' + e(paparKelasJs(kk)) + '</option>'; }).join('') + '</select><input id="arkCari" placeholder="Cari nama / No. KP…" style="max-width:240px" value="' + e(st.cari) + '"></div><div class="jadual-skrol"><table><thead><tr><th>Nama</th><th>Kelas</th><th class="n">PBB</th><th class="n">SP</th><th class="n">KP</th><th class="n">GPA</th><th class="n">CGPA</th><th>Gred</th></tr></thead><tbody>' +
+      r.senarai.map(function (m) { return '<tr><td>' + e(m.nama) + '</td><td>' + e(paparKelasJs(m.kunciKelas)) + '</td><td class="n">' + tanda(m.pbb) + '</td><td class="n">' + tanda(m.sp) + '</td><td class="n">' + tanda(m.kp) + '</td><td class="n">' + tanda(m.gpa) + '</td><td class="n"><b>' + tanda(m.cgpa) + '</b></td><td>' + lencanaGred(m.gred) + '</td></tr>'; }).join('') + '</tbody></table></div>' + pagerHtml(r) + '</div>';
+    $('arkKelas').onchange = function () { st.halaman = 1; lihatArkib(id, this.value); };
+    var t; $('arkCari').oninput = function () { var v = this.value; clearTimeout(t); t = setTimeout(function () { st.cari = v; st.halaman = 1; lihatArkib(id); }, 300); };
+    pasangPager(k, $('paparArkib'), function () { lihatArkib(id); });
+    if (st.cari) { var ci = $('arkCari'); ci.focus(); ci.setSelectionRange(ci.value.length, ci.value.length); }
+    if (baru) $('paparArkib').scrollIntoView({ behavior: 'smooth' });
   }).catch(gagal);
 }
 
 /* ---------- Log audit ---------- */
 function halamanAudit() {
-  return api('apiSenaraiAudit').then(function (r) {
-    $('kandungan').innerHTML = '<h2 class="tajuk">Log Audit</h2><div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Tarikh</th><th>Pengguna</th><th>Tindakan</th><th>Modul</th><th>Butiran</th></tr></thead><tbody>' +
-      r.senarai.map(function (a) { return '<tr><td style="white-space:nowrap">' + e(a.tarikh) + '</td><td>' + e(a.nama) + '<div class="nota">' + e(a.peranan) + '</div></td><td>' + e(a.tindakan) + '</td><td>' + e(a.modul) + '</td><td>' + e(a.butiran) + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
-  });
+  var k = 'au';
+  $('kandungan').innerHTML = '<h2 class="tajuk">Log Audit</h2><div class="baris-alat">' + palangPg(k, true) + '<span class="nota">Terbaharu dahulu</span></div><div id="senaraiAudit"><div class="rangka-muat"></div><div class="rangka-muat"></div></div>';
+  var st = PG(k);
+  var muat = function () {
+    var terkini = permintaanTerkini();
+    api('apiSenaraiAudit', { halaman: st.halaman, saiz: st.saiz }).then(function (r) {
+      if (!terkini() || S.halaman !== 'audit') return;
+      st.halaman = r.halaman;
+      var kont = $('senaraiAudit');
+      kont.innerHTML = '<div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Tarikh</th><th>Pengguna</th><th>Tindakan</th><th>Modul</th><th>Butiran</th></tr></thead><tbody>' +
+        r.senarai.map(function (a) { return '<tr><td style="white-space:nowrap">' + e(a.tarikh) + '</td><td>' + e(a.nama) + '<div class="nota">' + e(a.peranan) + '</div></td><td>' + e(a.tindakan) + '</td><td>' + e(a.modul) + '</td><td>' + e(a.butiran) + '</td></tr>'; }).join('') + '</tbody></table></div>' + pagerHtml(r) + '</div>';
+      pasangPager(k, kont, muat);
+    }).catch(gagal);
+  };
+  S.segar = muat;
+  pasangPg(k, muat);
+  muat();
 }
 
 /* ---------- Mula ---------- */
@@ -854,10 +1033,7 @@ function halamanAudit() {
   var t = bacaToken();
   if (!t) return;
   S.token = t;
-  api('apiSemakSesi').then(function (r) {
-    S.user = { nama: r.nama, peranan: r.peranan, kelas: r.kelas };
-    if (r.mestiTukarPassword) paparSkrin('skrinTukar'); else mulaAplikasi();
-  }).catch(function () { S.token = null; simpanToken(null); });
+  mulaAplikasi();
 })();
 </script>
 </body>
