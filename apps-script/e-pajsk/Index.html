@@ -938,7 +938,10 @@ function halamanTetapan() {
         .then(function () { toast('Tetapan disimpan.', 'jaya'); return api('apiTetapan'); }).then(function (r) { S.tetapan = r; }).catch(gagal);
     };
     $('btnSimpanAuto').onclick = function () {
-      api('apiAutoSegerak', { aktif: nilaiEl('asAktif') === '1', minit: nilaiEl('asMinit') }).then(function () { toast('Tetapan auto-segerak disimpan.', 'jaya'); halamanTetapan(); }).catch(gagal);
+      api('apiAutoSegerak', { aktif: nilaiEl('asAktif') === '1', minit: nilaiEl('asMinit') }).then(function (r) {
+        if (r.amaran) { var m = bukaModal('<h3>Tetapan disimpan — pencetus belum dipasang</h3><p>' + e(r.amaran) + '</p><div class="aksi-modal"><button class="btn" data-x="o">OK</button></div>', true); m.querySelector('[data-x=o]').onclick = function () { tutupModal(m); halamanTetapan(); }; }
+        else { toast('Tetapan auto-segerak disimpan dan pencetus dipasang.', 'jaya'); halamanTetapan(); }
+      }).catch(gagal);
     };
     $('btnPing').onclick = function () {
       api('apiKunciPing', {}).then(function (r) {

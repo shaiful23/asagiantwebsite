@@ -84,15 +84,19 @@ function apiAutoSegerak(p) {
   const aktif = !!p.aktif;
   const minit = Number(p.minit) || 5;
   if (MINIT_AUTO_DIBENARKAN.indexOf(minit) === -1) return ralat('Selang mestilah salah satu daripada: ' + MINIT_AUTO_DIBENARKAN.join(', ') + ' minit.');
+  // Simpan tetapan DAHULU: lapisan semakan oleh pelayar sentiasa menggunakannya walaupun pencetus masa gagal dipasang.
+  const simpan = denganKunci(() => { tulisTetapan(TET_AUTO, aktif ? 'YA' : 'TIDAK'); tulisTetapan(TET_AUTO_MINIT, String(minit)); return jaya({}); });
+  if (simpan.success === false) return simpan;
+  let amaran = '';
   try {
     ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === PENGENDALI_AUTO) ScriptApp.deleteTrigger(t); });
     if (aktif) ScriptApp.newTrigger(PENGENDALI_AUTO).timeBased().everyMinutes(minit).create();
   } catch (e) {
-    return ralat('Gagal menetapkan pencetus masa: ' + e.message + ' (pastikan kebenaran script.scriptapp diberikan — deploy semula versi baharu).');
+    amaran = 'Tetapan disimpan dan auto-segerak melalui pelayar tetap berfungsi, tetapi pencetus masa BELUM dapat dipasang kerana kebenaran "script.scriptapp" belum diberikan. ' +
+      'Dalam editor Apps Script (atau menu Sheet "Sistem e-PAJSK → 5. Pasang Auto-Segerak") jalankan fungsi pasangPencetusAutoMelaluiMenu dan klik Allow, kemudian Deploy → Manage deployments → Edit → New version.';
   }
-  denganKunci(() => { tulisTetapan(TET_AUTO, aktif ? 'YA' : 'TIDAK'); tulisTetapan(TET_AUTO_MINIT, String(minit)); });
-  catatAudit(sesi, 'KEMASKINI', 'AUTO_SEGERAK', '', (aktif ? 'Aktif setiap ' + minit + ' minit' : 'Dimatikan'));
-  return jaya({ autoSegerak: maklumatAutoSegerak() });
+  catatAudit(sesi, 'KEMASKINI', 'AUTO_SEGERAK', '', (aktif ? 'Aktif setiap ' + minit + ' minit' : 'Dimatikan') + (amaran ? ' (pencetus gagal)' : ''));
+  return jaya({ autoSegerak: maklumatAutoSegerak(), amaran });
 }
 
 /* Menu Sheet: pasang pencetus dengan tetapan semasa. */
