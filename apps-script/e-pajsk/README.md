@@ -59,6 +59,8 @@ Syarat: akaun Gmail yang men-*deploy* e-PAJSK mesti pemilik/editor/viewer Sheet 
    ```
    URL dilindungi kunci rahsia dan dihadkan 1 kali / 20 saat. Tanpa webhook, kelewatan maksimum = selang pencetus.
 
+> **Jika muncul "You do not have permission to call ScriptApp.getProjectTriggers"**: skop `script.scriptapp` belum diberi kebenaran. Dalam editor Apps Script pilih fungsi `pasangPencetusAutoMelaluiMenu` (atau menu Sheet *5. Pasang Auto-Segerak*) → **Run** → **Allow**, kemudian **Deploy → Manage deployments → Edit → New version**. Sementara itu auto-segerak melalui pelayar (lapisan 2–3) sudah berfungsi.
+
 **Mengapa lebih laju:**
 - **Cache berversi** (`Utils.gs`): setiap Sheet dibaca sekali kemudian disimpan dalam CacheService (format kompak, dipecah kepada cebisan). Penulisan menampal cache (*write-through*) — menyimpan pentaksiran seorang murid tidak memaksa semua Sheet dibaca semula. Suntingan manual dalam Sheet ditangkap oleh `onEdit`; perubahan struktur: menu *Kosongkan Semua Cache*.
 - **Segerak delta**: data e-Kokurikulum dicache mengikut masa kemas kini fail; hanya rekod yang benar-benar berubah ditulis (segerak tanpa perubahan ≈ tiada bacaan/tulisan). Sheet kehadiran dibaca 4 lajur sahaja.

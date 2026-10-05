@@ -119,6 +119,21 @@ function adalahHadir(status) {
   return KOKO_STATUS_HADIR.indexOf(s) !== -1;
 }
 
+/* Cari Sheet kehadiran bagi satu aspek. Nama dalam Config (KOKO_SHEET_KEHADIRAN) dicuba dahulu; jika tiada, cari
+   mengikut kata kunci (cth. nama penuh "KEHADIRAN_PASUKAN_BADAN_BERUNIFORM" yang dipotong kepada 31 aksara dalam
+   eksport .xlsx, atau nama yang sedikit berbeza). Padanan huruf besar/kecil tidak dipentingkan. */
+const KATA_KUNCI_SHEET_KEHADIRAN = { PBB: /BERUNIF|PASUKAN/, KP: /KELAB|PERSATUAN/, SP: /SUKAN|PERMAINAN/ };
+
+function cariSheetKehadiran(ss, aspek) {
+  const tepat = ss.getSheetByName(KOKO_SHEET_KEHADIRAN[aspek]);
+  if (tepat) return tepat;
+  const calon = ss.getSheets().filter(sh => {
+    const n = banding(sh.getName());
+    return n.indexOf('KEHADIRAN') === 0 && KATA_KUNCI_SHEET_KEHADIRAN[aspek].test(n);
+  });
+  return calon.length ? calon[0] : null;
+}
+
 /* Hasil: { kira: {PBB:{nokp:bil}, KP:{...}, SP:{...}}, amaran: [..] }
    Satu perjumpaan = gabungan unik TARIKH + PERJUMPAAN; murid yang HADIR dikira sekali sahaja bagi setiap perjumpaan.
    Hanya 4 lajur dibaca daripada setiap Sheet kehadiran. */
@@ -127,8 +142,13 @@ function bacaKehadiranKoko(tahun) {
   const kira = {}, amaran = [];
   SEMUA_ASPEK.forEach(aspek => {
     kira[aspek] = {};
-    const sh = ss.getSheetByName(KOKO_SHEET_KEHADIRAN[aspek]);
-    if (!sh || sh.getLastRow() < 1) { amaran.push('Sheet kehadiran ' + aspek + ' tiada dalam e-Kokurikulum.'); return; }
+    const sh = cariSheetKehadiran(ss, aspek);
+    if (!sh) {
+      const senarai = ss.getSheets().map(x => x.getName()).filter(n => /KEHADIRAN/i.test(n));
+      amaran.push('Sheet kehadiran ' + aspek + ' tiada dalam e-Kokurikulum (dicari: "' + KOKO_SHEET_KEHADIRAN[aspek] + '"; Sheet kehadiran yang ada: ' + (senarai.join(', ') || 'tiada') + ').');
+      return;
+    }
+    if (sh.getLastRow() < 1) return;
     const h = cubaSemula(() => sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]).map(x => banding(x));
     const iTarikh = cariLajur(h, 'TARIKH'), iPerj = cariLajur(h, 'PERJUMPAAN');
     const iKp = cariLajur(h, /^NO\.? ?_?KP$/), iStatus = cariLajur(h, 'STATUS');
@@ -155,7 +175,7 @@ function bacaKehadiranKoko(tahun) {
    e-Kokurikulum tidak berubah, segerak tidak perlu membaca apa-apa daripadanya. paksa=true abaikan cache. */
 function bacaKokoRingkas(tahun, paksa) {
   const ts = masaKemaskiniKoko();
-  const kunci = 'koko_' + ts + '_' + tahun;
+  const kunci = 'kokov2_' + ts + '_' + tahun;   // v2: nama Sheet kehadiran kini dicari mengikut kata kunci
   if (!paksa && ts) {
     const teks = cacheGetBesar(kunci);
     if (teks) { const o = JSON.parse(teks); o.ts = ts; o.dariCache = true; return o; }
@@ -163,7 +183,7 @@ function bacaKokoRingkas(tahun, paksa) {
   const murid = bacaMuridKoko();
   const h = bacaKehadiranKoko(tahun);
   const hasil = { murid, kira: h.kira, amaran: h.amaran };
-  if (ts) cachePutBesar(kunci, JSON.stringify(hasil), 60 * 60);
+  if (ts && !h.amaran.length) cachePutBesar(kunci, JSON.stringify(hasil), 60 * 60);   // jangan cache hasil yang tidak lengkap
   hasil.ts = ts;
   hasil.dariCache = false;
   return hasil;

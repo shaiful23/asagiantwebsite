@@ -16,6 +16,9 @@ const TET_KOKO_TS = 'KOKO_TS_TERAKHIR';
 const TET_AUTO_STATUS = 'SEGERAK_AUTO_STATUS';
 const MINIT_AUTO_DIBENARKAN = [1, 5, 10, 15, 30];
 const PENGENDALI_AUTO = 'segerakAutoBerjadual';
+// Naikkan nombor ini apabila logik segerak berubah: semua fail e-Kokurikulum akan diproses semula sekali pada semakan seterusnya.
+const VERSI_LOGIK_SEGERAK = '2';
+function penandaKoko(ts) { return String(ts) + ':' + VERSI_LOGIK_SEGERAK; }
 
 function versiData() {
   return [SHEET_MURID, SHEET_ASPEK, SHEET_EKSTRA, SHEET_RUMUSAN, SHEET_PENGGUNA, SHEET_TETAPAN].map(versiSheet).join('|');
@@ -43,11 +46,11 @@ function semakDanSegerakAuto(sumber, paksa) {
   if (!kunci.tryLock(2000)) return { langkau: 'sibuk' };
   try {
     const ts = masaKemaskiniKoko();
-    const lalu = Number(dapatTetapan(TET_KOKO_TS)) || 0;
-    if (!paksa && ts && ts === lalu) return { langkau: 'tiada perubahan' };
+    const lalu = dapatTetapan(TET_KOKO_TS);
+    if (!paksa && ts && penandaKoko(ts) === lalu) return { langkau: 'tiada perubahan' };
     const lap = laksanakanSegerak(null, !!paksa);
     const masa = sekarangTeks();
-    tulisTetapan(TET_KOKO_TS, String(lap.ts || ts || ''));
+    tulisTetapan(TET_KOKO_TS, penandaKoko(lap.ts || ts || ''));
     if (lap.diubah) tulisTetapan('SEGERAK_KOKO_TERAKHIR', masa);
     tulisTetapan(TET_AUTO_STATUS, masa + ' (' + sumber + '): ' + lap.diubah + ' rekod dikemaskini');
     return { diubah: lap.diubah };
@@ -84,15 +87,19 @@ function apiAutoSegerak(p) {
   const aktif = !!p.aktif;
   const minit = Number(p.minit) || 5;
   if (MINIT_AUTO_DIBENARKAN.indexOf(minit) === -1) return ralat('Selang mestilah salah satu daripada: ' + MINIT_AUTO_DIBENARKAN.join(', ') + ' minit.');
+  // Simpan tetapan DAHULU: lapisan semakan oleh pelayar sentiasa menggunakannya walaupun pencetus masa gagal dipasang.
+  const simpan = denganKunci(() => { tulisTetapan(TET_AUTO, aktif ? 'YA' : 'TIDAK'); tulisTetapan(TET_AUTO_MINIT, String(minit)); return jaya({}); });
+  if (simpan.success === false) return simpan;
+  let amaran = '';
   try {
     ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === PENGENDALI_AUTO) ScriptApp.deleteTrigger(t); });
     if (aktif) ScriptApp.newTrigger(PENGENDALI_AUTO).timeBased().everyMinutes(minit).create();
   } catch (e) {
-    return ralat('Gagal menetapkan pencetus masa: ' + e.message + ' (pastikan kebenaran script.scriptapp diberikan — deploy semula versi baharu).');
+    amaran = 'Tetapan disimpan dan auto-segerak melalui pelayar tetap berfungsi, tetapi pencetus masa BELUM dapat dipasang kerana kebenaran "script.scriptapp" belum diberikan. ' +
+      'Dalam editor Apps Script (atau menu Sheet "Sistem e-PAJSK → 5. Pasang Auto-Segerak") jalankan fungsi pasangPencetusAutoMelaluiMenu dan klik Allow, kemudian Deploy → Manage deployments → Edit → New version.';
   }
-  denganKunci(() => { tulisTetapan(TET_AUTO, aktif ? 'YA' : 'TIDAK'); tulisTetapan(TET_AUTO_MINIT, String(minit)); });
-  catatAudit(sesi, 'KEMASKINI', 'AUTO_SEGERAK', '', (aktif ? 'Aktif setiap ' + minit + ' minit' : 'Dimatikan'));
-  return jaya({ autoSegerak: maklumatAutoSegerak() });
+  catatAudit(sesi, 'KEMASKINI', 'AUTO_SEGERAK', '', (aktif ? 'Aktif setiap ' + minit + ' minit' : 'Dimatikan') + (amaran ? ' (pencetus gagal)' : ''));
+  return jaya({ autoSegerak: maklumatAutoSegerak(), amaran });
 }
 
 /* Menu Sheet: pasang pencetus dengan tetapan semasa. */
