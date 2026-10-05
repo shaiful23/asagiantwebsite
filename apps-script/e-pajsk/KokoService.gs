@@ -11,13 +11,30 @@
  *   PENGGUNA    -> senarai guru (import akaun)
  * ========================================================================= */
 
+let _memoKoko = null;
+
+function idKoko() { return dapatTetapan(TET_ID_KOKO) || ID_EKOKURIKULUM_LALAI; }
+
 function bukaKoko() {
-  const id = dapatTetapan(TET_ID_KOKO) || ID_EKOKURIKULUM_LALAI;
+  if (_memoKoko) return _memoKoko;
   try {
-    return SpreadsheetApp.openById(id);
+    _memoKoko = cubaSemula(() => SpreadsheetApp.openById(idKoko()));
+    return _memoKoko;
   } catch (e) {
     throw new Error('Tidak dapat membuka Sheet e-Kokurikulum. Semak ID dalam menu Tetapan dan pastikan akaun Google yang men-deploy e-PAJSK mempunyai akses kepadanya.');
   }
+}
+
+/* Masa kemas kini terakhir fail e-Kokurikulum (ms) daripada Drive — panggilan ringan untuk mengesan perubahan.
+   0 jika tidak dapat dibaca (cache dilangkau). */
+function masaKemaskiniKoko() {
+  try { return cubaSemula(() => DriveApp.getFileById(idKoko()).getLastUpdated().getTime(), 2); } catch (e) { return 0; }
+}
+
+/* Baca hanya lajur yang diperlukan (lebih pantas daripada getDataRange untuk Sheet kehadiran yang besar). */
+function bacaLajurSheet(sh, indeks, barisAkhir) {
+  if (barisAkhir < 2) return [];
+  return cubaSemula(() => sh.getRange(2, indeks + 1, barisAkhir - 1, 1).getValues()).map(r => r[0]);
 }
 
 /* Baca satu Sheet e-Kokurikulum -> {header:[HURUF BESAR], baris:[[...]]} atau null jika Sheet tiada. */
@@ -103,31 +120,53 @@ function adalahHadir(status) {
 }
 
 /* Hasil: { kira: {PBB:{nokp:bil}, KP:{...}, SP:{...}}, amaran: [..] }
-   Satu perjumpaan = gabungan unik TARIKH + PERJUMPAAN; murid yang HADIR dikira sekali sahaja bagi setiap perjumpaan. */
+   Satu perjumpaan = gabungan unik TARIKH + PERJUMPAAN; murid yang HADIR dikira sekali sahaja bagi setiap perjumpaan.
+   Hanya 4 lajur dibaca daripada setiap Sheet kehadiran. */
 function bacaKehadiranKoko(tahun) {
   const ss = bukaKoko();
   const kira = {}, amaran = [];
   SEMUA_ASPEK.forEach(aspek => {
     kira[aspek] = {};
-    const data = bacaSheetKoko(ss, KOKO_SHEET_KEHADIRAN[aspek]);
-    if (!data) { amaran.push('Sheet kehadiran ' + aspek + ' tiada dalam e-Kokurikulum.'); return; }
-    const h = data.header;
+    const sh = ss.getSheetByName(KOKO_SHEET_KEHADIRAN[aspek]);
+    if (!sh || sh.getLastRow() < 1) { amaran.push('Sheet kehadiran ' + aspek + ' tiada dalam e-Kokurikulum.'); return; }
+    const h = cubaSemula(() => sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]).map(x => banding(x));
     const iTarikh = cariLajur(h, 'TARIKH'), iPerj = cariLajur(h, 'PERJUMPAAN');
     const iKp = cariLajur(h, /^NO\.? ?_?KP$/), iStatus = cariLajur(h, 'STATUS');
     if (iKp < 0 || iStatus < 0) { amaran.push('Struktur Sheet kehadiran ' + aspek + ' tidak dikenali.'); return; }
+    const akhir = sh.getLastRow();
+    const lStatus = bacaLajurSheet(sh, iStatus, akhir), lKp = bacaLajurSheet(sh, iKp, akhir);
+    const lTarikh = iTarikh >= 0 ? bacaLajurSheet(sh, iTarikh, akhir) : [], lPerj = iPerj >= 0 ? bacaLajurSheet(sh, iPerj, akhir) : [];
     const sesi = {};
-    data.baris.forEach(b => {
-      if (!adalahHadir(b[iStatus])) return;
-      const thn = iTarikh >= 0 ? tahunDaripadaTarikh(b[iTarikh]) : null;
-      if (thn !== null && thn !== tahun) return;
-      const nokp = normalKP(b[iKp]);
-      if (!nokp) return;
-      const kunciSesi = (iTarikh >= 0 ? String(nilaiSelSebagaiTeks(b[iTarikh])) : '') + '|' + (iPerj >= 0 ? banding(b[iPerj]) : '');
+    for (let i = 0; i < lStatus.length; i++) {
+      if (!adalahHadir(lStatus[i])) continue;
+      const thn = iTarikh >= 0 ? tahunDaripadaTarikh(lTarikh[i]) : null;
+      if (thn !== null && thn !== tahun) continue;
+      const nokp = normalKP(lKp[i]);
+      if (!nokp) continue;
+      const kunciSesi = (iTarikh >= 0 ? String(nilaiSelSebagaiTeks(lTarikh[i])) : '') + '|' + (iPerj >= 0 ? banding(lPerj[i]) : '');
       (sesi[nokp] = sesi[nokp] || {})[kunciSesi] = true;
-    });
+    }
     Object.keys(sesi).forEach(nokp => { kira[aspek][nokp] = Object.keys(sesi[nokp]).length; });
   });
   return { kira, amaran };
+}
+
+/* Murid + kehadiran e-Kokurikulum yang sudah diproses, dicache mengikut masa kemas kini fail: jika fail
+   e-Kokurikulum tidak berubah, segerak tidak perlu membaca apa-apa daripadanya. paksa=true abaikan cache. */
+function bacaKokoRingkas(tahun, paksa) {
+  const ts = masaKemaskiniKoko();
+  const kunci = 'koko_' + ts + '_' + tahun;
+  if (!paksa && ts) {
+    const teks = cacheGetBesar(kunci);
+    if (teks) { const o = JSON.parse(teks); o.ts = ts; o.dariCache = true; return o; }
+  }
+  const murid = bacaMuridKoko();
+  const h = bacaKehadiranKoko(tahun);
+  const hasil = { murid, kira: h.kira, amaran: h.amaran };
+  if (ts) cachePutBesar(kunci, JSON.stringify(hasil), 60 * 60);
+  hasil.ts = ts;
+  hasil.dariCache = false;
+  return hasil;
 }
 
 /* ------------------------- PENCAPAIAN (cadangan) ------------------------- */
@@ -170,28 +209,43 @@ function labelPencapaian(peringkat, kedudukan, ref) {
   return calon.find(c => senarai[c] !== undefined) || '';
 }
 
+function bacaPencapaianKokoSemua() {
+  const ts = masaKemaskiniKoko();
+  const kunci = 'kokopencapaian_' + ts;
+  if (ts) { const teks = cacheGetBesar(kunci); if (teks) return JSON.parse(teks); }
+  const data = bacaSheetKoko(bukaKoko(), KOKO_SHEET_PENCAPAIAN);
+  const hasil = [];
+  if (data) {
+    const h = data.header;
+    const iTarikh = cariLajur(h, 'TARIKH'), iKp = cariLajur(h, /^NO\.? ?_?KP$/), iNama = cariLajur(h, /^NAMA/);
+    const iPert = cariLajur(h, 'PERTANDINGAN'), iPering = cariLajur(h, 'PERINGKAT'), iCapai = cariLajur(h, 'PENCAPAIAN');
+    data.baris.forEach(b => {
+      const pertandingan = iPert >= 0 ? banding(b[iPert]) : '';
+      if (!pertandingan) return;
+      hasil.push({
+        kp: iKp >= 0 ? normalKP(b[iKp]) : '', nama: iNama >= 0 ? banding(b[iNama]) : '',
+        tahun: iTarikh >= 0 ? tahunDaripadaTarikh(b[iTarikh]) : null, tarikh: iTarikh >= 0 ? String(nilaiSelSebagaiTeks(b[iTarikh])) : '',
+        pertandingan, peringkat: iPering >= 0 ? banding(b[iPering]) : '', pencapaian: iCapai >= 0 ? banding(b[iCapai]) : ''
+      });
+    });
+  }
+  if (ts) cachePutBesar(kunci, JSON.stringify(hasil), 60 * 60);
+  return hasil;
+}
+
 /* Pencapaian e-Kokurikulum bagi seorang murid (padanan No. KP; jika No. KP kosong pada rekod,
    padanan nama penuh). Tapis ikut tahun pentaksiran. */
 function bacaPencapaianKokoMurid(murid, tahun, ref) {
-  const data = bacaSheetKoko(bukaKoko(), KOKO_SHEET_PENCAPAIAN);
-  if (!data) return [];
-  const h = data.header;
-  const iTarikh = cariLajur(h, 'TARIKH'), iKp = cariLajur(h, /^NO\.? ?_?KP$/), iNama = cariLajur(h, /^NAMA/);
-  const iPert = cariLajur(h, 'PERTANDINGAN'), iPering = cariLajur(h, 'PERINGKAT'), iCapai = cariLajur(h, 'PENCAPAIAN');
   const hasil = [];
-  data.baris.forEach(b => {
-    const kp = iKp >= 0 ? normalKP(b[iKp]) : '';
-    const padan = kp ? kp === murid.NoKP : (iNama >= 0 && banding(b[iNama]) === banding(murid.Nama));
+  bacaPencapaianKokoSemua().forEach(r => {
+    const padan = r.kp ? r.kp === murid.NoKP : (r.nama && r.nama === banding(murid.Nama));
     if (!padan) return;
-    const thn = iTarikh >= 0 ? tahunDaripadaTarikh(b[iTarikh]) : null;
-    if (thn !== null && thn !== tahun) return;
-    const pertandingan = banding(b[iPert]), peringkat = banding(b[iPering]), capai = banding(b[iCapai]);
+    if (r.tahun !== null && r.tahun !== tahun) return;
     hasil.push({
-      tarikh: iTarikh >= 0 ? String(nilaiSelSebagaiTeks(b[iTarikh])) : '',
-      pertandingan, peringkat, pencapaian: capai,
-      cadanganLibat: labelPelibatan(peringkat, ref),
-      cadanganCapai: labelPencapaian(peringkat, capai, ref),
-      aspekCadangan: tekaAspekPertandingan(pertandingan, murid)
+      tarikh: r.tarikh, pertandingan: r.pertandingan, peringkat: r.peringkat, pencapaian: r.pencapaian,
+      cadanganLibat: labelPelibatan(r.peringkat, ref),
+      cadanganCapai: labelPencapaian(r.peringkat, r.pencapaian, ref),
+      aspekCadangan: tekaAspekPertandingan(r.pertandingan, murid)
     });
   });
   return hasil;

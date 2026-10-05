@@ -5,7 +5,6 @@
 
 const HEADER_TETAPAN = ['KUNCI', 'NILAI'];
 const HEADER_REFERENSI = ['JENIS', 'KOD', 'NILAI', 'KETERANGAN'];
-const CACHE_RUJUKAN = 'rujukan_epajsk_v1';
 
 function tetapanLalai() {
   return [
@@ -13,7 +12,9 @@ function tetapanLalai() {
     [TET_KOD_SEKOLAH, ''],
     [TET_NAMA_SEKOLAH, 'SMK ASAJAYA'],
     [TET_ID_KOKO, ID_EKOKURIKULUM_LALAI],
-    [TET_ID_FOLDER_ARKIB, '']
+    [TET_ID_FOLDER_ARKIB, ''],
+    ['AUTO_SEGERAK', 'YA'],
+    ['AUTO_SEGERAK_MINIT', '5']
   ];
 }
 
@@ -31,9 +32,10 @@ function dapatTetapan(kunci) {
 
 function tulisTetapan(kunci, nilai) {
   const sh = dapatkanSheet(SHEET_TETAPAN);
-  const sedia = bacaSheetSebagaiObjek(SHEET_TETAPAN).find(r => r.KUNCI === kunci);
+  const sedia = bacaSheetMentah(SHEET_TETAPAN).find(r => r.KUNCI === kunci);   // baca terus (kecil) — elak baris cache lapuk
   if (sedia) sh.getRange(sedia.__row, 2).setValue(nilai);
   else sh.appendRow([kunci, nilai]);
+  tandaKotor(SHEET_TETAPAN);
 }
 
 function tahunSemasa() {
@@ -48,7 +50,8 @@ function apiTetapan(p) {
     tahun: Number(t[TET_TAHUN]) || new Date().getFullYear(),
     kodSekolah: t[TET_KOD_SEKOLAH] || '',
     namaSekolah: t[TET_NAMA_SEKOLAH] || '',
-    idKoko: sesi.peranan === ROLE_ADMIN ? (t[TET_ID_KOKO] || '') : ''
+    idKoko: sesi.peranan === ROLE_ADMIN ? (t[TET_ID_KOKO] || '') : '',
+    autoSegerak: maklumatAutoSegerak(t, sesi.peranan !== ROLE_ADMIN)
   });
 }
 
@@ -74,12 +77,13 @@ function apiSimpanTetapan(p) {
 }
 
 /* ------------------------- RUJUKAN SKOR ------------------------- */
-/* Hasil: { pilihan: {JENIS: [[kod, nilai], ...]}, peta: {JENIS: {kod: nilai}}, gred: [{gred,min,label,rumusan}] } */
-function muatRujukan() {
-  const cache = CacheService.getScriptCache();
-  const tersimpan = cache.get(CACHE_RUJUKAN);
-  if (tersimpan) return JSON.parse(tersimpan);
+/* Hasil: { pilihan: {JENIS: [[kod, nilai], ...]}, peta: {JENIS: {kod: nilai}}, gred: [{gred,min,label,rumusan}] }
+   Dibina daripada Sheet REFERENSI (cache berversi) dan dimemo mengikut versi. */
+let _memoRujukan = { ver: null, nilai: null };
 
+function muatRujukan() {
+  const ver = versiSheet(SHEET_REFERENSI);
+  if (_memoRujukan.ver === ver && _memoRujukan.nilai) return _memoRujukan.nilai;
   const pilihan = {};
   const peta = {};
   const gred = [];
@@ -98,13 +102,13 @@ function muatRujukan() {
     if (peta[jenis][kod] === undefined) peta[jenis][kod] = nilai;
   });
   gred.sort((a, b) => a.min - b.min);
-  const hasil = { pilihan, peta, gred };
-  try { cache.put(CACHE_RUJUKAN, JSON.stringify(hasil), 300); } catch (e) { /* terlalu besar? abaikan */ }
-  return hasil;
+  _memoRujukan = { ver, nilai: { pilihan, peta, gred } };
+  return _memoRujukan.nilai;
 }
 
 function kosongkanCacheRujukan() {
-  CacheService.getScriptCache().remove(CACHE_RUJUKAN);
+  tandaKotor(SHEET_REFERENSI);
+  _memoRujukan = { ver: null, nilai: null };
 }
 
 function apiRujukan(p) {

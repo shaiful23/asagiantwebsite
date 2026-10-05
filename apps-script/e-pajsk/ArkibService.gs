@@ -166,23 +166,35 @@ function apiNaikTingkatan(p) {
   });
 }
 
-/* Semak arkib dalam aplikasi (Admin): rumusan setiap murid bagi satu tahun arkib. */
+/* Semak arkib dalam aplikasi (Admin): rumusan setiap murid bagi satu tahun arkib. Fail arkib tidak berubah,
+   jadi rumusan dicache (6 jam) dan dipaparkan berhalaman. */
+function bacaRumusanArkib(a) {
+  const kunci = 'arkib_' + a.ID;
+  const teks = cacheGetBesar(kunci);
+  if (teks) return JSON.parse(teks);
+  const ss = SpreadsheetApp.openById(a.ID_FAIL);
+  const sh = ss.getSheetByName(SHEET_RUMUSAN);
+  let senarai = [];
+  if (sh && sh.getLastRow() >= 2) {
+    const nilai = sh.getDataRange().getValues();
+    const h = nilai.shift();
+    senarai = nilai.map(b => { const o = {}; h.forEach((k, i) => { o[k] = nilaiSelSebagaiTeks(b[i]); }); return o; })
+      .map(r => ({ nokp: normalKP(r.NoKP), nama: r.Nama, kunciKelas: r.KunciKelas, pbb: r.PBB, sp: r.SP, kp: r.KP, ekstra: r.Ekstra,
+        gpa: r.GPA, cgpa: r.CGPA, gred: r.Gred, label: r.Label }))
+      .sort((x, y) => String(x.kunciKelas).localeCompare(String(y.kunciKelas)) || String(x.nama).localeCompare(String(y.nama)));
+  }
+  cachePutBesar(kunci, JSON.stringify(senarai), 6 * 60 * 60);
+  return senarai;
+}
+
 function apiLihatArkib(p) {
   const sesi = wajibPeranan(p.token, [ROLE_ADMIN]);
   if (sesi.success === false) return sesi;
   const a = bacaSheetSebagaiObjek(SHEET_ARKIB).find(x => x.ID === p.id);
   if (!a) return ralat('Arkib tidak dijumpai.');
-  let ss;
-  try { ss = SpreadsheetApp.openById(a.ID_FAIL); } catch (e) { return ralat('Fail arkib tidak dapat dibuka (mungkin dipadam atau akses dibatalkan).'); }
-  const sh = ss.getSheetByName(SHEET_RUMUSAN);
-  if (!sh || sh.getLastRow() < 2) return jaya({ tahun: a.TAHUN, kelas: [], senarai: [] });
-  const nilai = sh.getDataRange().getValues();
-  const h = nilai.shift();
-  let senarai = nilai.map(b => { const o = {}; h.forEach((k, i) => { o[k] = nilaiSelSebagaiTeks(b[i]); }); return o; });
-  const kelas = Array.from(new Set(senarai.map(r => r.KunciKelas))).sort();
-  if (p.kelas) senarai = senarai.filter(r => r.KunciKelas === p.kelas);
-  senarai = senarai.sort((x, y) => String(x.KunciKelas).localeCompare(String(y.KunciKelas)) || String(x.Nama).localeCompare(String(y.Nama)))
-    .map(r => ({ nokp: normalKP(r.NoKP), nama: r.Nama, kunciKelas: r.KunciKelas, pbb: r.PBB, sp: r.SP, kp: r.KP, ekstra: r.Ekstra,
-      gpa: r.GPA, cgpa: r.CGPA, gred: r.Gred, label: r.Label }));
-  return jaya({ tahun: a.TAHUN, url: a.URL_ARKIB, kelas, senarai });
+  let semua;
+  try { semua = bacaRumusanArkib(a); } catch (e) { return ralat('Fail arkib tidak dapat dibuka (mungkin dipadam atau akses dibatalkan).'); }
+  const kelas = Array.from(new Set(semua.map(r => r.kunciKelas))).sort();
+  const tapis = p.kelas ? semua.filter(r => r.kunciKelas === p.kelas) : semua;
+  return jaya(Object.assign({ tahun: a.TAHUN, url: a.URL_ARKIB, kelas }, halamanKan(tapis, p, r => r.nama + ' ' + r.nokp)));
 }

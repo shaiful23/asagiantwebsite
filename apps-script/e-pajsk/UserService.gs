@@ -7,26 +7,19 @@
 function apiSenaraiPengguna(p) {
   const sesi = wajibPeranan(p.token, [ROLE_ADMIN]);
   if (sesi.success === false) return sesi;
-  const senarai = bacaSheetSebagaiObjek(SHEET_PENGGUNA).map(u => ({
+  const semua = bacaSheetSebagaiObjek(SHEET_PENGGUNA).map(u => ({
     nokp: normalKP(u.NoKP), nama: u.NamaPenuh, peranan: u.Peranan, emel: u.Emel || '',
     kelas: senaraiDaripadaMedan(u.KelasDijaga), status: u.Status,
     mestiTukarPassword: String(u.MestiTukarPassword).toUpperCase() === 'YA'
-  }));
-  return jaya({ senarai });
+  })).sort((a, b) => String(a.nama).localeCompare(String(b.nama)));
+  return jaya(halamanKan(semua, p, u => u.nama + ' ' + u.nokp + ' ' + u.peranan + ' ' + u.kelas.join(' ')));
 }
 
-/* Senarai kelas (kunci + bilangan murid aktif) — untuk dropdown tetapan guru kelas / pilihan kelas. */
+/* Senarai kelas (kunci + bilangan murid aktif) yang boleh diakses pengguna. */
 function apiSenaraiKelas(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
-  const bil = {};
-  bacaSheetSebagaiObjek(SHEET_MURID).forEach(m => {
-    if (String(m.Status).toUpperCase() !== 'AKTIF') return;
-    bil[m.KunciKelas] = (bil[m.KunciKelas] || 0) + 1;
-  });
-  let kunci = Object.keys(bil).sort();
-  if (sesi.peranan !== ROLE_ADMIN) kunci = kunci.filter(k => sesi.kelas.indexOf(k) !== -1);
-  return jaya({ kelas: kunci.map(k => ({ kunci: k, nama: paparKelas(k), bilMurid: bil[k] })) });
+  return jaya({ kelas: senaraiKelasSesi(sesi) });
 }
 
 function apiSimpanPengguna(p) {
@@ -99,7 +92,7 @@ function apiPadamPengguna(p) {
     if (u.Peranan === ROLE_ADMIN && !semua.some(x => x.Peranan === ROLE_ADMIN && String(x.Status).toUpperCase() === 'AKTIF' && normalKP(x.NoKP) !== nokp)) {
       return ralat('Mesti ada sekurang-kurangnya satu Admin aktif.');
     }
-    padamBaris(SHEET_PENGGUNA, u.__row);
+    padamBaris(SHEET_PENGGUNA, u.__row, u.NoKP);
     catatAudit(sesi, 'PADAM', 'PENGGUNA', nokp, 'Padam pengguna: ' + u.NamaPenuh);
     return jaya({});
   });

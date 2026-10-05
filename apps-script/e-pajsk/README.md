@@ -45,6 +45,28 @@ Syarat: akaun Gmail yang men-*deploy* e-PAJSK mesti pemilik/editor/viewer Sheet 
 - Murid yang tiada lagi dalam e-Kokurikulum dilaporkan, **tidak dipadam**. Murid `TAMAT` tidak disentuh.
 - Data yang guru isi (jawatan, pelibatan, komitmen, kehadiran manual, dll.) **tidak ditimpa** oleh segerak.
 
+## Kemas kini langsung & prestasi
+
+**Segerak automatik (live) daripada e-Kokurikulum** — tiga lapisan, boleh digunakan serentak:
+1. **Pencetus masa** (Tetapan → *Segerak automatik* → *Simpan & pasang pencetus*, atau menu Sheet *5. Pasang Auto-Segerak*): setiap 1/5/10/15/30 minit sistem menyemak masa kemas kini fail e-Kokurikulum (panggilan Drive ringan) dan **hanya jika berubah** menjalankan segerak. Disyorkan 5 minit.
+2. **Semakan oleh pelayar**: setiap pengguna yang membuka sistem memanggil `apiVersi` (~45 saat) yang menjalankan semakan yang sama jika sudah tiba masanya — data kekal terkini walaupun pencetus tidak dipasang.
+3. **Skrin dimuat semula sendiri**: apabila versi data berubah, skrin terbuka dikemas kini senyap-senyap (titik hijau di bar atas = sambungan hidup). Jika borang sedang dibuka, banner "Data baharu tersedia" dipaparkan dan borang tidak diganggu.
+4. **Webhook ping (pilihan, hampir serta-merta)**: Tetapan → *Papar / jana URL ping*. Dalam skrip e-Kokurikulum, panggil URL itu selepas menyimpan kehadiran/pencapaian (perlukan skop `script.external_request` pada projek e-Kokurikulum):
+   ```js
+   function pingEPajsk() {
+     try { UrlFetchApp.fetch('SALIN_URL_PING_DARI_TETAPAN', { muteHttpExceptions: true }); } catch (e) {}
+   }
+   ```
+   URL dilindungi kunci rahsia dan dihadkan 1 kali / 20 saat. Tanpa webhook, kelewatan maksimum = selang pencetus.
+
+**Mengapa lebih laju:**
+- **Cache berversi** (`Utils.gs`): setiap Sheet dibaca sekali kemudian disimpan dalam CacheService (format kompak, dipecah kepada cebisan). Penulisan menampal cache (*write-through*) — menyimpan pentaksiran seorang murid tidak memaksa semua Sheet dibaca semula. Suntingan manual dalam Sheet ditangkap oleh `onEdit`; perubahan struktur: menu *Kosongkan Semua Cache*.
+- **Segerak delta**: data e-Kokurikulum dicache mengikut masa kemas kini fail; hanya rekod yang benar-benar berubah ditulis (segerak tanpa perubahan ≈ tiada bacaan/tulisan). Sheet kehadiran dibaca 4 lajur sahaja.
+- **Tulisan kelompok**: tulis banyak baris dengan beberapa panggilan sahaja (blok bersebelahan); pencarian baris hanya membaca lajur kunci. Tulisan ke baris dilindungi semakan kunci — jika baris beralih (cth. dipadam manual) tulisan dibatalkan, bukan merosakkan data.
+- **Satu panggilan permulaan** (`apiMula`) menggantikan 4 panggilan; navigasi menu tidak lagi memanggil pelayan untuk senarai kelas; data kelas dipaparkan serta-merta daripada memori kemudian disegarkan di latar (*stale-while-revalidate*); hanya operasi tulis menyekat skrin.
+- **Penomboran & carian di pelayan** untuk Murid, Pengguna, Log Audit dan Arkib (10/25/50/100 baris); log audit dibaca dari hujung Sheet sahaja.
+- **Kestabilan**: cuba semula automatik bagi ralat sementara Sheets/Drive (bacaan), mesej mesra jika sistem sibuk (kunci), jawapan lambat tidak menimpa yang terkini, kunci skrip untuk semua penulisan.
+
 ## Pengiraan (mengikut formula template)
 
 `Scoring.gs` (fungsi murni; disalin ke pelayar untuk pratonton, markah sah dikira semula di pelayan):
@@ -81,9 +103,9 @@ Fail arkib mengandungi nama & No. KP murid — kekal peribadi dalam Drive pemili
 
 1. Cipta **Google Sheet baharu** (cth. "DATA e-PAJSK SMK ASAJAYA") menggunakan akaun Gmail anda. Ini database — **jangan** guna Sheet e-Kokurikulum.
 2. **Extensions → Apps Script**. Cipta fail Script (nama tanpa `.gs`) untuk setiap fail `.gs` dalam folder ini, salin-tampal kandungan:
-   `Code`, `Config`, `Utils`, `Scoring`, `ReferensiLalai`, `TetapanService`, `AuditService`, `AuthService`, `UserService`, `KokoService`, `MuridService`, `PentaksiranService`, `LaporanService`, `ArkibService`.
+   `Code`, `Config`, `Utils`, `Scoring`, `ReferensiLalai`, `TetapanService`, `AuditService`, `AuthService`, `UserService`, `KokoService`, `MuridService`, `PentaksiranService`, `LaporanService`, `ArkibService`, `LiveService`.
 3. Cipta fail HTML bernama **Index**, salin-tampal `Index.html`.
-4. **Project Settings → Show "appsscript.json"**, salin-tampal `appsscript.json` (skop: `spreadsheets`, `drive`).
+4. **Project Settings → Show "appsscript.json"**, salin-tampal `appsscript.json` (skop: `spreadsheets`, `drive`, `script.scriptapp` — yang terakhir diperlukan untuk pencetus auto-segerak; selepas menampal, buat **New version** dan benarkan skop baharu).
 5. Refresh Sheet → menu **Sistem e-PAJSK → 1. Sediakan Sistem**; benarkan kebenaran (OAuth). Isi **No. KP & nama Admin pertama** apabila diminta. (Menu *2. Tambah / Pulihkan Admin* boleh digunakan kemudian.)
 6. **Deploy → New deployment → Web app**: *Execute as* **Me**, *Who has access* **Anyone**. Salin URL `/exec`.
 7. Buka URL, log masuk (kata laluan = 6 digit terakhir No. KP, kemudian tukar).
@@ -100,6 +122,7 @@ Lajur No. KP diformat teks (sistem juga melapik sifar di hadapan jika No. KP ter
 
 ## Had & nota
 - Satu Apps Script menjalankan satu penulisan pada satu masa (`LockService`); segerak semua (~1,000 murid) mengambil beberapa saat–puluhan saat.
-- Cache rujukan skor 5 minit.
+- Cache data 30 minit (dinaikkan versi serta-merta apabila ditulis); untuk data lapuk akibat pengubahsuaian struktur Sheet gunakan menu *Kosongkan Semua Cache*.
+- Cold start Apps Script (permintaan pertama selepas lama tidak digunakan) mengambil 1–3 saat — had platform.
 - Cetakan slip/rumusan menggunakan *Print* pelayar (pilih *Save as PDF* untuk PDF).
 - Tiada notifikasi e-mel dan tiada portal murid (di luar skop: hanya Admin & Guru Kelas).

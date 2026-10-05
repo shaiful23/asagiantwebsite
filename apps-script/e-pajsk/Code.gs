@@ -19,7 +19,8 @@ function onOpen() {
     .addItem('1. Sediakan Sistem (Jalankan Sekali)', 'sediakanSistemEPAJSK')
     .addItem('2. Tambah / Pulihkan Admin', 'tambahAdminMelaluiMenu')
     .addItem('3. Kira Semula Semua Markah', 'kiraSemulaMelaluiMenu')
-    .addItem('4. Kosongkan Cache Rujukan', 'kosongkanCacheMelaluiMenu')
+    .addItem('4. Kosongkan Semua Cache', 'kosongkanCacheMelaluiMenu')
+    .addItem('5. Pasang Auto-Segerak e-Kokurikulum', 'pasangPencetusAutoMelaluiMenu')
     .addToUi();
 }
 
@@ -50,6 +51,7 @@ function sediakanSistemEPAJSK() {
 
   const lalai = ss.getSheetByName('Sheet1') || ss.getSheetByName('Sheet 1');
   if (lalai && ss.getSheets().length > 1 && lalai.getLastRow() === 0) ss.deleteSheet(lalai);
+  [SHEET_PENGGUNA, SHEET_MURID, SHEET_ASPEK, SHEET_EKSTRA, SHEET_RUMUSAN, SHEET_REFERENSI, SHEET_TETAPAN, SHEET_ARKIB].forEach(tandaKotor);
   kosongkanCacheRujukan();
 
   const ui = SpreadsheetApp.getUi();
@@ -91,16 +93,24 @@ function tambahAdminMelaluiMenu() {
 function kiraSemulaMelaluiMenu() {
   const ui = SpreadsheetApp.getUi();
   const hasil = denganKunci(() => kiraSemulaSemua(null));
+  if (hasil.success === false) { ui.alert(hasil.message); return; }
   ui.alert('Siap. ' + hasil.murid + ' murid dikira semula menggunakan jadual REFERENSI semasa.');
 }
 
 function kosongkanCacheMelaluiMenu() {
-  kosongkanCacheRujukan();
-  SpreadsheetApp.getUi().alert('Cache jadual rujukan dikosongkan. Perubahan pada Sheet REFERENSI akan digunakan serta-merta.');
+  [SHEET_PENGGUNA, SHEET_MURID, SHEET_ASPEK, SHEET_EKSTRA, SHEET_RUMUSAN, SHEET_REFERENSI, SHEET_TETAPAN, SHEET_ARKIB].forEach(tandaKotor);
+  SpreadsheetApp.getUi().alert('Semua cache data dikosongkan. Data akan dibaca semula daripada Sheet pada permintaan seterusnya.');
+}
+
+/* Trigger ringkas: suntingan MANUAL dalam Sheet menaikkan versi cache Sheet berkenaan supaya sistem
+   tidak memaparkan data lapuk. (Perubahan oleh sistem sendiri sudah menaikkan versi secara automatik.) */
+function onEdit(e) {
+  try { tandaKotor(e.range.getSheet().getName()); } catch (x) { /* abaikan */ }
 }
 
 /* ============================== doGet ================================ */
 function doGet(e) {
+  if (e && e.parameter && e.parameter.aksi === 'ping') return balasPing(e.parameter);
   const tpl = HtmlService.createTemplateFromFile('Index');
   tpl.kodKiraan = kodKiraanUntukKlien();
   return tpl.evaluate()

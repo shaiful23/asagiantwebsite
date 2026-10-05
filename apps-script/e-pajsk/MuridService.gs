@@ -92,53 +92,65 @@ function sesiBolehKelas(sesi, kelas) {
 }
 
 /* ------------------------- SEGERAK DARIPADA e-KOKURIKULUM ------------------------- */
-function laksanakanSegerak(kunciKelas) {
+/* Segerak "delta": data e-Kokurikulum dibaca melalui cache berasaskan masa kemas kini fail; hanya baris yang
+   BENAR-BENAR berubah ditulis ke Sheet (menjimatkan masa dan tidak menaikkan versi data tanpa sebab).
+   MESTI dipanggil dalam denganKunci(). */
+function laksanakanSegerak(kunciKelas, paksa) {
   const tahun = tahunSemasa();
   const ref = muatRujukan();
-  const koko = bacaMuridKoko();
-  const hadir = bacaKehadiranKoko(tahun);
+  const koko = bacaKokoRingkas(tahun, !!paksa);
+  const hadir = { kira: koko.kira, amaran: koko.amaran || [] };
 
   const sediaAda = {};
   bacaSheetSebagaiObjek(SHEET_MURID).forEach(m => { sediaAda[normalKP(m.NoKP)] = m; });
+  const aspekMap = {}, ekstraMap = {}, rumusanAda = {};
+  bacaSheetSebagaiObjek(SHEET_ASPEK).forEach(r => { aspekMap[r.Kunci] = r; });
+  bacaSheetSebagaiObjek(SHEET_EKSTRA).forEach(r => { ekstraMap[normalKP(r.NoKP)] = r; });
+  bacaSheetSebagaiObjek(SHEET_RUMUSAN).forEach(r => { rumusanAda[normalKP(r.NoKP)] = true; });
 
-  const laporan = { baharu: 0, dikemaskini: 0, kelasBerubah: 0, tingkatanBeza: [], tiadaDiKoko: 0, amaran: hadir.amaran.slice() };
+  const laporan = { baharu: 0, dikemaskini: 0, kelasBerubah: 0, tingkatanBeza: [], tiadaDiKoko: 0, amaran: hadir.amaran.slice(), diubah: 0, dariCache: !!koko.dariCache };
   const kokoMap = {};
   const muridUbah = [];
+  const proses = [];     // murid (objek akhir) dalam skop, untuk semakan aspek/rumusan
   const masa = sekarangTeks();
 
-  koko.forEach(k => {
+  koko.murid.forEach(k => {
     kokoMap[k.nokp] = k;
     const sedia = sediaAda[k.nokp];
     if (kunciKelas && !(k.kunciKelas === kunciKelas || (sedia && sedia.KunciKelas === kunciKelas))) return;
     if (sedia && String(sedia.Status).toUpperCase() === 'TAMAT') return;
-    let obj;
+    let obj, berubah = false;
     if (!sedia) {
       obj = {
         NoKP: k.nokp, Nama: k.nama, Jantina: jantinaDaripadaKP(k.nokp), Tingkatan: k.tingkatan, Kelas: k.kelas,
         KunciKelas: k.kunciKelas, CGPA_Sebelum: '', SejarahCGPA: '', Status: 'AKTIF', PerluSemak: '', TahunTamat: ''
       };
+      SEMUA_ASPEK.forEach(a => { obj[a + '_Unit'] = k.unit[a]; });
+      obj.SegerakTerakhir = masa;
       laporan.baharu++;
+      berubah = true;
     } else {
       obj = Object.assign({}, sedia);
       obj.NoKP = k.nokp;
-      obj.Nama = k.nama;
-      if (!obj.Jantina) obj.Jantina = jantinaDaripadaKP(k.nokp);
+      const tetapkan = (medan, nilai) => { if (String(obj[medan] === undefined ? '' : obj[medan]) !== String(nilai)) { obj[medan] = nilai; berubah = true; } };
+      tetapkan('Nama', k.nama);
+      if (!obj.Jantina) tetapkan('Jantina', jantinaDaripadaKP(k.nokp));
       if (nomborTingkatan(sedia.Tingkatan) === k.tingkatan) {
         if (sedia.Kelas !== k.kelas) laporan.kelasBerubah++;
-        obj.Kelas = k.kelas;
-        obj.KunciKelas = k.kunciKelas;
-        obj.PerluSemak = '';
+        tetapkan('Kelas', k.kelas);
+        tetapkan('KunciKelas', k.kunciKelas);
+        tetapkan('PerluSemak', '');
       } else {
         laporan.tingkatanBeza.push(k.nama + ' (PAJSK: T' + sedia.Tingkatan + ', e-Koko: T' + k.tingkatan + ')');
       }
+      SEMUA_ASPEK.forEach(a => tetapkan(a + '_Unit', k.unit[a]));
+      if (berubah) obj.SegerakTerakhir = masa;
       laporan.dikemaskini++;
     }
-    SEMUA_ASPEK.forEach(a => { obj[a + '_Unit'] = k.unit[a]; });
-    obj.SegerakTerakhir = masa;
-    muridUbah.push(obj);
+    if (berubah) muridUbah.push(obj);
+    proses.push(obj);
   });
 
-  // Murid aktif dalam skop yang tiada lagi dalam e-Kokurikulum (pindah / tamat) — dilapor sahaja, tidak dipadam.
   Object.keys(sediaAda).forEach(kp => {
     const m = sediaAda[kp];
     if (String(m.Status).toUpperCase() !== 'AKTIF' || kokoMap[kp]) return;
@@ -146,36 +158,46 @@ function laksanakanSegerak(kunciKelas) {
     laporan.tiadaDiKoko++;
   });
 
-  upsertBanyak(SHEET_MURID, 'NoKP', muridUbah);
-
-  // Kemaskini baris ASPEK (unit, kehadiran auto, jawatan jika diisi di e-Kokurikulum) + RUMUSAN.
-  const konteksSemua = muatKonteks(null);
-  const aspekMap = konteksSemua.aspekMap, ekstraMap = konteksSemua.ekstraMap;
+  // ASPEK (unit, kehadiran auto, jawatan e-Kokurikulum jika diisi) — tulis hanya yang berubah; RUMUSAN bagi yang terjejas.
   const aspekUbah = [], rumusanUbah = [];
-  muridUbah.forEach(m => {
+  const muridUbahSet = {};
+  muridUbah.forEach(m => { muridUbahSet[m.NoKP] = true; });
+  proses.forEach(m => {
     const k = kokoMap[m.NoKP];
+    let aspekBerubah = false;
     SEMUA_ASPEK.forEach(a => {
       const unit = m[a + '_Unit'];
       const kunci = kunciAspek(m.NoKP, a);
       let rec = aspekMap[kunci];
       const jawKoko = k && k.jawatan[a] && ref.peta.JAWATAN[k.jawatan[a]] !== undefined ? k.jawatan[a] : '';
       if (!rec && !unit && !jawKoko) return;
-      if (!rec) { rec = aspekKosong(m.NoKP, a, unit); aspekMap[kunci] = rec; }
+      const hadirAuto = Math.min(KEHADIRAN_MAKSIMUM, hadir.kira[a][m.NoKP] || 0);
+      const baharu = !rec;
+      if (baharu) { rec = aspekKosong(m.NoKP, a, unit); aspekMap[kunci] = rec; }
+      const sebelum = [rec.Unit, rec.Jawatan, rec.KehadiranAuto].join('|');
       rec.Unit = unit || rec.Unit;
       if (!rec.Jawatan && jawKoko) rec.Jawatan = jawKoko;
-      rec.KehadiranAuto = Math.min(KEHADIRAN_MAKSIMUM, hadir.kira[a][m.NoKP] || 0);
-      rec.Dikemaskini = masa;
-      kiraSemulaAspek(rec, ref);
-      aspekUbah.push(rec);
+      rec.KehadiranAuto = hadirAuto;
+      if (baharu || sebelum !== [rec.Unit, rec.Jawatan, rec.KehadiranAuto].join('|')) {
+        rec.Dikemaskini = masa;
+        kiraSemulaAspek(rec, ref);
+        aspekUbah.push(rec);
+        aspekBerubah = true;
+      }
     });
-    rumusanUbah.push(binaRumusan(m, aspekMap, ekstraMap, ref));
+    if (aspekBerubah || muridUbahSet[m.NoKP] || !rumusanAda[m.NoKP]) {
+      rumusanUbah.push(binaRumusan(m, aspekMap, ekstraMap, ref));
+    }
   });
+
+  upsertBanyak(SHEET_MURID, 'NoKP', muridUbah);
   upsertBanyak(SHEET_ASPEK, 'Kunci', aspekUbah);
   upsertBanyak(SHEET_RUMUSAN, 'NoKP', rumusanUbah);
-  tulisTetapan('SEGERAK_KOKO_TERAKHIR', masa);
 
-  laporan.jumlahDiproses = muridUbah.length;
+  laporan.diubah = muridUbah.length + aspekUbah.length + rumusanUbah.length;
+  laporan.jumlahDiproses = proses.length;
   laporan.masa = masa;
+  laporan.ts = koko.ts;
   return laporan;
 }
 
@@ -188,14 +210,18 @@ function apiSegerakKoko(p) {
   } else if (sesi.peranan !== ROLE_ADMIN) {
     return ralat('Hanya Admin boleh menyegerak semua kelas.');
   }
-  try {
-    const laporan = denganKunci(() => laksanakanSegerak(kelas || null));
-    catatAudit(sesi, 'SEGERAK_KOKO', 'MURID', kelas || 'SEMUA',
-      laporan.jumlahDiproses + ' murid; baharu ' + laporan.baharu + ', kelas berubah ' + laporan.kelasBerubah);
-    return jaya({ laporan });
-  } catch (e) {
-    return ralat(e.message);
-  }
+  const paksa = sesi.peranan === ROLE_ADMIN && !!p.paksa;
+  const hasil = denganKunci(() => {
+    const laporan = laksanakanSegerak(kelas || null, paksa);
+    if (laporan.diubah || paksa) tulisTetapan('SEGERAK_KOKO_TERAKHIR', laporan.masa);
+    if (!kelas && laporan.ts) tulisTetapan('KOKO_TS_TERAKHIR', String(laporan.ts));   // segerak penuh sahaja menandakan fail sudah diproses
+    if (laporan.diubah || paksa) {
+      catatAudit(sesi, 'SEGERAK_KOKO', 'MURID', kelas || 'SEMUA',
+        laporan.jumlahDiproses + ' murid; ' + laporan.diubah + ' rekod berubah; baharu ' + laporan.baharu + ', kelas berubah ' + laporan.kelasBerubah);
+    }
+    return jaya({ laporan, versi: versiData() });
+  });
+  return hasil;
 }
 
 /* ------------------------- PENGURUSAN MURID (Admin) ------------------------- */
@@ -203,16 +229,19 @@ function apiSenaraiMurid(p) {
   const sesi = wajibPeranan(p.token, [ROLE_ADMIN]);
   if (sesi.success === false) return sesi;
   const status = String(p.status || 'AKTIF').toUpperCase();
-  const senarai = bacaSheetSebagaiObjek(SHEET_MURID)
+  const semuaMurid = bacaSheetSebagaiObjek(SHEET_MURID);
+  const senarai = semuaMurid
     .filter(m => status === 'SEMUA' || String(m.Status).toUpperCase() === status)
     .filter(m => !p.kelas || m.KunciKelas === p.kelas)
+    .sort((a, b) => String(a.KunciKelas).localeCompare(String(b.KunciKelas)) || String(a.Nama).localeCompare(String(b.Nama)))
     .map(m => ({
       nokp: normalKP(m.NoKP), nama: m.Nama, tingkatan: m.Tingkatan, kelas: m.Kelas, kunciKelas: m.KunciKelas,
       cgpaSebelum: m.CGPA_Sebelum, sejarah: m.SejarahCGPA, pbb: m.PBB_Unit, kp: m.KP_Unit, sp: m.SP_Unit,
       status: m.Status, perluSemak: m.PerluSemak, tahunTamat: m.TahunTamat
     }));
-  const bilPerluSemak = bacaSheetSebagaiObjek(SHEET_MURID).filter(m => String(m.Status).toUpperCase() === 'AKTIF' && m.PerluSemak === 'YA').length;
-  return jaya({ senarai, bilPerluSemak, segerakTerakhir: dapatTetapan('SEGERAK_KOKO_TERAKHIR') });
+  const bilPerluSemak = semuaMurid.filter(m => String(m.Status).toUpperCase() === 'AKTIF' && m.PerluSemak === 'YA').length;
+  return jaya(Object.assign(halamanKan(senarai, p, m => m.nama + ' ' + m.nokp + ' ' + m.kunciKelas + ' ' + m.pbb + ' ' + m.kp + ' ' + m.sp),
+    { bilPerluSemak, segerakTerakhir: dapatTetapan('SEGERAK_KOKO_TERAKHIR') }));
 }
 
 function apiSimpanMurid(p) {
