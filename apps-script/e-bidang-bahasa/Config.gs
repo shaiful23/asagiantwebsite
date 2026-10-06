@@ -37,8 +37,9 @@ const PERANAN_AKSES_PENUH = [ROLE_ADMIN, ROLE_KETUA_BIDANG];
 const PERANAN_URUS_PANITIA = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_KETUA_PANITIA];
 
 /* ------------------------- PANITIA BIDANG BAHASA ------------------------- */
-// Ubah senarai ini mengikut panitia bahasa sebenar di sekolah SEBELUM menjalankan
-// "1. Sediakan Sistem" (baris Sheet PANITIA dicipta daripada senarai ini).
+// Ubah senarai ini mengikut panitia bahasa sebenar di sekolah. Frontend (Index.html) membaca
+// senarai ini terus daripada pelayan. Jika diubah SELEPAS "1. Sediakan Sistem", jalankan
+// menu "4. Selaraskan Senarai Panitia" supaya Sheet PANITIA turut dikemaskini.
 const SENARAI_PANITIA = ['Bahasa Melayu', 'Bahasa Inggeris', 'Bahasa Cina', 'Bahasa Iban', 'Bahasa Arab'];
 
 // Skop khusus bagi Perancangan Strategik/Taktikal/Operasi & Carta Gantt yang

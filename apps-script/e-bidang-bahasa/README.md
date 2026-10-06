@@ -17,9 +17,15 @@ Kerangka & fungsi **sama** seperti Sistem E-Bidang Sains & Matematik
   lajur `USERS.MakmalDijaga`.
 
 **Senarai panitia boleh diubah** — sunting `SENARAI_PANITIA` dalam
-`Config.gs` **dan** dalam `Index.html` (kedua-dua mesti sama) SEBELUM
-menjalankan "1. Sediakan Sistem" (cth. tambah `'Kesusasteraan Melayu'`,
-`'Literature in English'`, `'Bahasa Tamil'`).
+`Config.gs` **sahaja** (cth. tambah `'Kesusasteraan Melayu Komunikatif'`,
+`'Literature in English'`, `'Bahasa Tamil'`). `Index.html` membaca senarai ini
+terus daripada pelayan, jadi semua tab (Fail & Dokumen, Mesyuarat, Tindakan
+Susulan, Program & PLC, Perancangan Strategik, Pencerapan & Semakan, Pengguna)
+ikut serta-merta. Jika diubah **selepas** "1. Sediakan Sistem", jalankan
+**Sistem E-Bidang → 4. Selaraskan Senarai Panitia** supaya Sheet `PANITIA`
+turut dikemaskini (panitia baharu ditambah; panitia yang dibuang ditanda
+`TIDAK_AKTIF`, bukan dipadam), kemudian tetapkan Ketua Panitia baharu di menu
+Panitia dan kemaskini Panitia setiap guru di menu Pengguna jika perlu.
 
 ## Ciri Utama
 
