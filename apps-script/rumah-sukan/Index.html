@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Rumah Sukan SMK Asajaya</title>
+  <style>
+    :root {
+      --biru: #1d4ed8; --biru-gelap: #1e3a8a; --merah: #b91c1c; --merah-terang: #dc2626; --kuning: #facc15; --kuning-gelap: #a16207;
+      --hijau: #15803d; --kelabu: #64748b; --latar: #f1f5f9; --kad: #ffffff; --sempadan: #e2e8f0; --teks: #0f172a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: var(--latar); color: var(--teks); -webkit-font-smoothing: antialiased; }
+    button { cursor: pointer; font-family: inherit; }
+    input, select, textarea { font-family: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--sempadan); border-radius: 6px; width: 100%; background: #fff; color: var(--teks); }
+    input[type=checkbox], input[type=radio] { width: auto; }
+    input[type=color] { padding: 2px; height: 36px; width: 52px; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--biru); box-shadow: 0 0 0 3px rgba(29,78,216,.14); }
+    button:focus-visible, a:focus-visible { outline: 2px solid var(--biru); outline-offset: 2px; border-radius: 4px; }
+    .hidden { display: none !important; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 7px; padding: 8px 14px; font-size: 14px; font-weight: 600; background: var(--biru); color: #fff; }
+    .btn:hover { background: var(--biru-gelap); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn.kecil { padding: 5px 10px; font-size: 12px; }
+    .btn.merah { background: var(--merah); } .btn.merah:hover { background: #7f1d1d; }
+    .btn.hijau { background: var(--hijau); } .btn.hijau:hover { background: #166534; }
+    .btn.kelabu { background: var(--kelabu); } .btn.kelabu:hover { background: #475569; }
+    .btn.luar { background: #fff; color: var(--biru); border: 1px solid var(--sempadan); } .btn.luar:hover { background: #eff6ff; border-color: var(--biru); }
+
+    /* Log masuk */
+    .skrin-tengah { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
+      background: linear-gradient(160deg, var(--biru-gelap) 0%, #1e40af 45%, var(--merah) 100%); }
+    .kad-login { background: #fff; padding: 28px 26px; border-radius: 16px; width: 380px; max-width: 100%; box-shadow: 0 20px 45px rgba(2,6,23,.35); border-top: 6px solid var(--kuning); }
+    .kad-login h1 { font-size: 19px; margin: 0 0 4px; color: var(--biru-gelap); text-align: center; }
+    .kad-login p.sub { margin: 0 0 16px; font-size: 13px; color: var(--kelabu); text-align: center; }
+    .logo { display: block; margin: 0 auto 10px; width: 92px; height: auto; }
+    .medan { margin-bottom: 13px; }
+    .medan label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 4px; color: #334155; }
+    .ralat-login { color: var(--merah); font-size: 13px; margin-top: 10px; min-height: 16px; }
+    .nota { font-size: 12px; color: var(--kelabu); margin-top: 6px; }
+    .tab-portal { display: grid; grid-template-columns: 1fr 1fr; background: #f1f5f9; border-radius: 10px; padding: 4px; margin-bottom: 16px; }
+    .tab-portal button { border: none; background: none; padding: 9px 6px; border-radius: 8px; font-weight: 600; font-size: 13px; color: var(--kelabu); }
+    .tab-portal button.aktif { background: #fff; color: var(--biru-gelap); box-shadow: 0 1px 3px rgba(15,23,42,.15); }
+
+    /* Rangka aplikasi */
+    #aplikasi { display: flex; min-height: 100vh; }
+    #bilahSisi { width: 236px; background: linear-gradient(180deg, var(--biru-gelap), #172554); color: #fff; flex-shrink: 0; padding: 14px 0; }
+    #bilahSisi .jenama { padding: 0 16px 14px; display: flex; gap: 10px; align-items: center; border-bottom: 1px solid rgba(255,255,255,.15); margin-bottom: 6px; }
+    #bilahSisi .jenama img { width: 42px; height: auto; }
+    #bilahSisi .jenama div { font-weight: 700; font-size: 13.5px; line-height: 1.25; }
+    #bilahSisi .jenama small { display: block; font-weight: 400; color: #bfdbfe; font-size: 11.5px; }
+    .label-nav { padding: 12px 18px 4px; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: #93c5fd; }
+    .item-nav { display: block; width: 100%; text-align: left; background: none; border: none; border-left: 3px solid transparent; padding: 10px 18px; color: #cbd5e1; font-size: 14px; }
+    .item-nav:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .item-nav.aktif { background: rgba(255,255,255,.12); color: #fff; border-left-color: var(--kuning); font-weight: 600; }
+    #kawasanUtama { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    #barAtas { background: #fff; border-bottom: 1px solid var(--sempadan); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; position: sticky; top: 0; z-index: 20; }
+    #barAtas .info { font-size: 13px; color: var(--kelabu); } #barAtas .info b { color: var(--teks); }
+    #kandungan { padding: 20px; }
+
+    .kad { background: var(--kad); border: 1px solid var(--sempadan); border-radius: 12px; padding: 18px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(15,23,42,.05); }
+    .kad h3 { margin: 0 0 12px; font-size: 15px; color: var(--biru-gelap); }
+    h2.tajuk { margin: 0 0 4px; font-size: 20px; color: var(--biru-gelap); }
+    p.subtajuk { margin: 0 0 16px; color: var(--kelabu); font-size: 13px; }
+    .grid-kad { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .stat { background: #fff; border: 1px solid var(--sempadan); border-radius: 12px; padding: 14px 16px; }
+    .stat .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; color: var(--kelabu); }
+    .stat .nilai { font-size: 26px; font-weight: 700; color: var(--biru-gelap); margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .stat.amaran .nilai { color: var(--merah); }
+    .kad-rumah { background: #fff; border: 1px solid var(--sempadan); border-radius: 12px; overflow: hidden; }
+    .kad-rumah .kepala { padding: 12px 14px; color: #fff; font-weight: 700; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .kad-rumah .badan { padding: 12px 14px; font-size: 13px; }
+    .kad-rumah .baris { display: flex; justify-content: space-between; padding: 3px 0; }
+    .kad-rumah .baris span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--sempadan); vertical-align: middle; }
+    th { background: #f8fafc; font-size: 11.5px; text-transform: uppercase; color: var(--kelabu); white-space: nowrap; }
+    tr:hover td { background: #f8fafc; }
+    td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+    td.c, th.c { text-align: center; }
+    td select, td input { padding: 5px 7px; font-size: 13px; }
+    tr.berubah td { background: #fffbeb !important; }
+    .jadual-skrol { overflow-x: auto; }
+    .lencana { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #e2e8f0; color: #334155; white-space: nowrap; }
+    .lencana.hijau { background: #dcfce7; color: var(--hijau); } .lencana.merah { background: #fee2e2; color: var(--merah); }
+    .lencana.kuning { background: #fef3c7; color: var(--kuning-gelap); } .lencana.biru { background: #dbeafe; color: #1e40af; }
+    .titik { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; border: 1px solid rgba(0,0,0,.15); }
+    .baris-alat { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .baris-alat select, .baris-alat input { width: auto; min-width: 130px; }
+    .baris-alat .rapat { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .amaran-kotak { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+    .info-kotak { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+    .jaya-kotak { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+    .kosong { color: var(--kelabu); text-align: center; padding: 24px; font-size: 13px; }
+
+    .latar-modal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: flex; align-items: flex-start; justify-content: center; z-index: 50; overflow-y: auto; padding: 24px 12px; }
+    .kad-modal { background: #fff; border-radius: 12px; width: min(860px, 100%); padding: 20px; }
+    .kad-modal.kecil { width: min(520px, 100%); }
+    .kad-modal h3 { margin: 0 0 12px; color: var(--biru-gelap); }
+    .grid-borang { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-borang .penuh { grid-column: 1 / -1; }
+    .grid-borang .medan { margin-bottom: 0; }
+    .aksi-modal { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+    .tab-bar { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 1px solid var(--sempadan); margin-bottom: 14px; }
+    .tab-bar button { background: none; border: none; padding: 9px 13px; font-size: 13px; font-weight: 600; color: var(--kelabu); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .tab-bar button.aktif { color: var(--biru); border-bottom-color: var(--biru); }
+    .semak { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px dashed var(--sempadan); }
+    .semak:last-child { border-bottom: none; }
+    .semak input { margin-top: 3px; width: 17px; height: 17px; flex-shrink: 0; }
+    .semak b { display: block; font-size: 14px; } .semak span { font-size: 12.5px; color: var(--kelabu); }
+    .senarai-semak { max-height: 340px; overflow-y: auto; border: 1px solid var(--sempadan); border-radius: 8px; padding: 6px 10px; }
+    .senarai-semak label { display: flex; gap: 8px; align-items: center; padding: 5px 0; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+    .pager { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 2px 0; font-size: 13px; color: var(--kelabu); }
+    .pager div { display: flex; gap: 6px; }
+    .ralat-senarai { max-height: 180px; overflow-y: auto; font-size: 12.5px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 8px 12px; color: #991b1b; }
+    .rumah-besar { border-radius: 16px; color: #fff; padding: 22px; margin-bottom: 18px; position: relative; overflow: hidden; }
+    .rumah-besar .kecil { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; opacity: .9; }
+    .rumah-besar .nama { font-size: 34px; font-weight: 800; letter-spacing: .02em; margin: 4px 0; text-shadow: 0 2px 6px rgba(0,0,0,.25); }
+    .rumah-besar .moto { font-style: italic; opacity: .95; }
+    .grid-dua { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    dl.profil { display: grid; grid-template-columns: 130px 1fr; gap: 6px 10px; margin: 0; font-size: 13.5px; }
+    dl.profil dt { color: var(--kelabu); } dl.profil dd { margin: 0; font-weight: 600; }
+
+    #kontainerToast { position: fixed; top: 14px; right: 14px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 10px 16px; border-radius: 8px; color: #fff; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,.2); max-width: 360px; }
+    .toast.jaya { background: var(--hijau); } .toast.gagal { background: var(--merah); } .toast.info { background: var(--biru); }
+    #selimutSibuk { position: fixed; inset: 0; background: rgba(255,255,255,.6); z-index: 90; display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--biru-gelap); }
+
+    @media (max-width: 860px) {
+      #aplikasi { flex-direction: column; }
+      #bilahSisi { width: 100%; display: flex; overflow-x: auto; padding: 8px; align-items: center; }
+      #bilahSisi .jenama { border: none; margin: 0 6px 0 0; padding: 0 8px 0 4px; white-space: nowrap; }
+      #bilahSisi .jenama small, .label-nav { display: none; }
+      #menuNav { display: flex; }
+      .item-nav { width: auto; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; padding: 8px 11px; }
+      .item-nav.aktif { border-bottom-color: var(--kuning); }
+      .grid-borang, .grid-dua { grid-template-columns: 1fr; }
+      #kandungan { padding: 12px; }
+    }
+    @media print {
+      #bilahSisi, #barAtas, .baris-alat, .tiada-cetak, #kontainerToast { display: none !important; }
+      #kandungan { padding: 0; } .kad { border: none; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ======================= LOG MASUK ======================= -->
+<div id="skrinLogin" class="skrin-tengah">
+  <form class="kad-login" id="borangLogin" autocomplete="on">
+    <img class="logo" alt="Logo SMK Asajaya" src="<?!= logoSrc ?>">
+    <h1>Sistem Pengurusan Rumah Sukan</h1>
+    <p class="sub">SMK Asajaya</p>
+    <div class="tab-portal" role="tablist">
+      <button type="button" data-portal="STAF" role="tab">Portal Guru &amp; Staf</button>
+      <button type="button" data-portal="MURID" role="tab">Portal Murid</button>
+    </div>
+    <div class="medan"><label for="lgKP">No. Kad Pengenalan</label><input id="lgKP" inputmode="numeric" autocomplete="username" placeholder="12 digit, tanpa tanda &quot;-&quot;" required></div>
+    <div class="medan"><label for="lgKW">Kata Laluan</label><input id="lgKW" type="password" autocomplete="current-password" required>
+      <div class="nota">Log masuk kali pertama: 6 digit terakhir No. KP anda.</div></div>
+    <button class="btn" style="width:100%;justify-content:center" type="submit" id="btnLogin">Log Masuk</button>
+    <div class="ralat-login" id="ralatLogin" role="alert"></div>
+  </form>
+</div>
+
+<!-- ======================= TUKAR KATA LALUAN (PAKSA) ======================= -->
+<div id="skrinTukar" class="skrin-tengah hidden">
+  <form class="kad-login" id="borangTukar">
+    <h1>Tukar Kata Laluan</h1>
+    <p class="sub">Ini log masuk pertama anda (atau kata laluan telah di-set semula). Sila tetapkan kata laluan baharu sebelum meneruskan.</p>
+    <div class="medan"><label for="tkLama">Kata laluan semasa</label><input id="tkLama" type="password" autocomplete="current-password" required></div>
+    <div class="medan"><label for="tkBaru">Kata laluan baharu (min. 6 aksara)</label><input id="tkBaru" type="password" autocomplete="new-password" minlength="6" required></div>
+    <div class="medan"><label for="tkSah">Sahkan kata laluan baharu</label><input id="tkSah" type="password" autocomplete="new-password" minlength="6" required></div>
+    <button class="btn" style="width:100%;justify-content:center" type="submit">Simpan &amp; Teruskan</button>
+    <button class="btn luar" style="width:100%;justify-content:center;margin-top:8px" type="button" id="btnTukarKeluar">Log Keluar</button>
+    <div class="ralat-login" id="ralatTukar" role="alert"></div>
+  </form>
+</div>
+
+<!-- ======================= APLIKASI ======================= -->
+<div id="aplikasi" class="hidden">
+  <nav id="bilahSisi" aria-label="Menu utama">
+    <div class="jenama"><img alt="" src="<?!= logoSrc ?>"><div>Rumah Sukan<small id="labelPortal">SMK Asajaya</small></div></div>
+    <div id="menuNav"></div>
+  </nav>
+  <div id="kawasanUtama">
+    <header id="barAtas">
+      <div class="info" id="infoPengguna"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn luar kecil" id="btnTukarKW">Tukar Kata Laluan</button>
+        <button class="btn kelabu kecil" id="btnLogout">Log Keluar</button>
+      </div>
+    </header>
+    <main id="kandungan"></main>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="kontainerToast"></div>
+<div id="selimutSibuk" class="hidden">Sila tunggu…</div>
+
+<script>
+/* =========================================================================
+ * Skrip klien SPA Sistem Rumah Sukan. Semua panggilan pelayan melalui
+ * google.script.run; kebenaran disahkan semula di pelayan setiap panggilan.
+ * ========================================================================= */
+var S = { token: null, user: null, portal: '<?= portalAwal ?>', tet: null, halaman: '', data: {}, ubah: {} };
+var NAMA_PERANAN_RUMAH = { KETUA_GURU_RUMAH: 'Ketua Guru Rumah', PENOLONG_KETUA_GURU_RUMAH: 'Penolong Ketua Guru Rumah', GURU_RUMAH: 'Guru Rumah' };
+var NAMA_PERANAN_AJK = { KETUA_AJK: 'Ketua AJK', AHLI_AJK: 'Ahli AJK' };
+
+/* ---------- Utiliti ---------- */
+function e(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function $(id) { return document.getElementById(id); }
+function nilaiEl(id) { var el = $(id); return el ? el.value : ''; }
+function semakEl(id) { var el = $(id); return !!(el && el.checked); }
+function kandungan(html) { $('kandungan').innerHTML = html; }
+function kpPapar(kp) { kp = String(kp || ''); return kp.length === 12 ? kp.slice(0, 6) + '-' + kp.slice(6, 8) + '-' + kp.slice(8) : kp; }
+function jantinaPendek(j) { return j === 'PEREMPUAN' ? 'P' : (j === 'LELAKI' ? 'L' : '-'); }
+function warnaTeks(hex) {
+  var h = String(hex || '#64748b').replace('#', '');
+  var r = parseInt(h.substr(0, 2), 16), g = parseInt(h.substr(2, 2), 16), b = parseInt(h.substr(4, 2), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 165 ? '#0f172a' : '#ffffff';
+}
+function lencanaRumah(r) {
+  if (!r) return '<span class="lencana">Belum ditetapkan</span>';
+  return '<span class="lencana" style="background:' + e(r.warna) + ';color:' + warnaTeks(r.warna) + '">' + e(r.nama) + '</span>';
+}
+function rumahIkutId(id) { return (S.tet && S.tet.rumah || []).filter(function (r) { return r.id === id; })[0] || null; }
+function namaKategori(kod) { var k = (S.tet && S.tet.kategori.senarai || []).filter(function (x) { return x.kod === kod; })[0]; return k ? k.nama : (kod || '-'); }
+function pilihan(senarai, dipilih, labelKosong) {
+  var h = labelKosong !== undefined ? '<option value="">' + e(labelKosong) + '</option>' : '';
+  return h + senarai.map(function (x) { var v = typeof x === 'object' ? x.v : x, l = typeof x === 'object' ? x.l : x; return '<option value="' + e(v) + '"' + (String(v) === String(dipilih) ? ' selected' : '') + '>' + e(l) + '</option>'; }).join('');
+}
+function pilihanRumah(dipilih, labelKosong) { return pilihan((S.tet.rumah || []).map(function (r) { return { v: r.id, l: r.nama }; }), dipilih, labelKosong); }
+function unik(arr) { var o = {}, h = []; arr.forEach(function (x) { if (x !== '' && !o[x]) { o[x] = 1; h.push(x); } }); return h; }
+function susunKelas(a, b) { return String(a).localeCompare(String(b), 'ms', { numeric: true }); }
+
+function toast(mesej, jenis) {
+  var el = document.createElement('div');
+  el.className = 'toast ' + (jenis || 'info');
+  el.textContent = mesej;
+  $('kontainerToast').appendChild(el);
+  setTimeout(function () { el.remove(); }, jenis === 'gagal' ? 6500 : 3500);
+}
+var bilSibuk = 0;
+function sibuk(hidup) { bilSibuk = Math.max(0, bilSibuk + (hidup ? 1 : -1)); $('selimutSibuk').classList.toggle('hidden', bilSibuk === 0); }
+
+var API_TULIS = /^api(Simpan|Import|Padam|Reset|Tetapkan|Agih|Kunci|Tukar|Login)/;
+function api(fn, param, cubaan) {
+  return new Promise(function (res, rej) {
+    if (!window.google || !google.script || !google.script.run) { rej(new Error('Tidak bersambung dengan pelayan.')); return; }
+    var tulis = API_TULIS.test(fn);
+    if (tulis) sibuk(true);
+    google.script.run
+      .withSuccessHandler(function (r) {
+        if (tulis) sibuk(false);
+        if (r === null || r === undefined) { rej(new Error('Respons kosong daripada pelayan.')); return; }
+        if (r.success === false) {
+          if (/Sesi tamat|Akaun tidak aktif/.test(r.message || '')) setTimeout(keluar, 50);
+          rej(new Error(r.message)); return;
+        }
+        res(r);
+      })
+      .withFailureHandler(function (err) {
+        if (tulis) sibuk(false);
+        var mesej = err && err.message ? err.message : String(err);
+        if (!tulis && !cubaan && /Service|timed out|Server|temporarily|Try again/i.test(mesej)) {
+          setTimeout(function () { api(fn, param, 1).then(res, rej); }, 800); return;
+        }
+        rej(new Error(mesej));
+      })[fn](Object.assign({ token: S.token }, param || {}));
+  });
+}
+function gagal(err) { toast(err.message || String(err), 'gagal'); }
+
+/* ---------- Modal ---------- */
+function bukaModal(html, kecil) {
+  var d = document.createElement('div');
+  d.className = 'latar-modal';
+  d.innerHTML = '<div class="kad-modal' + (kecil ? ' kecil' : '') + '" role="dialog" aria-modal="true">' + html + '</div>';
+  $('modalRoot').appendChild(d);
+  return d;
+}
+function tutupModal(el) { var m = el && el.closest ? el.closest('.latar-modal') : el; if (m) m.remove(); }
+function sahkan(mesej, ok, labelOk) {
+  var m = bukaModal('<h3>Pengesahan</h3><p style="white-space:pre-line">' + e(mesej) + '</p><div class="aksi-modal"><button class="btn luar" data-x="batal">Batal</button><button class="btn merah" data-x="ok">' + e(labelOk || 'Teruskan') + '</button></div>', true);
+  m.querySelector('[data-x=batal]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=ok]').onclick = function () { tutupModal(m); ok(); };
+}
+
+/* ---------- Storan token ---------- */
+function simpanToken(t) { try { if (t) sessionStorage.setItem('rs_token', t); else sessionStorage.removeItem('rs_token'); } catch (x) { /* storan disekat */ } }
+function bacaToken() { try { return sessionStorage.getItem('rs_token'); } catch (x) { return null; } }
+
+/* ---------- Log masuk / sesi ---------- */
+function setPortal(p) {
+  S.portal = p;
+  Array.prototype.forEach.call(document.querySelectorAll('.tab-portal button'), function (b) { b.classList.toggle('aktif', b.getAttribute('data-portal') === p); });
+}
+Array.prototype.forEach.call(document.querySelectorAll('.tab-portal button'), function (b) { b.onclick = function () { setPortal(b.getAttribute('data-portal')); }; });
+setPortal(S.portal);
+
+function paparSkrin(id) { ['skrinLogin', 'skrinTukar', 'aplikasi'].forEach(function (x) { $(x).classList.toggle('hidden', x !== id); }); }
+
+$('borangLogin').addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  $('ralatLogin').textContent = '';
+  $('btnLogin').disabled = true;
+  api('apiLogin', { nokp: nilaiEl('lgKP').replace(/\D/g, ''), kataLaluan: nilaiEl('lgKW'), portal: S.portal }).then(function (r) {
+    S.token = r.token; simpanToken(r.token);
+    S.user = r;
+    $('lgKW').value = '';
+    $('tkLama').value = '';
+    if (r.mestiTukarPassword) paparSkrin('skrinTukar'); else mulaAplikasi();
+  }).catch(function (er) { $('ralatLogin').textContent = er.message; }).then(function () { $('btnLogin').disabled = false; });
+});
+
+$('borangTukar').addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  $('ralatTukar').textContent = '';
+  if (nilaiEl('tkBaru') !== nilaiEl('tkSah')) { $('ralatTukar').textContent = 'Pengesahan kata laluan tidak sepadan.'; return; }
+  api('apiTukarPasswordSendiri', { kataLaluanLama: nilaiEl('tkLama'), kataLaluanBaharu: nilaiEl('tkBaru') }).then(function () {
+    ['tkLama', 'tkBaru', 'tkSah'].forEach(function (i) { $(i).value = ''; });
+    toast('Kata laluan berjaya ditukar.', 'jaya');
+    S.user.mestiTukarPassword = false;
+    mulaAplikasi();
+  }).catch(function (er) { $('ralatTukar').textContent = er.message; });
+});
+$('btnTukarKeluar').onclick = function () { api('apiLogout').catch(function () {}).then(keluar); };
+$('btnLogout').onclick = function () { api('apiLogout').catch(function () {}).then(keluar); };
+$('btnTukarKW').onclick = function () {
+  var m = bukaModal('<h3>Tukar Kata Laluan</h3><div class="medan"><label>Kata laluan semasa</label><input id="mLama" type="password"></div>' +
+    '<div class="medan"><label>Kata laluan baharu (min. 6 aksara)</label><input id="mBaru" type="password"></div>' +
+    '<div class="medan"><label>Sahkan kata laluan baharu</label><input id="mSah" type="password"></div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>', true);
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    if (nilaiEl('mBaru') !== nilaiEl('mSah')) { toast('Pengesahan kata laluan tidak sepadan.', 'gagal'); return; }
+    api('apiTukarPasswordSendiri', { kataLaluanLama: nilaiEl('mLama'), kataLaluanBaharu: nilaiEl('mBaru') })
+      .then(function () { tutupModal(m); toast('Kata laluan ditukar.', 'jaya'); }).catch(gagal);
+  };
+};
+
+function keluar() {
+  S.token = null; S.user = null; S.tet = null; S.data = {}; S.ubah = {};
+  simpanToken(null);
+  $('modalRoot').innerHTML = '';
+  paparSkrin('skrinLogin');
+}
+
+/* ---------- Navigasi ---------- */
+var MENU_STAF = [
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'rumahsaya', label: 'Rumah Sukan Saya' },
+  { id: 'ajk', label: 'AJK Kejohanan' }
+];
+var MENU_ADMIN = [
+  { id: 'tetapan', label: 'Tetapan Rumah Sukan' },
+  { id: 'staf', label: 'Guru & Staf AKP' },
+  { id: 'murid', label: 'Murid & Atlet' },
+  { id: 'agihan', label: 'Agihan Murid' },
+  { id: 'audit', label: 'Log Audit' }
+];
+var MENU_MURID = [{ id: 'portalmurid', label: 'Rumah Sukan Saya' }];
+
+function binaMenu() {
+  var h = '';
+  if (S.user.jenis === 'MURID') {
+    h = MENU_MURID.map(itemNav).join('');
+  } else {
+    h = MENU_STAF.map(itemNav).join('');
+    if (S.user.admin) h += '<div class="label-nav">Pentadbiran</div>' + MENU_ADMIN.map(itemNav).join('');
+  }
+  $('menuNav').innerHTML = h;
+  Array.prototype.forEach.call($('menuNav').querySelectorAll('.item-nav'), function (b) { b.onclick = function () { pergi(b.getAttribute('data-h')); }; });
+}
+function itemNav(m) { return '<button class="item-nav" data-h="' + m.id + '">' + e(m.label) + '</button>'; }
+
+function pergi(h) {
+  var adaUbah = Object.keys(S.ubah).some(function (k) { return S.ubah[k] && Object.keys(S.ubah[k]).length; });
+  if (adaUbah && h !== S.halaman) {
+    sahkan('Terdapat perubahan yang belum disimpan. Tinggalkan halaman ini?', function () { S.ubah = {}; pergi(h); }, 'Tinggalkan');
+    return;
+  }
+  S.halaman = h;
+  Array.prototype.forEach.call($('menuNav').querySelectorAll('.item-nav'), function (b) { b.classList.toggle('aktif', b.getAttribute('data-h') === h); });
+  kandungan('<div class="kosong">Memuatkan…</div>');
+  var f = HALAMAN[h];
+  if (f) f();
+}
+
+function mulaAplikasi() {
+  paparSkrin('aplikasi');
+  var u = S.user;
+  $('labelPortal').textContent = u.jenis === 'MURID' ? 'Portal Murid' : 'Portal Guru & Staf';
+  $('infoPengguna').innerHTML = '<b>' + e(u.nama) + '</b> · ' + (u.jenis === 'MURID' ? 'Murid' : (u.admin ? 'Admin' : e(u.peranan === 'AKP' ? 'Staf AKP' : 'Guru')));
+  binaMenu();
+  if (u.jenis === 'MURID') { pergi('portalmurid'); return; }
+  api('apiTetapan').then(function (t) { S.tet = t; pergi('dashboard'); }).catch(gagal);
+}
+
+function muatSemulaTetapan() { return api('apiTetapan').then(function (t) { S.tet = t; return t; }); }
+
+/* Sambung semula sesi selepas muat semula halaman */
+(function () {
+  var t = bacaToken();
+  if (!t) return;
+  S.token = t;
+  api('apiSemakSesi').then(function (r) {
+    S.user = r;
+    if (r.mestiTukarPassword) paparSkrin('skrinTukar'); else mulaAplikasi();
+  }).catch(function () { simpanToken(null); S.token = null; });
+})();
+
+var HALAMAN = {};
+
+/* =====================================================================
+ * PORTAL MURID
+ * ===================================================================== */
+HALAMAN.portalmurid = function () {
+  api('apiPortalMurid').then(function (r) {
+    var p = r.profil, ru = r.rumah;
+    var h = '<h2 class="tajuk">Rumah Sukan Saya</h2><p class="subtajuk">' + e(r.namaKejohanan) + ' · ' + e(r.tahun) + '</p>';
+    if (ru) {
+      h += '<div class="rumah-besar" style="background:linear-gradient(135deg,' + e(ru.warna) + ',' + e(ru.warna) + 'cc);color:' + warnaTeks(ru.warna) + '">' +
+        '<div class="kecil">Anda ahli Rumah Sukan</div><div class="nama">' + e(ru.nama) + '</div>' + (ru.moto ? '<div class="moto">"' + e(ru.moto) + '"</div>' : '') + '</div>';
+    } else {
+      h += '<div class="amaran-kotak">Anda belum ditetapkan kepada mana-mana rumah sukan. Sila semak semula selepas pihak sekolah membuat agihan.</div>';
+    }
+    h += '<div class="grid-dua"><div class="kad"><h3>Maklumat Saya</h3><dl class="profil">' +
+      '<dt>Nama</dt><dd>' + e(p.nama) + '</dd><dt>No. KP</dt><dd>' + e(kpPapar(p.nokp)) + '</dd>' +
+      '<dt>Jantina</dt><dd>' + e(p.jantina) + '</dd><dt>Kelas</dt><dd>' + e(p.tingkatan + ' ' + p.kelas) + '</dd>' +
+      '<dt>Kategori</dt><dd>' + e(p.kategori) + '</dd><dt>Atlet</dt><dd>' + (p.atlet ? '<span class="lencana hijau">YA</span> ' + e(p.acara) : 'Tidak') + '</dd></dl></div>';
+    h += '<div class="kad"><h3>Guru Rumah Sukan</h3>';
+    if (r.guru.length) {
+      h += '<table><tbody>' + r.guru.map(function (g) {
+        return '<tr><td>' + e(g.nama) + '</td><td>' + (g.perananRumah === 'GURU_RUMAH' ? '<span class="lencana">' : '<span class="lencana biru">') + e(NAMA_PERANAN_RUMAH[g.perananRumah] || '') + '</span>' + (g.kategori === 'AKP' ? ' <span class="lencana">AKP</span>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    } else h += '<div class="kosong">Belum ada guru ditetapkan.</div>';
+    h += '</div></div>';
+    if (r.ahli) {
+      h += '<div class="grid-kad"><div class="stat"><div class="label">Jumlah Ahli Rumah</div><div class="nilai">' + r.ahli.jumlah + '</div></div>' +
+        '<div class="stat"><div class="label">Lelaki / Perempuan</div><div class="nilai">' + r.ahli.L + ' / ' + r.ahli.P + '</div></div>' +
+        '<div class="stat"><div class="label">Atlet</div><div class="nilai">' + r.ahli.atlet + '</div></div></div>';
+      h += '<div class="kad"><h3>Rakan Sekelas Serumah (' + r.ahli.sekelas.length + ')</h3>' +
+        (r.ahli.sekelas.length ? '<div style="columns:2 220px;font-size:13px">' + r.ahli.sekelas.map(function (n) { return '<div style="padding:3px 0">' + e(n) + '</div>'; }).join('') + '</div>' : '<div class="kosong">Tiada.</div>') + '</div>';
+    }
+    kandungan(h);
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+
+/* =====================================================================
+ * PORTAL GURU — DASHBOARD
+ * ===================================================================== */
+HALAMAN.dashboard = function () {
+  api('apiDashboard').then(function (r) {
+    var s = r.saya, st = r.statistik;
+    var h = '<h2 class="tajuk">Dashboard</h2><p class="subtajuk">' + e(r.namaKejohanan) + ' · Tahun ' + e(r.tahun) + '</p>';
+    h += '<div class="kad"><h3>Peranan Saya</h3><dl class="profil">' +
+      '<dt>Rumah Sukan</dt><dd>' + lencanaRumah(s.rumah) + '</dd>' +
+      '<dt>Peranan Rumah</dt><dd>' + e(NAMA_PERANAN_RUMAH[s.perananRumah] || '-') + '</dd>' +
+      '<dt>AJK Kejohanan</dt><dd>' + (s.ajk.length ? s.ajk.map(function (a) { return '<span class="lencana ' + (a.peranan === 'KETUA_AJK' ? 'kuning' : 'biru') + '">' + e(NAMA_PERANAN_AJK[a.peranan]) + ' — ' + e(a.ajk) + '</span>'; }).join(' ') : '-') + '</dd>' +
+      (s.admin ? '<dt>Akses</dt><dd><span class="lencana merah">ADMIN</span></dd>' : '') + '</dl></div>';
+    if (r.admin) {
+      h += '<div class="grid-kad">' +
+        statKad('Murid Aktif', st.muridAktif) + statKad('Atlet', st.atlet) + statKad('Guru & Staf Aktif', st.stafAktif) +
+        statKad('Murid Tanpa Rumah', st.muridTanpaRumah, st.muridTanpaRumah > 0) + statKad('Staf Tanpa Rumah', st.stafTanpaRumah, st.stafTanpaRumah > 0) +
+        statKad('Belum Tukar Kata Laluan', r.admin.belumTukarMurid + r.admin.belumTukarStaf) + '</div>';
+      if (r.admin.agihanTerakhir) h += '<div class="info-kotak"><b>Agihan terakhir:</b> ' + e(r.admin.agihanTerakhir) + '</div>';
+    }
+    h += '<h3 style="color:var(--biru-gelap);margin:6px 0 10px">Rumah Sukan</h3><div class="grid-kad">' + st.rumah.map(function (x) {
+      return '<div class="kad-rumah"><div class="kepala" style="background:' + e(x.warna) + ';color:' + warnaTeks(x.warna) + '">' + e(x.nama) + '<span>' + x.murid + ' murid</span></div><div class="badan">' +
+        baris('Lelaki / Perempuan', x.L + ' / ' + x.P) + baris('Atlet', x.atlet) + baris('Guru / AKP', x.guru + ' / ' + x.akp) +
+        '<div style="margin-top:6px;font-size:12px;color:var(--kelabu)">Ketua: <b style="color:var(--teks)">' + e(x.ketua.join(', ') || '-') + '</b><br>Penolong: <b style="color:var(--teks)">' + e(x.penolong.join(', ') || '-') + '</b></div>' +
+        '</div></div>';
+    }).join('') + '</div>';
+    kandungan(h);
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+function statKad(label, nilai, amaran) { return '<div class="stat' + (amaran ? ' amaran' : '') + '"><div class="label">' + e(label) + '</div><div class="nilai">' + e(nilai) + '</div></div>'; }
+function baris(a, b) { return '<div class="baris"><span>' + e(a) + '</span><span>' + e(b) + '</span></div>'; }
+
+/* =====================================================================
+ * RUMAH SUKAN SAYA (guru: rumah sendiri; admin: mana-mana rumah)
+ * ===================================================================== */
+HALAMAN.rumahsaya = function (rumahId) {
+  api('apiRumahSaya', { rumahId: rumahId || (S.data.rumahPilih || '') }).then(function (r) {
+    var h = '<h2 class="tajuk">Rumah Sukan</h2><p class="subtajuk">Senarai guru dan ahli rumah sukan.</p>';
+    if (S.user.admin) {
+      h += '<div class="baris-alat"><label style="font-size:13px;font-weight:600">Rumah:</label><select id="pilihRumahSaya">' +
+        pilihan(r.senaraiRumah.map(function (x) { return { v: x.id, l: x.nama }; }), r.rumah ? r.rumah.id : '', '— pilih rumah —') + '</select></div>';
+    }
+    if (!r.rumah) {
+      kandungan(h + '<div class="info-kotak">Pilih rumah sukan untuk dipaparkan.</div>');
+      if ($('pilihRumahSaya')) $('pilihRumahSaya').onchange = function () { S.data.rumahPilih = this.value; HALAMAN.rumahsaya(this.value); };
+      return;
+    }
+    S.data.rumahSaya = r;
+    var ru = r.rumah;
+    h += '<div class="rumah-besar" style="background:linear-gradient(135deg,' + e(ru.warna) + ',' + e(ru.warna) + 'cc);color:' + warnaTeks(ru.warna) + ';padding:16px 22px">' +
+      '<div class="kecil">Rumah Sukan</div><div class="nama" style="font-size:28px">' + e(ru.nama) + '</div>' + (ru.moto ? '<div class="moto">"' + e(ru.moto) + '"</div>' : '') +
+      '<div style="margin-top:6px;font-size:13px">' + r.guru.length + ' guru/staf · ' + r.murid.length + ' murid · ' + r.murid.filter(function (m) { return m.atlet; }).length + ' atlet</div></div>';
+    h += '<div class="kad"><h3>Guru & Staf Rumah</h3><div class="jadual-skrol"><table><thead><tr><th>#</th><th>Nama</th><th>Kategori</th><th>Peranan Rumah</th><th>AJK Kejohanan</th><th>Telefon</th></tr></thead><tbody>' +
+      (r.guru.length ? r.guru.map(function (g, i) {
+        return '<tr><td>' + (i + 1) + '</td><td>' + e(g.nama) + (g.jawatan ? '<div class="nota" style="margin:0">' + e(g.jawatan) + '</div>' : '') + '</td><td>' + e(g.kategori) + '</td><td>' +
+          (g.perananRumah === 'GURU_RUMAH' ? '' : '<b>') + e(NAMA_PERANAN_RUMAH[g.perananRumah]) + (g.perananRumah === 'GURU_RUMAH' ? '' : '</b>') + '</td><td>' +
+          g.ajk.map(function (a) { return '<span class="lencana ' + (a.peranan === 'KETUA_AJK' ? 'kuning' : 'biru') + '">' + e(a.ajk) + (a.peranan === 'KETUA_AJK' ? ' (Ketua)' : '') + '</span>'; }).join(' ') + '</td><td>' + e(g.telefon) + '</td></tr>';
+      }).join('') : '<tr><td colspan="6" class="kosong">Belum ada guru ditetapkan.</td></tr>') + '</tbody></table></div></div>';
+    var kelas = unik(r.murid.map(function (m) { return m.kunciKelas; })).sort(susunKelas);
+    h += '<div class="kad"><h3>Ahli Rumah (Murid)</h3><div class="baris-alat">' +
+      '<input id="rsCari" placeholder="Cari nama…"><select id="rsKelas">' + pilihan(kelas, '', 'Semua kelas') + '</select>' +
+      '<select id="rsKat">' + pilihan(r.kategori.map(function (k) { return { v: k.kod, l: k.nama }; }), '', 'Semua kategori') + '</select>' +
+      '<select id="rsJan">' + pilihan([{ v: 'LELAKI', l: 'Lelaki' }, { v: 'PEREMPUAN', l: 'Perempuan' }], '', 'Semua jantina') + '</select>' +
+      '<select id="rsAtlet">' + pilihan([{ v: 'YA', l: 'Atlet sahaja' }, { v: 'TIDAK', l: 'Bukan atlet' }], '', 'Atlet & bukan') + '</select>' +
+      '<div class="rapat"><button class="btn luar kecil" onclick="window.print()">Cetak</button></div></div><div id="rsJadual"></div></div>';
+    kandungan(h);
+    if ($('pilihRumahSaya')) $('pilihRumahSaya').onchange = function () { S.data.rumahPilih = this.value; HALAMAN.rumahsaya(this.value); };
+    ['rsCari', 'rsKelas', 'rsKat', 'rsJan', 'rsAtlet'].forEach(function (id) { $(id).oninput = lukisMuridRumah; });
+    lukisMuridRumah();
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+function lukisMuridRumah() {
+  var r = S.data.rumahSaya, cari = nilaiEl('rsCari').toUpperCase(), kl = nilaiEl('rsKelas'), kat = nilaiEl('rsKat'), jan = nilaiEl('rsJan'), at = nilaiEl('rsAtlet');
+  var s = r.murid.filter(function (m) {
+    return (!cari || m.nama.toUpperCase().indexOf(cari) !== -1) && (!kl || m.kunciKelas === kl) && (!kat || m.kategori === kat) &&
+      (!jan || m.jantina === jan) && (!at || (at === 'YA') === m.atlet);
+  });
+  $('rsJadual').innerHTML = '<div class="nota" style="margin-bottom:8px">' + s.length + ' murid (L ' + s.filter(function (m) { return m.jantina === 'LELAKI'; }).length +
+    ', P ' + s.filter(function (m) { return m.jantina === 'PEREMPUAN'; }).length + ')</div><div class="jadual-skrol"><table><thead><tr><th>#</th><th>Nama</th><th>Kelas</th><th class="c">J</th><th>Kategori</th><th>Atlet / Acara</th></tr></thead><tbody>' +
+    (s.length ? s.map(function (m, i) {
+      return '<tr><td>' + (i + 1) + '</td><td>' + e(m.nama) + '</td><td>' + e(m.kunciKelas) + '</td><td class="c">' + jantinaPendek(m.jantina) + '</td><td>' + e(m.kategori || '-') + '</td><td>' +
+        (m.atlet ? '<span class="lencana hijau">ATLET</span> ' + e(m.acara) : '') + '</td></tr>';
+    }).join('') : '<tr><td colspan="6" class="kosong">Tiada murid.</td></tr>') + '</tbody></table></div>';
+}
+
+/* =====================================================================
+ * AJK KEJOHANAN
+ * ===================================================================== */
+HALAMAN.ajk = function () {
+  var pStaf = S.user.admin ? api('apiSenaraiStaf') : Promise.resolve({ senarai: [] });
+  Promise.all([api('apiSenaraiAjk'), pStaf]).then(function (hasil) {
+    var r = hasil[0];
+    S.data.ajk = r.senarai; S.data.stafAjk = hasil[1].senarai.filter(function (s) { return s.status === 'AKTIF'; });
+    var h = '<h2 class="tajuk">AJK Kejohanan Olahraga ' + e(r.tahun) + '</h2><p class="subtajuk">Peranan tambahan guru & staf AKP sebagai Ketua AJK / Ahli AJK semasa kejohanan.</p>';
+    if (S.user.admin) h += '<div class="baris-alat"><button class="btn" id="btnTambahAjk">+ Tambah AJK</button></div>';
+    if (!r.senarai.length) h += '<div class="kad kosong">Belum ada AJK.</div>';
+    h += '<div class="grid-kad" style="grid-template-columns:repeat(auto-fit,minmax(290px,1fr))">' + r.senarai.map(function (a) {
+      var ketua = a.ahli.filter(function (x) { return x.peranan === 'KETUA_AJK'; });
+      var ahli = a.ahli.filter(function (x) { return x.peranan !== 'KETUA_AJK'; });
+      return '<div class="kad" style="margin:0"><h3 style="margin-bottom:4px">' + e(a.nama) + '</h3>' + (a.tugas ? '<div class="nota" style="margin:0 0 10px">' + e(a.tugas) + '</div>' : '') +
+        '<div style="font-size:13px"><b>Ketua:</b> ' + e(ketua.map(function (x) { return x.nama; }).join(', ') || '-') + '</div>' +
+        '<div style="font-size:13px;margin-top:6px"><b>Ahli (' + ahli.length + '):</b><ol style="margin:4px 0 0;padding-left:20px">' + ahli.map(function (x) { return '<li>' + e(x.nama) + (x.kategori === 'AKP' ? ' <span class="lencana">AKP</span>' : '') + '</li>'; }).join('') + '</ol></div>' +
+        (S.user.admin ? '<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap"><button class="btn kecil" data-ahli="' + e(a.id) + '">Urus Ahli</button><button class="btn luar kecil" data-sunting="' + e(a.id) + '">Sunting</button><button class="btn merah kecil" data-padam="' + e(a.id) + '">Padam</button></div>' : '') +
+        '</div>';
+    }).join('') + '</div>';
+    kandungan(h);
+    if (!S.user.admin) return;
+    $('btnTambahAjk').onclick = function () { borangAjk(null); };
+    Array.prototype.forEach.call(document.querySelectorAll('[data-ahli]'), function (b) { b.onclick = function () { borangAhliAjk(b.getAttribute('data-ahli')); }; });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-sunting]'), function (b) { b.onclick = function () { borangAjk(b.getAttribute('data-sunting')); }; });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-padam]'), function (b) {
+      b.onclick = function () {
+        var a = cariAjk(b.getAttribute('data-padam'));
+        sahkan('Padam ' + a.nama + '? Semua lantikan ahli AJK ini turut dipadam.', function () {
+          api('apiPadamAjk', { id: a.id }).then(function () { toast('AJK dipadam.', 'jaya'); HALAMAN.ajk(); }).catch(gagal);
+        }, 'Padam');
+      };
+    });
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+function cariAjk(id) { return S.data.ajk.filter(function (a) { return a.id === id; })[0]; }
+function borangAjk(id) {
+  var a = id ? cariAjk(id) : { nama: '', tugas: '' };
+  var m = bukaModal('<h3>' + (id ? 'Sunting' : 'Tambah') + ' AJK</h3><div class="medan"><label>Nama AJK</label><input id="ajkNama" value="' + e(a.nama) + '" placeholder="cth. AJK TEKNIK"></div>' +
+    '<div class="medan"><label>Tugas / keterangan</label><input id="ajkTugas" value="' + e(a.tugas) + '"></div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>', true);
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    api('apiSimpanAjk', { data: { id: id || '', nama: nilaiEl('ajkNama'), tugas: nilaiEl('ajkTugas') } })
+      .then(function () { tutupModal(m); toast('AJK disimpan.', 'jaya'); HALAMAN.ajk(); }).catch(gagal);
+  };
+}
+function borangAhliAjk(id) {
+  var a = cariAjk(id), staf = S.data.stafAjk;
+  var ketua = (a.ahli.filter(function (x) { return x.peranan === 'KETUA_AJK'; })[0] || {}).nokp || '';
+  var ahli = {};
+  a.ahli.forEach(function (x) { if (x.peranan !== 'KETUA_AJK') ahli[x.nokp] = true; });
+  var m = bukaModal('<h3>Ahli ' + e(a.nama) + '</h3>' +
+    '<div class="medan"><label>Ketua AJK</label><select id="ajkKetua">' + pilihan(staf.map(function (s) { return { v: s.nokp, l: s.nama + (s.kategori === 'AKP' ? ' (AKP)' : '') }; }), ketua, '— tiada —') + '</select></div>' +
+    '<div class="medan"><label>Ahli AJK <span class="nota" id="ajkBil"></span></label><input id="ajkCari" placeholder="Cari nama…" style="margin-bottom:6px"><div class="senarai-semak" id="ajkSenarai">' +
+    staf.map(function (s) { return '<label data-n="' + e(s.nama.toUpperCase()) + '"><input type="checkbox" value="' + e(s.nokp) + '"' + (ahli[s.nokp] ? ' checked' : '') + '>' + e(s.nama) + ' <span class="nota" style="margin:0">' + e(s.kategori) + (s.rumah ? ' · ' + e(s.rumah) : '') + '</span></label>'; }).join('') +
+    '</div></div><div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>');
+  var kira = function () { $('ajkBil').textContent = '(' + m.querySelectorAll('#ajkSenarai input:checked').length + ' dipilih)'; };
+  kira();
+  m.querySelector('#ajkSenarai').onchange = kira;
+  $('ajkCari').oninput = function () {
+    var q = this.value.toUpperCase();
+    Array.prototype.forEach.call(m.querySelectorAll('#ajkSenarai label'), function (l) { l.style.display = l.getAttribute('data-n').indexOf(q) !== -1 ? '' : 'none'; });
+  };
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    var dipilih = Array.prototype.map.call(m.querySelectorAll('#ajkSenarai input:checked'), function (i) { return i.value; });
+    api('apiSimpanAhliAjk', { ajkId: id, ketua: nilaiEl('ajkKetua'), ahli: dipilih })
+      .then(function () { tutupModal(m); toast('Keahlian AJK disimpan.', 'jaya'); HALAMAN.ajk(); }).catch(gagal);
+  };
+}
+
+/* =====================================================================
+ * ADMIN — TETAPAN RUMAH SUKAN & KATEGORI
+ * ===================================================================== */
+HALAMAN.tetapan = function () {
+  muatSemulaTetapan().then(function (t) {
+    S.data.rumahDraf = t.rumah.map(function (r) { return { id: r.id, nama: r.nama, warna: r.warna, moto: r.moto }; });
+    S.data.katDraf = t.kategori.senarai.map(function (k) { return Object.assign({}, k); });
+    var h = '<h2 class="tajuk">Tetapan Rumah Sukan</h2><p class="subtajuk">Tetapkan bilangan, nama dan warna rumah sukan serta kategori kejohanan.</p>';
+    h += '<div class="kad"><h3>Bilangan & Nama Rumah Sukan</h3>' +
+      '<div class="baris-alat"><label style="font-size:13px;font-weight:600">Bilangan rumah sukan:</label><input id="bilRumah" type="number" min="2" max="' + t.hadRumah + '" value="' + t.rumah.length + '" style="min-width:80px;width:90px">' +
+      '<button class="btn luar kecil" id="btnJanaRumah">Kemas kini bilangan</button></div>' +
+      '<div class="jadual-skrol"><table><thead><tr><th>#</th><th>Warna</th><th>Nama Rumah</th><th>Moto / Slogan</th><th></th></tr></thead><tbody id="jadualRumah"></tbody></table></div>' +
+      '<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:12px"><input type="checkbox" id="kosongkanAhli"> Kosongkan ahli (murid & guru) bagi rumah yang dibuang</label>' +
+      '<div class="aksi-modal"><button class="btn" id="btnSimpanRumah">Simpan Rumah Sukan</button></div></div>';
+    h += '<div class="kad"><h3>Tetapan Kejohanan & Kategori</h3><div class="grid-borang">' +
+      '<div class="medan"><label>Tahun kejohanan</label><input id="tetTahun" type="number" value="' + e(t.tahun) + '"></div>' +
+      '<div class="medan"><label>Nama kejohanan</label><input id="tetNama" value="' + e(t.namaKejohanan) + '"></div>' +
+      '<div class="medan penuh"><label>Kategori ditentukan mengikut</label><select id="tetMod">' + pilihan([{ v: 'UMUR', l: 'Umur (tahun kejohanan − tahun lahir daripada No. KP)' }, { v: 'TINGKATAN', l: 'Tingkatan' }], t.kategori.mod) + '</select></div></div>' +
+      '<div class="jadual-skrol" style="margin-top:12px"><table><thead><tr><th>Kod</th><th>Nama Kategori</th><th class="kUmur">Umur Min</th><th class="kUmur">Umur Maks</th><th class="kTing">Tingkatan (pisah koma)</th><th></th></tr></thead><tbody id="jadualKat"></tbody></table></div>' +
+      '<div class="aksi-modal" style="justify-content:space-between"><button class="btn luar kecil" id="btnTambahKat">+ Tambah kategori</button><button class="btn" id="btnSimpanTet">Simpan Tetapan</button></div></div>';
+    kandungan(h);
+    lukisRumahDraf(); lukisKatDraf();
+    $('btnJanaRumah').onclick = function () {
+      simpanDrafRumah();
+      var n = Math.max(2, Math.min(t.hadRumah, Number(nilaiEl('bilRumah')) || 2));
+      var warna = ['#dc2626', '#2563eb', '#16a34a', '#eab308', '#9333ea', '#ea580c', '#0891b2', '#db2777', '#4b5563', '#65a30d', '#0f766e', '#7c2d12'];
+      while (S.data.rumahDraf.length < n) S.data.rumahDraf.push({ id: '', nama: '', warna: warna[S.data.rumahDraf.length % warna.length], moto: '' });
+      if (S.data.rumahDraf.length > n) S.data.rumahDraf = S.data.rumahDraf.slice(0, n);
+      lukisRumahDraf();
+    };
+    $('btnSimpanRumah').onclick = function () {
+      simpanDrafRumah();
+      api('apiSimpanRumah', { rumah: S.data.rumahDraf, kosongkanAhli: semakEl('kosongkanAhli') }).then(function (r) {
+        S.tet.rumah = r.rumah; toast('Rumah sukan disimpan.', 'jaya'); HALAMAN.tetapan();
+      }).catch(gagal);
+    };
+    $('tetMod').onchange = function () { simpanDrafKat(); lukisKatDraf(); };
+    $('btnTambahKat').onclick = function () { simpanDrafKat(); S.data.katDraf.push({ kod: '', nama: '', umurMin: 0, umurMax: 99, tingkatan: '' }); lukisKatDraf(); };
+    $('btnSimpanTet').onclick = function () {
+      simpanDrafKat();
+      api('apiSimpanTetapan', { tahun: nilaiEl('tetTahun'), namaKejohanan: nilaiEl('tetNama'), modKategori: nilaiEl('tetMod'), kategori: S.data.katDraf })
+        .then(function () { toast('Tetapan disimpan.', 'jaya'); HALAMAN.tetapan(); }).catch(gagal);
+    };
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+function lukisRumahDraf() {
+  $('jadualRumah').innerHTML = S.data.rumahDraf.map(function (r, i) {
+    return '<tr><td>' + (i + 1) + '</td><td><input type="color" data-w="' + i + '" value="' + e(r.warna) + '"></td>' +
+      '<td><input data-n="' + i + '" value="' + e(r.nama) + '" placeholder="cth. MERAH / NAMA TOKOH"></td><td><input data-m="' + i + '" value="' + e(r.moto) + '"></td>' +
+      '<td><button class="btn merah kecil" data-buang="' + i + '" title="Buang">✕</button></td></tr>';
+  }).join('');
+  $('bilRumah').value = S.data.rumahDraf.length;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-buang]'), function (b) {
+    b.onclick = function () {
+      simpanDrafRumah();
+      if (S.data.rumahDraf.length <= 2) { toast('Sekurang-kurangnya 2 rumah sukan.', 'gagal'); return; }
+      S.data.rumahDraf.splice(Number(b.getAttribute('data-buang')), 1); lukisRumahDraf();
+    };
+  });
+}
+function simpanDrafRumah() {
+  S.data.rumahDraf.forEach(function (r, i) {
+    var w = document.querySelector('[data-w="' + i + '"]'), n = document.querySelector('[data-n="' + i + '"]'), m = document.querySelector('[data-m="' + i + '"]');
+    if (w) r.warna = w.value; if (n) r.nama = n.value.toUpperCase(); if (m) r.moto = m.value;
+  });
+}
+function lukisKatDraf() {
+  var umur = nilaiEl('tetMod') !== 'TINGKATAN';
+  $('jadualKat').innerHTML = S.data.katDraf.map(function (k, i) {
+    return '<tr><td><input data-kk="' + i + '" value="' + e(k.kod) + '" style="width:80px"></td><td><input data-kn="' + i + '" value="' + e(k.nama) + '"></td>' +
+      '<td class="kUmur"><input type="number" data-kmin="' + i + '" value="' + e(k.umurMin) + '" style="width:80px"></td><td class="kUmur"><input type="number" data-kmax="' + i + '" value="' + e(k.umurMax) + '" style="width:80px"></td>' +
+      '<td class="kTing"><input data-kt="' + i + '" value="' + e(k.tingkatan) + '" placeholder="cth. 1,2,3"></td><td><button class="btn merah kecil" data-kbuang="' + i + '">✕</button></td></tr>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('.kUmur'), function (x) { x.style.display = umur ? '' : 'none'; });
+  Array.prototype.forEach.call(document.querySelectorAll('.kTing'), function (x) { x.style.display = umur ? 'none' : ''; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-kbuang]'), function (b) {
+    b.onclick = function () { simpanDrafKat(); S.data.katDraf.splice(Number(b.getAttribute('data-kbuang')), 1); lukisKatDraf(); };
+  });
+}
+function simpanDrafKat() {
+  S.data.katDraf.forEach(function (k, i) {
+    var g = function (a) { var el = document.querySelector('[data-' + a + '="' + i + '"]'); return el ? el.value : ''; };
+    k.kod = g('kk').toUpperCase(); k.nama = g('kn'); k.umurMin = g('kmin'); k.umurMax = g('kmax'); k.tingkatan = g('kt');
+  });
+}
+
+/* =====================================================================
+ * IMPORT PUKAL (CSV / Excel / tampal dari Excel) — dikongsi Staf & Murid
+ * ===================================================================== */
+var ALIAS_MURID = {
+  nokp: ['NOKP', 'NO KP', 'NO KAD PENGENALAN', 'KAD PENGENALAN', 'MYKAD', 'NO MYKAD', 'IC', 'NO IC', 'KP'],
+  nama: ['NAMA', 'NAMA MURID', 'NAMA PENUH', 'NAMA PELAJAR'],
+  jantina: ['JANTINA', 'GENDER', 'L/P', 'JANTINA (L/P)'],
+  tingkatan: ['TINGKATAN', 'TING', 'FORM'],
+  kelas: ['KELAS', 'NAMA KELAS', 'CLASS'],
+  kaum: ['KAUM', 'BANGSA'],
+  agama: ['AGAMA'],
+  tarikhLahir: ['TARIKH LAHIR', 'TARIKHLAHIR', 'DOB'],
+  noTelPenjaga: ['NO TEL PENJAGA', 'TELEFON PENJAGA', 'NO TELEFON PENJAGA', 'NO TELEFON', 'NO TEL', 'TELEFON'],
+  atlet: ['ATLET', 'ATLIT'],
+  acara: ['ACARA', 'ACARA ATLET']
+};
+var ALIAS_STAF = {
+  nokp: ALIAS_MURID.nokp, nama: ['NAMA', 'NAMA GURU', 'NAMA PENUH', 'NAMA STAF'],
+  kategori: ['KATEGORI', 'JENIS', 'GURU/AKP'], jantina: ALIAS_MURID.jantina,
+  jawatan: ['JAWATAN', 'GRED', 'JAWATAN/GRED'], telefon: ['TELEFON', 'NO TELEFON', 'NO TEL', 'NO HP'], emel: ['EMEL', 'EMAIL', 'E-MEL']
+};
+var TEMPLAT_MURID = 'NO KP,NAMA,JANTINA,TINGKATAN,KELAS,KAUM,AGAMA,TARIKH LAHIR,NO TEL PENJAGA,ATLET,ACARA\n' +
+  '080101130123,CONTOH NAMA MURID,LELAKI,1,BESTARI,MELAYU,ISLAM,2008-01-01,0123456789,YA,100M\n';
+var TEMPLAT_STAF = 'NO KP,NAMA,KATEGORI,JANTINA,JAWATAN,TELEFON,EMEL\n800101135001,CONTOH NAMA GURU,GURU,LELAKI,DG44,0123456789,guru@moe.gov.my\n';
+
+function normalHeader(h) { return String(h || '').toUpperCase().replace(/\./g, '').replace(/[_\s]+/g, ' ').trim(); }
+
+/* Penghurai CSV/TSV ringkas yang menyokong petikan. */
+function huraiTeksJadual(teks) {
+  teks = String(teks || '').replace(/^﻿/, '');
+  var baris1 = teks.split(/\r?\n/)[0] || '';
+  var pemisah = baris1.indexOf('\t') !== -1 ? '\t' : (baris1.split(';').length > baris1.split(',').length ? ';' : ',');
+  var hasil = [], baris = [], sel = '', petik = false;
+  for (var i = 0; i < teks.length; i++) {
+    var c = teks[i];
+    if (petik) {
+      if (c === '"') { if (teks[i + 1] === '"') { sel += '"'; i++; } else petik = false; } else sel += c;
+    } else if (c === '"') petik = true;
+    else if (c === pemisah) { baris.push(sel); sel = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && teks[i + 1] === '\n') i++; baris.push(sel); hasil.push(baris); baris = []; sel = ''; }
+    else sel += c;
+  }
+  if (sel !== '' || baris.length) { baris.push(sel); hasil.push(baris); }
+  return hasil.filter(function (b) { return b.some(function (x) { return String(x).trim() !== ''; }); });
+}
+
+/* Tukar jadual (baris pertama = header) kepada objek mengikut alias. */
+function petaJadual(jadual, alias) {
+  if (jadual.length < 2) return { ralat: 'Data mesti mempunyai baris header dan sekurang-kurangnya satu baris data.' };
+  var header = jadual[0].map(normalHeader), indeks = {};
+  Object.keys(alias).forEach(function (k) {
+    var al = alias[k].map(normalHeader);
+    for (var i = 0; i < header.length; i++) { if (al.indexOf(header[i]) !== -1) { indeks[k] = i; break; } }
+  });
+  if (indeks.nokp === undefined || indeks.nama === undefined) return { ralat: 'Lajur "NO KP" dan "NAMA" diperlukan. Header dijumpai: ' + jadual[0].join(', ') };
+  var baris = jadual.slice(1).map(function (b) {
+    var o = {};
+    Object.keys(indeks).forEach(function (k) { o[k] = String(b[indeks[k]] === undefined ? '' : b[indeks[k]]).trim(); });
+    return o;
+  });
+  return { baris: baris, lajur: Object.keys(indeks) };
+}
+
+function muatTurunTeks(namaFail, teks) {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + teks], { type: 'text/csv;charset=utf-8' }));
+  a.download = namaFail; document.body.appendChild(a); a.click(); a.remove();
+}
+
+var _xlsxMuat = null;
+function muatXlsx() {
+  if (window.XLSX) return Promise.resolve();
+  if (_xlsxMuat) return _xlsxMuat;
+  _xlsxMuat = new Promise(function (res, rej) {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = res; s.onerror = function () { _xlsxMuat = null; rej(new Error('Gagal memuatkan pembaca Excel. Simpan fail sebagai CSV atau tampal data.')); };
+    document.head.appendChild(s);
+  });
+  return _xlsxMuat;
+}
+function bacaFailJadual(fail) {
+  return new Promise(function (res, rej) {
+    var nama = fail.name.toLowerCase();
+    var pembaca = new FileReader();
+    if (/\.(xlsx|xls)$/.test(nama)) {
+      muatXlsx().then(function () {
+        pembaca.onload = function () {
+          try {
+            var wb = XLSX.read(new Uint8Array(pembaca.result), { type: 'array', raw: false });
+            res(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' })
+              .filter(function (b) { return b.some(function (x) { return String(x).trim() !== ''; }); }));
+          } catch (x) { rej(x); }
+        };
+        pembaca.readAsArrayBuffer(fail);
+      }).catch(rej);
+    } else {
+      pembaca.onload = function () { res(huraiTeksJadual(pembaca.result)); };
+      pembaca.readAsText(fail, 'utf-8');
+    }
+  });
+}
+
+/* Modal import generik. jenis = 'MURID' | 'STAF' */
+function bukaImport(jenis, selepas) {
+  var murid = jenis === 'MURID';
+  var alias = murid ? ALIAS_MURID : ALIAS_STAF;
+  var m = bukaModal('<h3>Import Pukal ' + (murid ? 'Murid' : 'Guru & Staf AKP') + '</h3>' +
+    '<div class="info-kotak">Baris pertama mesti header. Lajur dikenal pasti mengikut nama header (susunan bebas). ' +
+    (murid ? 'Lajur: <b>NO KP, NAMA</b>, JANTINA, <b>TINGKATAN, KELAS</b>, KAUM, AGAMA, TARIKH LAHIR, NO TEL PENJAGA, ATLET (YA/TIDAK), ACARA. Jika tiada lajur JANTINA, jantina diteka daripada digit akhir No. KP.'
+      : 'Lajur: <b>NO KP, NAMA</b>, KATEGORI (GURU/AKP), JANTINA, JAWATAN, TELEFON, EMEL.') +
+    ' Akaun baharu menggunakan kata laluan lalai (6 digit terakhir No. KP). Kata laluan' + (murid ? ' dan rumah sukan' : ', rumah & peranan') + ' rekod sedia ada tidak diubah.</div>' +
+    '<div class="baris-alat"><button class="btn luar kecil" data-x="templat">Muat turun templat CSV</button><input type="file" id="impFail" accept=".csv,.txt,.tsv,.xlsx,.xls" style="width:auto"></div>' +
+    '<div class="medan"><label>…atau tampal terus dari Excel / Google Sheets (termasuk header)</label><textarea id="impTeks" rows="6" placeholder="NO KP&#9;NAMA&#9;JANTINA&#9;TINGKATAN&#9;KELAS…"></textarea></div>' +
+    (murid ? '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="impNyahaktif"> Tandakan murid AKTIF yang <b>tiada</b> dalam senarai ini sebagai TIDAK AKTIF (cth. murid berpindah / tamat)</label>' : '') +
+    '<div id="impPratonton" style="margin-top:12px"></div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Tutup</button><button class="btn hijau" data-x="s" disabled>Import</button></div>');
+  var data = null;
+  var proses = function (jadual) {
+    var r = petaJadual(jadual, alias);
+    if (r.ralat) { data = null; $('impPratonton').innerHTML = '<div class="amaran-kotak">' + e(r.ralat) + '</div>'; m.querySelector('[data-x=s]').disabled = true; return; }
+    if (murid) r.baris.forEach(function (b) {   // "1 BESTARI" dalam lajur KELAS tanpa lajur TINGKATAN
+      if (!b.tingkatan) { var x = String(b.kelas || '').match(/^(\d)\s*[-\s]?\s*(.+)$/); if (x) { b.tingkatan = x[1]; b.kelas = x[2]; } }
+    });
+    data = r;
+    var contoh = r.baris.slice(0, 5);
+    $('impPratonton').innerHTML = '<div class="jaya-kotak">' + r.baris.length + ' baris dikesan. Lajur dikenal pasti: <b>' + e(r.lajur.join(', ')) + '</b></div>' +
+      '<div class="jadual-skrol"><table><thead><tr>' + r.lajur.map(function (k) { return '<th>' + e(k) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      contoh.map(function (b) { return '<tr>' + r.lajur.map(function (k) { return '<td>' + e(b[k]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>' +
+      (r.baris.length > 5 ? '<div class="nota">…dan ' + (r.baris.length - 5) + ' baris lagi.</div>' : '');
+    m.querySelector('[data-x=s]').disabled = false;
+  };
+  m.querySelector('[data-x=templat]').onclick = function () { muatTurunTeks(murid ? 'templat_murid.csv' : 'templat_staf.csv', murid ? TEMPLAT_MURID : TEMPLAT_STAF); };
+  $('impFail').onchange = function () {
+    var f = this.files[0]; if (!f) return;
+    $('impTeks').value = '';
+    bacaFailJadual(f).then(proses).catch(function (er) { gagal(er); });
+  };
+  $('impTeks').oninput = function () { if (this.value.trim()) proses(huraiTeksJadual(this.value)); };
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); if (selepas) selepas(); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    if (!data) return;
+    var param = { baris: data.baris };
+    if (murid) { param.adaLajurAtlet = data.lajur.indexOf('atlet') !== -1; param.nyahaktifLain = semakEl('impNyahaktif'); }
+    var jalan = function () {
+      api(murid ? 'apiImportMurid' : 'apiImportStaf', param).then(function (r) {
+        $('impPratonton').innerHTML = '<div class="jaya-kotak">Import selesai: <b>' + r.ditambah + '</b> baharu, <b>' + r.dikemaskini + '</b> dikemaskini' +
+          (r.dinyahaktif !== undefined ? ', <b>' + r.dinyahaktif + '</b> dinyahaktif' : '') + (r.bilRalat ? ', <b>' + r.bilRalat + '</b> baris ditolak' : '') + '.</div>' +
+          (r.ralat.length ? '<div class="ralat-senarai">' + r.ralat.map(e).join('<br>') + (r.bilRalat > r.ralat.length ? '<br>…' : '') + '</div>' : '');
+        m.querySelector('[data-x=s]').disabled = true; data = null;
+        toast('Import selesai.', 'jaya');
+      }).catch(gagal);
+    };
+    if (param.nyahaktifLain) sahkan('Semua murid aktif yang tiada dalam fail ini akan ditanda TIDAK AKTIF. Teruskan?', jalan); else jalan();
+  };
+}
+
+/* =====================================================================
+ * ADMIN — GURU & STAF AKP
+ * ===================================================================== */
+HALAMAN.staf = function () {
+  S.ubah.staf = {};
+  api('apiSenaraiStaf').then(function (r) {
+    S.data.staf = r.senarai;
+    var h = '<h2 class="tajuk">Guru & Staf AKP</h2><p class="subtajuk">Tetapkan rumah sukan dan peranan setiap guru & staf AKP. Perubahan dalam jadual disimpan sekali gus.</p>' +
+      '<div class="baris-alat"><input id="sfCari" placeholder="Cari nama / No. KP…"><select id="sfKat">' + pilihan(['GURU', 'AKP'], '', 'Semua kategori') + '</select>' +
+      '<select id="sfRumah">' + pilihanRumah('', 'Semua rumah') + '<option value="-">Belum ditetapkan</option></select>' +
+      '<div class="rapat"><button class="btn luar" id="sfAgih">Agih Automatik</button><button class="btn luar" id="sfImport">Import Pukal</button><button class="btn" id="sfTambah">+ Tambah</button></div></div>' +
+      '<div class="kad" style="padding:0"><div class="jadual-skrol"><table><thead><tr><th>Nama / No. KP</th><th>Kategori</th><th>Rumah Sukan</th><th>Peranan Rumah</th><th>AJK</th><th>Status</th><th></th></tr></thead><tbody id="sfJadual"></tbody></table></div></div>' +
+      '<div class="aksi-modal" style="position:sticky;bottom:0;background:var(--latar);padding:10px 0"><span class="nota" id="sfBilUbah" style="margin-right:auto"></span><button class="btn luar" id="sfBatal">Batal Perubahan</button><button class="btn hijau" id="sfSimpan" disabled>Simpan Perubahan</button></div>';
+    kandungan(h);
+    ['sfCari', 'sfKat', 'sfRumah'].forEach(function (id) { $(id).oninput = lukisStaf; });
+    $('sfTambah').onclick = function () { borangStaf(null); };
+    $('sfImport').onclick = function () { bukaImport('STAF', HALAMAN.staf); };
+    $('sfBatal').onclick = function () { S.ubah.staf = {}; lukisStaf(); };
+    $('sfSimpan').onclick = simpanUbahStaf;
+    $('sfAgih').onclick = function () {
+      var m = bukaModal('<h3>Agih Guru Automatik</h3><p style="font-size:13px">Guru/staf AKTIF yang <b>belum</b> mempunyai rumah sukan akan diagih sama rata ke semua rumah (seimbang mengikut kategori & jantina) dengan peranan <b>Guru Rumah</b>. Ketua & Penolong Ketua ditetapkan secara manual.</p>' +
+        '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="agihAkp" checked> Sertakan staf AKP</label>' +
+        '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Agih</button></div>', true);
+      m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+      m.querySelector('[data-x=s]').onclick = function () {
+        api('apiAgihStafAuto', { sertaAkp: semakEl('agihAkp') }).then(function (r) { tutupModal(m); toast(r.bil + ' guru/staf diagih.', 'jaya'); HALAMAN.staf(); }).catch(gagal);
+      };
+    };
+    lukisStaf();
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+function nilaiStaf(s) { var u = S.ubah.staf[s.nokp]; return { rumahId: u ? u.rumahId : s.rumahId, perananRumah: u ? u.perananRumah : s.perananRumah }; }
+function lukisStaf() {
+  var cari = nilaiEl('sfCari').toUpperCase(), kat = nilaiEl('sfKat'), ru = nilaiEl('sfRumah');
+  var s = S.data.staf.filter(function (x) {
+    var v = nilaiStaf(x);
+    return (!cari || x.nama.toUpperCase().indexOf(cari) !== -1 || x.nokp.indexOf(cari) !== -1) && (!kat || x.kategori === kat) &&
+      (!ru || (ru === '-' ? !v.rumahId : v.rumahId === ru));
+  });
+  var opsPeranan = Object.keys(NAMA_PERANAN_RUMAH).map(function (k) { return { v: k, l: NAMA_PERANAN_RUMAH[k] }; });
+  $('sfJadual').innerHTML = s.length ? s.map(function (x) {
+    var v = nilaiStaf(x), ub = !!S.ubah.staf[x.nokp];
+    return '<tr' + (ub ? ' class="berubah"' : '') + '><td><b>' + e(x.nama) + '</b>' + (x.admin ? ' <span class="lencana merah">ADMIN</span>' : '') + '<div class="nota" style="margin:0">' + e(kpPapar(x.nokp)) + (x.jawatan ? ' · ' + e(x.jawatan) : '') + '</div></td>' +
+      '<td>' + e(x.kategori) + '</td>' +
+      '<td><select data-sr="' + x.nokp + '" style="border-left:6px solid ' + e((rumahIkutId(v.rumahId) || {}).warna || '#e2e8f0') + '">' + pilihanRumah(v.rumahId, '— tiada —') + '</select></td>' +
+      '<td><select data-sp="' + x.nokp + '"' + (v.rumahId ? '' : ' disabled') + '>' + pilihan(opsPeranan, v.perananRumah || 'GURU_RUMAH') + '</select></td>' +
+      '<td>' + x.ajk.map(function (a) { return '<span class="lencana ' + (a.peranan === 'KETUA_AJK' ? 'kuning' : 'biru') + '">' + e(a.ajk) + (a.peranan === 'KETUA_AJK' ? ' (K)' : '') + '</span>'; }).join(' ') + '</td>' +
+      '<td>' + (x.status === 'AKTIF' ? '<span class="lencana hijau">AKTIF</span>' : '<span class="lencana">' + e(x.status) + '</span>') + (x.mestiTukar ? '<div class="nota" style="margin:2px 0 0">KW lalai</div>' : '') + '</td>' +
+      '<td style="white-space:nowrap"><button class="btn luar kecil" data-ss="' + x.nokp + '">Sunting</button> <button class="btn kelabu kecil" data-sk="' + x.nokp + '">Reset KW</button></td></tr>';
+  }).join('') : '<tr><td colspan="7" class="kosong">Tiada rekod. Gunakan Import Pukal atau + Tambah.</td></tr>';
+  var n = Object.keys(S.ubah.staf).length;
+  $('sfBilUbah').textContent = s.length + ' dipaparkan daripada ' + S.data.staf.length + (n ? ' · ' + n + ' perubahan belum disimpan' : '');
+  $('sfSimpan').disabled = !n;
+  var tanda = function (nokp, rumahId, peranan) {
+    var x = S.data.staf.filter(function (y) { return y.nokp === nokp; })[0];
+    if (rumahId === x.rumahId && (!rumahId || peranan === x.perananRumah)) delete S.ubah.staf[nokp];
+    else S.ubah.staf[nokp] = { nokp: nokp, rumahId: rumahId, perananRumah: rumahId ? peranan : '' };
+    lukisStaf();
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-sr]'), function (el) {
+    el.onchange = function () { var k = el.getAttribute('data-sr'); var p = document.querySelector('[data-sp="' + k + '"]').value || 'GURU_RUMAH'; tanda(k, el.value, p); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-sp]'), function (el) {
+    el.onchange = function () { var k = el.getAttribute('data-sp'); tanda(k, document.querySelector('[data-sr="' + k + '"]').value, el.value); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ss]'), function (b) { b.onclick = function () { borangStaf(b.getAttribute('data-ss')); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-sk]'), function (b) { b.onclick = function () { resetKW('STAF', b.getAttribute('data-sk')); }; });
+}
+function simpanUbahStaf() {
+  var perubahan = Object.keys(S.ubah.staf).map(function (k) { return S.ubah.staf[k]; });
+  api('apiTetapkanRumahStaf', { perubahan: perubahan }).then(function (r) { S.ubah.staf = {}; toast(r.bil + ' guru/staf dikemaskini.', 'jaya'); HALAMAN.staf(); }).catch(gagal);
+}
+function resetKW(jenis, nokp) {
+  sahkan('Set semula kata laluan akaun ' + kpPapar(nokp) + ' kepada 6 digit terakhir No. KP? Pengguna akan dipaksa menukar kata laluan semasa log masuk.', function () {
+    api('apiResetPassword', { jenis: jenis, nokp: nokp }).then(function (r) { toast(r.mesej, 'jaya'); }).catch(gagal);
+  }, 'Reset');
+}
+function borangStaf(nokp) {
+  var x = nokp ? S.data.staf.filter(function (y) { return y.nokp === nokp; })[0] : { nokp: '', nama: '', kategori: 'GURU', jantina: '', jawatan: '', telefon: '', emel: '', admin: false, rumahId: '', perananRumah: '', status: 'AKTIF' };
+  var opsPeranan = Object.keys(NAMA_PERANAN_RUMAH).map(function (k) { return { v: k, l: NAMA_PERANAN_RUMAH[k] }; });
+  var m = bukaModal('<h3>' + (nokp ? 'Sunting' : 'Tambah') + ' Guru / Staf</h3><div class="grid-borang">' +
+    '<div class="medan"><label>No. KP</label><input id="bsKP" value="' + e(x.nokp) + '"' + (nokp ? ' disabled' : '') + ' inputmode="numeric"></div>' +
+    '<div class="medan"><label>Nama penuh</label><input id="bsNama" value="' + e(x.nama) + '"></div>' +
+    '<div class="medan"><label>Kategori</label><select id="bsKat">' + pilihan([{ v: 'GURU', l: 'Guru' }, { v: 'AKP', l: 'Staf AKP' }], x.kategori) + '</select></div>' +
+    '<div class="medan"><label>Jantina</label><select id="bsJan">' + pilihan([{ v: 'LELAKI', l: 'Lelaki' }, { v: 'PEREMPUAN', l: 'Perempuan' }], x.jantina, '(ikut No. KP)') + '</select></div>' +
+    '<div class="medan"><label>Jawatan / Gred</label><input id="bsJaw" value="' + e(x.jawatan) + '"></div>' +
+    '<div class="medan"><label>Telefon</label><input id="bsTel" value="' + e(x.telefon) + '"></div>' +
+    '<div class="medan"><label>Emel</label><input id="bsEmel" value="' + e(x.emel) + '"></div>' +
+    '<div class="medan"><label>Status</label><select id="bsStatus">' + pilihan(['AKTIF', 'TIDAK AKTIF'], x.status) + '</select></div>' +
+    '<div class="medan"><label>Rumah sukan</label><select id="bsRumah">' + pilihanRumah(x.rumahId, '— tiada —') + '</select></div>' +
+    '<div class="medan"><label>Peranan rumah</label><select id="bsPeranan">' + pilihan(opsPeranan, x.perananRumah || 'GURU_RUMAH') + '</select></div>' +
+    '<label class="penuh" style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="bsAdmin"' + (x.admin ? ' checked' : '') + '> Beri akses <b>Admin</b> sistem rumah sukan</label>' +
+    '</div><div class="aksi-modal">' + (nokp ? '<button class="btn merah" data-x="p" style="margin-right:auto">Padam</button>' : '') +
+    '<button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>');
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    api('apiSimpanStaf', { data: {
+      baharu: !nokp, nokp: nokp || nilaiEl('bsKP').replace(/\D/g, ''), nama: nilaiEl('bsNama'), kategori: nilaiEl('bsKat'), jantina: nilaiEl('bsJan'),
+      jawatan: nilaiEl('bsJaw'), telefon: nilaiEl('bsTel'), emel: nilaiEl('bsEmel'), status: nilaiEl('bsStatus'),
+      rumahId: nilaiEl('bsRumah'), perananRumah: nilaiEl('bsPeranan'), admin: semakEl('bsAdmin') } })
+      .then(function () { tutupModal(m); toast('Rekod disimpan.', 'jaya'); HALAMAN.staf(); }).catch(gagal);
+  };
+  if (nokp) m.querySelector('[data-x=p]').onclick = function () {
+    sahkan('Padam ' + x.nama + '? Lantikan AJK staf ini turut dipadam. (Pilihan lain: tukar status kepada TIDAK AKTIF.)', function () {
+      api('apiPadamStaf', { nokp: nokp }).then(function () { tutupModal(m); toast('Rekod dipadam.', 'jaya'); HALAMAN.staf(); }).catch(gagal);
+    }, 'Padam');
+  };
+}
+
+/* =====================================================================
+ * ADMIN — MURID & ATLET
+ * ===================================================================== */
+HALAMAN.murid = function () {
+  S.ubah.atlet = {};
+  S.data.halMurid = 1;
+  api('apiSenaraiMurid').then(function (r) {
+    S.data.murid = r.senarai;
+    var ting = unik(r.senarai.map(function (m) { return m.tingkatan; })).sort(susunKelas);
+    var h = '<h2 class="tajuk">Murid & Atlet</h2><p class="subtajuk">Import senarai murid, tanda atlet (beserta acara) dan tetapkan rumah secara manual jika perlu.</p>' +
+      '<div class="baris-alat"><input id="mdCari" placeholder="Cari nama / No. KP…"><select id="mdTing">' + pilihan(ting.map(function (t) { return { v: t, l: 'Tingkatan ' + t }; }), '', 'Semua tingkatan') + '</select>' +
+      '<select id="mdKelas"></select><select id="mdRumah">' + pilihanRumah('', 'Semua rumah') + '<option value="-">Belum ditetapkan</option></select>' +
+      '<select id="mdKat">' + pilihan(S.tet.kategori.senarai.map(function (k) { return { v: k.kod, l: k.nama }; }), '', 'Semua kategori') + '<option value="-">Kategori tidak ditentukan</option></select>' +
+      '<select id="mdJan">' + pilihan([{ v: 'LELAKI', l: 'Lelaki' }, { v: 'PEREMPUAN', l: 'Perempuan' }], '', 'Semua jantina') + '</select>' +
+      '<select id="mdAtlet">' + pilihan([{ v: 'YA', l: 'Atlet sahaja' }, { v: 'TIDAK', l: 'Bukan atlet' }], '', 'Atlet & bukan') + '</select>' +
+      '<select id="mdStatus">' + pilihan([{ v: 'AKTIF', l: 'Aktif' }, { v: 'TIDAK AKTIF', l: 'Tidak aktif' }], 'AKTIF', 'Semua status') + '</select>' +
+      '<div class="rapat"><button class="btn luar" id="mdImport">Import Pukal</button><button class="btn" id="mdTambah">+ Tambah</button></div></div>' +
+      '<div class="info-kotak">Tandakan kotak <b>Atlet</b> dan isi acara (cth. 100M, LOMPAT JAUH) kemudian tekan <b>Simpan Atlet</b>. Atlet akan diagih sama rata ke semua rumah mengikut kategori & jantina semasa Agihan. Ikon 🔒 = rumah ditetapkan manual (tidak dipindah oleh agihan).</div>' +
+      '<div class="kad" style="padding:0"><div class="jadual-skrol"><table><thead><tr><th>Nama / No. KP</th><th>Kelas</th><th class="c">J</th><th>Kategori</th><th class="c">Atlet</th><th>Acara</th><th>Rumah</th><th></th></tr></thead><tbody id="mdJadual"></tbody></table></div>' +
+      '<div class="pager" style="padding:10px 12px"><span id="mdInfo"></span><div><button class="btn luar kecil" id="mdSblm">‹ Sebelum</button><button class="btn luar kecil" id="mdSlps">Seterusnya ›</button></div></div></div>' +
+      '<div class="aksi-modal" style="position:sticky;bottom:0;background:var(--latar);padding:10px 0"><button class="btn luar kecil" id="mdTandaSemua" style="margin-right:auto">Tanda semua dipapar sebagai atlet</button><span class="nota" id="mdBilUbah"></span><button class="btn luar" id="mdBatal">Batal</button><button class="btn hijau" id="mdSimpan" disabled>Simpan Atlet</button></div>';
+    kandungan(h);
+    var kemasKelas = function () {
+      var t = nilaiEl('mdTing');
+      var kl = unik(S.data.murid.filter(function (m) { return !t || m.tingkatan === t; }).map(function (m) { return m.kunciKelas; })).sort(susunKelas);
+      $('mdKelas').innerHTML = pilihan(kl, '', 'Semua kelas');
+    };
+    kemasKelas();
+    $('mdTing').onchange = function () { kemasKelas(); S.data.halMurid = 1; lukisMurid(); };
+    ['mdCari', 'mdKelas', 'mdRumah', 'mdKat', 'mdJan', 'mdAtlet', 'mdStatus'].forEach(function (id) { $(id).oninput = function () { S.data.halMurid = 1; lukisMurid(); }; });
+    $('mdSblm').onclick = function () { S.data.halMurid--; lukisMurid(); };
+    $('mdSlps').onclick = function () { S.data.halMurid++; lukisMurid(); };
+    $('mdImport').onclick = function () { bukaImport('MURID', HALAMAN.murid); };
+    $('mdTambah').onclick = function () { borangMurid(null); };
+    $('mdBatal').onclick = function () { S.ubah.atlet = {}; lukisMurid(); };
+    $('mdTandaSemua').onclick = function () {
+      tapisMurid().forEach(function (m) { if (!m.atlet) S.ubah.atlet[m.nokp] = { nokp: m.nokp, atlet: true, acara: m.acara }; else if (S.ubah.atlet[m.nokp] && !S.ubah.atlet[m.nokp].atlet) delete S.ubah.atlet[m.nokp]; });
+      lukisMurid();
+    };
+    $('mdSimpan').onclick = function () {
+      var perubahan = Object.keys(S.ubah.atlet).map(function (k) { return S.ubah.atlet[k]; });
+      api('apiSimpanAtlet', { perubahan: perubahan }).then(function (r) {
+        S.data.murid.forEach(function (m) { var u = S.ubah.atlet[m.nokp]; if (u) { m.atlet = u.atlet; m.acara = u.atlet ? u.acara.toUpperCase() : ''; } });
+        S.ubah.atlet = {}; toast(r.bil + ' murid dikemaskini.', 'jaya'); lukisMurid();
+      }).catch(gagal);
+    };
+    lukisMurid();
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+function nilaiAtlet(m) { var u = S.ubah.atlet[m.nokp]; return u ? u : { atlet: m.atlet, acara: m.acara }; }
+function tapisMurid() {
+  var cari = nilaiEl('mdCari').toUpperCase(), t = nilaiEl('mdTing'), kl = nilaiEl('mdKelas'), ru = nilaiEl('mdRumah'), kat = nilaiEl('mdKat'),
+    jan = nilaiEl('mdJan'), at = nilaiEl('mdAtlet'), st = nilaiEl('mdStatus');
+  return S.data.murid.filter(function (m) {
+    var a = nilaiAtlet(m);
+    return (!cari || m.nama.toUpperCase().indexOf(cari) !== -1 || m.nokp.indexOf(cari) !== -1) && (!t || m.tingkatan === t) && (!kl || m.kunciKelas === kl) &&
+      (!ru || (ru === '-' ? !m.rumahId : m.rumahId === ru)) && (!kat || (kat === '-' ? !m.kategori : m.kategori === kat)) &&
+      (!jan || m.jantina === jan) && (!at || (at === 'YA') === !!a.atlet) && (!st || m.status === st);
+  });
+}
+function lukisMurid() {
+  var s = tapisMurid(), saiz = 50;
+  var jh = Math.max(1, Math.ceil(s.length / saiz));
+  S.data.halMurid = Math.max(1, Math.min(jh, S.data.halMurid));
+  var hal = s.slice((S.data.halMurid - 1) * saiz, S.data.halMurid * saiz);
+  $('mdJadual').innerHTML = hal.length ? hal.map(function (m) {
+    var a = nilaiAtlet(m), ub = !!S.ubah.atlet[m.nokp], r = rumahIkutId(m.rumahId);
+    return '<tr' + (ub ? ' class="berubah"' : '') + '><td><b>' + e(m.nama) + '</b>' + (m.status !== 'AKTIF' ? ' <span class="lencana">TIDAK AKTIF</span>' : '') + '<div class="nota" style="margin:0">' + e(kpPapar(m.nokp)) + '</div></td>' +
+      '<td>' + e(m.kunciKelas) + '</td><td class="c">' + jantinaPendek(m.jantina) + '</td><td>' + (m.kategori ? e(m.kategori) : '<span class="lencana kuning">?</span>') + '</td>' +
+      '<td class="c"><input type="checkbox" data-at="' + m.nokp + '"' + (a.atlet ? ' checked' : '') + ' style="width:18px;height:18px"></td>' +
+      '<td><input data-ac="' + m.nokp + '" value="' + e(a.acara) + '" placeholder="acara"' + (a.atlet ? '' : ' disabled') + ' style="min-width:120px"></td>' +
+      '<td style="white-space:nowrap">' + lencanaRumah(r) + (m.kunciRumah ? ' 🔒' : '') + '</td>' +
+      '<td style="white-space:nowrap"><button class="btn luar kecil" data-ms="' + m.nokp + '">Sunting</button> <button class="btn kelabu kecil" data-mk="' + m.nokp + '">Reset KW</button></td></tr>';
+  }).join('') : '<tr><td colspan="8" class="kosong">Tiada murid. Gunakan Import Pukal untuk memasukkan senarai murid.</td></tr>';
+  var bilAtlet = s.filter(function (m) { return nilaiAtlet(m).atlet; }).length;
+  $('mdInfo').textContent = s.length + ' murid (' + bilAtlet + ' atlet) · halaman ' + S.data.halMurid + '/' + jh;
+  $('mdSblm').disabled = S.data.halMurid <= 1; $('mdSlps').disabled = S.data.halMurid >= jh;
+  var n = Object.keys(S.ubah.atlet).length;
+  $('mdBilUbah').textContent = n ? n + ' perubahan belum disimpan' : '';
+  $('mdSimpan').disabled = !n;
+  var tanda = function (nokp) {
+    var m = S.data.murid.filter(function (x) { return x.nokp === nokp; })[0];
+    var at = document.querySelector('[data-at="' + nokp + '"]').checked, ac = document.querySelector('[data-ac="' + nokp + '"]').value.trim();
+    if (at === m.atlet && (!at || ac.toUpperCase() === String(m.acara).toUpperCase())) delete S.ubah.atlet[nokp];
+    else S.ubah.atlet[nokp] = { nokp: nokp, atlet: at, acara: ac };
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-at]'), function (el) {
+    el.onchange = function () { tanda(el.getAttribute('data-at')); lukisMurid(); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ac]'), function (el) {
+    el.onchange = function () { tanda(el.getAttribute('data-ac')); lukisMurid(); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ms]'), function (b) { b.onclick = function () { borangMurid(b.getAttribute('data-ms')); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-mk]'), function (b) { b.onclick = function () { resetKW('MURID', b.getAttribute('data-mk')); }; });
+}
+function borangMurid(nokp) {
+  var x = nokp ? S.data.murid.filter(function (y) { return y.nokp === nokp; })[0] :
+    { nokp: '', nama: '', jantina: '', tingkatan: '', kelas: '', kaum: '', agama: '', tarikhLahir: '', noTelPenjaga: '', atlet: false, acara: '', rumahId: '', kunciRumah: false, status: 'AKTIF' };
+  var m = bukaModal('<h3>' + (nokp ? 'Sunting' : 'Tambah') + ' Murid</h3><div class="grid-borang">' +
+    '<div class="medan"><label>No. KP</label><input id="bmKP" value="' + e(x.nokp) + '"' + (nokp ? ' disabled' : '') + ' inputmode="numeric"></div>' +
+    '<div class="medan"><label>Nama penuh</label><input id="bmNama" value="' + e(x.nama) + '"></div>' +
+    '<div class="medan"><label>Tingkatan</label><input id="bmTing" value="' + e(x.tingkatan) + '" placeholder="cth. 1 / 6 RENDAH"></div>' +
+    '<div class="medan"><label>Kelas</label><input id="bmKelas" value="' + e(x.kelas) + '" placeholder="cth. BESTARI"></div>' +
+    '<div class="medan"><label>Jantina</label><select id="bmJan">' + pilihan([{ v: 'LELAKI', l: 'Lelaki' }, { v: 'PEREMPUAN', l: 'Perempuan' }], x.jantina, '(ikut No. KP)') + '</select></div>' +
+    '<div class="medan"><label>Tarikh lahir (pilihan)</label><input id="bmLahir" value="' + e(x.tarikhLahir) + '" placeholder="YYYY-MM-DD"></div>' +
+    '<div class="medan"><label>Kaum</label><input id="bmKaum" value="' + e(x.kaum) + '"></div>' +
+    '<div class="medan"><label>Agama</label><input id="bmAgama" value="' + e(x.agama) + '"></div>' +
+    '<div class="medan"><label>No. tel penjaga</label><input id="bmTel" value="' + e(x.noTelPenjaga) + '"></div>' +
+    '<div class="medan"><label>Status</label><select id="bmStatus">' + pilihan(['AKTIF', 'TIDAK AKTIF'], x.status) + '</select></div>' +
+    '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="bmAtlet"' + (x.atlet ? ' checked' : '') + '> Atlet</label>' +
+    '<div class="medan"><label>Acara</label><input id="bmAcara" value="' + e(x.acara) + '" placeholder="cth. 100M, 4X100M"></div>' +
+    '<div class="medan"><label>Rumah sukan</label><select id="bmRumah">' + pilihanRumah(x.rumahId, '— tiada —') + '</select></div>' +
+    '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="bmKunci"' + (x.kunciRumah ? ' checked' : '') + '> 🔒 Kunci rumah (tidak dipindah oleh agihan automatik)</label>' +
+    '</div><div class="aksi-modal">' + (nokp ? '<button class="btn merah" data-x="p" style="margin-right:auto">Padam</button>' : '') +
+    '<button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>');
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    api('apiSimpanMurid', { data: {
+      baharu: !nokp, nokp: nokp || nilaiEl('bmKP').replace(/\D/g, ''), nama: nilaiEl('bmNama'), tingkatan: nilaiEl('bmTing'), kelas: nilaiEl('bmKelas'),
+      jantina: nilaiEl('bmJan'), tarikhLahir: nilaiEl('bmLahir'), kaum: nilaiEl('bmKaum'), agama: nilaiEl('bmAgama'), noTelPenjaga: nilaiEl('bmTel'),
+      status: nilaiEl('bmStatus'), atlet: semakEl('bmAtlet'), acara: nilaiEl('bmAcara'), rumahId: nilaiEl('bmRumah'), kunciRumah: semakEl('bmKunci') } })
+      .then(function () { tutupModal(m); toast('Rekod murid disimpan.', 'jaya'); HALAMAN.murid(); }).catch(gagal);
+  };
+  if (nokp) m.querySelector('[data-x=p]').onclick = function () {
+    sahkan('Padam rekod ' + x.nama + '? (Pilihan lain: tukar status kepada TIDAK AKTIF.)', function () {
+      api('apiPadamMurid', { nokp: nokp }).then(function () { tutupModal(m); toast('Rekod dipadam.', 'jaya'); HALAMAN.murid(); }).catch(gagal);
+    }, 'Padam');
+  };
+}
+
+/* =====================================================================
+ * ADMIN — AGIHAN MURID KE RUMAH SUKAN
+ * ===================================================================== */
+var KRITERIA_UI = [
+  { k: 'atletDahulu', t: 'Agih atlet dahulu secara sama rata', d: 'Murid yang ditanda ATLET dibahagi sama rata kepada semua rumah sukan mengikut kategori dan jantina sebelum murid lain.' },
+  { k: 'atletIkutAcara', t: 'Sebar atlet bagi acara yang sama', d: 'Atlet bagi acara yang sama (cth. 100M) disebar ke semua rumah supaya setiap rumah mempunyai atlet bagi setiap acara.' },
+  { k: 'ikutKategori', t: 'Imbang mengikut kategori', d: 'Bilangan ahli setiap kategori (cth. B15, B18) hampir sama bagi setiap rumah.' },
+  { k: 'ikutJantina', t: 'Imbang mengikut jantina', d: 'Bilangan lelaki dan perempuan diimbangkan secara berasingan.' },
+  { k: 'ikutKelas', t: 'Imbang mengikut kelas', d: 'Setiap kelas mempunyai bilangan ahli yang hampir sama rata bagi setiap rumah sukan (mengikut jantina jika diaktifkan).' },
+  { k: 'hormatKunci', t: 'Kekalkan murid yang dikunci 🔒', d: 'Murid yang rumahnya ditetapkan secara manual tidak dipindahkan (tetapi dikira dalam imbangan).' }
+];
+HALAMAN.agihan = function () {
+  S.data.pratonton = null;
+  api('apiRingkasanAgihan').then(function (r) {
+    var k = r.kriteria;
+    var h = '<h2 class="tajuk">Agihan Murid ke Rumah Sukan</h2><p class="subtajuk">Tetapkan kriteria, buat pratonton, dan sahkan untuk menyimpan agihan.</p>';
+    if (r.terakhir) h += '<div class="info-kotak"><b>Agihan terakhir:</b> ' + e(r.terakhir) + '</div>';
+    h += '<div class="grid-dua"><div class="kad"><h3>Kriteria Agihan</h3>' + KRITERIA_UI.map(function (c) {
+      return '<label class="semak"><input type="checkbox" id="kr_' + c.k + '"' + (k[c.k] ? ' checked' : '') + '><div><b>' + e(c.t) + '</b><span>' + e(c.d) + '</span></div></label>';
+    }).join('') + '</div><div class="kad"><h3>Skop Agihan</h3>' +
+      '<label class="semak"><input type="radio" name="krSkop" value="SEMUA"' + (k.skop !== 'BAHARU' ? ' checked' : '') + '><div><b>Agih semula SEMUA murid aktif</b><span>Sesuai untuk awal tahun / agihan pertama. Murid boleh bertukar rumah (kecuali yang dikunci).</span></div></label>' +
+      '<label class="semak"><input type="radio" name="krSkop" value="BAHARU"' + (k.skop === 'BAHARU' ? ' checked' : '') + '><div><b>Hanya murid yang BELUM mempunyai rumah</b><span>Sesuai untuk murid baharu/pindah masuk. Ahli sedia ada kekal dan diambil kira supaya imbangan terpelihara.</span></div></label>' +
+      '<div class="aksi-modal"><button class="btn luar" id="agSimpanKr">Simpan Kriteria Sebagai Lalai</button><button class="btn" id="agPratonton">Pratonton Agihan</button></div></div></div>' +
+      '<div id="agHasil"><div class="kad"><h3>Taburan Semasa</h3>' + lukisRingkasan(r.ringkasan) + '</div></div>';
+    kandungan(h);
+    $('agSimpanKr').onclick = function () { api('apiSimpanKriteria', { kriteria: bacaKriteria() }).then(function () { toast('Kriteria disimpan.', 'jaya'); }).catch(gagal); };
+    $('agPratonton').onclick = function () { pratontonAgihan(); };
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+function bacaKriteria() {
+  var k = {};
+  KRITERIA_UI.forEach(function (c) { k[c.k] = semakEl('kr_' + c.k); });
+  var r = document.querySelector('input[name=krSkop]:checked');
+  k.skop = r ? r.value : 'SEMUA';
+  return k;
+}
+function pratontonAgihan(seed) {
+  var kr = bacaKriteria();
+  sibuk(true);
+  api('apiPratontonAgihan', { kriteria: kr, seed: seed || 0 }).then(function (r) {
+    sibuk(false);
+    S.data.pratonton = { seed: r.seed, kriteria: kr };
+    $('agHasil').innerHTML = '<div class="kad" style="border:2px solid var(--biru)"><h3>Pratonton Agihan (belum disimpan)</h3>' +
+      '<div class="info-kotak">' + r.bilDiagih + ' murid akan diagih, ' + r.bilTetap + ' murid kekal di rumah sedia ada. ' +
+      (r.ringkasan.dipindah ? r.ringkasan.dipindah + ' murid akan bertukar rumah. ' : '') + '</div>' +
+      lukisRingkasan(r.ringkasan) +
+      '<div class="aksi-modal"><button class="btn luar" id="agSemula">Jana Semula (susunan rawak lain)</button><button class="btn hijau" id="agSahkan">Sahkan & Simpan Agihan</button></div></div>';
+    $('agSemula').onclick = function () { pratontonAgihan(); };
+    $('agSahkan').onclick = function () {
+      sahkan('Simpan agihan ini? Rumah sukan ' + r.bilDiagih + ' murid akan dikemas kini dan kriteria ini disimpan sebagai lalai.', function () {
+        api('apiSimpanAgihan', { kriteria: S.data.pratonton.kriteria, seed: S.data.pratonton.seed }).then(function (x) {
+          toast('Agihan disimpan: ' + x.bilDikemaskini + ' murid dikemas kini.', 'jaya');
+          HALAMAN.agihan();
+        }).catch(gagal);
+      }, 'Simpan Agihan');
+    };
+    $('agHasil').scrollIntoView({ behavior: 'smooth' });
+  }).catch(function (er) { sibuk(false); gagal(er); });
+}
+function lukisRingkasan(g) {
+  if (!g.jumlahMurid) return '<div class="kosong">Tiada murid aktif. Import senarai murid dahulu.</div>';
+  var h = '';
+  if (g.tiadaRumah) h += '<div class="amaran-kotak">' + g.tiadaRumah + ' murid belum mempunyai rumah sukan.</div>';
+  h += '<div class="jadual-skrol"><table><thead><tr><th>Rumah</th><th class="n">Jumlah</th><th class="n">Lelaki</th><th class="n">Perempuan</th><th class="n">Atlet L</th><th class="n">Atlet P</th>' +
+    g.kategori.map(function (k) { return '<th class="n">' + e(k.kod) + ' L</th><th class="n">' + e(k.kod) + ' P</th>'; }).join('') + '</tr></thead><tbody>' +
+    g.rumah.map(function (r) {
+      return '<tr><td><span class="titik" style="background:' + e(r.warna) + '"></span><b>' + e(r.nama) + '</b></td><td class="n"><b>' + r.jumlah + '</b></td><td class="n">' + r.L + '</td><td class="n">' + r.P + '</td><td class="n">' + r.atletL + '</td><td class="n">' + r.atletP + '</td>' +
+        g.kategori.map(function (k) {
+          var l = r.kat[k.kod + '|L'] || { semua: 0, atlet: 0 }, p = r.kat[k.kod + '|P'] || { semua: 0, atlet: 0 };
+          return '<td class="n" title="' + l.atlet + ' atlet">' + l.semua + '</td><td class="n" title="' + p.atlet + ' atlet">' + p.semua + '</td>';
+        }).join('') + '</tr>';
+    }).join('') + '</tbody></table></div>';
+  var tidakSeimbang = g.kelasTidakSeimbang;
+  h += '<h3 style="margin-top:18px">Taburan Mengikut Kelas <span class="lencana ' + (tidakSeimbang ? 'kuning' : 'hijau') + '">' +
+    (tidakSeimbang ? tidakSeimbang + ' kelas beza > 1' : 'Semua kelas seimbang (beza ≤ 1)') + '</span></h3>' +
+    '<div class="jadual-skrol" style="max-height:420px;overflow-y:auto"><table><thead><tr><th>Kelas</th><th class="n">Jumlah</th>' +
+    g.rumah.map(function (r) { return '<th class="c"><span class="titik" style="background:' + e(r.warna) + '"></span>' + e(r.nama) + '<br>L / P</th>'; }).join('') +
+    '<th class="c">Beza maks</th></tr></thead><tbody>' + g.kelas.map(function (c) {
+      var beza = Math.max(c.julatL, c.julatP);
+      return '<tr><td>' + e(c.kelas) + '</td><td class="n">' + c.jumlah + '</td>' +
+        g.rumah.map(function (r) { return '<td class="c">' + (c.L[r.id] || 0) + ' / ' + (c.P[r.id] || 0) + '</td>'; }).join('') +
+        '<td class="c"><span class="lencana ' + (beza > 1 ? 'kuning' : 'hijau') + '">' + beza + '</span>' + (c.tiadaRumah ? ' <span class="lencana merah">' + c.tiadaRumah + ' tiada rumah</span>' : '') + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+  return h;
+}
+
+/* =====================================================================
+ * ADMIN — LOG AUDIT
+ * ===================================================================== */
+HALAMAN.audit = function (halaman) {
+  api('apiSenaraiAudit', { halaman: halaman || 1, saiz: 50 }).then(function (r) {
+    kandungan('<h2 class="tajuk">Log Audit</h2><p class="subtajuk">' + r.jumlah + ' rekod, terbaharu dahulu.</p><div class="kad" style="padding:0"><div class="jadual-skrol"><table><thead><tr><th>Tarikh</th><th>Pengguna</th><th>Tindakan</th><th>Modul</th><th>Butiran</th></tr></thead><tbody>' +
+      (r.senarai.length ? r.senarai.map(function (x) {
+        return '<tr><td style="white-space:nowrap">' + e(x.tarikh) + '</td><td>' + e(x.nama) + '<div class="nota" style="margin:0">' + e(x.peranan) + '</div></td><td>' + e(x.tindakan) + '</td><td>' + e(x.modul) + '</td><td>' + e(x.butiran) + '</td></tr>';
+      }).join('') : '<tr><td colspan="5" class="kosong">Tiada rekod.</td></tr>') + '</tbody></table></div>' +
+      '<div class="pager" style="padding:10px 12px"><span>Halaman ' + r.halaman + ' / ' + r.jumlahHalaman + '</span><div><button class="btn luar kecil" id="auSblm"' + (r.halaman <= 1 ? ' disabled' : '') + '>‹ Baharu</button><button class="btn luar kecil" id="auSlps"' + (r.halaman >= r.jumlahHalaman ? ' disabled' : '') + '>Lama ›</button></div></div></div>');
+    $('auSblm').onclick = function () { HALAMAN.audit(r.halaman - 1); };
+    $('auSlps').onclick = function () { HALAMAN.audit(r.halaman + 1); };
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+</script>
+</body>
+</html>
