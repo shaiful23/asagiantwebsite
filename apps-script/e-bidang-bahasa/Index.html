@@ -231,8 +231,9 @@
  * Skrip klien SPA — semua panggilan pelayan melalui google.script.run,
  * disahkan token sesi setiap panggilan (rujuk wajibPeranan() di pelayan).
  * ========================================================================= */
-// WAJIB sama dengan SENARAI_PANITIA dalam Config.gs.
-const SENARAI_PANITIA = ['Bahasa Melayu', 'Bahasa Inggeris', 'Bahasa Cina', 'Bahasa Iban', 'Bahasa Arab'];
+// Disuntik oleh pelayan daripada SENARAI_PANITIA (Config.gs) semasa doGet() — satu sumber sahaja,
+// jadi ubah senarai panitia di Config.gs sahaja (jangan tulis semula di sini).
+const SENARAI_PANITIA = <?!= JSON.stringify(SENARAI_PANITIA) ?>;
 const SKOP_BIDANG = 'BIDANG';
 const BULAN_TAHUNAN = ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogos', 'Sep', 'Okt', 'Nov', 'Dis'];
 const LABEL_PERANAN = { ADMIN: 'Admin', KETUA_BIDANG: 'Ketua Bidang', KETUA_PANITIA: 'Ketua Panitia', GURU: 'Guru' };

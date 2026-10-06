@@ -23,6 +23,7 @@ function onOpen() {
     .addItem('1. Sediakan Sistem (Jalankan Sekali)', 'sediakanSistemEBidang')
     .addItem('2. Kemaskini Struktur (Emel & Kalendar)', 'kemaskiniStrukturSistem')
     .addItem('3. Aktifkan Notifikasi E-mel Harian', 'sediakanNotifikasiHarian')
+    .addItem('4. Selaraskan Senarai Panitia', 'menuSelaraskanSenaraiPanitia')
     .addToUi();
 }
 
@@ -48,7 +49,7 @@ function sediakanSistemEBidang() {
       '', '', '', '', '', '', '', '']]);
 
   pastikanSheet(SHEET_PANITIA, HEADER_PANITIA,
-    SENARAI_PANITIA.map(nama => [nama.toUpperCase().replace(/\s+/g, '_'), nama, '', 'AKTIF']));
+    SENARAI_PANITIA.map(nama => [kodPanitiaDaripadaNama(nama), nama, '', 'AKTIF']));
 
   pastikanSheet(SHEET_KATEGORI_DOKUMEN, HEADER_KATEGORI_DOKUMEN, kategoriDokumenLalai());
   pastikanSheet(SHEET_DOKUMEN, HEADER_DOKUMEN, []);
@@ -122,6 +123,23 @@ function kemaskiniStrukturSistem() {
       'Sheet baharu (jika ada) bagi menu "Perancangan Strategik" (PS/PT/PO & Carta Gantt) ' +
       'sedia digunakan serta-merta — tiada tindakan tambahan diperlukan.'
     : 'Tiada kemaskini diperlukan — struktur sudah terkini.');
+}
+
+/* Selaraskan Sheet PANITIA dengan SENARAI_PANITIA (Config.gs) — jalankan selepas
+   mengubah senarai panitia pada deployment sedia ada (rujuk selaraskanSenaraiPanitia(),
+   PanitiaService.gs). */
+function menuSelaraskanSenaraiPanitia() {
+  const h = selaraskanSenaraiPanitia();
+  const baris = [];
+  if (h.ditambah.length) baris.push('Ditambah: ' + h.ditambah.join(', '));
+  if (h.diaktifkan.length) baris.push('Diaktifkan semula: ' + h.diaktifkan.join(', '));
+  if (h.dinyahaktif.length) baris.push('Dinyahaktifkan (dibuang daripada senarai): ' + h.dinyahaktif.join(', '));
+  SpreadsheetApp.getUi().alert(baris.length
+    ? 'Sheet PANITIA diselaraskan dengan SENARAI_PANITIA (Config.gs).\n\n' + baris.join('\n') +
+      '\n\nTetapkan Ketua Panitia bagi panitia baharu di menu Panitia, dan kemaskini Panitia ' +
+      'setiap guru di menu Pengguna jika perlu. Rekod lama (dokumen, mesyuarat, dll.) bagi ' +
+      'panitia yang dibuang tidak dipadam.'
+    : 'Tiada perubahan — Sheet PANITIA sudah sepadan dengan SENARAI_PANITIA (Config.gs).');
 }
 
 /* Tetapkan pencetus terjadual (time-driven trigger) untuk hantarNotifikasiHarian()

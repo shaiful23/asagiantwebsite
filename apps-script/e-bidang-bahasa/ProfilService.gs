@@ -38,7 +38,7 @@ function apiCartaOrganisasi(p) {
     .filter(u => PERANAN_AKSES_PENUH.indexOf(u.Peranan) !== -1)
     .map(profilRingkas);
 
-  const panitia = bacaSheetSebagaiObjek(SHEET_PANITIA).map(pn => {
+  const panitia = barisPanitiaSemasa().map(pn => {
     const ahliPanitia = pengguna.filter(u => senaraiPanitiaDaripadaMedan(u.Panitia).indexOf(pn.NamaPanitia) !== -1);
     const ketua = ahliPanitia.find(u => String(u.NoKP) === String(pn.KetuaPanitia)) || null;
     const ahliLain = ahliPanitia.filter(u => !ketua || String(u.NoKP) !== String(ketua.NoKP));

@@ -1,7 +1,7 @@
 # Sistem E-Bidang Bahasa — SMK Asajaya
 
 Sistem pengurusan fail digital bagi **Bidang Bahasa** (lalai: Panitia
-Bahasa Melayu, Bahasa Inggeris, Bahasa Cina, Bahasa Iban, Bahasa Arab),
+Bahasa Melayu, Bahasa Inggeris, Bahasa Cina, Kesusasteraan Melayu Komunikatif),
 dibina menggunakan Google Sheets sebagai database dan Google Apps Script
 sebagai backend + frontend (satu Web App SPA).
 
@@ -17,9 +17,15 @@ Kerangka & fungsi **sama** seperti Sistem E-Bidang Sains & Matematik
   lajur `USERS.MakmalDijaga`.
 
 **Senarai panitia boleh diubah** — sunting `SENARAI_PANITIA` dalam
-`Config.gs` **dan** dalam `Index.html` (kedua-dua mesti sama) SEBELUM
-menjalankan "1. Sediakan Sistem" (cth. tambah `'Kesusasteraan Melayu'`,
-`'Literature in English'`, `'Bahasa Tamil'`).
+`Config.gs` **sahaja** (cth. tambah `'Kesusasteraan Melayu Komunikatif'`,
+`'Literature in English'`, `'Bahasa Tamil'`). `Index.html` membaca senarai ini
+terus daripada pelayan, jadi semua tab (Fail & Dokumen, Mesyuarat, Tindakan
+Susulan, Program & PLC, Perancangan Strategik, Pencerapan & Semakan, Pengguna)
+ikut serta-merta. Jika diubah **selepas** "1. Sediakan Sistem", jalankan
+**Sistem E-Bidang → 4. Selaraskan Senarai Panitia** supaya Sheet `PANITIA`
+turut dikemaskini (panitia baharu ditambah; panitia yang dibuang ditanda
+`TIDAK_AKTIF`, bukan dipadam), kemudian tetapkan Ketua Panitia baharu di menu
+Panitia dan kemaskini Panitia setiap guru di menu Pengguna jika perlu.
 
 ## Ciri Utama
 
@@ -40,7 +46,7 @@ menjalankan "1. Sediakan Sistem" (cth. tambah `'Kesusasteraan Melayu'`,
   | `GURU` | Terhad kepada panitia sendiri (boleh > 1); boleh muat naik/lihat fail, lihat mesyuarat/program, kemaskini status tindakan yang ditugaskan kepadanya |
 
 - **Sokongan pertindihan peranan & > 1 panitia** — seorang guru yang mengajar
-  lebih daripada satu mata pelajaran (cth. Bahasa Melayu & Bahasa Iban,
+  lebih daripada satu mata pelajaran (cth. Bahasa Melayu & Kesusasteraan Melayu Komunikatif,
   atau Bahasa Inggeris & Bahasa Cina) boleh didaftarkan dengan **lebih daripada satu Panitia** (tandakan
   semua yang berkenaan semasa tambah/sunting pengguna di menu **Pengguna**);
   sistem akan sediakan pemilih Panitia bagi setiap modul (Dokumen, Mesyuarat,
@@ -261,8 +267,7 @@ E-Bidang Bahasa - Fail/                 (bersebelahan Google Sheet database)
 │   └── Evidens Program - <Nama Program>/
 ├── Bahasa Inggeris/
 ├── Bahasa Cina/
-├── Bahasa Iban/
-└── Bahasa Arab/
+└── Kesusasteraan Melayu Komunikatif/
 ```
 
 ## Skop Semasa & Belum Dilaksanakan
