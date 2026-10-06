@@ -40,7 +40,7 @@ const PERANAN_URUS_PANITIA = [ROLE_ADMIN, ROLE_KETUA_BIDANG, ROLE_KETUA_PANITIA]
 // Ubah senarai ini mengikut panitia bahasa sebenar di sekolah. Frontend (Index.html) membaca
 // senarai ini terus daripada pelayan. Jika diubah SELEPAS "1. Sediakan Sistem", jalankan
 // menu "4. Selaraskan Senarai Panitia" supaya Sheet PANITIA turut dikemaskini.
-const SENARAI_PANITIA = ['Bahasa Melayu', 'Bahasa Inggeris', 'Bahasa Cina', 'Bahasa Iban', 'Bahasa Arab'];
+const SENARAI_PANITIA = ['Bahasa Melayu', 'Bahasa Inggeris', 'Bahasa Cina', 'Kesusasteraan Melayu Komunikatif'];
 
 // Skop khusus bagi Perancangan Strategik/Taktikal/Operasi & Carta Gantt yang
 // merentasi SEMUA panitia (peringkat Ketua Bidang) — bukan satu Panitia tertentu.
