@@ -86,6 +86,8 @@ function apiSimpanPentaksiran(p) {
       if (!bolehIsiUnit(sesi, a, unitMuridAspek(murid, a, sedia))) {
         return ralat('Anda bukan Ketua Guru Penasihat bagi unit ' + NAMA_ASPEK[a] + ' murid ini — hanya KGP unit berkenaan (atau Admin) boleh mengisi.');
       }
+      const kunci = semakKunciPengisian(sesi, kunciUnit(a, unitMuridAspek(murid, a, sedia)));
+      if (kunci) return ralat(kunci);
     }
 
     for (let i = 0; i < aspekDihantar.length; i++) {
@@ -242,6 +244,8 @@ function apiSimpanPukal(p) {
   const x = pecahKunciUnit(p.unit);
   if (!x || SEMUA_ASPEK.indexOf(x.aspek) === -1) return ralat('Unit tidak sah.');
   if (!bolehIsiUnit(sesi, x.aspek, x.unit)) return ralat('Anda bukan Ketua Guru Penasihat bagi unit ini.');
+  const kunciIsi = semakKunciPengisian(sesi, kunciUnit(x.aspek, x.unit));
+  if (kunciIsi) return ralat(kunciIsi);
   const senaraiKp = (Array.isArray(p.nokp) ? p.nokp : []).map(normalKP).filter(Boolean);
   if (!senaraiKp.length) return ralat('Tiada murid dipilih.');
   const medan = p.medan || {};

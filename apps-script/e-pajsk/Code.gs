@@ -48,6 +48,7 @@ function sediakanSistemEPAJSK() {
   pastikan(SHEET_TETAPAN, HEADER_TETAPAN, null, tetapanLalai());
   pastikan(SHEET_ARKIB, HEADER_ARKIB, null);
   pastikan(SHEET_AUDIT, HEADER_AUDIT, ['NoKP']);
+  pastikan(SHEET_PERMOHONAN, HEADER_PERMOHONAN, ['NoKP', 'Tarikh', 'BukaHingga', 'TarikhProses']);
 
   const lalai = ss.getSheetByName('Sheet1') || ss.getSheetByName('Sheet 1');
   if (lalai && ss.getSheets().length > 1 && lalai.getLastRow() === 0) ss.deleteSheet(lalai);

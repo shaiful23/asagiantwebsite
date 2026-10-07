@@ -21,7 +21,7 @@ const VERSI_LOGIK_SEGERAK = '2';
 function penandaKoko(ts) { return String(ts) + ':' + VERSI_LOGIK_SEGERAK; }
 
 function versiData() {
-  return [SHEET_MURID, SHEET_ASPEK, SHEET_EKSTRA, SHEET_RUMUSAN, SHEET_PENGGUNA, SHEET_TETAPAN].map(versiSheet).join('|');
+  return [SHEET_MURID, SHEET_ASPEK, SHEET_EKSTRA, SHEET_RUMUSAN, SHEET_PENGGUNA, SHEET_TETAPAN, SHEET_PERMOHONAN].map(versiSheet).join('|');
 }
 
 function adaPencetusAuto() {
@@ -182,6 +182,7 @@ function apiMula(p) {
       autoSegerak: maklumatAutoSegerak(t, true)
     },
     kelasSenarai: senaraiKelasSesi(sesi),
+    tarikhAkhir: infoTarikhAkhir(sesi),
     versi: versiData()
   });
 }
