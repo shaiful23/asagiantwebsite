@@ -110,3 +110,9 @@ Jangan ubah nama header. Suntingan manual dalam Sheet dikesan oleh `onEdit` (cac
 `Logo.html` mengandungi logo sekolah (PNG base64) yang dipaparkan pada skrin log masuk dan menu.
 Menu Sheet **2. Tambah / Pulihkan Admin** boleh digunakan jika Admin terlupa kata laluan
 (kata laluan di-set semula kepada lalai).
+
+## Penyelesaian masalah
+
+- **Menu "Sistem Rumah Sukan" tidak muncul** — pastikan kod terkini `Code.gs` digunakan, kemudian
+  muat semula Sheet. Jika masih tiada, buka Apps Script, pilih fungsi `onOpen` dan tekan **Run** sekali
+  (benarkan akses); ralat semasa memuatkan skrip akan dipaparkan dalam *Execution log*.

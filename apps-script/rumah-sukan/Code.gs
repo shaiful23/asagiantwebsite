@@ -18,7 +18,12 @@ function onOpen() {
     .addToUi();
 }
 
-const SEMUA_SHEET_DATA = [SHEET_STAF, SHEET_MURID, SHEET_RUMAH, SHEET_AJK, SHEET_AJK_AHLI, SHEET_TETAPAN];
+/* Fungsi (bukan const global): Apps Script memuatkan fail mengikut susunan dalam projek, dan Code.gs
+   biasanya dimuatkan SEBELUM Config.gs — const global yang merujuk Config.gs akan gagal semasa dimuatkan
+   (ReferenceError) lalu menghalang onOpen() daripada membina menu. */
+function semuaSheetData() {
+  return [SHEET_STAF, SHEET_MURID, SHEET_RUMAH, SHEET_AJK, SHEET_AJK_AHLI, SHEET_TETAPAN];
+}
 
 /* Cipta semua Sheet + header + data lalai jika belum wujud.
    Selamat dijalankan berulang kali — tidak akan menimpa Sheet sedia ada. */
@@ -50,7 +55,7 @@ function sediakanSistemRumahSukan() {
 
   const lalai = ss.getSheetByName('Sheet1') || ss.getSheetByName('Sheet 1');
   if (lalai && ss.getSheets().length > 1 && lalai.getLastRow() === 0) ss.deleteSheet(lalai);
-  SEMUA_SHEET_DATA.forEach(tandaKotor);
+  semuaSheetData().forEach(tandaKotor);
 
   const ui = SpreadsheetApp.getUi();
   ui.alert('Sistem sedia',
@@ -90,7 +95,7 @@ function tambahAdminMelaluiMenu() {
 }
 
 function kosongkanCacheMelaluiMenu() {
-  SEMUA_SHEET_DATA.forEach(tandaKotor);
+  semuaSheetData().forEach(tandaKotor);
   SpreadsheetApp.getUi().alert('Semua cache data dikosongkan. Data akan dibaca semula daripada Sheet pada permintaan seterusnya.');
 }
 
