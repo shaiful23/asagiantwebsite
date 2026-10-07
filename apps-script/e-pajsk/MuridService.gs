@@ -96,6 +96,7 @@ function sesiBolehKelas(sesi, kelas) {
    BENAR-BENAR berubah ditulis ke Sheet (menjimatkan masa dan tidak menaikkan versi data tanpa sebab).
    MESTI dipanggil dalam denganKunci(). */
 function laksanakanSegerak(kunciKelas, paksa) {
+  pastikanStrukturTerkini();
   const tahun = tahunSemasa();
   const ref = muatRujukan();
   const koko = bacaKokoRingkas(tahun, !!paksa);
@@ -194,11 +195,43 @@ function laksanakanSegerak(kunciKelas, paksa) {
   upsertBanyak(SHEET_ASPEK, 'Kunci', aspekUbah);
   upsertBanyak(SHEET_RUMUSAN, 'NoKP', rumusanUbah);
 
-  laporan.diubah = muridUbah.length + aspekUbah.length + rumusanUbah.length;
+  let kgpUbah = 0;
+  if (!kunciKelas) {
+    try { kgpUbah = segerakKgpDaripadaKoko(); } catch (e) { laporan.amaran.push('Senarai Ketua Guru Penasihat tidak dapat dibaca: ' + e.message); }
+  }
+  laporan.kgpDikemaskini = kgpUbah;
+  laporan.diubah = muridUbah.length + aspekUbah.length + rumusanUbah.length + kgpUbah;
   laporan.jumlahDiproses = proses.length;
   laporan.masa = masa;
   laporan.ts = koko.ts;
   return laporan;
+}
+
+/* Kemas kini PENGGUNA.UnitKoko (unit yang dipimpin sebagai Ketua Guru Penasihat dalam e-Kokurikulum) dan cipta
+   akaun bagi KGP yang belum wujud (kata laluan lalai = 6 digit terakhir No. KP, wajib tukar). Pulangkan bil berubah. */
+function segerakKgpDaripadaKoko() {
+  const guru = bacaGuruKoko();
+  const peta = {};
+  guru.forEach(g => { peta[g.nokp] = g; });
+  const ubah = [];
+  bacaSheetSebagaiObjek(SHEET_PENGGUNA).forEach(u => {
+    const kp = normalKP(u.NoKP);
+    const g = peta[kp];
+    const baharu = g ? g.unitKgp.slice().sort().join('; ') : String(u.UnitKoko || '');
+    // Guru yang tiada lagi dalam e-Kokurikulum: kekalkan nilai lama (mungkin hanya ralat sementara).
+    if (g && String(u.UnitKoko || '') !== baharu) ubah.push({ NoKP: kp, UnitKoko: baharu });
+    delete peta[kp];
+  });
+  Object.keys(peta).forEach(kp => {
+    const g = peta[kp];
+    if (!g.unitKgp.length) return;
+    ubah.push({
+      NoKP: kp, Password: cincangKataLaluan(kp, kataLaluanLalaiDaripadaIC(kp)), Peranan: ROLE_GURU_KELAS, NamaPenuh: g.nama,
+      KelasDijaga: '', MestiTukarPassword: 'YA', Status: 'AKTIF', Emel: g.emel, UnitDijaga: '', UnitKoko: g.unitKgp.sort().join('; ')
+    });
+  });
+  upsertBanyak(SHEET_PENGGUNA, 'NoKP', ubah);
+  return ubah.length;
 }
 
 function apiSegerakKoko(p) {

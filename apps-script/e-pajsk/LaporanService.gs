@@ -39,6 +39,10 @@ function apiDashboard(p) {
   const jumlah = senarai.reduce((j, k) => ({ bil: j.bil + k.bil, siap: j.siap + k.siap }), { bil: 0, siap: 0 });
 
   const hasil = { kelas: senarai, jumlah, tahun: tahunSemasa(), segerakTerakhir: dapatTetapan('SEGERAK_KOKO_TERAKHIR') };
+  if (sesi.peranan !== ROLE_ADMIN && (sesi.unit || []).length) {
+    const su = binaStatusUnit(sesi);
+    hasil.unitSaya = su.susunanUnit.map(k => { const u = su.unit[k]; return { kunci: k, aspek: u.aspek, unit: u.unit, bil: u.bil, lengkap: u.lengkap, proses: u.proses, belum: u.belum, status: u.status, peratus: u.peratus }; });
+  }
   if (sesi.peranan === ROLE_ADMIN) {
     const guru = bacaSheetSebagaiObjek(SHEET_PENGGUNA).filter(u => u.Peranan === ROLE_GURU_KELAS && String(u.Status).toUpperCase() === 'AKTIF');
     hasil.bilGuru = guru.length;
@@ -46,8 +50,8 @@ function apiDashboard(p) {
     guru.forEach(u => senaraiDaripadaMedan(u.KelasDijaga).forEach(kk => { kelasBerguru[kk] = true; }));
     hasil.kelasTanpaGuru = Object.keys(kelas).filter(kunci => !kelasBerguru[kunci]).length;
     hasil.bilPerluSemak = bacaSheetSebagaiObjek(SHEET_MURID).filter(m => String(m.Status).toUpperCase() === 'AKTIF' && m.PerluSemak === 'YA').length;
-    const pengisian = binaStatusPengisian(sesi);
-    hasil.pengisian = { kira: pengisian.kira, guruTanpaKelas: pengisian.guruTanpaKelas.length };
+    const pengisian = binaStatusUnit(sesi);
+    hasil.pengisian = { kira: pengisian.kira, unitTanpaKgp: pengisian.unitTanpaKgp.length };
     hasil.arkibTahunIni = !!bacaSheetSebagaiObjek(SHEET_ARKIB).find(a => Number(a.TAHUN) === tahunSemasa());
   }
   return jaya(hasil);

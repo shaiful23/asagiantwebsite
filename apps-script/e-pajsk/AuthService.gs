@@ -7,7 +7,20 @@
  * disahkan di pelayan, bukan sekadar disembunyikan di frontend.
  * ========================================================================= */
 
-const HEADER_PENGGUNA = ['NoKP', 'Password', 'Peranan', 'NamaPenuh', 'KelasDijaga', 'MestiTukarPassword', 'Status', 'Emel'];
+const HEADER_PENGGUNA = ['NoKP', 'Password', 'Peranan', 'NamaPenuh', 'KelasDijaga', 'MestiTukarPassword', 'Status', 'Emel', 'UnitDijaga', 'UnitKoko'];
+
+/* Unit yang dipimpin pengguna sebagai KGP (manual Admin + daripada e-Kokurikulum), tanpa pendua. */
+function unitPengguna(u) {
+  const s = {};
+  senaraiUnitDaripadaMedan(u.UnitDijaga).concat(senaraiUnitDaripadaMedan(u.UnitKoko)).forEach(k => { s[k] = true; });
+  return Object.keys(s).sort();
+}
+
+/* Boleh mengisi aspek unit ini? Admin: semua; lain-lain: hanya KGP unit tersebut. */
+function bolehIsiUnit(sesi, aspek, unit) {
+  if (sesi.peranan === ROLE_ADMIN) return true;
+  return !!unit && (sesi.unit || []).indexOf(kunciUnit(aspek, unit)) !== -1;
+}
 
 /* ------------------------- KATA LALUAN ------------------------- */
 function cincangKataLaluan(nokp, kataLaluan) {
@@ -40,11 +53,13 @@ function sahkanSesi(token) {
 function wajibPeranan(token, perananDibenarkan) {
   const sesi = sahkanSesi(token);
   if (!sesi) return ralat('Sesi tamat tempoh. Sila log masuk semula.');
+  pastikanStrukturTerkini();
   const pengguna = bacaSheetSebagaiObjek(SHEET_PENGGUNA).find(u => normalKP(u.NoKP) === sesi.nokp);
   if (!pengguna || String(pengguna.Status).toUpperCase() !== 'AKTIF') return ralat('Akaun tidak aktif. Sila hubungi admin.');
   sesi.peranan = pengguna.Peranan;
   sesi.nama = pengguna.NamaPenuh;
   sesi.kelas = senaraiDaripadaMedan(pengguna.KelasDijaga);
+  sesi.unit = unitPengguna(pengguna);
   if (perananDibenarkan && perananDibenarkan.length && perananDibenarkan.indexOf(sesi.peranan) === -1) {
     return ralat('Anda tidak mempunyai kebenaran untuk tindakan ini.');
   }
@@ -83,6 +98,7 @@ function apiLogin(p) {
     nama: pengguna.NamaPenuh,
     peranan: pengguna.Peranan,
     kelas: senaraiDaripadaMedan(pengguna.KelasDijaga),
+    unit: unitPengguna(pengguna),
     mestiTukarPassword: String(pengguna.MestiTukarPassword).toUpperCase() === 'YA'
   });
 }

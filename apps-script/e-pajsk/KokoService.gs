@@ -103,12 +103,27 @@ function bacaGuruKoko() {
   const h = data.header;
   const iKp = cariLajur(h, /^NO\.? ?KP$/), iNama = cariLajur(h, /^NAMA/), iEmel = cariLajur(h, /^E-?MEL$/);
   if (iKp < 0 || iNama < 0) throw new Error('Struktur Sheet PENGGUNA e-Kokurikulum tidak dikenali.');
+  // Lajur UNITn_KATEGORI / UNITn_NAMA / UNITn_JAWATAN (n = 1, 2, ...)
+  const slotUnit = [];
+  h.forEach((nama, i) => {
+    const m = String(nama).match(/^UNIT(\d+)_KATEGORI$/);
+    if (!m) return;
+    slotUnit.push({ kat: i, nama: cariLajur(h, 'UNIT' + m[1] + '_NAMA'), jaw: cariLajur(h, 'UNIT' + m[1] + '_JAWATAN') });
+  });
   const hasil = [];
   data.baris.forEach(b => {
     const nokp = normalKP(b[iKp]);
     const nama = banding(b[iNama]);
     if (nokp.length !== 12 || !nama) return;
-    hasil.push({ nokp, nama, emel: iEmel >= 0 ? String(b[iEmel] || '').trim() : '' });
+    const unitKgp = [];
+    slotUnit.forEach(s => {
+      if (s.nama < 0 || s.jaw < 0) return;
+      const unit = banding(b[s.nama]), kat = banding(b[s.kat]), jaw = banding(b[s.jaw]);
+      if (!unit || !KOKO_JAWATAN_KGP.test(jaw)) return;
+      const aspek = SEMUA_ASPEK.find(a => KATA_KUNCI_KATEGORI[a].test(kat));
+      if (aspek) unitKgp.push(kunciUnit(aspek, unit));
+    });
+    hasil.push({ nokp, nama, emel: iEmel >= 0 ? String(b[iEmel] || '').trim() : '', unitKgp });
   });
   return hasil;
 }
