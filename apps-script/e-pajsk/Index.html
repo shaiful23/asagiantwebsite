@@ -132,21 +132,98 @@
     .slip .rumusan-teks { border: 1px solid #475569; padding: 5px 7px; font-style: italic; }
     #kawasanCetak { display: none; }
 
-    @media (max-width: 820px) {
-      #aplikasi { flex-direction: column; }
-      #bilahSisi { width: 100%; display: flex; overflow-x: auto; padding: 8px; align-items: center; }
-      #bilahSisi .jenama { border: none; margin: 0 8px 0 0; padding: 0 10px 0 4px; white-space: nowrap; }
-      #bilahSisi .jenama small { display: none; }
-      .item-nav { width: auto; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; padding: 8px 11px; }
-      .item-nav.aktif { border-bottom-color: #facc15; }
+    /* ================= RESPONSIF: komputer / tablet / telefon ================= */
+    #btnMenu { display: none; background: none; border: 1px solid var(--sempadan); border-radius: 8px; width: 40px; height: 40px; align-items: center; justify-content: center; font-size: 20px; color: var(--biru-gelap); flex-shrink: 0; }
+    #latarMenu { display: none; }
+    .tab-bar { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+    .tab-bar button { white-space: nowrap; flex-shrink: 0; }
+    img, svg { max-width: 100%; }
+
+    /* Tablet landskap / komputer riba kecil */
+    @media (max-width: 1100px) {
+      #bilahSisi { width: 200px; }
+      .item-nav { padding: 10px 14px; font-size: 13.5px; }
+      #kandungan { padding: 16px; }
+    }
+
+    /* Tablet potret & telefon: menu jadi laci (drawer) */
+    @media (max-width: 900px) {
+      #btnMenu { display: inline-flex; }
+      #bilahSisi { position: fixed; top: 0; left: 0; bottom: 0; width: 260px; z-index: 60; transform: translateX(-105%); transition: transform .22s ease; overflow-y: auto; box-shadow: 4px 0 24px rgba(2,6,23,.35); }
+      body.menu-buka #bilahSisi { transform: translateX(0); }
+      body.menu-buka #latarMenu { display: block; position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 55; }
+      #barAtas { padding: 8px 12px; gap: 8px; }
+      #barAtas .info { flex: 1; min-width: 0; }
+      .item-nav { padding: 13px 18px; font-size: 14.5px; }
       .grid-borang { grid-template-columns: 1fr; }
-      #kandungan { padding: 12px; }
+      .kad { padding: 14px; }
+      .kad-modal { width: min(860px, 100%); }
+    }
+
+    /* Telefon */
+    @media (max-width: 640px) {
+      body { font-size: 14px; }
+      input, select, textarea { font-size: 16px; }              /* elak zum automatik iOS */
+      h2.tajuk { font-size: 17px; }
+      #kandungan { padding: 10px; }
+      #barAtas .info { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #barAtas .info .peranan-info { display: none; }
+      #barAtas .butang-atas .btn { padding: 6px 9px; font-size: 12px; }
+      #btnTukarKW .teks-panjang { display: none; }
+      .grid-kad { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .stat { padding: 10px 12px; } .stat .nilai { font-size: 21px; }
+      .baris-alat { gap: 8px; }
+      .baris-alat > select, .baris-alat > input { width: 100%; min-width: 0; flex: 1 1 100%; }
+      .baris-alat .rapat { margin-left: 0; width: 100%; }
+      .baris-alat .rapat .btn { flex: 1 1 auto; justify-content: center; }
+      .baris-alat > .btn { flex: 1 1 auto; justify-content: center; }
+      .pager { flex-direction: column; align-items: stretch; }
+      .pager-kumpulan { justify-content: space-between; }
+      .pager .btn { flex: 1; justify-content: center; }
+      .kad-guru .kepala > div:last-child { width: 100%; }
+      /* Modal skrin penuh */
+      .latar-modal { padding: 0; align-items: stretch; }
+      .kad-modal, .kad-modal.kecil { width: 100%; min-height: 100%; border-radius: 0; padding: 14px 14px 0; }
+      .aksi-modal { position: sticky; bottom: 0; background: #fff; padding: 10px 0 12px; margin-top: 12px; border-top: 1px solid var(--sempadan); }
+      .aksi-modal .btn { flex: 1 1 auto; justify-content: center; }
+      .pratonton { gap: 8px 14px; }
+      .kad-login { padding: 24px 18px; }
+      #kontainerToast { left: 10px; right: 10px; top: 10px; } .toast { max-width: none; }
+      .slip { width: 100%; padding: 8px; }
+
+      /* Jadual -> kad (label diambil daripada tajuk lajur oleh skrip) */
+      table.responsif thead { display: none; }
+      table.responsif, table.responsif tbody, table.responsif tr, table.responsif td { display: block; width: 100%; }
+      table.responsif tr { border: 1px solid var(--sempadan); border-radius: 10px; margin-bottom: 10px; padding: 6px 12px; background: #fff; }
+      table.responsif tr:hover td { background: transparent; }
+      table.responsif td { border: none; padding: 5px 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; text-align: right; }
+      table.responsif td::before { content: attr(data-label); font-weight: 600; color: var(--kelabu); text-align: left; font-size: 12px; flex-shrink: 0; max-width: 45%; text-transform: uppercase; letter-spacing: .02em; }
+      table.responsif td[data-label=""]::before { content: none; }
+      table.responsif td[data-label=""] { justify-content: flex-start; }
+      table.responsif td > .nota, table.responsif td > div { text-align: right; }
+      table.responsif td.kumpulan { display: block; text-align: left; }
+      table.responsif tr.baris-kumpulan { border: none; background: #eff6ff; padding: 8px 12px; }
+      table.responsif td .btn { min-height: 38px; }
+      table.responsif td[data-label="Bil"] { display: none; }
+      table.responsif td[data-label="Nama"] { display: block; text-align: left; font-weight: 700; font-size: 14.5px; border-bottom: 1px dashed var(--sempadan); padding-bottom: 6px; margin-bottom: 2px; }
+      table.responsif td[data-label="Nama"]::before { content: none; }
+      table.responsif td[data-label="Nama"] > .nota, table.responsif td[data-label="Nama"] > div { text-align: left; font-weight: 400; }
+      .jadual-skrol { overflow-x: visible; }
+    }
+
+    /* Peranti sentuh: sasaran sentuhan lebih besar */
+    @media (pointer: coarse) {
+      .btn { min-height: 40px; }
+      .btn.kecil { min-height: 34px; }
+      .tab-bar button, .tab-pil button { min-height: 40px; }
+      input[type=checkbox] { width: 20px !important; height: 20px; }
     }
     @media print {
       body { background: #fff; }
       #aplikasi, #skrinLogin, #skrinTukar, #modalRoot, #kontainerToast, #selimutSibuk { display: none !important; }
       #kawasanCetak { display: block !important; }
       .slip { border: none; margin: 0 auto; padding: 4mm 0 0; }
+      .rujukan-idme .putus { page-break-after: always; break-after: page; }
       @page { size: A4; margin: 10mm; }
     }
   </style>
@@ -189,9 +266,10 @@
   </nav>
   <div id="kawasanUtama">
     <header id="barAtas">
+      <button type="button" id="btnMenu" aria-label="Buka menu" aria-expanded="false">&#9776;</button>
       <div class="info" id="infoPengguna"></div>
-      <div style="display:flex;gap:8px">
-        <button class="btn luar kecil" id="btnTukarKW">Tukar Kata Laluan</button>
+      <div class="butang-atas" style="display:flex;gap:8px">
+        <button class="btn luar kecil" id="btnTukarKW"><span class="teks-panjang">Tukar&nbsp;</span>Kata Laluan</button>
         <button class="btn kelabu kecil" id="btnLogout">Log Keluar</button>
       </div>
     </header>
@@ -199,6 +277,7 @@
   </div>
 </div>
 
+<div id="latarMenu"></div>
 <div id="modalRoot"></div>
 <div id="kawasanCetak"></div>
 <div id="kontainerToast"></div>
@@ -344,7 +423,7 @@ function mulaAplikasi() {
     S.ref = r.rujukan; S.tetapan = r.tetapan; S.kelasSenarai = r.kelasSenarai; S.versi = r.versi;
     if (!S.kelasSenarai.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = S.kelasSenarai.length ? S.kelasSenarai[0].kunci : '';
     paparSkrin('aplikasi');
-    $('infoPengguna').innerHTML = '<span class="titik-hidup" id="titikHidup" title="Disegerakkan automatik dengan e-Kokurikulum"></span><b>' + e(S.user.nama) + '</b> · ' + (adalahAdmin() ? 'Admin' : [adalahGuruKelas() ? 'Guru Kelas' : '', adalahKgp() ? 'Ketua Guru Penasihat' : ''].filter(Boolean).join(' & ') || 'Guru') + ' · Tahun pentaksiran <b id="infoTahun">' + e(S.tetapan.tahun) + '</b>';
+    $('infoPengguna').innerHTML = '<span class="titik-hidup" id="titikHidup" title="Disegerakkan automatik dengan e-Kokurikulum"></span><b>' + e(S.user.nama) + '</b><span class="peranan-info"> · ' + (adalahAdmin() ? 'Admin' : [adalahGuruKelas() ? 'Guru Kelas' : '', adalahKgp() ? 'Ketua Guru Penasihat' : ''].filter(Boolean).join(' & ') || 'Guru') + '</span> · <span class="peranan-info">Tahun pentaksiran </span><b id="infoTahun">' + e(S.tetapan.tahun) + '</b>';
     binaMenu();
     var hal = MENU.filter(function (m) { return m.id === S.halaman; })[0];
     pergi(hal && menuDibenarkan(hal) ? S.halaman : 'dashboard');
@@ -415,6 +494,7 @@ function binaMenu() {
   Array.prototype.forEach.call($('menuNav').querySelectorAll('.item-nav'), function (b) { b.onclick = function () { pergi(b.getAttribute('data-id')); }; });
 }
 function pergi(id) {
+  tutupMenu();
   S.halaman = id; S.segar = null;
   $('bannerBaru').classList.add('hidden');
   Array.prototype.forEach.call($('menuNav').querySelectorAll('.item-nav'), function (b) { b.classList.toggle('aktif', b.getAttribute('data-id') === id); });
@@ -466,6 +546,8 @@ function pilihKelasHtml(id, termasukSemua) {
     S.kelasSenarai.map(function (k) { return '<option value="' + e(k.kunci) + '"' + (k.kunci === S.kelasPilihan ? ' selected' : '') + '>' + e(k.nama) + ' (' + k.bilMurid + ')</option>'; }).join('') + '</select>';
 }
 function adaKelas() {
+  // Pastikan kelas pilihan masih wujud (cth. selepas Naik Tingkatan / segerak senarai kelas berubah).
+  if (S.kelasSenarai.length && !S.kelasSenarai.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = S.kelasSenarai[0].kunci;
   if (S.kelasSenarai.length) return true;
   $('kandungan').innerHTML = '<div class="amaran-kotak">' + (S.user.peranan === ADMIN
     ? 'Belum ada murid. Pergi ke menu <b>Tetapan</b>/<b>Murid</b> dan jalankan <b>Segerak daripada e-Kokurikulum</b>.'
@@ -549,8 +631,9 @@ function lencanaGred(g) { return g ? '<span class="lencana ' + e(g) + '">' + e(g
 
 function renderPentaksiran() {
   var d = S.data;
-  var h = '<h2 class="tajuk">Pentaksiran Kelas</h2><div class="baris-alat">' + pilihKelasHtml('pkKelas') +
+  var h = '<h2 class="tajuk">Data Kelas</h2><div class="baris-alat">' + pilihKelasHtml('pkKelas') +
     '<button class="btn hijau" id="btnSegerak">Segerak daripada e-Kokurikulum</button>' +
+    '<button class="btn" id="btnRujukanIdme" title="Semua medan yang diisi, untuk rujukan semasa mengisi PAJSK dalam idME">PDF rujukan idME</button>' +
     '<span class="nota">Segerak terakhir: ' + e(d.segerakTerakhir || 'belum pernah') + '</span></div>';
   var perlu = d.murid.filter(function (m) { return m.perluSemak === 'YA'; }).length;
   var bilLengkap = d.murid.filter(function (m) { return m.kelengkapan && m.kelengkapan.status === 'LENGKAP'; }).length;
@@ -572,6 +655,7 @@ function renderPentaksiran() {
   $('kandungan').innerHTML = h;
   $('pkKelas').onchange = function () { S.kelasPilihan = this.value; halamanPentaksiran(); };
   $('btnSegerak').onclick = function () { segerakKoko(S.kelasPilihan, function () { halamanPentaksiran(); }); };
+  $('btnRujukanIdme').onclick = function () { bukaRujukanIdme(S.data); };
   Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-nokp]'), function (b) { b.onclick = function () { bukaPentaksiran(b.getAttribute('data-nokp')); }; });
 }
 
@@ -935,6 +1019,46 @@ function bukaIsiPukal() {
   };
 }
 
+/* ---------- Rujukan idME (PDF / cetak) ---------- */
+function muatTurunBase64(namaFail, b64, jenis) {
+  var bin = atob(b64), arr = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  var url = URL.createObjectURL(new Blob([arr], { type: jenis }));
+  var a = document.createElement('a');
+  a.href = url; a.download = namaFail; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 120000);
+}
+
+function bukaRujukanIdme(d) {
+  if (!d || !d.murid || !d.murid.length) { toast('Tiada murid dalam kelas ini.', 'gagal'); return; }
+  var modal = bukaModal('<h3>Rujukan pengisian PAJSK (idME)</h3>' +
+    '<p class="nota">Dokumen mengandungi semua medan yang telah diisi dalam e-PAJSK (Sukan &amp; Permainan, Kelab &amp; Persatuan, Badan Beruniform, Ekstra Kurikulum, CGPA) beserta senarai semak. Medan wajib yang masih kosong ditanda <b style="color:var(--merah)">BELUM DIISI</b>.</p>' +
+    '<div class="medan"><label>Murid</label><select id="riSkop"><option value="">Seluruh kelas — ' + e(d.namaKelas) + ' (' + d.murid.length + ' murid)</option>' +
+    d.murid.map(function (m) { return '<option value="' + e(m.nokp) + '">' + e(m.nama) + '</option>'; }).join('') + '</select></div>' +
+    '<p class="nota">Jika muat turun tidak bermula pada telefon, gunakan <b>Cetak / Simpan PDF</b> dan pilih "Simpan sebagai PDF".</p>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Tutup</button><button class="btn luar" data-x="c">Cetak / Simpan PDF</button><button class="btn" data-x="p">Muat turun PDF</button></div>', true);
+  modal.querySelector('[data-x=b]').onclick = function () { tutupModal(modal); };
+  modal.querySelector('[data-x=p]').onclick = function () {
+    toast('Menjana PDF… (boleh mengambil beberapa saat)', 'info');
+    sibuk(true);
+    api('apiRujukanIdme', { kelas: d.kelas, nokp: nilaiEl('riSkop'), format: 'pdf' }, true).then(function (r) {
+      sibuk(false);
+      muatTurunBase64(r.namaFail, r.data, 'application/pdf');
+      toast('PDF dijana (' + r.bilMurid + ' murid).', 'jaya');
+    }).catch(function (er) { sibuk(false); gagal(er); });
+  };
+  modal.querySelector('[data-x=c]').onclick = function () {
+    sibuk(true);
+    api('apiRujukanIdme', { kelas: d.kelas, nokp: nilaiEl('riSkop'), format: 'html' }, true).then(function (r) {
+      sibuk(false);
+      $('kawasanCetak').innerHTML = r.html;
+      tutupModal(modal);
+      setTimeout(function () { window.print(); }, 100);
+    }).catch(function (er) { sibuk(false); gagal(er); });
+  };
+}
+
 /* ---------- Status pengisian guru kelas ---------- */
 var LABEL_ST = { LENGKAP: 'Lengkap', DALAM_PROSES: 'Dalam proses', BELUM_MULA: 'Belum mula' };
 var WARNA_ST = { LENGKAP: 'hijau', DALAM_PROSES: 'kuning', BELUM_MULA: 'merah' };
@@ -1162,7 +1286,7 @@ function halamanRumusan() {
   return paparKelasSWR(function (d) {
     if (S.halaman !== 'rumusan') return;
     var h = '<h2 class="tajuk">Rumusan Kelas</h2><div class="baris-alat">' + pilihKelasHtml('rmKelas') +
-      '<div class="rapat"><button class="btn luar" id="btnCsv">Muat turun CSV</button><button class="btn" id="btnCetakRum">Cetak</button></div></div>';
+      '<div class="rapat"><button class="btn luar" id="btnCsv">Muat turun CSV</button><button class="btn luar" id="btnRumIdme">PDF rujukan idME</button><button class="btn" id="btnCetakRum">Cetak</button></div></div>';
     h += '<div class="kad" id="kawasanRumusan"><h3>' + e(d.namaKelas) + ' · Tahun ' + e(d.tahun) + '</h3><div class="jadual-skrol"><table id="jadualRumusan"><thead><tr><th>Bil</th><th>Nama</th><th class="n">CGPA lepas</th><th class="n">PBB</th><th class="n">SP</th><th class="n">KP</th><th class="n">Ekstra</th><th class="n">Purata 2 tertinggi</th><th class="n">GPA</th><th class="n">CGPA</th><th class="n">10%</th><th>Gred</th><th>Tahap</th></tr></thead><tbody>' +
       d.murid.map(function (m, i) {
         var r = m.rumusan || {};
@@ -1171,6 +1295,7 @@ function halamanRumusan() {
     $('kandungan').innerHTML = h;
     $('rmKelas').onchange = function () { S.kelasPilihan = this.value; halamanRumusan(); };
     $('btnCsv').onclick = function () { muatTurunCsv(d); };
+    $('btnRumIdme').onclick = function () { bukaRujukanIdme(d); };
     $('btnCetakRum').onclick = function () {
       $('kawasanCetak').innerHTML = '<div class="slip" style="width:auto;border:none;page-break-after:auto"><h4>RUMUSAN PAJSK ' + e(d.tahun) + ' · SMK ASAJAYA</h4><div class="sub">' + e(d.namaKelas) + '</div>' + $('jadualRumusan').outerHTML.replace('<table', '<table class="rum"') + '</div>';
       window.print();
@@ -1509,6 +1634,39 @@ function halamanAudit() {
   pasangPg(k, muat);
   muat();
 }
+
+/* ---------- Menu laci (telefon/tablet) ---------- */
+function bukaMenu() { document.body.classList.add('menu-buka'); $('btnMenu').setAttribute('aria-expanded', 'true'); }
+function tutupMenu() { document.body.classList.remove('menu-buka'); if ($('btnMenu')) $('btnMenu').setAttribute('aria-expanded', 'false'); }
+$('btnMenu').onclick = function () { if (document.body.classList.contains('menu-buka')) tutupMenu(); else bukaMenu(); };
+$('latarMenu').onclick = tutupMenu;
+document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') tutupMenu(); });
+
+/* ---------- Jadual responsif: label setiap sel daripada tajuk lajur (dipaparkan sebagai kad pada telefon) ---------- */
+function labelJadual(root) {
+  Array.prototype.forEach.call((root || document).querySelectorAll('table'), function (t) {
+    if (t.closest('#kawasanCetak') || t.closest('.slip') || t.classList.contains('tanpa-kad')) return;
+    var th = t.tHead ? Array.prototype.map.call(t.tHead.rows[0] ? t.tHead.rows[0].cells : [], function (c) { return (c.textContent || '').trim(); }) : [];
+    if (!th.length) return;
+    t.classList.add('responsif');
+    Array.prototype.forEach.call(t.tBodies, function (tb) {
+      Array.prototype.forEach.call(tb.rows, function (tr) {
+        if (tr.cells.length === 1 && tr.cells[0].colSpan > 1) { tr.cells[0].classList.add('kumpulan'); tr.classList.add('baris-kumpulan'); return; }
+        var col = 0;
+        Array.prototype.forEach.call(tr.cells, function (td) {
+          if (!td.hasAttribute('data-label')) td.setAttribute('data-label', th[col] || '');
+          col += td.colSpan || 1;
+        });
+      });
+    });
+  });
+}
+(function () {
+  var jadual = null;
+  var pantau = new MutationObserver(function () { if (jadual) return; jadual = setTimeout(function () { jadual = null; labelJadual($('kandungan')); labelJadual($('modalRoot')); }, 30); });
+  pantau.observe($('kandungan'), { childList: true, subtree: true });
+  pantau.observe($('modalRoot'), { childList: true, subtree: true });
+})();
 
 /* ---------- Mula ---------- */
 (function () {

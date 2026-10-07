@@ -65,6 +65,18 @@ Syarat: akaun Gmail yang men-*deploy* e-PAJSK mesti pemilik/editor/viewer Sheet 
 
 Peraturan "lengkap" (`Config.gs`: `MEDAN_WAJIB_ASPEK`, `WAJIB_CGPA_SEBELUM`): bagi setiap aspek yang murid sertai, **Jawatan**, **Pelibatan** dan sekurang-kurangnya satu **Komitmen**; CGPA tahun sebelum wajib bagi Tingkatan 2 ke atas (paparan kelas). *Dalam proses* = sudah ada rekod disimpan oleh pengisi tetapi medan wajib masih kosong.
 
+## Rujukan pengisian idME (PDF / cetak)
+
+Menu **Data Kelas** atau **Rumusan Kelas** → **PDF rujukan idME** (Admin & Guru Kelas bagi kelas sendiri):
+- Pilih seluruh kelas atau seorang murid → **Muat turun PDF** (dijana di pelayan, fail A4) atau **Cetak / Simpan PDF** (dialog cetak pelayar).
+- Kandungan: senarai semak kelas (CGPA, gred, medan wajib yang belum diisi), kemudian setiap murid (2 murid / halaman): Unit, Jawatan, Pelibatan & Pencapaian (aktiviti 1 dan tambahan), Komitmen, Khidmat sumbangan, Kehadiran, markah aspek — mengikut susunan **Sukan & Permainan, Kelab & Persatuan, Badan Beruniform** — serta Ekstra kurikulum, CGPA tahun sebelum dan GPA/CGPA/Gred.
+- Medan wajib yang masih kosong ditanda **BELUM DIISI**. Dokumen mengandungi No. KP murid — simpan dengan selamat.
+
+## Responsif (telefon / tablet / komputer)
+
+- ≤ 900px: menu sisi menjadi laci (butang ☰); ≤ 640px: jadual dipaparkan sebagai kad (label diambil automatik daripada tajuk lajur), borang/modal skrin penuh dengan butang tindakan melekat di bawah, input 16px (tiada zum automatik iOS), bar alat & penomboran disusun menegak.
+- Peranti sentuh: sasaran sentuhan ≥ 40px. Tiada skrol mendatar pada lebar 390px.
+
 ## Kemas kini langsung & prestasi
 
 **Segerak automatik (live) daripada e-Kokurikulum** — tiga lapisan, boleh digunakan serentak:
@@ -125,7 +137,7 @@ Fail arkib mengandungi nama & No. KP murid — kekal peribadi dalam Drive pemili
 
 1. Cipta **Google Sheet baharu** (cth. "DATA e-PAJSK SMK ASAJAYA") menggunakan akaun Gmail anda. Ini database — **jangan** guna Sheet e-Kokurikulum.
 2. **Extensions → Apps Script**. Cipta fail Script (nama tanpa `.gs`) untuk setiap fail `.gs` dalam folder ini, salin-tampal kandungan:
-   `Code`, `Config`, `Utils`, `Scoring`, `ReferensiLalai`, `TetapanService`, `AuditService`, `AuthService`, `UserService`, `KokoService`, `MuridService`, `PentaksiranService`, `LaporanService`, `ArkibService`, `LiveService`, `PemantauanService`.
+   `Code`, `Config`, `Utils`, `Scoring`, `ReferensiLalai`, `TetapanService`, `AuditService`, `AuthService`, `UserService`, `KokoService`, `MuridService`, `PentaksiranService`, `LaporanService`, `ArkibService`, `LiveService`, `PemantauanService`, `RujukanIdmeService`.
 3. Cipta fail HTML bernama **Index**, salin-tampal `Index.html`.
 4. **Project Settings → Show "appsscript.json"**, salin-tampal `appsscript.json` (skop: `spreadsheets`, `drive`, `script.scriptapp` — yang terakhir diperlukan untuk pencetus auto-segerak; selepas menampal, buat **New version** dan benarkan skop baharu).
 5. Refresh Sheet → menu **Sistem e-PAJSK → 1. Sediakan Sistem**; benarkan kebenaran (OAuth). Isi **No. KP & nama Admin pertama** apabila diminta. (Menu *2. Tambah / Pulihkan Admin* boleh digunakan kemudian.)
