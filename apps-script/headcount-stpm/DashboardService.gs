@@ -60,6 +60,55 @@ function apiDashboardGPK(p) {
   });
 }
 
+/* Pemantauan pengisian markah (ADMIN/GPK/Ketua Akademik sahaja) — peratus
+   siap ETR/AR1/AR2/SEBENAR bagi SETIAP gabungan Subjek x Kelas, supaya admin
+   boleh kenal pasti terus kelas/subjek mana yang guru belum selesai isi
+   markah sebelum tarikh akhir (rujuk LockService.gs). */
+function apiPemantauanPengisianMarkah(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  if (sesi.success === false) return sesi;
+
+  const semester = String(p.semester || 'S1').trim();
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+
+  const pelajarMap = {};
+  bacaSheetSebagaiObjek(SHEET_STUDENTS).filter(s => String(s.Status).toUpperCase() === 'AKTIF').forEach(s => { pelajarMap[s.ID_Pelajar] = s; });
+
+  let enrolmen = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).filter(e => pelajarMap[e.ID_Pelajar]);
+  if (tahunSTPM) enrolmen = enrolmen.filter(e => String(e.TahunSTPM) === tahunSTPM);
+
+  const headcountMap = {};
+  bacaSheetSebagaiObjek(sheetHeadcount(semester)).forEach(h => { headcountMap[kunciRekod(h.ID_Pelajar, h.KodSubjek, h.TahunSTPM)] = h; });
+
+  const kumpulan = {}; // kunci: KodSubjek|Kelas
+  enrolmen.forEach(e => {
+    const pelajar = pelajarMap[e.ID_Pelajar];
+    if (!pelajar) return;
+    const kunci = e.KodSubjek + '|' + pelajar.Kelas;
+    if (!kumpulan[kunci]) kumpulan[kunci] = { kodSubjek: e.KodSubjek, kelas: pelajar.Kelas, jumlah: 0, etr: 0, ar1: 0, ar2: 0, sebenar: 0 };
+    kumpulan[kunci].jumlah++;
+    const hc = headcountMap[kunciRekod(e.ID_Pelajar, e.KodSubjek, e.TahunSTPM)];
+    if (hc) {
+      if (hc.ETR_Markah !== '') kumpulan[kunci].etr++;
+      if (hc.AR1_Markah !== '') kumpulan[kunci].ar1++;
+      if (hc.AR2_Markah !== '') kumpulan[kunci].ar2++;
+      if (hc.SEBENAR_Gred !== '') kumpulan[kunci].sebenar++;
+    }
+  });
+
+  const peratus = (bil, jum) => jum ? Number(((bil / jum) * 100).toFixed(0)) : 0;
+  const senarai = Object.keys(kumpulan).map(k => {
+    const r = kumpulan[k];
+    return {
+      kodSubjek: r.kodSubjek, kelas: r.kelas, jumlahPelajar: r.jumlah,
+      peratusETR: peratus(r.etr, r.jumlah), peratusAR1: peratus(r.ar1, r.jumlah),
+      peratusAR2: peratus(r.ar2, r.jumlah), peratusSEBENAR: peratus(r.sebenar, r.jumlah)
+    };
+  }).sort((a, b) => a.peratusETR - b.peratusETR || String(a.kodSubjek).localeCompare(String(b.kodSubjek)) || String(a.kelas).localeCompare(String(b.kelas)));
+
+  return jaya({ senarai });
+}
+
 /* Dashboard Guru (MODUL 16) — hanya kelas/subjek yang diajar guru berkenaan. */
 function apiDashboardGuru(p) {
   const sesi = wajibPeranan(p.token, [ROLE_GURU, ROLE_KETUA_PANITIA].concat(PERANAN_AKSES_PENUH));

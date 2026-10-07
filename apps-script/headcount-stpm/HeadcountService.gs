@@ -156,6 +156,8 @@ function apiSimpanETR(p) {
   if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
     return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
   }
+  const mesejKunci = semakKunciMarkah(sesi, kodSubjek, semester, tahunSTPM);
+  if (mesejKunci) return ralat(mesejKunci);
   if (!cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar)) return ralat('Pelajar tidak dijumpai.');
   const enrol = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).find(e => e.ID_Pelajar === idPelajar && String(e.KodSubjek) === kodSubjek);
   if (!enrol) return ralat('Pelajar tidak berdaftar untuk mata pelajaran ini (MODUL 26: validasi).');
@@ -215,6 +217,8 @@ function apiSimpanETRPukal(p) {
   if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
     return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
   }
+  const mesejKunciPukal = semakKunciMarkah(sesi, kodSubjek, semester, tahunSTPM);
+  if (mesejKunciPukal) return ralat(mesejKunciPukal);
   if (!senarai.length) return ralat('Tiada markah untuk disimpan.');
 
   const enrolSet = new Set(bacaSheetSebagaiObjek(SHEET_ENROLLMENTS)
@@ -289,6 +293,8 @@ function apiSimpanHeadcount(p) {
   if (sesi.peranan === ROLE_GURU && MEDAN_BOLEH_GURU.indexOf(medan) === -1) {
     return ralat('Guru hanya dibenarkan memasukkan AR1, AR2 dan SEBENAR (di tab Markah Ujian).');
   }
+  const mesejKunciSatu = semakKunciMarkah(sesi, kodSubjek, String(p.semester || '').trim(), tahunSTPM);
+  if (mesejKunciSatu) return ralat(mesejKunciSatu);
   if (!cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar)) return ralat('Pelajar tidak dijumpai.');
 
   const enrol = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).find(e => e.ID_Pelajar === idPelajar && String(e.KodSubjek) === kodSubjek);
@@ -371,6 +377,8 @@ function apiSimpanHeadcountPukal(p) {
   if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
     return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
   }
+  const mesejKunciPukal = semakKunciMarkah(sesi, kodSubjek, semester, tahunSTPM);
+  if (mesejKunciPukal) return ralat(mesejKunciPukal);
   if (!senarai.length) return ralat('Tiada markah untuk disimpan.');
 
   const enrolSet = new Set(bacaSheetSebagaiObjek(SHEET_ENROLLMENTS)

@@ -16,6 +16,7 @@ function onOpen() {
     .createMenu('Sistem Headcount STPM')
     .addItem('1. Sediakan Sistem (Jalankan Sekali)', 'sediakanSistemHeadcountSTPM')
     .addItem('2. Kemaskini Struktur (Markah & Gred BLD)', 'kemaskiniStrukturMarkahGred')
+    .addItem('3. Kemaskini Struktur (Guru Kelas, Tugas Saya, Kunci Markah)', 'kemaskiniStrukturFasa3')
     .addToUi();
 }
 
@@ -40,7 +41,7 @@ function sediakanSistemHeadcountSTPM() {
   pastikanSheet(SHEET_GRADES, ['Gred', 'NilaiGred', 'Lulus'], nilaiLalaiGrades());
   pastikanSheet(SHEET_GRADE_BOUNDARIES, HEADER_GRADE_BOUNDARIES, nilaiLalaiBLD());
   pastikanSheet(SHEET_USERS, HEADER_USERS,
-    [['000000000000', '123456', ROLE_ADMIN, 'ADMIN CONTOH', '', 'AKTIF']]);
+    [['000000000000', '123456', ROLE_ADMIN, 'ADMIN CONTOH', '', 'AKTIF', '']]);
   pastikanSheet(SHEET_STUDENTS, HEADER_STUDENTS,
     [['P001', '070101130001', 'PELAJAR CONTOH', 'LELAKI', '6A AKASIA', String(new Date().getFullYear()), 'AKTIF', '']]);
   pastikanSheet(SHEET_SUBJECTS, HEADER_SUBJECTS,
@@ -54,10 +55,13 @@ function sediakanSistemHeadcountSTPM() {
   pastikanSheet(SHEET_INTERVENTIONS, HEADER_INTERVENTIONS, []);
   pastikanSheet(SHEET_INTERVENTION_LOG, ['ID_Log', 'ID_Intervensi', 'Timestamp', 'Catatan_Perkembangan', 'Dicatat_Oleh'], []);
   pastikanSheet(SHEET_AUDIT_LOG, HEADER_AUDIT_LOG, []);
+  pastikanSheet(SHEET_TEACHING_ASSIGNMENTS, HEADER_TEACHING_ASSIGNMENTS, []);
+  pastikanSheet(SHEET_UNLOCK_REQUESTS, HEADER_UNLOCK_REQUESTS, []);
 
   SpreadsheetApp.getUi().alert(
-    'Sistem sedia. Semua 15 Sheet (CONFIG, GRADES, GRADE_BOUNDARIES, USERS, STUDENTS, SUBJECTS, ' +
-    'ENROLLMENTS, HEADCOUNT_S1/S2/S3, REPEAT_S1/S2, INTERVENTIONS, INTERVENTION_LOG, AUDIT_LOG) telah dicipta.\n\n' +
+    'Sistem sedia. Semua 17 Sheet (CONFIG, GRADES, GRADE_BOUNDARIES, USERS, STUDENTS, SUBJECTS, ' +
+    'ENROLLMENTS, HEADCOUNT_S1/S2/S3, REPEAT_S1/S2, INTERVENTIONS, INTERVENTION_LOG, AUDIT_LOG, ' +
+    'TEACHING_ASSIGNMENTS, UNLOCK_REQUESTS) telah dicipta.\n\n' +
     'Sila kemaskini CONFIG/GRADES ikut keperluan sekolah, tetapkan BLD (julat markah->gred) SETIAP ' +
     'subjek sebenar di menu "Skema Gred (BLD)" dalam sistem (GRADE_BOUNDARIES baru ada contoh untuk ' +
     'subjek PA sahaja — WAJIB tetapkan untuk subjek lain sebelum guru mula key-in markah), tambah ' +
@@ -158,6 +162,43 @@ function kemaskiniStrukturMarkahGred() {
     'lajur "..._Markah" masih kosong (isi semula markah asal secara manual jika perlu).\n' +
     (jumlahDilangkau ? ('- ' + jumlahDilangkau + ' Sheet headcount dilangkau (sudah berstruktur baharu).') : '')
   );
+}
+
+/* Migrasi Fasa 3 — selamat dijalankan berulang kali (bahagian sudah terkini dilangkau):
+   1) USERS: tambah lajur "SkopKelas" (di HUJUNG — kekal padan dgn HEADER_USERS,
+      rujuk AuthService.gs) untuk peranan baharu GURU_KELAS.
+   2) TEACHING_ASSIGNMENTS ("Tugas Saya" — subjek+kelas diajar setiap guru).
+   3) UNLOCK_REQUESTS (Permohonan Buka Semula kunci tarikh akhir markah). */
+function kemaskiniStrukturFasa3() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  const mesej = [];
+
+  const shUsers = ss.getSheetByName(SHEET_USERS);
+  if (shUsers) {
+    const headerUsers = shUsers.getRange(1, 1, 1, shUsers.getLastColumn()).getValues()[0];
+    if (headerUsers.indexOf('SkopKelas') === -1) {
+      shUsers.getRange(1, headerUsers.length + 1).setValue('SkopKelas').setFontWeight('bold');
+      mesej.push('Lajur "SkopKelas" ditambah pada USERS (untuk peranan GURU_KELAS — isi kelas yang diselia, dipisah koma).');
+    }
+  }
+
+  const ciptaSheetBaharu = (nama, header) => {
+    if (ss.getSheetByName(nama)) return false;
+    const sh = ss.insertSheet(nama);
+    sh.appendRow(header);
+    sh.setFrozenRows(1);
+    sh.getRange(1, 1, 1, header.length).setFontWeight('bold');
+    return true;
+  };
+  if (ciptaSheetBaharu(SHEET_TEACHING_ASSIGNMENTS, HEADER_TEACHING_ASSIGNMENTS)) mesej.push('Sheet TEACHING_ASSIGNMENTS (Tugas Saya) dicipta.');
+  if (ciptaSheetBaharu(SHEET_UNLOCK_REQUESTS, HEADER_UNLOCK_REQUESTS)) mesej.push('Sheet UNLOCK_REQUESTS (Permohonan Buka Kunci) dicipta.');
+
+  ui.alert(mesej.length
+    ? ('Migrasi Fasa 3 selesai:\n\n- ' + mesej.join('\n- ') +
+       '\n\nSeterusnya: tetapkan peranan GURU_KELAS + SkopKelas di menu Pengguna, dan tetapkan tugasan ' +
+       'guru di tab "Tugas Saya" jika mahu guna penapisan kelas yang lebih tepat.')
+    : 'Tiada migrasi diperlukan — struktur sudah terkini.');
 }
 
 /* ============================== doGet ================================ */

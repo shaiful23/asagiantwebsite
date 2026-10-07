@@ -126,14 +126,17 @@
     <div class="nav-container">
       <div class="nav-item" data-halaman="dashboard">Dashboard</div>
       <div class="nav-item" data-halaman="pelajar">Pelajar</div>
+      <div class="nav-item" data-halaman="arkib">Arkib</div>
       <div class="nav-item" data-halaman="subjek">Mata Pelajaran</div>
       <div class="nav-item" data-halaman="bld">Skema Gred (BLD)</div>
       <div class="nav-item" data-halaman="headcount">Headcount</div>
       <div class="nav-item" data-halaman="ujian">Markah Ujian</div>
+      <div class="nav-item" data-halaman="tugassaya">Tugas Saya</div>
       <div class="nav-item" data-halaman="ulangan">Ulangan</div>
       <div class="nav-item" data-halaman="intervensi">Intervensi</div>
       <div class="nav-item" data-halaman="analisis">Analisis</div>
       <div class="nav-item" data-halaman="laporan">Laporan</div>
+      <div class="nav-item" data-halaman="kunci">Kunci Markah</div>
       <div class="nav-item" data-halaman="pengguna">Pengguna</div>
     </div>
     <div class="pengguna-info">
@@ -258,6 +261,7 @@ function paparkanBerhalaman(idTbody, idKawalan, senarai, keadaan, fnRenderBaris,
 }
 function bolehUrus() { return ['ADMIN','GPK_TINGKATAN6','KETUA_AKADEMIK'].indexOf(S.peranan) !== -1; }
 function bolehUrusBLD() { return bolehUrus() || S.peranan === 'KETUA_PANITIA'; }
+function bolehTukarKelas() { return bolehUrus() || S.peranan === 'GURU_KELAS'; }
 /* Paparan konsisten "markah (gred)" — dipakai di semua jadual/borang headcount. */
 function formatMG(markah, gred) {
   if (markah === '' || markah === undefined || markah === null) return gred ? escapeHtml(gred) : '-';
@@ -345,6 +349,7 @@ function login() {
   panggil('apiLogin', { nokp, pin }).then(res => {
     S.token = res.token; S.nama = res.nama; S.peranan = res.peranan;
     S.skopSubjek = res.skopSubjek ? String(res.skopSubjek).split(',').map(s=>s.trim()).filter(Boolean) : [];
+    S.skopKelas = res.skopKelas ? String(res.skopKelas).split(',').map(s=>s.trim().toUpperCase()).filter(Boolean) : [];
     localStorage.setItem('hcstpm_token', S.token);
     mulakanApp();
   }).catch(err => {
@@ -358,6 +363,7 @@ function semakSesiSediaAda() {
   panggil('apiSemakSesi', { token: S.token }).then(res => {
     S.nama = res.nama; S.peranan = res.peranan;
     S.skopSubjek = res.skopSubjek ? String(res.skopSubjek).split(',').map(s=>s.trim()).filter(Boolean) : [];
+    S.skopKelas = Array.isArray(res.skopKelas) ? res.skopKelas.map(s=>String(s).trim().toUpperCase()) : [];
     mulakanApp();
   }).catch(() => {
     localStorage.removeItem('hcstpm_token'); S.token = '';
@@ -379,6 +385,7 @@ function mulakanApp() {
   document.getElementById('infoPeranan').textContent = S.peranan.replace(/_/g,' ');
   if (S.peranan !== 'ADMIN') document.querySelector('.nav-item[data-halaman="pengguna"]').style.display = 'none';
   if (S.peranan === 'GURU') document.querySelector('.nav-item[data-halaman="bld"]').style.display = 'none';
+  if (!bolehUrus()) document.querySelector('.nav-item[data-halaman="arkib"]').style.display = 'none';
   document.querySelectorAll('.nav-item').forEach(el => {
     el.addEventListener('click', () => tukarHalaman(el.dataset.halaman));
   });
@@ -392,13 +399,15 @@ function mulakanApp() {
 function tukarHalaman(nama) {
   S.halaman = nama;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('aktif', el.dataset.halaman === nama));
-  const tajuk = { dashboard:'Dashboard', pelajar:'Pelajar', subjek:'Mata Pelajaran', bld:'Skema Gred (BLD)', headcount:'Headcount',
-    ujian:'Markah Ujian', ulangan:'Ulangan Semester', intervensi:'Intervensi', analisis:'Analisis', laporan:'Laporan', pengguna:'Pengguna & Peranan' };
+  const tajuk = { dashboard:'Dashboard', pelajar:'Pelajar', arkib:'Arkib (Tamat Belajar)', subjek:'Mata Pelajaran', bld:'Skema Gred (BLD)', headcount:'Headcount',
+    ujian:'Markah Ujian', tugassaya:'Tugas Saya', ulangan:'Ulangan Semester', intervensi:'Intervensi', analisis:'Analisis', laporan:'Laporan',
+    kunci:'Kunci Markah', pengguna:'Pengguna & Peranan' };
   document.getElementById('tajukHalaman').textContent = tajuk[nama] || nama;
   document.getElementById('content').innerHTML = '<div class="muatan">Memuatkan...</div>';
   document.getElementById('kawalanGlobal').innerHTML = '';
-  const fn = { dashboard: muatDashboard, pelajar: muatPelajar, subjek: muatSubjek, bld: muatBLD, headcount: muatHeadcount,
-    ujian: muatUjian, ulangan: muatUlangan, intervensi: muatIntervensi, analisis: muatAnalisis, laporan: muatLaporan, pengguna: muatPengguna }[nama];
+  const fn = { dashboard: muatDashboard, pelajar: muatPelajar, arkib: muatArkib, subjek: muatSubjek, bld: muatBLD, headcount: muatHeadcount,
+    ujian: muatUjian, tugassaya: muatTugasSaya, ulangan: muatUlangan, intervensi: muatIntervensi, analisis: muatAnalisis, laporan: muatLaporan,
+    kunci: muatKunciMarkah, pengguna: muatPengguna }[nama];
   if (fn) fn();
 }
 
@@ -535,9 +544,42 @@ function renderPelajar(senarai) {
       <datalist id="senaraiIdPelajar">${senarai.map(s=>'<option value="'+escapeHtml(s.ID_Pelajar)+'">'+escapeHtml(s.Nama)+'</option>').join('')}</datalist>
       <button id="btnDaftarIndividu">Daftar</button>
       <div id="senaraiPendaftaranIndividu" style="margin-top:12px"></div>
+    </div>
+    <div class="panel">
+      <h3>Import Pukal Pelajar Baharu</h3>
+      <p class="kecil">Tampal data pelajar baharu, SATU PELAJAR SETIAP BARIS, lajur dipisah koma mengikut turutan:<br>
+      <code>NoKP,Nama,Jantina,Kelas,TahunSTPM</code> (cth. <code>070101130099,SITI AMINAH BINTI ALI,PEREMPUAN,6A AKASIA,${escapeHtml(S.tahunSTPM || new Date().getFullYear())}</code>).
+      Baris yang silap (medan wajib kosong, No.KP bertindih) dilangkau sahaja — baki tetap diimport, disenaraikan dalam makluman.</p>
+      <textarea id="pImportCSV" rows="6" placeholder="070101130099,SITI AMINAH BINTI ALI,PEREMPUAN,6A AKASIA,${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></textarea>
+      <button id="btnImportPukal">Import Senarai Ini</button>
+      <div id="hasilImportPukal" style="margin-top:12px"></div>
+    </div>
+    <div class="panel">
+      <h3>Arkibkan Kohort (Tamat Belajar)</h3>
+      <p class="kecil">Arkibkan SEMUA pelajar AKTIF bagi satu Tahun STPM sekali gus (cth. selepas keputusan STPM sebenar diumumkan/selepas Semester 3). Rekod kekal — hanya disembunyikan daripada senarai harian; lihat di menu "Arkib".</p>
+      <div class="borang-grid">
+        <div><label>Tahun STPM</label><input id="akTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
+      </div>
+      <button class="bahaya" id="btnArkibkanKohort">Arkibkan Semua Pelajar Kohort Ini</button>
     </div>` : '';
 
-  document.getElementById('content').innerHTML = borang + `
+  const borangTukarKelas = bolehTukarKelas() ? `
+    <div class="panel">
+      <h3>Tukar Kelas Pelajar</h3>
+      <p class="kecil">Pendaftaran subjek pelajar akan <b>DIGANTIKAN SEPENUHNYA</b> mengikut subjek yang diambil pelajar lain dalam kelas baharu
+      (anggap satu kelas = satu aliran/set subjek sama). Rekod headcount/markah sejarah bagi subjek lama TIDAK disentuh.
+      ${S.peranan==='GURU_KELAS' ? '<br>Sebagai Guru Kelas, anda hanya boleh urus pelajar yang KELAS SEMASANYA dalam seliaan anda: <b>'+escapeHtml((S.skopKelas||[]).join(', ') || '(tiada)')+'</b>.' : ''}</p>
+      <div class="borang-grid">
+        <div><label>ID Pelajar</label><input id="tkIdPelajar" placeholder="cth. P001" list="senaraiIdPelajarTK"></div>
+        <div><label>Kelas Baharu</label><input id="tkKelasBaharu" placeholder="cth. 6A ALAMANDA"></div>
+      </div>
+      <datalist id="senaraiIdPelajarTK">${senarai.map(s=>'<option value="'+escapeHtml(s.ID_Pelajar)+'">'+escapeHtml(s.Nama)+' ('+escapeHtml(s.Kelas)+')</option>').join('')}</datalist>
+      <label>Sebab (opsyenal)</label><input id="tkSebab" placeholder="cth. Tukar aliran">
+      <button id="btnTukarKelas">Tukar Kelas</button>
+      <div id="hasilTukarKelas" style="margin-top:12px"></div>
+    </div>` : '';
+
+  document.getElementById('content').innerHTML = borang + borangTukarKelas + `
     <div class="panel">
       <h3>Senarai Pelajar (${senarai.length})</h3>
       <input id="carianPelajar" placeholder="Cari nama / No. KP / ID..." style="max-width:280px">
@@ -552,6 +594,23 @@ function renderPelajar(senarai) {
     isiJadualPelajar(senarai.filter(s => s.Nama.toLowerCase().includes(k) || String(s.NoKP).includes(k) || s.ID_Pelajar.toLowerCase().includes(k)));
   });
 
+  if (bolehTukarKelas()) {
+    document.getElementById('btnTukarKelas').addEventListener('click', () => {
+      const btn = document.getElementById('btnTukarKelas');
+      btn.disabled = true;
+      panggil('apiTukarKelasPelajar', {
+        token: S.token, idPelajar: document.getElementById('tkIdPelajar').value,
+        kelasBaharu: document.getElementById('tkKelasBaharu').value, sebab: document.getElementById('tkSebab').value
+      }).then(res => {
+        document.getElementById('hasilTukarKelas').innerHTML = '<div class="mesej jaya">Kelas ditukar: ' + escapeHtml(res.kelasLama) + ' &rarr; ' + escapeHtml(res.kelasBaharu) +
+          '. Subjek lama (' + res.bilSubjekLama + ') digantikan dengan subjek kelas baharu (' + res.bilSubjekBaharu + ')' +
+          (res.bilSubjekBaharu === 0 ? ' — <b>AMARAN: kelas baharu belum ada pelajar lain berdaftar subjek apa-apa, jadi pelajar ini kini TIADA subjek — daftarkan subjek secara manual.</b>' : '') + '.</div>';
+        tunjukMesej('Kelas pelajar ditukar.');
+        muatPelajar();
+      }).catch(err => { tunjukMesej(err, 'ralat'); btn.disabled = false; });
+    });
+  }
+
   if (!bolehUrus()) return;
   document.getElementById('btnSimpanPelajar').addEventListener('click', simpanPelajar);
 
@@ -561,6 +620,44 @@ function renderPelajar(senarai) {
 
   document.getElementById('btnDaftarIndividu').addEventListener('click', daftarSubjekIndividu);
   document.getElementById('rIdPelajar').addEventListener('change', muatPendaftaranIndividu);
+
+  document.getElementById('btnImportPukal').addEventListener('click', importPelajarPukal);
+  document.getElementById('btnArkibkanKohort').addEventListener('click', arkibkanKohort);
+}
+
+/* Parse CSV ringkas (tiada medan bertanda petik/koma terbenam — cukup untuk
+   senarai nama/kelas pelajar biasa). Baris kosong dilangkau. */
+function parseCSVPelajar(teks) {
+  return teks.split('\n').map(b => b.trim()).filter(Boolean).map(baris => {
+    const lajur = baris.split(',').map(l => l.trim());
+    return { nokp: lajur[0] || '', nama: lajur[1] || '', jantina: lajur[2] || '', kelas: lajur[3] || '', tahunSTPM: lajur[4] || '' };
+  });
+}
+
+function importPelajarPukal() {
+  const teks = document.getElementById('pImportCSV').value;
+  const senarai = parseCSVPelajar(teks);
+  if (!senarai.length) { tunjukMesej('Tiada data untuk diimport.', 'ralat'); return; }
+  const btn = document.getElementById('btnImportPukal');
+  btn.disabled = true; btn.textContent = 'Mengimport...';
+  panggil('apiImportPelajarPukal', { token: S.token, senarai }).then(res => {
+    const bilRalat = (res.ralat || []).length;
+    document.getElementById('hasilImportPukal').innerHTML =
+      '<div class="mesej ' + (bilRalat ? 'ralat' : 'jaya') + '">' + res.ditambah + ' pelajar berjaya diimport' +
+      (bilRalat ? (', ' + bilRalat + ' dilangkau:<br>' + res.ralat.map(escapeHtml).join('<br>')) : '.') + '</div>';
+    tunjukMesej(res.ditambah + ' pelajar diimport.', bilRalat ? 'ralat' : 'jaya');
+    if (res.ditambah) { document.getElementById('pImportCSV').value = ''; muatPelajar(); }
+  }).catch(err => tunjukMesej(err, 'ralat')).finally(() => { btn.disabled = false; btn.textContent = 'Import Senarai Ini'; });
+}
+
+function arkibkanKohort() {
+  const tahunSTPM = document.getElementById('akTahun').value.trim();
+  if (!tahunSTPM) { tunjukMesej('Sila isi Tahun STPM.', 'ralat'); return; }
+  if (!confirm('Arkibkan SEMUA pelajar AKTIF bagi Tahun STPM ' + tahunSTPM + '? Tindakan ini boleh diundur (menu Arkib), tetapi akan sembunyikan kohort ini daripada senarai Pelajar harian.')) return;
+  panggil('apiArkibkanKohort', { token: S.token, tahunSTPM }).then(res => {
+    tunjukMesej(res.bilangan + ' pelajar diarkibkan.');
+    muatPelajar();
+  }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
 function muatKelasUntukPukal() {
@@ -606,14 +703,52 @@ function batalDaftarIndividu(idPelajar, kodSubjek, tahunSTPM) {
     .then(() => { tunjukMesej('Pendaftaran dibatalkan.'); muatPendaftaranIndividu(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
+/* ======================= ARKIB (pelajar tamat belajar) ======================= */
+function muatArkib() {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
+  pasangPilihanTahun(muatArkib);
+  panggil('apiSenaraiPelajar', { token: S.token, tahunSTPM: S.tahunSTPM, status: 'TAMAT' }).then(res => {
+    S.cacheArkib = res.senarai;
+    document.getElementById('content').innerHTML = `
+      <div class="panel">
+        <h3>Pelajar Diarkibkan — Tamat Belajar (${res.senarai.length})</h3>
+        <p class="kecil">Pelajar di sini TIDAK dipaparkan dalam senarai "Pelajar" harian. Rekod headcount/markah/intervensi sejarah kekal tidak tersentuh.</p>
+        <div class="tbl-scroll"><table><thead><tr><th>ID</th><th>Nama</th><th>Kelas</th><th>Tahun</th><th></th></tr></thead>
+        <tbody id="tbodyArkib"></tbody></table></div>
+        <div id="paginasiArkib"></div>
+      </div>`;
+    paparkanBerhalaman('tbodyArkib', 'paginasiArkib', res.senarai, { m: 1 }, baris => baris.map(s => `<tr>
+        <td>${escapeHtml(s.ID_Pelajar)}</td><td>${escapeHtml(s.Nama)}</td><td>${escapeHtml(s.Kelas)}</td><td>${escapeHtml(s.TahunSTPM)}</td>
+        <td><span class="aksi-link" onclick="nyahArkibPelajar('${escapeHtml(s.ID_Pelajar)}')">Nyah-Arkib</span></td>
+      </tr>`).join('') || '<tr><td colspan=5 class="kecil">Tiada pelajar diarkibkan.</td></tr>');
+  }).catch(renderRalat);
+}
+
+function nyahArkibPelajar(id) {
+  const s = (S.cacheArkib || []).find(x => x.ID_Pelajar === id);
+  const nama = s ? s.Nama : id;
+  if (!confirm('Nyah-arkibkan pelajar "' + nama + '" (' + id + ')? Pelajar akan muncul semula dalam senarai Pelajar harian (Status -> AKTIF).')) return;
+  panggil('apiNyahArkibPelajar', { token: S.token, idPelajar: id })
+    .then(() => { tunjukMesej('Pelajar dinyah-arkibkan.'); muatArkib(); }).catch(err => tunjukMesej(err, 'ralat'));
+}
+
 function isiJadualPelajar(senarai) {
   S.mukaPelajar = { m: 1 }; // senarai baharu (carian/muat semula) -> kembali ke muka 1
   paparkanBerhalaman('tbodyPelajar', 'paginasiPelajar', senarai, S.mukaPelajar, baris => baris.map(s => `<tr>
     <td>${escapeHtml(s.ID_Pelajar)}</td><td>${escapeHtml(s.Nama)}</td><td>${escapeHtml(s.Kelas)}</td><td>${escapeHtml(s.TahunSTPM)}</td>
     <td>${lencana(s.Status)}</td>
     ${bolehUrus() ? '<td><span class="aksi-link" onclick="isiFormPelajar(\''+s.ID_Pelajar+'\')">Edit</span>' +
+      '<span class="aksi-link" onclick="arkibkanPelajarSatu(\''+s.ID_Pelajar+'\')">Arkib</span>' +
       '<span class="aksi-link" style="color:var(--merah)" onclick="padamPelajar(\''+s.ID_Pelajar+'\')">Padam</span></td>' : ''}
   </tr>`).join('') || '<tr><td colspan=6 class="kecil">Tiada pelajar.</td></tr>');
+}
+
+function arkibkanPelajarSatu(id) {
+  const s = S.cachePelajar.find(x => x.ID_Pelajar === id);
+  const nama = s ? s.Nama : id;
+  if (!confirm('Arkibkan pelajar "' + nama + '" (' + id + ') — tamat belajar? Rekod kekal, hanya disembunyikan daripada senarai harian (lihat di menu Arkib).')) return;
+  panggil('apiArkibkanPelajar', { token: S.token, idPelajar: id })
+    .then(() => { tunjukMesej('Pelajar diarkibkan.'); muatPelajar(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
 function padamPelajar(id) {
@@ -811,6 +946,7 @@ function renderHeadcountShell() {
   document.getElementById('content').innerHTML = `
     <div class="panel">
       <h3>Isi ETR — Semester ${S.semester.slice(1)}</h3>
+      <div id="countdownETR" style="margin-bottom:10px"></div>
       <p class="kecil">Pilih Subjek dan Kelas yang anda ajar, isi MARKAH ETR bagi setiap pelajar, kemudian klik <b>"Simpan Semua ETR"</b>
       di bawah jadual (satu klik simpan seluruh kelas sekali gus — lebih pantas).
       TOV, OTR1 dan OTR2 dikira <b>AUTOMATIK</b> daripada ETR (TOV = 3 gred bawah ETR; OTR1 = 2 gred bawah ETR; OTR2 = 1 gred bawah ETR),
@@ -843,6 +979,7 @@ function renderHeadcountShell() {
     muatAggregateHeadcount();
   }));
 
+  renderCountdownRingkas('countdownETR', S.semester);
   muatAggregateHeadcount();
 }
 
@@ -870,6 +1007,11 @@ function mesejDiagnostikKelas(diagnostik) {
   if (d.jumlahPelajarAktif === 0) {
     return '<div class="mesej amaran">' + d.jumlahPelajarBerdaftar + ' pelajar berdaftar untuk subjek/tahun ini, ' +
       'tetapi tiada seorang pun berstatus AKTIF (semak lajur Status di STUDENTS).</div>';
+  }
+  if (d.disempitkanTugasan) {
+    return '<div class="mesej amaran">Terdapat pelajar aktif berdaftar subjek ini, tetapi senarai kelas disempitkan kepada ' +
+      'tugasan anda (Tab "Tugas Saya") dan tiada satu pun kelas tugasan anda padan dengan kelas pelajar berdaftar subjek ini. ' +
+      'Semak semula tugasan di menu "Tugas Saya", atau hubungi Admin.</div>';
   }
   return '';
 }
@@ -963,6 +1105,7 @@ function muatUjian() {
     document.getElementById('content').innerHTML = `
       <div class="panel">
         <h3>Markah Ujian — AR1, AR2 & Sebenar (Semester ${S.semester.slice(1)})</h3>
+        <div id="countdownUjian" style="margin-bottom:10px"></div>
         <p class="kecil">Pilih Subjek dan Kelas yang diajar, isi MARKAH AR1 (Ujian 1) dan AR2 (Ujian 2) — Gred
         diterbitkan automatik ikut BLD Semester ${S.semester.slice(1)} subjek berkenaan. SEBENAR (keputusan rasmi) pula
         dipilih terus sebagai <b>GRED</b> (bukan markah), sebab slip keputusan STPM sebenar hanya nyatakan gred.
@@ -977,6 +1120,7 @@ function muatUjian() {
         <div id="rosterUjian"></div>
       </div>`;
     document.getElementById('jKodSubjek').addEventListener('change', muatKelasUntukUjian);
+    renderCountdownRingkas('countdownUjian', S.semester);
   }).catch(renderRalat);
 }
 
@@ -1013,6 +1157,69 @@ function muatRosterUjian() {
       }).catch(err => { tunjukMesej(err, 'ralat'); btn.disabled = false; btn.textContent = 'Simpan Semua Markah'; });
     });
   }).catch(err => { document.getElementById('rosterUjian').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
+}
+
+/* ======================= TUGAS SAYA (subjek + kelas diajar bagi setiap guru) =======================
+   Lapisan TAMBAHAN di atas Skop Subjek (Pengguna) — penetapan lebih terperinci
+   (subjek x kelas x tahun). ADMIN/GPK/Ketua Akademik urus SEMUA tugasan; peranan
+   lain hanya lihat tugasan diri sendiri (server tapis — rujuk AssignmentService.gs). */
+function muatTugasSaya() {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
+  pasangPilihanTahun(muatTugasSaya);
+
+  const panggilan = [panggil('apiSenaraiTugasan', { token: S.token, tahunSTPM: S.tahunSTPM })];
+  if (bolehUrus()) panggilan.push(panggil('apiSenaraiSubjek', { token: S.token }));
+  // apiSenaraiPengguna khas ADMIN sahaja (rujuk AuthService.gs) — GPK/Ketua Akademik
+  // (bolehUrus() tetapi bukan ADMIN) tetap boleh tetapkan tugasan, cuma taip No. KP
+  // terus tanpa cadangan senarai nama.
+  if (S.peranan === 'ADMIN') panggilan.push(panggil('apiSenaraiPengguna', { token: S.token }));
+
+  Promise.all(panggilan).then(hasil => {
+    if (bolehUrus()) S.cacheSubjek = hasil[1].senarai;
+    S.cachePenggunaTugasan = (S.peranan === 'ADMIN' && hasil[2]) ? hasil[2].senarai : [];
+    renderTugasSaya(hasil[0].senarai);
+  }).catch(renderRalat);
+}
+
+function renderTugasSaya(senarai) {
+  const borangUrus = bolehUrus() ? `
+    <div class="panel">
+      <h3>Tetapkan Tugasan (Subjek + Kelas diajar oleh Guru)</h3>
+      <p class="kecil">Lebih terperinci daripada "Skop Subjek" di menu Pengguna — tetapkan KELAS SPESIFIK yang diajar guru bagi sesuatu
+      subjek. Jika guru ada tugasan ditetapkan untuk satu subjek, pilihan Kelas di Isi ETR/Markah Ujian akan disempitkan kepada
+      kelas yang ditugaskan sahaja; jika tiada tugasan langsung, sistem kekal guna cara lama (ikut pendaftaran pelajar).</p>
+      <div class="borang-grid">
+        <div><label>Guru (No. KP)</label><input id="tgNoKP" placeholder="cth. 900101011234" list="senaraiNoKPTugasan"></div>
+        <div><label>Kod Subjek</label><select id="tgKodSubjek">${S.cacheSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('')}</select></div>
+        <div><label>Kelas</label><input id="tgKelas" placeholder="cth. 6A AKASIA"></div>
+        <div><label>Tahun STPM</label><input id="tgTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
+      </div>
+      <datalist id="senaraiNoKPTugasan">${(S.cachePenggunaTugasan||[]).map(u=>'<option value="'+escapeHtml(u.nokp)+'">'+escapeHtml(u.nama)+' ('+escapeHtml(u.peranan)+')</option>').join('')}</datalist>
+      <button id="btnSimpanTugasan">Tetapkan Tugasan</button>
+    </div>` : '';
+
+  document.getElementById('content').innerHTML = borangUrus + `
+    <div class="panel">
+      <h3>${bolehUrus() ? 'Semua Tugasan' : 'Tugas Saya'} (${senarai.length})</h3>
+      <div class="tbl-scroll"><table><thead><tr>${bolehUrus()?'<th>Guru</th>':''}<th>Subjek</th><th>Kelas</th><th>Tahun</th><th>Status</th><th></th></tr></thead>
+      <tbody>${senarai.map(t => `<tr>${bolehUrus()?'<td>'+escapeHtml(t.NoKP)+'</td>':''}<td>${escapeHtml(t.KodSubjek)}</td><td>${escapeHtml(t.Kelas)}</td><td>${escapeHtml(t.TahunSTPM)}</td><td>${lencana(t.StatusAktif)}</td>
+      <td>${bolehUrus()?'<span class="aksi-link" style="color:var(--merah)" onclick="padamTugasan(\''+t.ID_Tugasan+'\')">Padam</span>':''}</td></tr>`).join('') ||
+      '<tr><td colspan='+(bolehUrus()?6:5)+' class="kecil">Tiada tugasan ditetapkan.</td></tr>'}</tbody></table></div>
+    </div>`;
+
+  if (!bolehUrus()) return;
+  document.getElementById('btnSimpanTugasan').addEventListener('click', () => {
+    panggil('apiSimpanTugasan', {
+      token: S.token, nokp: document.getElementById('tgNoKP').value, kodSubjek: document.getElementById('tgKodSubjek').value,
+      kelas: document.getElementById('tgKelas').value, tahunSTPM: document.getElementById('tgTahun').value
+    }).then(() => { tunjukMesej('Tugasan ditetapkan.'); muatTugasSaya(); }).catch(err => tunjukMesej(err, 'ralat'));
+  });
+}
+
+function padamTugasan(id) {
+  if (!confirm('Padam tugasan ini?')) return;
+  panggil('apiPadamTugasan', { token: S.token, idTugasan: id })
+    .then(() => { tunjukMesej('Tugasan dipadam.'); muatTugasSaya(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
 /* ======================= ULANGAN (MODUL 12, 13) ======================= */
@@ -1255,6 +1462,161 @@ function eksportCSV(jenis, lajur, baris) {
   tunjukMesej('Fail CSV dimuat turun.');
 }
 
+/* ======================= KUNCI MARKAH (tarikh akhir, permohonan buka semula, pemantauan) =======================
+   ADMIN/GPK/Ketua Akademik: tetapkan tarikh akhir setiap semester + lulus/tolak
+   permohonan buka semula + pemantauan peratus pengisian markah.
+   GURU/KETUA_PANITIA/GURU_KELAS: lihat countdown + hantar permohonan buka semula
+   + sejarah permohonan sendiri. */
+function isoKeDatetimeLocal(iso) { return iso ? String(iso).replace(' ', 'T').slice(0, 16) : ''; }
+function datetimeLocalKeIso(nilai) { return nilai ? nilai.replace('T', ' ') + ':00' : ''; }
+
+function muatKunciMarkah() {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
+  pasangPilihanTahun(muatKunciMarkah);
+
+  const panggilan = [panggil('apiDapatkanTetapanKunci', { token: S.token }), panggil('apiSenaraiPermohonanKunci', { token: S.token })];
+  panggilan.push(bolehUrus()
+    ? panggil('apiPemantauanPengisianMarkah', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM })
+    : panggil('apiSenaraiSubjek', { token: S.token }));
+
+  Promise.all(panggilan).then(([tetapanRes, permohonanRes, ketigaRes]) => {
+    if (bolehUrus()) renderKunciMarkahAdmin(tetapanRes.tetapan, permohonanRes.senarai, ketigaRes.senarai);
+    else { S.cacheSubjek = ketigaRes.senarai; renderKunciMarkahGuru(tetapanRes.tetapan, permohonanRes.senarai); }
+  }).catch(renderRalat);
+}
+
+function renderKunciMarkahAdmin(tetapan, permohonan, pemantauan) {
+  const peratusSel = p => '<span class="lencana ' + (p>=100?'HIJAU':(p>=50?'KUNING':'MERAH')) + '">' + p + '%</span>';
+  document.getElementById('content').innerHTML = `
+    <div class="panel">
+      <h3>Tetapan Tarikh Akhir Pengisian Markah</h3>
+      <p class="kecil">Kosongkan medan untuk BUKA (tiada had) bagi semester berkenaan. Selepas tarikh akhir lepas, GURU/KETUA PANITIA/GURU
+      KELAS disekat drpd isi ETR/Markah Ujian bagi semester itu — melainkan permohonan buka semula mereka DILULUSKAN.</p>
+      <div class="borang-grid">
+        ${tetapan.map(t => '<div><label>Tarikh Akhir ' + t.semester + '</label><input type="datetime-local" id="kunci' + t.semester + '" value="' + escapeHtml(isoKeDatetimeLocal(t.tarikhAkhir)) + '"></div>').join('')}
+      </div>
+      <button id="btnSimpanTetapanKunci">Simpan Tetapan</button>
+    </div>
+    <div class="panel">
+      <h3>Permohonan Buka Semula — Menunggu</h3>
+      <div class="tbl-scroll"><table><thead><tr><th>Guru</th><th>Subjek</th><th>Semester</th><th>Tahun</th><th>Sebab</th><th>Tarikh Mohon</th><th></th></tr></thead>
+      <tbody>${permohonan.filter(p=>p.Status==='MENUNGGU').map(p => `<tr>
+        <td>${escapeHtml(p.NamaGuru)}</td><td>${escapeHtml(p.KodSubjek)}</td><td>${escapeHtml(p.Semester)}</td><td>${escapeHtml(p.TahunSTPM)}</td><td>${escapeHtml(p.Sebab)}</td><td>${escapeHtml(p.TarikhMohon)}</td>
+        <td><span class="aksi-link" onclick="putuskanPermohonanKunci('${escapeHtml(p.ID_Permohonan)}','DILULUSKAN')">Luluskan</span>
+        <span class="aksi-link" style="color:var(--merah)" onclick="putuskanPermohonanKunci('${escapeHtml(p.ID_Permohonan)}','DITOLAK')">Tolak</span></td>
+      </tr>`).join('') || '<tr><td colspan=7 class="kecil">Tiada permohonan menunggu.</td></tr>'}</tbody></table></div>
+    </div>
+    <div class="panel">
+      <h3>Sejarah Keputusan Permohonan</h3>
+      <div class="tbl-scroll"><table><thead><tr><th>Guru</th><th>Subjek</th><th>Semester</th><th>Status</th><th>Diluluskan/Ditolak Oleh</th><th>Tarikh Keputusan</th></tr></thead>
+      <tbody>${permohonan.filter(p=>p.Status!=='MENUNGGU').map(p => `<tr><td>${escapeHtml(p.NamaGuru)}</td><td>${escapeHtml(p.KodSubjek)}</td><td>${escapeHtml(p.Semester)}</td><td>${lencana(p.Status)}</td><td>${escapeHtml(p.DiluluskanOleh)}</td><td>${escapeHtml(p.TarikhKeputusan)}</td></tr>`).join('') || '<tr><td colspan=6 class="kecil">Tiada sejarah.</td></tr>'}</tbody></table></div>
+    </div>
+    <div class="panel">
+      <h3>Pemantauan Pengisian Markah — Semester ${S.semester.slice(1)}</h3>
+      <p class="kecil">Peratus pelajar (aktif + berdaftar) yang sudah ada markah/gred diisi, ikut Subjek x Kelas. Tukar Semester di kawalan atas Headcount/Markah Ujian untuk lihat semester lain.</p>
+      <div class="tbl-scroll"><table><thead><tr><th>Subjek</th><th>Kelas</th><th>Bil. Pelajar</th><th>% ETR</th><th>% AR1</th><th>% AR2</th><th>% Sebenar</th></tr></thead>
+      <tbody>${pemantauan.map(r => `<tr><td>${escapeHtml(r.kodSubjek)}</td><td>${escapeHtml(r.kelas)}</td><td>${r.jumlahPelajar}</td>
+        <td>${peratusSel(r.peratusETR)}</td><td>${peratusSel(r.peratusAR1)}</td><td>${peratusSel(r.peratusAR2)}</td><td>${peratusSel(r.peratusSEBENAR)}</td></tr>`).join('') ||
+        '<tr><td colspan=7 class="kecil">Tiada data pendaftaran bagi Semester/Tahun semasa.</td></tr>'}</tbody></table></div>
+    </div>`;
+
+  document.getElementById('btnSimpanTetapanKunci').addEventListener('click', () => {
+    const btn = document.getElementById('btnSimpanTetapanKunci');
+    btn.disabled = true;
+    Promise.all(tetapan.map(t => panggil('apiSimpanTetapanKunci', {
+      token: S.token, semester: t.semester, tarikhAkhir: datetimeLocalKeIso(document.getElementById('kunci' + t.semester).value)
+    }))).then(() => { tunjukMesej('Tetapan tarikh akhir disimpan.'); muatKunciMarkah(); })
+      .catch(err => { tunjukMesej(err, 'ralat'); btn.disabled = false; });
+  });
+}
+
+function putuskanPermohonanKunci(id, keputusan) {
+  const catatan = keputusan === 'DITOLAK' ? (prompt('Catatan untuk guru (opsyenal):') || '') : '';
+  panggil('apiLuluskanPermohonanKunci', { token: S.token, idPermohonan: id, keputusan, catatanAdmin: catatan })
+    .then(() => { tunjukMesej('Permohonan ' + (keputusan === 'DILULUSKAN' ? 'diluluskan' : 'ditolak') + '.'); muatKunciMarkah(); })
+    .catch(err => tunjukMesej(err, 'ralat'));
+}
+
+function renderKunciMarkahGuru(tetapan, permohonan) {
+  document.getElementById('content').innerHTML = `
+    <div class="panel">
+      <h3>Tarikh Akhir Pengisian Markah</h3>
+      <div id="countdownKunci"></div>
+    </div>
+    <div class="panel">
+      <h3>Mohon Buka Semula (selepas tarikh akhir lepas)</h3>
+      <div class="borang-grid">
+        <div><label>Kod Subjek</label><select id="mkKodSubjek">${S.cacheSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('')}</select></div>
+        <div><label>Semester</label><select id="mkSemester">${SEMESTER_HEADCOUNT.map(s=>'<option value="'+s+'">'+s+'</option>').join('')}</select></div>
+        <div><label>Tahun STPM</label><input id="mkTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
+      </div>
+      <label>Sebab</label><textarea id="mkSebab" rows="2" placeholder="Nyatakan sebab perlu buka semula"></textarea>
+      <button id="btnMohonBuka">Hantar Permohonan</button>
+    </div>
+    <div class="panel">
+      <h3>Permohonan Saya</h3>
+      <div class="tbl-scroll"><table><thead><tr><th>Subjek</th><th>Semester</th><th>Tahun</th><th>Sebab</th><th>Status</th><th>Catatan Admin</th></tr></thead>
+      <tbody>${permohonan.map(p => `<tr><td>${escapeHtml(p.KodSubjek)}</td><td>${escapeHtml(p.Semester)}</td><td>${escapeHtml(p.TahunSTPM)}</td><td>${escapeHtml(p.Sebab)}</td><td>${lencana(p.Status)}</td><td>${escapeHtml(p.CatatanAdmin)}</td></tr>`).join('') || '<tr><td colspan=6 class="kecil">Tiada permohonan.</td></tr>'}</tbody></table></div>
+    </div>`;
+
+  renderCountdownKunci('countdownKunci', tetapan);
+  document.getElementById('btnMohonBuka').addEventListener('click', () => {
+    const btn = document.getElementById('btnMohonBuka');
+    btn.disabled = true;
+    panggil('apiMohonBukaKunci', {
+      token: S.token, kodSubjek: document.getElementById('mkKodSubjek').value, semester: document.getElementById('mkSemester').value,
+      tahunSTPM: document.getElementById('mkTahun').value, sebab: document.getElementById('mkSebab').value
+    }).then(() => { tunjukMesej('Permohonan dihantar.'); muatKunciMarkah(); }).catch(err => { tunjukMesej(err, 'ralat'); btn.disabled = false; });
+  });
+}
+
+/* Countdown LENGKAP (grid kad, semua semester) — dipakai di halaman "Kunci Markah".
+   Mengemaskini setiap saat; berhenti sendiri (clearInterval) bila elemen sasaran
+   sudah tiada dalam DOM (pengguna sudah tukar halaman). */
+function renderCountdownKunci(idElemen, tetapan) {
+  if (S.intervalCountdown) clearInterval(S.intervalCountdown);
+  const kemaskini = () => {
+    const el = document.getElementById(idElemen);
+    if (!el) { clearInterval(S.intervalCountdown); return; }
+    el.innerHTML = '<div class="grid-kad">' + tetapan.map(t => {
+      if (!t.tarikhAkhir) return '<div class="kad"><div class="nilai">Terbuka</div><div class="label">Semester ' + t.semester.slice(1) + ' (tiada had)</div></div>';
+      const baki = new Date(String(t.tarikhAkhir).replace(' ', 'T')).getTime() - Date.now();
+      if (baki <= 0) return '<div class="kad merah"><div class="nilai">TAMAT</div><div class="label">Semester ' + t.semester.slice(1) + ' — ' + escapeHtml(t.tarikhAkhir) + '</div></div>';
+      const hari = Math.floor(baki/86400000), jam = Math.floor((baki%86400000)/3600000), minit = Math.floor((baki%3600000)/60000), saat = Math.floor((baki%60000)/1000);
+      return '<div class="kad ' + (hari<1?'kuning':'') + '"><div class="nilai">' + hari+'h '+jam+'j '+minit+'m '+saat+'s</div><div class="label">Semester ' + t.semester.slice(1) + ' — tarikh akhir ' + escapeHtml(t.tarikhAkhir) + '</div></div>';
+    }).join('') + '</div>';
+  };
+  kemaskini();
+  S.intervalCountdown = setInterval(kemaskini, 1000);
+}
+
+/* Countdown RINGKAS (satu baris mesej) bagi SATU semester sahaja — dipakai terus
+   dalam panel Isi ETR (Headcount) & tab Markah Ujian, supaya guru nampak baki
+   masa semasa dia sedang isi markah (bukan perlu pergi halaman lain). */
+function renderCountdownRingkas(idElemen, semester) {
+  panggil('apiDapatkanTetapanKunci', { token: S.token }).then(res => {
+    const t = res.tetapan.find(x => x.semester === semester);
+    if (!t) return;
+    if (S.intervalCountdownRingkas) clearInterval(S.intervalCountdownRingkas);
+    const kemaskini = () => {
+      const el = document.getElementById(idElemen);
+      if (!el) { clearInterval(S.intervalCountdownRingkas); return; }
+      if (!t.tarikhAkhir) { el.innerHTML = ''; return; }
+      const baki = new Date(String(t.tarikhAkhir).replace(' ', 'T')).getTime() - Date.now();
+      if (baki <= 0) {
+        el.innerHTML = '<div class="mesej ralat">Tarikh akhir pengisian markah Semester ' + semester.slice(1) + ' (' + escapeHtml(t.tarikhAkhir) +
+          ') telah LEPAS — sistem dikunci. Mohon buka semula di menu "Kunci Markah".</div>';
+        return;
+      }
+      const hari = Math.floor(baki/86400000), jam = Math.floor((baki%86400000)/3600000), minit = Math.floor((baki%3600000)/60000), saat = Math.floor((baki%60000)/1000);
+      const jenis = hari < 1 ? 'ralat' : (hari < 3 ? 'amaran' : 'jaya');
+      el.innerHTML = '<div class="mesej ' + jenis + '">Baki masa pengisian markah Semester ' + semester.slice(1) + ': <b>' + hari+'h '+jam+'j '+minit+'m '+saat+'s</b> (tarikh akhir: ' + escapeHtml(t.tarikhAkhir) + ')</div>';
+    };
+    kemaskini();
+    S.intervalCountdownRingkas = setInterval(kemaskini, 1000);
+  }).catch(() => {});
+}
+
 /* ======================= PENGGUNA (MODUL 1, ADMIN sahaja) ======================= */
 function muatPengguna() {
   if (S.peranan !== 'ADMIN') { renderRalat('Hanya ADMIN boleh mengurus pengguna.'); return; }
@@ -1271,21 +1633,23 @@ function renderPengguna(res) {
         <div><label>Peranan</label><select id="uPeranan">
           <option value="ADMIN">ADMIN</option><option value="GPK_TINGKATAN6">GPK TINGKATAN 6</option>
           <option value="KETUA_AKADEMIK">KETUA AKADEMIK</option><option value="KETUA_PANITIA">KETUA PANITIA</option>
-          <option value="GURU">GURU</option></select></div>
+          <option value="GURU">GURU</option><option value="GURU_KELAS">GURU KELAS</option></select></div>
         <div><label>Skop Subjek (jika Guru/Ketua Panitia, kod dipisah koma)</label><input id="uSkop" placeholder="cth. PA,BM"></div>
+        <div><label>Skop Kelas (jika Guru Kelas, kelas dipisah koma)</label><input id="uSkopKelas" placeholder="cth. 6A AKASIA"></div>
         <div><label>PIN (kosong jika kekal)</label><input id="uPIN"></div>
         <div><label>Status</label><select id="uStatus2"><option>AKTIF</option><option>TIDAK_AKTIF</option></select></div>
       </div>
       <button id="btnSimpanPengguna">Simpan Pengguna</button>
     </div>
     <div class="panel"><h3>Senarai Pengguna (${res.senarai.length})</h3>
-    <div class="tbl-scroll"><table><thead><tr><th>No. KP</th><th>Nama</th><th>Peranan</th><th>Skop</th><th>Status</th></tr></thead>
-    <tbody>${res.senarai.map(u => `<tr><td>${escapeHtml(u.nokp)}</td><td>${escapeHtml(u.nama)}</td><td>${escapeHtml(u.peranan)}</td><td>${escapeHtml(u.skopSubjek)}</td><td>${lencana(u.status)}</td></tr>`).join('')}</tbody></table></div></div>`;
+    <div class="tbl-scroll"><table><thead><tr><th>No. KP</th><th>Nama</th><th>Peranan</th><th>Skop Subjek</th><th>Skop Kelas</th><th>Status</th></tr></thead>
+    <tbody>${res.senarai.map(u => `<tr><td>${escapeHtml(u.nokp)}</td><td>${escapeHtml(u.nama)}</td><td>${escapeHtml(u.peranan)}</td><td>${escapeHtml(u.skopSubjek)}</td><td>${escapeHtml(u.skopKelas)}</td><td>${lencana(u.status)}</td></tr>`).join('')}</tbody></table></div></div>`;
 
   document.getElementById('btnSimpanPengguna').addEventListener('click', () => {
     panggil('apiSimpanPengguna', {
       token: S.token, nokp: document.getElementById('uNoKP').value, nama: document.getElementById('uNama').value,
       peranan: document.getElementById('uPeranan').value, skopSubjek: document.getElementById('uSkop').value,
+      skopKelas: document.getElementById('uSkopKelas').value,
       pin: document.getElementById('uPIN').value, status: document.getElementById('uStatus2').value
     }).then(() => { tunjukMesej('Pengguna disimpan.'); muatPengguna(); }).catch(err => tunjukMesej(err, 'ralat'));
   });
