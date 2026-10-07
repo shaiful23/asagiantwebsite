@@ -5,7 +5,7 @@
  * (rujuk MODUL 31: KESELAMATAN — jangan benarkan frontend sahaja menentukan akses).
  * ========================================================================= */
 
-const HEADER_USERS = ['NoKP', 'PIN', 'Peranan', 'NamaPenuh', 'SkopSubjek', 'Status'];
+const HEADER_USERS = ['NoKP', 'PIN', 'Peranan', 'NamaPenuh', 'SkopSubjek', 'Status', 'SkopKelas'];
 
 function ciptaSesi(pengguna) {
   const token = Utilities.getUuid();
@@ -13,7 +13,10 @@ function ciptaSesi(pengguna) {
     nokp: pengguna.NoKP,
     nama: pengguna.NamaPenuh,
     peranan: pengguna.Peranan,
-    skopSubjek: pengguna.SkopSubjek ? String(pengguna.SkopSubjek).split(',').map(s => s.trim()).filter(Boolean) : []
+    skopSubjek: pengguna.SkopSubjek ? String(pengguna.SkopSubjek).split(',').map(s => s.trim()).filter(Boolean) : [],
+    // SkopKelas: kelas yang diselia (peranan GURU_KELAS) — kekosongan huruf besar/kecil
+    // diseragamkan ke huruf besar supaya padanan konsisten dengan Kelas pelajar.
+    skopKelas: pengguna.SkopKelas ? String(pengguna.SkopKelas).split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : []
   }), TEMPOH_SESI_SAAT);
   return token;
 }
@@ -47,13 +50,13 @@ function apiLogin(p) {
 
   const token = ciptaSesi(pengguna);
   catatAudit({ nokp: pengguna.NoKP, nama: pengguna.NamaPenuh, peranan: pengguna.Peranan }, 'LOGIN', 'PENGGUNA', pengguna.NoKP, '', '', 'Log masuk berjaya');
-  return jaya({ token, nama: pengguna.NamaPenuh, peranan: pengguna.Peranan, skopSubjek: pengguna.SkopSubjek || '' });
+  return jaya({ token, nama: pengguna.NamaPenuh, peranan: pengguna.Peranan, skopSubjek: pengguna.SkopSubjek || '', skopKelas: pengguna.SkopKelas || '' });
 }
 
 function apiSemakSesi(p) {
   const sesi = sahkanSesi(p.token);
   if (!sesi) return ralat('Sesi tamat tempoh. Sila log masuk semula.');
-  return jaya({ nama: sesi.nama, peranan: sesi.peranan, skopSubjek: sesi.skopSubjek });
+  return jaya({ nama: sesi.nama, peranan: sesi.peranan, skopSubjek: sesi.skopSubjek, skopKelas: sesi.skopKelas || [] });
 }
 
 function apiLogout(p) {
@@ -67,7 +70,7 @@ function apiSenaraiPengguna(p) {
   const sesi = wajibPeranan(p.token, [ROLE_ADMIN]);
   if (sesi.success === false) return sesi;
   const senarai = bacaSheetSebagaiObjek(SHEET_USERS).map(u => ({
-    nokp: u.NoKP, nama: u.NamaPenuh, peranan: u.Peranan, skopSubjek: u.SkopSubjek, status: u.Status, __row: u.__row
+    nokp: u.NoKP, nama: u.NamaPenuh, peranan: u.Peranan, skopSubjek: u.SkopSubjek, skopKelas: u.SkopKelas, status: u.Status, __row: u.__row
   }));
   return jaya({ senarai });
 }
@@ -88,6 +91,7 @@ function apiSimpanPengguna(p) {
     Peranan: peranan,
     NamaPenuh: nama,
     SkopSubjek: String(p.skopSubjek || '').trim(),
+    SkopKelas: String(p.skopKelas || '').trim(),
     Status: p.status ? String(p.status).trim() : 'AKTIF'
   };
 

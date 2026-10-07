@@ -91,8 +91,9 @@ sepenuhnya seperti diminta.
    `StudentService.gs`, `SubjectService.gs`, `GradeBoundaryService.gs`,
    `HeadcountService.gs`, `AnalysisService.gs`, `RepeatService.gs`,
    `InterventionService.gs`, `DashboardService.gs`, `ReportService.gs`,
-   `HighImpactService.gs`, `WhatIfService.gs`), cipta fail Script baharu dengan
-   nama yang sama (tanpa `.gs`) dan salin-tampal kandungannya.
+   `HighImpactService.gs`, `WhatIfService.gs`, `AssignmentService.gs`,
+   `LockService.gs`), cipta fail Script baharu dengan nama yang sama (tanpa
+   `.gs`) dan salin-tampal kandungannya.
 
    **Jika projek Apps Script anda sudah wujud** (kemaskini daripada versi
    sebelumnya):
@@ -124,6 +125,18 @@ sepenuhnya seperti diminta.
    `AnalysisService.gs`, `StudentService.gs`, `HeadcountService.gs` dan
    `Index` dengan versi terkini, kemudian deploy semula. Tiada langkah
    migrasi Sheet diperlukan untuk kemaskini ini.
+
+   **Kemaskini terkini (Guru Kelas, Tukar Kelas, Arkib, Import Pukal, Tugas
+   Saya, Kunci Markah):** tambah 2 fail Script baharu — `AssignmentService`
+   dan `LockService` — salin-tampal kandungan `AssignmentService.gs` dan
+   `LockService.gs`. **Gantikan** kandungan `Config.gs`, `AuthService.gs`,
+   `Code.gs`, `StudentService.gs`, `DashboardService.gs`,
+   `HeadcountService.gs` dan `Index` dengan versi terkini. Deploy semula,
+   kembali ke Sheet, refresh, kemudian klik **Sistem Headcount STPM → 3.
+   Kemaskini Struktur (Guru Kelas, Tugas Saya, Kunci Markah)** — ini
+   menambah lajur `SkopKelas` pada `USERS` dan mencipta Sheet
+   `TEACHING_ASSIGNMENTS` + `UNLOCK_REQUESTS`. Selamat dijalankan berulang
+   kali.
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json
@@ -131,15 +144,17 @@ sepenuhnya seperti diminta.
 6. Kembali ke Sheet, refresh halaman. Menu baharu **"Sistem Headcount STPM"**
    akan muncul di bar menu.
 7. Klik **Sistem Headcount STPM → 1. Sediakan Sistem (Jalankan Sekali)**.
-   Benarkan kebenaran yang diminta. Ini mencipta semua 15 Sheet: `CONFIG`,
+   Benarkan kebenaran yang diminta. Ini mencipta semua 17 Sheet: `CONFIG`,
    `GRADES`, `GRADE_BOUNDARIES`, `USERS`, `STUDENTS`, `SUBJECTS`, `ENROLLMENTS`,
-   `HEADCOUNT_S1/S2/S3`, `REPEAT_S1/S2`, `INTERVENTIONS`, `INTERVENTION_LOG`, `AUDIT_LOG`.
+   `HEADCOUNT_S1/S2/S3`, `REPEAT_S1/S2`, `INTERVENTIONS`, `INTERVENTION_LOG`,
+   `AUDIT_LOG`, `TEACHING_ASSIGNMENTS`, `UNLOCK_REQUESTS`.
 8. **Kemaskini data sebenar sekolah** terus dalam Sheet:
    - `CONFIG`: nama sekolah, tahun STPM aktif, sasaran GPS/PNGK, threshold gap/risiko.
    - `GRADES`: senarai gred & nilai gred rasmi sekolah (boleh ubah tanpa sentuh kod).
    - `USERS`: satu baris setiap pengguna (No. KP, PIN, Peranan, Nama, Skop Subjek
-     untuk Guru/Ketua Panitia — kod subjek dipisah koma). Padam baris "ADMIN CONTOH"
-     selepas tambah admin sebenar.
+     untuk Guru/Ketua Panitia — kod subjek dipisah koma, Skop Kelas untuk Guru
+     Kelas — kelas dipisah koma). Padam baris "ADMIN CONTOH" selepas tambah
+     admin sebenar.
    - `STUDENTS`, `SUBJECTS`, `ENROLLMENTS`: data pelajar, mata pelajaran dan
      pendaftaran sebenar. Padam baris "CONTOH".
    - **`GRADE_BOUNDARIES` (BLD)**: WAJIB tetapkan julat markah->gred bagi
@@ -163,6 +178,7 @@ sepenuhnya seperti diminta.
 | `KETUA_AKADEMIK` | Sama seperti GPK (akses analisis akademik penuh) |
 | `KETUA_PANITIA` | Terhad kepada subjek dalam `SkopSubjek`, dashboard panitia |
 | `GURU` | Terhad kepada subjek dalam `SkopSubjek`. Isi **ETR** (Headcount) dan **AR1/AR2/SEBENAR** (Markah Ujian) sahaja — TOV/OTR1/OTR2 diterbitkan automatik, tidak boleh ditaip terus oleh sesiapa |
+| `GURU_KELAS` | Terhad kepada kelas dalam `SkopKelas` (lajur baharu di USERS). Boleh **Tukar Kelas** pelajar yang kelas semasanya dalam seliaan (menu Pelajar); tiada akses isi markah |
 
 Semua semakan kebenaran dibuat di **server** (`wajibPeranan()` dalam setiap
 Service), bukan hanya disembunyikan di frontend — selaras MODUL 31.
@@ -346,6 +362,61 @@ Pilihan **"Semua Tahun"** (nilai kosong) sentiasa tersedia untuk pandangan
 merentasi batch (cth. Admin nak lihat jumlah keseluruhan). Borang tambah
 pelajar/headcount/ulangan pra-isi Tahun STPM mengikut pemilih global semasa,
 tetapi masih boleh diubah secara manual jika perlu masukkan data batch lain.
+
+## Tukar Kelas, Arkib & Import Pukal (menu Pelajar)
+
+- **Tukar Kelas** — ADMIN/GPK/Ketua Akademik atau `GURU_KELAS` (hanya bagi
+  pelajar yang kelas semasanya dalam `SkopKelas` sendiri) boleh tukar kelas
+  seorang pelajar. Pendaftaran subjek sedia ada pelajar itu **DIGANTIKAN
+  SEPENUHNYA** dengan subjek yang diambil pelajar LAIN dalam kelas baharu
+  (anggap satu kelas = satu aliran/set subjek sama). Rekod headcount/markah
+  sejarah bagi subjek lama TIDAK disentuh — hanya pendaftaran semasa
+  (`ENROLLMENTS`) yang berubah. (`apiTukarKelasPelajar`)
+- **Arkib** — pelajar yang tamat belajar (selepas Semester 3) diarkibkan
+  (Status → `TAMAT`) sama ada seorang (`apiArkibkanPelajar`, butang "Arkib"
+  pada setiap baris) atau satu kohort sekali gus (`apiArkibkanKohort`, ikut
+  Tahun STPM). Pelajar `TAMAT` disembunyikan daripada senarai "Pelajar"
+  harian secara automatik (lihat di menu "Arkib" berasingan); rekod kekal
+  sepenuhnya, boleh dinyah-arkib (`apiNyahArkibPelajar`) jika tersilap.
+- **Import Pukal** — tampal senarai pelajar baharu (CSV ringkas:
+  `NoKP,Nama,Jantina,Kelas,TahunSTPM`, satu baris setiap pelajar) untuk
+  daftar beramai-ramai sekali gus. Baris yang silap (medan wajib kosong,
+  No. KP bertindih) dilangkau sahaja — baki tetap diimport, disenaraikan
+  dalam makluman. (`apiImportPelajarPukal`)
+
+## Tugas Saya (subjek + kelas diajar setiap guru)
+
+Lapisan TAMBAHAN di atas `SkopSubjek` (peringkat subjek sahaja) — ADMIN/GPK/
+Ketua Akademik boleh tetapkan KELAS SPESIFIK yang diajar seorang guru bagi
+sesuatu subjek (menu "Tugas Saya", `TEACHING_ASSIGNMENTS`). Setiap guru
+melihat tugasan sendiri sahaja di menu yang sama. Jika seorang guru ada
+tugasan ditetapkan untuk satu subjek, pilihan Kelas di Isi ETR/Markah Ujian
+**disempitkan** kepada kelas yang ditugaskan sahaja; guru yang LANGSUNG
+tiada tugasan ditetapkan kekal guna cara lama (ikut pendaftaran pelajar +
+`SkopSubjek`) — jadi sekolah yang belum guna ciri ini tidak terjejas.
+
+## Kunci Markah (tarikh akhir, buka semula, pemantauan, countdown)
+
+- **Tarikh akhir** — SATU tarikh akhir global setiap Semester (menu "Kunci
+  Markah", ADMIN/GPK/Ketua Akademik, `apiSimpanTetapanKunci` → `CONFIG`
+  kunci `tarikhAkhirS1`/`S2`/`S3`). Kosongkan untuk buka (tiada had).
+- **Kunci automatik** — selepas tarikh akhir lepas, `GURU`/`KETUA_PANITIA`/
+  `GURU_KELAS` disekat drpd simpan ETR/AR1/AR2/SEBENAR bagi semester itu
+  (disemak di SETIAP titik simpan — individu & pukal — rujuk
+  `semakKunciMarkah()` dalam `LockService.gs`); ADMIN/GPK/Ketua Akademik
+  tidak pernah dikunci (perlu boleh betulkan data bila-bila masa).
+- **Permohonan buka semula** — guru yang terkunci hantar permohonan (sebab
+  + subjek/semester/tahun) di menu "Kunci Markah"; ADMIN/GPK/Ketua Akademik
+  lulus/tolak SATU-SATU (bukan buka terus untuk semua) — lulus hanya buka
+  kunci untuk guru + subjek + semester + tahun itu sahaja.
+  (`apiMohonBukaKunci`, `apiSenaraiPermohonanKunci`, `apiLuluskanPermohonanKunci`)
+- **Countdown** — baki masa sehingga tarikh akhir dipaparkan terus dalam
+  panel Isi ETR & tab Markah Ujian (kemas kini setiap saat), dan sebagai
+  kad penuh bagi semua semester di menu "Kunci Markah".
+- **Pemantauan pengisian markah** (ADMIN/GPK/Ketua Akademik, menu "Kunci
+  Markah") — peratus pelajar yang sudah ada ETR/AR1/AR2/SEBENAR diisi, ikut
+  Subjek x Kelas, supaya admin boleh kenal pasti kelas/subjek mana yang
+  belum selesai sebelum tarikh akhir. (`apiPemantauanPengisianMarkah`)
 
 Tiada tetapan tambahan diperlukan — cukup pastikan lajur `TahunSTPM` diisi
 dengan betul (cth. `2026`, `2027`) semasa mendaftar pelajar setiap batch.

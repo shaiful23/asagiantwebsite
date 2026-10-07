@@ -18,6 +18,10 @@ function apiSenaraiTahunSTPM(p) {
   return jaya({ senarai, tahunAktif: konfig.tahunSTPMAktif || '' });
 }
 
+/* Status TAMAT (pelajar diarkibkan selepas tamat belajar — rujuk apiArkibkanPelajar)
+   disembunyikan DARIPADA senarai lalai (p.status / p.termasukArkib tidak diisi),
+   supaya halaman "Pelajar" harian tidak bercampur dengan kohort yang sudah tamat.
+   Guna p.status='TAMAT' (menu "Arkib") atau p.termasukArkib=true untuk lihat semua. */
 function apiSenaraiPelajar(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
@@ -29,7 +33,17 @@ function apiSenaraiPelajar(p) {
     const kunci = String(p.carian).toLowerCase();
     senarai = senarai.filter(s => String(s.Nama).toLowerCase().includes(kunci) || String(s.NoKP).includes(kunci) || String(s.ID_Pelajar).toLowerCase().includes(kunci));
   }
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) {
+  if (p.status) {
+    senarai = senarai.filter(s => String(s.Status).toUpperCase() === String(p.status).toUpperCase());
+  } else if (!p.termasukArkib) {
+    senarai = senarai.filter(s => String(s.Status).toUpperCase() !== 'TAMAT');
+  }
+  if (PERANAN_AKSES_PENUH.includes(sesi.peranan)) {
+    // tiada tapisan tambahan — nampak semua
+  } else if (sesi.peranan === ROLE_GURU_KELAS) {
+    // Guru Kelas: hanya pelajar dalam kelas yang diselia (SkopKelas)
+    senarai = senarai.filter(s => sesi.skopKelas.indexOf(String(s.Kelas).toUpperCase()) !== -1);
+  } else {
     // GURU / KETUA_PANITIA: hanya pelajar yang mengambil subjek dalam skop mereka
     const enrolments = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).filter(e => sesi.skopSubjek.includes(String(e.KodSubjek)));
     const idDibenarkan = new Set(enrolments.map(e => e.ID_Pelajar));
@@ -113,6 +127,148 @@ function apiPadamPelajar(p) {
   return jaya({});
 }
 
+/* ======================= ARKIB (pelajar tamat belajar selepas Semester 3) =======================
+   Status 'TAMAT' — rekod KEKAL (headcount/intervensi/ulangan sejarah tidak disentuh),
+   hanya disembunyikan daripada senarai Pelajar harian (rujuk apiSenaraiPelajar di atas)
+   dan dipaparkan berasingan di menu "Arkib". */
+function apiArkibkanPelajar(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  if (sesi.success === false) return sesi;
+  const rekod = cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', p.idPelajar);
+  if (!rekod) return ralat('Pelajar tidak dijumpai.');
+  const objek = Object.assign({}, rekod, { Status: 'TAMAT' });
+  kemaskiniBaris(SHEET_STUDENTS, rekod.__row, objek, HEADER_STUDENTS);
+  catatAudit(sesi, 'ARKIB', 'PELAJAR', p.idPelajar, rekod.Status, 'TAMAT', 'Arkibkan pelajar (tamat belajar): ' + rekod.Nama);
+  return jaya({});
+}
+
+/* Arkibkan SEMUA pelajar AKTIF bagi satu Tahun STPM sekali gus — dipakai selepas
+   satu kohort selesai Semester 3 (cth. selepas keputusan STPM sebenar diumumkan). */
+function apiArkibkanKohort(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  if (sesi.success === false) return sesi;
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+  if (!tahunSTPM) return ralat('Tahun STPM wajib dinyatakan.');
+
+  const sasaran = bacaSheetSebagaiObjek(SHEET_STUDENTS)
+    .filter(s => String(s.TahunSTPM) === tahunSTPM && String(s.Status).toUpperCase() === 'AKTIF');
+  sasaran.forEach(s => kemaskiniBaris(SHEET_STUDENTS, s.__row, Object.assign({}, s, { Status: 'TAMAT' }), HEADER_STUDENTS));
+
+  catatAudit(sesi, 'ARKIB_KOHORT', 'PELAJAR', tahunSTPM, '', sasaran.length + ' pelajar',
+    'Arkibkan kohort Tahun STPM ' + tahunSTPM + ' (tamat belajar)');
+  return jaya({ bilangan: sasaran.length });
+}
+
+/* Terbalikkan arkib (silap arkibkan) — pulihkan Status kepada AKTIF. */
+function apiNyahArkibPelajar(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  if (sesi.success === false) return sesi;
+  const rekod = cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', p.idPelajar);
+  if (!rekod) return ralat('Pelajar tidak dijumpai.');
+  const objek = Object.assign({}, rekod, { Status: 'AKTIF' });
+  kemaskiniBaris(SHEET_STUDENTS, rekod.__row, objek, HEADER_STUDENTS);
+  catatAudit(sesi, 'NYAH_ARKIB', 'PELAJAR', p.idPelajar, 'TAMAT', 'AKTIF', 'Nyah-arkib pelajar: ' + rekod.Nama);
+  return jaya({});
+}
+
+/* ======================= TUKAR KELAS (dengan auto-tukar subjek) =======================
+   Kelas ditukar; pendaftaran subjek SEDIA ADA pelajar (ENROLLMENTS, Tahun STPM sama)
+   DIGANTIKAN SEPENUHNYA dengan set subjek yang diambil oleh pelajar LAIN dalam kelas
+   BAHARU (anggap satu kelas = satu aliran/set subjek sama, cth. kelas Sains/Sastera).
+   Rekod HEADCOUNT/INTERVENSI/ULANGAN sejarah bagi subjek lama TIDAK disentuh (kekal
+   untuk rujukan), hanya ENROLLMENTS (pendaftaran semasa) yang diganti.
+   Peranan: ADMIN/GPK/Ketua Akademik (semua kelas), atau GURU_KELAS — tetapi GURU_KELAS
+   HANYA boleh urus pelajar yang KELAS SEMASA dia dalam SkopKelas guru itu. */
+function apiTukarKelasPelajar(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_GURU_KELAS]));
+  if (sesi.success === false) return sesi;
+
+  const idPelajar = String(p.idPelajar || '').trim();
+  const kelasBaharu = String(p.kelasBaharu || '').trim();
+  if (!idPelajar || !kelasBaharu) return ralat('ID Pelajar dan Kelas Baharu wajib diisi.');
+
+  const rekod = cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar);
+  if (!rekod) return ralat('Pelajar tidak dijumpai.');
+
+  if (sesi.peranan === ROLE_GURU_KELAS && sesi.skopKelas.indexOf(String(rekod.Kelas).toUpperCase()) === -1) {
+    return ralat('Anda hanya boleh urus pelajar dalam kelas yang anda selia (Guru Kelas).');
+  }
+  if (String(rekod.Kelas).toUpperCase() === kelasBaharu.toUpperCase()) return ralat('Pelajar sudah berada dalam kelas ini.');
+
+  const kelasLama = rekod.Kelas;
+  const tahunSTPM = String(rekod.TahunSTPM);
+
+  kemaskiniBaris(SHEET_STUDENTS, rekod.__row, Object.assign({}, rekod, { Kelas: kelasBaharu }), HEADER_STUDENTS);
+
+  const shEnrol = dapatkanSheet(SHEET_ENROLLMENTS);
+  const semuaEnrolmen = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS);
+  const enrolmenLama = semuaEnrolmen.filter(e => e.ID_Pelajar === idPelajar && String(e.TahunSTPM) === tahunSTPM);
+  enrolmenLama.sort((a, b) => b.__row - a.__row).forEach(e => shEnrol.deleteRow(e.__row));
+
+  const idPelajarKelasBaharu = new Set(bacaSheetSebagaiObjek(SHEET_STUDENTS)
+    .filter(s => s.ID_Pelajar !== idPelajar && String(s.Kelas).toUpperCase() === kelasBaharu.toUpperCase() && String(s.TahunSTPM) === tahunSTPM)
+    .map(s => s.ID_Pelajar));
+  const kodSubjekKelasBaharu = Array.from(new Set(semuaEnrolmen
+    .filter(e => idPelajarKelasBaharu.has(e.ID_Pelajar))
+    .map(e => String(e.KodSubjek))));
+  kodSubjekKelasBaharu.forEach(kod => tambahBaris(SHEET_ENROLLMENTS, { ID_Pelajar: idPelajar, KodSubjek: kod, TahunSTPM: tahunSTPM }, HEADER_ENROLLMENTS));
+
+  catatAudit(sesi, 'TUKAR_KELAS', 'PELAJAR', idPelajar,
+    'Kelas=' + kelasLama + '; Subjek=' + enrolmenLama.map(e => e.KodSubjek).join(','),
+    'Kelas=' + kelasBaharu + '; Subjek=' + kodSubjekKelasBaharu.join(','),
+    p.sebab || ('Tukar kelas ' + kelasLama + ' -> ' + kelasBaharu));
+
+  return jaya({ kelasLama, kelasBaharu, bilSubjekLama: enrolmenLama.length, bilSubjekBaharu: kodSubjekKelasBaharu.length });
+}
+
+/* ======================= IMPORT PUKAL PELAJAR BAHARU =======================
+   p.senarai = [{idPelajar?, nokp, nama, jantina, kelas, tahunSTPM, catatan?}, ...].
+   Baris yang gagal (medan wajib kosong, No.KP/ID bertindih dengan rekod sedia ada
+   ATAU dalam senarai yang sama) DILANGKAU (bukan gagalkan keseluruhan import) —
+   disenaraikan dalam `ralat` untuk semakan admin. */
+function apiImportPelajarPukal(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  if (sesi.success === false) return sesi;
+
+  const senarai = Array.isArray(p.senarai) ? p.senarai : [];
+  if (!senarai.length) return ralat('Tiada data pelajar untuk diimport.');
+
+  const sediaAda = bacaSheetSebagaiObjek(SHEET_STUDENTS);
+  const idSet = new Set(sediaAda.map(s => s.ID_Pelajar));
+  const nokpSet = new Set(sediaAda.map(s => String(s.NoKP)).filter(Boolean));
+
+  let ditambah = 0;
+  const ralatSenarai = [];
+
+  senarai.forEach((item, idx) => {
+    const label = 'Baris ' + (idx + 1);
+    const nama = String(item.nama || '').trim();
+    const kelas = String(item.kelas || '').trim();
+    const tahunSTPM = String(item.tahunSTPM || '').trim();
+    const nokp = String(item.nokp || '').trim();
+    if (!nama || !kelas || !tahunSTPM) { ralatSenarai.push(label + ' (' + (nama || '-') + '): Nama/Kelas/Tahun STPM wajib diisi.'); return; }
+    if (nokp && nokpSet.has(nokp)) { ralatSenarai.push(label + ' (' + nama + '): No. KP "' + nokp + '" sudah wujud — dilangkau.'); return; }
+
+    let idPelajar = String(item.idPelajar || '').trim();
+    if (idPelajar && idSet.has(idPelajar)) { ralatSenarai.push(label + ' (' + nama + '): ID Pelajar "' + idPelajar + '" sudah wujud — dilangkau.'); return; }
+    if (!idPelajar) { do { idPelajar = janaId('P'); } while (idSet.has(idPelajar)); }
+
+    tambahBaris(SHEET_STUDENTS, {
+      ID_Pelajar: idPelajar, NoKP: nokp, Nama: nama,
+      Jantina: String(item.jantina || '').trim(), Kelas: kelas, TahunSTPM: tahunSTPM,
+      Status: 'AKTIF', Catatan: String(item.catatan || '').trim()
+    }, HEADER_STUDENTS);
+
+    idSet.add(idPelajar);
+    if (nokp) nokpSet.add(nokp);
+    ditambah++;
+  });
+
+  catatAudit(sesi, 'IMPORT_PUKAL', 'PELAJAR', '-', '', ditambah + ' pelajar',
+    'Import pukal pelajar baharu (' + ditambah + ' berjaya, ' + ralatSenarai.length + ' ralat)');
+  return jaya({ ditambah, ralat: ralatSenarai });
+}
+
 /* Senarai KELAS yang ada pelajar berdaftar bagi SATU mata pelajaran (+ tahun STPM
    jika dinyatakan) — dipakai untuk pemilih "Kelas yang diajar" bagi guru di
    Headcount (Isi ETR) & tab Markah Ujian, supaya guru hanya nampak kelas sebenar
@@ -140,7 +296,21 @@ function apiSenaraiKelasUntukSubjek(p) {
   const semuaPelajar = bacaSheetSebagaiObjek(SHEET_STUDENTS);
   const pelajarBerdaftar = semuaPelajar.filter(s => idBerdaftar.has(s.ID_Pelajar));
   const pelajarAktif = pelajarBerdaftar.filter(s => String(s.Status).toUpperCase() === 'AKTIF');
-  const kelasSet = new Set(pelajarAktif.map(s => s.Kelas));
+  let kelasSet = new Set(pelajarAktif.map(s => s.Kelas));
+
+  /* Jika guru ini ada tugasan EKSPLISIT ditetapkan (Tab "Tugas Saya") untuk subjek
+     ini, sempitkan senarai kepada kelas yang ditugaskan sahaja (walaupun kelas lain
+     ada pelajar berdaftar subjek sama) — tugasan eksplisit lebih tepat daripada
+     tekaan ikut pendaftaran. Guru TANPA tugasan ditetapkan terus guna senarai ikut
+     pendaftaran seperti sedia ada (keserasian ke belakang). */
+  let disempitkanTugasan = false;
+  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) {
+    const kelasTugasan = kelasTugasanGuru(sesi.nokp, kodSubjek, tahunSTPM);
+    if (kelasTugasan) {
+      disempitkanTugasan = true;
+      kelasSet = new Set(Array.from(kelasSet).filter(k => kelasTugasan.indexOf(String(k).toUpperCase()) !== -1));
+    }
+  }
 
   return jaya({
     senarai: Array.from(kelasSet).filter(Boolean).sort(),
@@ -150,7 +320,8 @@ function apiSenaraiKelasUntukSubjek(p) {
       jumlahPelajarBerdaftar: pelajarBerdaftar.length,
       jumlahPelajarAktif: pelajarAktif.length,
       tahunDiguna: tahunSTPM || '(Semua Tahun)',
-      contohTahunEnrolmenSubjek: enrolmenSubjek.slice(0, 5).map(e => String(e.TahunSTPM))
+      contohTahunEnrolmenSubjek: enrolmenSubjek.slice(0, 5).map(e => String(e.TahunSTPM)),
+      disempitkanTugasan: disempitkanTugasan
     }
   });
 }
