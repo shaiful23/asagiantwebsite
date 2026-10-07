@@ -297,7 +297,7 @@ $('borangLogin').addEventListener('submit', function (ev) {
   $('btnLogin').disabled = true;
   api('apiLogin', { nokp: nilaiEl('lgKP').replace(/\D/g, ''), kataLaluan: nilaiEl('lgKW') }).then(function (r) {
     S.token = r.token; simpanToken(r.token);
-    S.user = { nama: r.nama, peranan: r.peranan, kelas: r.kelas };
+    S.user = { nama: r.nama, peranan: r.peranan, kelas: r.kelas || [], unit: r.unit || [] };
     $('lgKW').value = '';
     if (r.mestiTukarPassword) { paparSkrin('skrinTukar'); } else { mulaAplikasi(); }
   }).catch(function (er) { $('ralatLogin').textContent = er.message; }).then(function () { $('btnLogin').disabled = false; });
@@ -339,14 +339,15 @@ function keluar() {
 /* ---------- Mula aplikasi (SATU panggilan: pengguna + rujukan skor + tetapan + kelas) ---------- */
 function mulaAplikasi() {
   api('apiMula').then(function (r) {
-    S.user = { nama: r.nama, peranan: r.peranan, kelas: r.kelas };
+    S.user = { nama: r.nama, peranan: r.peranan, kelas: r.kelas || [], unit: r.unit || [] };
     if (r.mestiTukarPassword) { paparSkrin('skrinTukar'); return; }
     S.ref = r.rujukan; S.tetapan = r.tetapan; S.kelasSenarai = r.kelasSenarai; S.versi = r.versi;
     if (!S.kelasSenarai.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = S.kelasSenarai.length ? S.kelasSenarai[0].kunci : '';
     paparSkrin('aplikasi');
-    $('infoPengguna').innerHTML = '<span class="titik-hidup" id="titikHidup" title="Disegerakkan automatik dengan e-Kokurikulum"></span><b>' + e(S.user.nama) + '</b> · ' + (S.user.peranan === ADMIN ? 'Admin' : 'Guru Kelas') + ' · Tahun pentaksiran <b id="infoTahun">' + e(S.tetapan.tahun) + '</b>';
+    $('infoPengguna').innerHTML = '<span class="titik-hidup" id="titikHidup" title="Disegerakkan automatik dengan e-Kokurikulum"></span><b>' + e(S.user.nama) + '</b> · ' + (adalahAdmin() ? 'Admin' : [adalahGuruKelas() ? 'Guru Kelas' : '', adalahKgp() ? 'Ketua Guru Penasihat' : ''].filter(Boolean).join(' & ') || 'Guru') + ' · Tahun pentaksiran <b id="infoTahun">' + e(S.tetapan.tahun) + '</b>';
     binaMenu();
-    pergi(S.halaman || 'dashboard');
+    var hal = MENU.filter(function (m) { return m.id === S.halaman; })[0];
+    pergi(hal && menuDibenarkan(hal) ? S.halaman : 'dashboard');
     mulaPoll();
   }).catch(function (er) { gagal(er); keluar(); });
 }
@@ -386,21 +387,30 @@ function segarSenyap() {
 }
 $('btnBannerSegar').onclick = segarSenyap;
 
+/* Keupayaan pengguna: Admin = semua; Guru Kelas = LIHAT data kelas sendiri; KGP = ISI data unit sendiri. */
+function adalahAdmin() { return S.user && S.user.peranan === ADMIN; }
+function adalahKgp() { return S.user && (S.user.unit || []).length > 0; }
+function adalahGuruKelas() { return S.user && (S.user.kelas || []).length > 0; }
+function bolehIsi() { return adalahAdmin() || adalahKgp(); }
+function bolehLihatKelas() { return adalahAdmin() || adalahGuruKelas(); }
+
 var MENU = [
   { id: 'dashboard', label: 'Dashboard', paparan: dashboard },
+  { id: 'isiunit', label: 'Pengisian Unit (KGP)', boleh: bolehIsi, paparan: halamanIsiUnit },
   { id: 'pengisian', label: 'Status Pengisian', paparan: halamanPengisian },
-  { id: 'pentaksiran', label: 'Pentaksiran Kelas', paparan: halamanPentaksiran },
-  { id: 'rumusan', label: 'Rumusan Kelas', paparan: halamanRumusan },
-  { id: 'slip', label: 'Slip PAJSK', paparan: halamanSlip },
-  { id: 'analisa', label: 'Analisa Ringkas', paparan: halamanAnalisa },
+  { id: 'pentaksiran', label: 'Data Kelas', boleh: bolehLihatKelas, paparan: halamanPentaksiran },
+  { id: 'rumusan', label: 'Rumusan Kelas', boleh: bolehLihatKelas, paparan: halamanRumusan },
+  { id: 'slip', label: 'Slip PAJSK', boleh: bolehLihatKelas, paparan: halamanSlip },
+  { id: 'analisa', label: 'Analisa Ringkas', boleh: bolehLihatKelas, paparan: halamanAnalisa },
   { id: 'murid', label: 'Murid', admin: true, paparan: halamanMurid },
   { id: 'pengguna', label: 'Pengguna', admin: true, paparan: halamanPengguna },
   { id: 'arkib', label: 'Arkib & Naik Tingkatan', admin: true, paparan: halamanArkib },
   { id: 'tetapan', label: 'Tetapan', admin: true, paparan: halamanTetapan },
   { id: 'audit', label: 'Log Audit', admin: true, paparan: halamanAudit }
 ];
+function menuDibenarkan(m) { return (!m.admin || adalahAdmin()) && (!m.boleh || m.boleh()); }
 function binaMenu() {
-  $('menuNav').innerHTML = MENU.filter(function (m) { return !m.admin || S.user.peranan === ADMIN; })
+  $('menuNav').innerHTML = MENU.filter(menuDibenarkan)
     .map(function (m) { return '<button class="item-nav" data-id="' + m.id + '">' + e(m.label) + '</button>'; }).join('');
   Array.prototype.forEach.call($('menuNav').querySelectorAll('.item-nav'), function (b) { b.onclick = function () { pergi(b.getAttribute('data-id')); }; });
 }
@@ -479,14 +489,20 @@ function dashboard() {
         '<div class="stat ' + (d.kelasTanpaGuru ? 'amaran' : '') + '"><div class="label">Kelas tanpa guru</div><div class="nilai">' + d.kelasTanpaGuru + '</div></div>' : '') + '</div>';
     if (admin && d.pengisian) {
       var pk = d.pengisian.kira;
-      h += '<div class="kad"><h3>Status pengisian guru kelas</h3><div class="baris-alat" style="margin:0"><span class="lencana merah">Belum mula: ' + pk.BELUM_MULA + '</span><span class="lencana kuning">Dalam proses: ' + pk.DALAM_PROSES + '</span><span class="lencana hijau">Lengkap: ' + pk.LENGKAP + '</span>' +
-        (d.pengisian.guruTanpaKelas ? '<span class="nota">' + d.pengisian.guruTanpaKelas + ' guru kelas belum ditetapkan kelas</span>' : '') +
+      h += '<div class="kad"><h3>Status pengisian Ketua Guru Penasihat (KGP)</h3><div class="baris-alat" style="margin:0"><span class="lencana merah">Belum mula: ' + pk.BELUM_MULA + '</span><span class="lencana kuning">Dalam proses: ' + pk.DALAM_PROSES + '</span><span class="lencana hijau">Lengkap: ' + pk.LENGKAP + '</span>' +
+        (d.pengisian.unitTanpaKgp ? '<span class="lencana merah">' + d.pengisian.unitTanpaKgp + ' unit tanpa KGP</span>' : '') +
         '<div class="rapat"><button class="btn kecil" id="btnLihatPengisian">Lihat butiran</button></div></div></div>';
     }
     if (admin && d.bilPerluSemak) h += '<div class="amaran-kotak"><b>' + d.bilPerluSemak + ' murid</b> baru dinaikkan tingkatan dan kelas barunya belum disahkan. Naikkan tingkatan di e-Kokurikulum, kemudian jalankan <b>Segerak daripada e-Kokurikulum</b> (menu Murid).</div>';
     if (admin && !d.arkibTahunIni) h += '<div class="info-kotak">Arkib tahun ' + e(d.tahun) + ' belum dibuat. Buat di menu <b>Arkib &amp; Naik Tingkatan</b> pada akhir tahun.</div>';
-    if (!d.kelas.length) { h += '<div class="amaran-kotak">' + (admin ? 'Belum ada data murid. Jalankan <b>Segerak daripada e-Kokurikulum</b> di menu Murid.' : 'Tiada kelas ditetapkan kepada anda. Sila hubungi Admin.') + '</div>'; }
-    else {
+    if (d.unitSaya && d.unitSaya.length) {
+      h += '<div class="kad"><h3>Unit yang anda isi (Ketua Guru Penasihat)</h3><div class="jadual-skrol"><table><thead><tr><th>Unit</th><th class="n">Murid</th><th>Kemajuan</th><th>Status</th><th></th></tr></thead><tbody>' +
+        d.unitSaya.map(function (u) {
+          return '<tr><td><b>' + e(u.aspek) + '</b> · ' + e(u.unit) + '</td><td class="n">' + u.bil + '</td><td><div class="bar"><div style="width:' + u.peratus + '%"></div></div><span class="nota">' + u.lengkap + '/' + u.bil + ' lengkap (' + u.peratus + '%)</span></td><td>' + lencanaSt(u.status) + '</td><td><button class="btn kecil" data-isiunit="' + e(u.kunci) + '">Isi</button></td></tr>';
+        }).join('') + '</tbody></table></div></div>';
+    }
+    if (!d.kelas.length && !(d.unitSaya && d.unitSaya.length)) { h += '<div class="amaran-kotak">' + (admin ? 'Belum ada data murid. Jalankan <b>Segerak daripada e-Kokurikulum</b> di menu Murid.' : 'Tiada kelas atau unit ditetapkan kepada anda. Sila hubungi Admin.') + '</div>'; }
+    else if (d.kelas.length) {
       h += '<div class="kad"><h3>Kemajuan mengikut kelas</h3><div class="jadual-skrol"><table><thead><tr><th>Kelas</th><th class="n">Murid</th><th>Kemajuan</th><th class="n">Purata CGPA</th><th class="n">A</th><th class="n">B</th><th class="n">C</th><th class="n">D</th><th class="n">E</th><th></th></tr></thead><tbody>' +
         d.kelas.map(function (k) {
           var pc = k.bil ? Math.round(k.siap / k.bil * 100) : 0;
@@ -497,6 +513,9 @@ function dashboard() {
     }
     $('kandungan').innerHTML = h;
     if ($('btnLihatPengisian')) $('btnLihatPengisian').onclick = function () { pergi('pengisian'); };
+    Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-isiunit]'), function (b) {
+      b.onclick = function () { PG('iu').unit = b.getAttribute('data-isiunit'); pergi('isiunit'); };
+    });
     Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-kelas]'), function (b) {
       b.onclick = function () { S.kelasPilihan = b.getAttribute('data-kelas'); pergi('pentaksiran'); };
     });
@@ -535,7 +554,8 @@ function renderPentaksiran() {
     '<span class="nota">Segerak terakhir: ' + e(d.segerakTerakhir || 'belum pernah') + '</span></div>';
   var perlu = d.murid.filter(function (m) { return m.perluSemak === 'YA'; }).length;
   var bilLengkap = d.murid.filter(function (m) { return m.kelengkapan && m.kelengkapan.status === 'LENGKAP'; }).length;
-  if (d.murid.length) h += '<div class="info-kotak">Pengisian lengkap: <b>' + bilLengkap + ' / ' + d.murid.length + '</b> murid. Medan wajib bagi setiap aspek yang disertai: Jawatan, Pelibatan dan sekurang-kurangnya satu Komitmen; serta CGPA tahun sebelum bagi Tingkatan 2 ke atas.</div>';
+  if (d.murid.length) h += '<div class="info-kotak">' + (adalahAdmin() ? '' : '<b>Paparan rujukan sahaja.</b> Data aspek PBB/KP/SP diisi oleh Ketua Guru Penasihat unit masing-masing; ekstra kurikulum &amp; CGPA tahun sebelum oleh Admin. ') +
+    'Pengisian lengkap: <b>' + bilLengkap + ' / ' + d.murid.length + '</b> murid. Medan wajib bagi setiap aspek yang disertai: Jawatan, Pelibatan dan sekurang-kurangnya satu Komitmen; serta CGPA tahun sebelum bagi Tingkatan 2 ke atas.</div>';
   if (perlu) h += '<div class="amaran-kotak">' + perlu + ' murid dalam kelas ini baru dinaikkan tingkatan dan kelasnya belum disahkan melalui e-Kokurikulum.</div>';
   if (!d.murid.length) h += '<div class="amaran-kotak">Tiada murid dalam kelas ini. Tekan <b>Segerak daripada e-Kokurikulum</b>.</div>';
   else {
@@ -546,7 +566,7 @@ function renderPentaksiran() {
           '<td class="n">' + tanda(r.PBB) + '</td><td class="n">' + tanda(r.KP) + '</td><td class="n">' + tanda(r.SP) + '</td><td class="n">' + tanda(r.Ekstra) + '</td>' +
           '<td class="n">' + tanda(r.GPA) + '</td><td class="n"><b>' + tanda(r.CGPA) + '</b></td><td>' + lencanaGred(r.Gred) + '</td>' +
           '<td>' + (m.kelengkapan ? lencanaSt(m.kelengkapan.status) + (m.kelengkapan.kurang.length ? '<div class="nota">Belum: ' + m.kelengkapan.kurang.map(e).join('; ') + '</div>' : '') : '') + '</td>' +
-          '<td><button class="btn kecil" data-nokp="' + e(m.nokp) + '">Isi / Kemaskini</button></td></tr>';
+          '<td><button class="btn kecil' + (adalahAdmin() ? '' : ' luar') + '" data-nokp="' + e(m.nokp) + '">' + (adalahAdmin() ? 'Isi / Kemaskini' : 'Lihat') + '</button></td></tr>';
       }).join('') + '</tbody></table></div></div>';
   }
   $('kandungan').innerHTML = h;
@@ -646,6 +666,12 @@ function bukaPentaksiran(nokp) {
   };
   $('btnCadangan').onclick = function () { muatCadangan(m); };
   kemasPratonton(m);
+  if (!adalahAdmin()) {   // Guru Kelas: rujukan sahaja
+    Array.prototype.forEach.call(modal.querySelectorAll('input, select, textarea'), function (el) { el.disabled = true; });
+    modal.querySelector('[data-x=s]').remove();
+    $('btnCadangan').remove();
+    modal.querySelector('h3').insertAdjacentHTML('beforeend', ' <span class="lencana">Paparan rujukan</span>');
+  }
 }
 
 function kumpulBorang(m) {
@@ -708,6 +734,207 @@ function muatCadangan(m) {
   }).catch(function (er) { k.innerHTML = '<div class="amaran-kotak" style="margin-top:10px">' + e(er.message) + '</div>'; });
 }
 
+/* ---------- Pengisian Unit oleh Ketua Guru Penasihat ---------- */
+function pendek(t, n) { t = String(t || ''); return t.length > n ? t.substring(0, n - 1) + '…' : t; }
+function statusRekodJs(rec) {
+  var kurang = [];
+  ((S.iu && S.iu.medanWajib) || []).forEach(function (x) {
+    var kosong = x[0] === 'KOMITMEN' ? !(rec.Komit1 || rec.Komit2 || rec.Komit3 || rec.Komit4) : !rec[x[0]];
+    if (kosong) kurang.push(x[1]);
+  });
+  return { status: !kurang.length ? 'LENGKAP' : (rec.OlehKP ? 'DALAM_PROSES' : 'BELUM_MULA'), kurang: kurang };
+}
+
+function halamanIsiUnit() {
+  var st = PG('iu', { unit: '', tapis: 'SEMUA', ting: '', cari: '' });
+  S.segar = function () { if (S.halaman === 'isiunit' && !modalTerbuka()) muatIsiUnit(true); };
+  S.iuPilih = {};
+  return muatIsiUnit(false);
+}
+
+function muatIsiUnit(senyap) {
+  var st = PG('iu');
+  return api('apiDataUnit', { unit: st.unit || '' }).then(function (d) {
+    if (S.halaman !== 'isiunit') return;
+    S.iu = d; S.versi = d.versi || S.versi;
+    if (adalahAdmin()) st.unit = d.dipilih;
+    if (!senyap || !$('iuJadual')) renderIsiUnit(); else renderJadualIsiUnit();
+  });
+}
+
+function renderIsiUnit() {
+  var d = S.iu, st = PG('iu');
+  if (!d.unitSaya.length) {
+    $('kandungan').innerHTML = '<h2 class="tajuk">Pengisian Unit</h2><div class="amaran-kotak">Anda belum ditetapkan sebagai Ketua Guru Penasihat mana-mana unit. Penetapan dibuat dalam e-Kokurikulum (jawatan "KETUA GURU PENASIHAT") atau oleh Admin di menu Pengguna.</div>';
+    return;
+  }
+  var pilihan = (adalahAdmin() ? '' : '<option value="">Semua unit saya (' + d.unitSaya.length + ')</option>') +
+    d.unitSaya.map(function (u) { return '<option value="' + e(u.kunci) + '"' + (u.kunci === st.unit ? ' selected' : '') + '>' + e(u.aspek + ' · ' + u.unit + ' (' + u.bilMurid + ')') + '</option>'; }).join('');
+  var h = '<h2 class="tajuk">Pengisian Unit · ' + e(d.tahun) + '</h2>' +
+    '<div class="info-kotak">Isi medan pentaksiran bagi murid unit anda. Data <b>unit</b> dan <b>kehadiran</b> ditarik automatik daripada e-Kokurikulum. Senarai disusun mengikut <b>unit → tingkatan → kelas → nama</b>. Medan wajib: <b>' + e((d.medanWajib || []).map(function (x) { return x[1]; }).join(', ')) + '</b>.</div>' +
+    '<div class="baris-alat"><select id="iuUnit" aria-label="Unit">' + pilihan + '</select>' +
+    '<select id="iuTapis" aria-label="Status"><option value="SEMUA">Semua status</option><option value="BELUM_SIAP">Belum lengkap</option><option value="BELUM_MULA">Belum mula</option><option value="DALAM_PROSES">Dalam proses</option><option value="LENGKAP">Lengkap</option></select>' +
+    '<select id="iuTing" aria-label="Tingkatan"><option value="">Semua tingkatan</option>' + [1, 2, 3, 4, 5].map(function (t) { return '<option value="' + t + '">Tingkatan ' + t + '</option>'; }).join('') + '</select>' +
+    '<input id="iuCari" placeholder="Cari nama / kelas…" style="max-width:220px">' +
+    '<div class="rapat"><button class="btn luar" id="btnIuPukal" disabled>Isi pukal (0)</button></div></div>' +
+    '<div id="iuInfoUnit" class="nota" style="margin-bottom:8px"></div><div id="iuJadual"></div>';
+  $('kandungan').innerHTML = h;
+  $('iuTapis').value = st.tapis; $('iuTing').value = st.ting; $('iuCari').value = st.cari;
+  $('iuUnit').onchange = function () { st.unit = this.value; S.iuPilih = {}; muatIsiUnit(false); };
+  $('iuTapis').onchange = function () { st.tapis = this.value; renderJadualIsiUnit(); };
+  $('iuTing').onchange = function () { st.ting = this.value; renderJadualIsiUnit(); };
+  var t; $('iuCari').oninput = function () { var v = this.value; clearTimeout(t); t = setTimeout(function () { st.cari = v; renderJadualIsiUnit(); }, 250); };
+  $('btnIuPukal').onclick = bukaIsiPukal;
+  renderJadualIsiUnit();
+}
+
+function barisIsiUnitDitapis() {
+  var st = PG('iu'), cari = String(st.cari || '').trim().toUpperCase();
+  return S.iu.baris.filter(function (b) {
+    if (st.tapis === 'BELUM_SIAP' && b.status === 'LENGKAP') return false;
+    if (st.tapis !== 'SEMUA' && st.tapis !== 'BELUM_SIAP' && b.status !== st.tapis) return false;
+    if (st.ting && String(b.tingkatan) !== String(st.ting)) return false;
+    if (cari && (b.nama + ' ' + b.kunciKelas + ' ' + b.kelas).toUpperCase().indexOf(cari) === -1) return false;
+    return true;
+  });
+}
+
+function kunciPilih(b) { return b.kunciUnit + '::' + b.nokp; }
+
+function renderJadualIsiUnit() {
+  var senarai = barisIsiUnitDitapis(), unitLepas = null, bil = 0;
+  var kgp = {};
+  S.iu.unitSaya.forEach(function (u) { kgp[u.kunci] = u; });
+  var lengkap = S.iu.baris.filter(function (b) { return b.status === 'LENGKAP'; }).length;
+  $('iuInfoUnit').innerHTML = 'Lengkap <b>' + lengkap + ' / ' + S.iu.baris.length + '</b> rekod · dipaparkan ' + senarai.length;
+  var h = '<div class="kad"><div class="jadual-skrol"><table id="iuTable"><thead><tr><th><input type="checkbox" id="iuPilihSemua" title="Pilih semua yang dipaparkan" style="width:auto"></th><th>Bil</th><th>Nama</th><th>Kelas</th><th>Jawatan</th><th>Pelibatan</th><th>Pencapaian</th><th class="n">Komitmen</th><th>Khidmat</th><th class="n">Hadir</th><th class="n">Markah</th><th>Status</th><th></th></tr></thead><tbody>';
+  senarai.forEach(function (b, i) {
+    if (b.kunciUnit !== unitLepas) {
+      unitLepas = b.kunciUnit; bil = 0;
+      var u = kgp[b.kunciUnit] || {};
+      h += '<tr><td colspan="13" style="background:#eff6ff;font-weight:700;color:var(--biru-gelap)">' + e(b.aspek + ' · ' + NAMA_ASPEK[b.aspek] + ' — ' + b.unit) + ' <span class="nota" style="font-weight:400">· KGP: ' + e((u.kgp || []).join(', ') || 'belum ditetapkan') + '</span></td></tr>';
+    }
+    bil++;
+    var r = b.rec, komit = [r.Komit1, r.Komit2, r.Komit3, r.Komit4].filter(Boolean).length;
+    h += '<tr><td><input type="checkbox" class="iuPilih" data-k="' + e(kunciPilih(b)) + '"' + (S.iuPilih[kunciPilih(b)] ? ' checked' : '') + ' style="width:auto"></td><td>' + bil + '</td>' +
+      '<td>' + e(b.nama) + '</td><td>' + e(paparKelasJs(b.kunciKelas)) + '</td>' +
+      '<td title="' + e(r.Jawatan) + '">' + e(pendek(r.Jawatan, 24)) + '</td>' +
+      '<td title="' + e([r.Libat1, r.Libat2].filter(Boolean).join(' / ')) + '">' + e(pendek(r.Libat1, 22)) + '</td>' +
+      '<td title="' + e([r.Capai1, r.Capai2].filter(Boolean).join(' / ')) + '">' + e(pendek(r.Capai1, 20)) + '</td>' +
+      '<td class="n">' + (komit || '–') + '</td><td>' + (r.Khidmat ? '✓' : '–') + '</td><td class="n">' + e(r.Kehadiran) + '</td><td class="n">' + tanda(r.Markah) + '</td>' +
+      '<td>' + lencanaSt(b.status) + (b.kurang.length && b.status !== 'BELUM_MULA' ? '<div class="nota">Belum: ' + e(b.kurang.join(', ')) + '</div>' : '') + '</td>' +
+      '<td><button class="btn kecil" data-i="' + i + '">Isi</button></td></tr>';
+  });
+  if (!senarai.length) h += '<tr><td colspan="13" class="nota">Tiada murid dalam paparan ini.</td></tr>';
+  h += '</tbody></table></div></div>';
+  $('iuJadual').innerHTML = h;
+  S.iuPaparan = senarai;
+  Array.prototype.forEach.call($('iuJadual').querySelectorAll('[data-i]'), function (bt) { bt.onclick = function () { bukaIsiAspek(Number(bt.getAttribute('data-i'))); }; });
+  Array.prototype.forEach.call($('iuJadual').querySelectorAll('.iuPilih'), function (c) { c.onchange = function () { if (c.checked) S.iuPilih[c.getAttribute('data-k')] = true; else delete S.iuPilih[c.getAttribute('data-k')]; kemasButangPukal(); }; });
+  $('iuPilihSemua').checked = senarai.length > 0 && senarai.every(function (b) { return S.iuPilih[kunciPilih(b)]; });
+  $('iuPilihSemua').onchange = function () { var on = this.checked; senarai.forEach(function (b) { if (on) S.iuPilih[kunciPilih(b)] = true; else delete S.iuPilih[kunciPilih(b)]; }); renderJadualIsiUnit(); };
+  kemasButangPukal();
+}
+
+function kemasButangPukal() {
+  var n = Object.keys(S.iuPilih || {}).length, b = $('btnIuPukal');
+  if (b) { b.disabled = !n; b.textContent = 'Isi pukal (' + n + ')'; }
+}
+
+/* Borang satu murid, satu aspek. */
+function bukaIsiAspek(indeks) {
+  var b = S.iuPaparan[indeks]; if (!b) return;
+  var a = b.aspek, r = b.rec;
+  var h = '<h3>' + e(b.nama) + '</h3><div class="nota" style="margin:-8px 0 10px">' + e(paparKelasJs(b.kunciKelas)) + ' · ' + e(b.nokp) + ' · <b>' + e(a + ' · ' + b.unit) + '</b> · ' + (indeks + 1) + ' / ' + S.iuPaparan.length + '</div>' +
+    '<div class="grid-borang"><div class="medan penuh"><label>Tambahan aktiviti (nama, jika ada)</label><input id="ia_Aktiviti2" maxlength="120" value="' + e(r.Aktiviti2) + '"></div>' +
+    FIELD_ASPEK.map(function (f) { return '<div class="medan' + (f[0] === 'Jawatan' || f[0] === 'Khidmat' ? ' penuh' : '') + '"><label>' + f[2] + '</label>' + selHtml('ia_' + f[0], f[1], r[f[0]]) + '</div>'; }).join('') +
+    '<div class="medan"><label>Kehadiran daripada e-Kokurikulum</label><input value="' + e(r.KehadiranAuto) + ' perjumpaan" disabled></div>' +
+    '<div class="medan"><label>Kehadiran manual (0–12, ganti auto)</label><input id="ia_KehadiranManual" type="number" min="0" max="12" step="1" value="' + e(r.KehadiranManual) + '"></div></div>' +
+    '<div><button type="button" class="btn luar kecil" id="btnIaCadangan">Semak pencapaian daripada e-Kokurikulum</button><div id="iaCadangan"></div></div>' +
+    '<div class="pratonton" id="iaPrev"></div>' +
+    '<div class="aksi-modal"><button type="button" class="btn luar" data-x="b">Tutup</button><button type="button" class="btn" data-x="s">Simpan</button>' +
+    (indeks < S.iuPaparan.length - 1 ? '<button type="button" class="btn hijau" data-x="n">Simpan &amp; seterusnya ›</button>' : '') + '</div>';
+  var modal = bukaModal(h);
+  var kumpul = function () {
+    var o = {};
+    FIELD_ASPEK.forEach(function (f) { o[f[0]] = nilaiEl('ia_' + f[0]); });
+    o.Aktiviti2 = nilaiEl('ia_Aktiviti2'); o.KehadiranManual = nilaiEl('ia_KehadiranManual');
+    return o;
+  };
+  var pratonton = function () {
+    var o = kumpul(), rec = Object.assign({}, o);
+    rec.Kehadiran = o.KehadiranManual !== '' ? Number(o.KehadiranManual) : (Number(r.KehadiranAuto) || 0);
+    var k = kiraAspekMurni(rec, S.ref);
+    $('iaPrev').innerHTML = '<span>Jawatan <b>' + fmt(k.SkorJawatan) + '</b></span><span>Libat <b>' + fmt(k.SkorLibat) + '</b></span><span>Capai <b>' + fmt(k.SkorCapai) + '</b></span><span>Komitmen <b>' + fmt(k.SkorKomit) + '</b></span><span>Khidmat <b>' + fmt(k.SkorKhidmat) + '</b></span><span>Hadir <b>' + fmt(k.SkorKehadiran) + '</b></span><span>Skor <b>' + fmt(k.Skor) + '/110</b> = <b>' + fmt(k.Markah) + '%</b></span>';
+  };
+  modal.addEventListener('input', pratonton); modal.addEventListener('change', pratonton); pratonton();
+  modal.querySelector('[data-x=b]').onclick = function () { tutupModal(modal); };
+  var simpan = function (seterusnya) {
+    var data = {}; data[a] = kumpul();
+    api('apiSimpanPentaksiran', { nokp: b.nokp, aspek: data }).then(function (res) {
+      b.rec = res.murid.aspek[a];
+      var s2 = statusRekodJs(b.rec); b.status = s2.status; b.kurang = s2.kurang;
+      S.versi = res.versi || S.versi;
+      toast('Disimpan: ' + b.nama, 'jaya');
+      tutupModal(modal);
+      renderJadualIsiUnit();
+      if (seterusnya) {
+        var i2 = S.iuPaparan.indexOf(S.iuPaparan.filter(function (x) { return x === b; })[0]);
+        var seterus = i2 >= 0 ? i2 + 1 : indeks;   // jika baris hilang daripada paparan (ditapis), indeks sama = baris seterusnya
+        if (S.iuPaparan[seterus]) bukaIsiAspek(seterus);
+      }
+    }).catch(gagal);
+  };
+  modal.querySelector('[data-x=s]').onclick = function () { simpan(false); };
+  if (modal.querySelector('[data-x=n]')) modal.querySelector('[data-x=n]').onclick = function () { simpan(true); };
+  $('btnIaCadangan').onclick = function () {
+    var k = $('iaCadangan'); k.innerHTML = '<div class="nota">Memuatkan…</div>';
+    api('apiCadanganKoko', { nokp: b.nokp }, true).then(function (res) {
+      if (!res.senarai.length) { k.innerHTML = '<div class="info-kotak" style="margin-top:8px">Tiada rekod pencapaian dalam e-Kokurikulum bagi tahun ini.</div>'; return; }
+      k.innerHTML = '<div class="jadual-skrol" style="margin-top:8px"><table><thead><tr><th>Pertandingan</th><th>Cadangan</th><th></th></tr></thead><tbody>' + res.senarai.map(function (c, i) {
+        return '<tr><td>' + e(c.pertandingan) + '<div class="nota">' + e(c.peringkat + ' · ' + c.pencapaian) + '</div></td><td>' + e([c.cadanganLibat, c.cadanganCapai].filter(Boolean).join(' / ') || 'tiada padanan') + '</td><td style="white-space:nowrap">' +
+          [1, 2].map(function (n) { return '<button type="button" class="btn kecil luar" data-c="' + i + '" data-n="' + n + '"' + (!c.cadanganLibat && !c.cadanganCapai ? ' disabled' : '') + '>Aktiviti ' + n + '</button>'; }).join(' ') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+      Array.prototype.forEach.call(k.querySelectorAll('[data-c]'), function (bt) {
+        bt.onclick = function () {
+          var c = res.senarai[Number(bt.getAttribute('data-c'))], n = bt.getAttribute('data-n');
+          if (c.cadanganLibat) $('ia_Libat' + n).value = c.cadanganLibat;
+          if (c.cadanganCapai) $('ia_Capai' + n).value = c.cadanganCapai;
+          pratonton(); toast('Diisi ke aktiviti ' + n + '. Jangan lupa Simpan.', 'info');
+        };
+      });
+    }).catch(function (er) { k.innerHTML = '<div class="amaran-kotak">' + e(er.message) + '</div>'; });
+  };
+}
+
+/* Isi pukal: medan sama bagi murid yang dipilih (satu unit). */
+function bukaIsiPukal() {
+  var dipilih = Object.keys(S.iuPilih || {});
+  if (!dipilih.length) return;
+  var unit = {};
+  dipilih.forEach(function (k) { unit[k.split('::')[0]] = true; });
+  var senaraiUnit = Object.keys(unit);
+  if (senaraiUnit.length > 1) { toast('Pilih murid daripada SATU unit sahaja untuk isi pukal.', 'gagal'); return; }
+  var ku = senaraiUnit[0];
+  var pilihPukal = function (id, jenis) {
+    return '<select id="' + id + '"><option value="">— tidak diubah —</option>' + (S.ref.pilihan[jenis] || []).map(function (x) { return '<option value="' + e(x[0]) + '">' + e(x[0]) + '  [' + fmt(x[1]) + ']</option>'; }).join('') + '</select>';
+  };
+  var modal = bukaModal('<h3>Isi pukal · ' + e(ku.replace('|', ' · ')) + '</h3><p class="nota">' + dipilih.length + ' murid dipilih. Hanya medan yang dipilih akan diisi.</p><div class="grid-borang">' +
+    FIELD_ASPEK.map(function (f) { return '<div class="medan' + (f[0] === 'Jawatan' || f[0] === 'Khidmat' ? ' penuh' : '') + '"><label>' + f[2] + '</label>' + pilihPukal('pk_' + f[0], f[1]) + '</div>'; }).join('') +
+    '<div class="medan penuh"><label style="font-weight:400"><input type="checkbox" id="pkKosong" checked style="width:auto"> Isi medan yang masih <b>kosong sahaja</b> (jangan timpa data sedia ada)</label></div></div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn hijau" data-x="s">Isi ' + dipilih.length + ' murid</button></div>');
+  modal.querySelector('[data-x=b]').onclick = function () { tutupModal(modal); };
+  modal.querySelector('[data-x=s]').onclick = function () {
+    var medan = {};
+    FIELD_ASPEK.forEach(function (f) { var v = nilaiEl('pk_' + f[0]); if (v) medan[f[0]] = v; });
+    if (!Object.keys(medan).length) { toast('Pilih sekurang-kurangnya satu medan.', 'gagal'); return; }
+    var nokp = dipilih.map(function (k) { return k.split('::')[1]; });
+    api('apiSimpanPukal', { unit: ku, nokp: nokp, medan: medan, hanyaKosong: $('pkKosong').checked }).then(function (r) {
+      tutupModal(modal); toast(r.dikemaskini + ' murid dikemas kini.', 'jaya'); S.iuPilih = {}; S.versi = r.versi || S.versi; muatIsiUnit(true);
+    }).catch(gagal);
+  };
+}
+
 /* ---------- Status pengisian guru kelas ---------- */
 var LABEL_ST = { LENGKAP: 'Lengkap', DALAM_PROSES: 'Dalam proses', BELUM_MULA: 'Belum mula' };
 var WARNA_ST = { LENGKAP: 'hijau', DALAM_PROSES: 'kuning', BELUM_MULA: 'merah' };
@@ -732,9 +959,16 @@ function halamanPengisian() {
     if (S.halaman !== 'pengisian') return;
     S.pengisian = d;
     var admin = S.user.peranan === ADMIN;
+    var mod = [];
+    if (d.unit) mod.push(['unit', 'Mengikut Ketua Guru Penasihat (pengisi)']);
+    if (admin || adalahGuruKelas()) mod.push(['kelas', 'Mengikut kelas (rujukan)']);
+    if (!mod.some(function (m) { return m[0] === st.mod; })) st.mod = mod.length ? mod[0][0] : 'kelas';
+    var tabMod = mod.length > 1 ? '<div class="tab-bar" id="piMod">' + mod.map(function (m) { return '<button type="button" data-m="' + m[0] + '" class="' + (st.mod === m[0] ? 'aktif' : '') + '">' + e(m[1]) + '</button>'; }).join('') + '</div>' : '';
+    var pasangMod = function () { if ($('piMod')) Array.prototype.forEach.call($('piMod').querySelectorAll('[data-m]'), function (b) { b.onclick = function () { st.mod = b.getAttribute('data-m'); halamanPengisian(); }; }); };
+    if (st.mod === 'unit') { renderPengisianUnit(d, tabMod); pasangMod(); return; }
     var tab = [['BELUM_SIAP', 'Belum siap (' + (d.kira.BELUM_MULA + d.kira.DALAM_PROSES) + ')'], ['BELUM_MULA', 'Belum mula (' + d.kira.BELUM_MULA + ')'],
       ['DALAM_PROSES', 'Dalam proses (' + d.kira.DALAM_PROSES + ')'], ['LENGKAP', 'Lengkap (' + d.kira.LENGKAP + ')'], ['SEMUA', 'Semua (' + d.guru.length + ')']];
-    var h = '<h2 class="tajuk">Status Pengisian Guru Kelas · ' + e(d.tahun) + '</h2>' +
+    var h = '<h2 class="tajuk">Status Pengisian · ' + e(d.tahun) + '</h2>' + tabMod +
       '<div class="grid-kad"><div class="stat"><div class="label">Belum mula</div><div class="nilai" style="color:var(--merah)">' + d.kira.BELUM_MULA + '</div></div>' +
       '<div class="stat"><div class="label">Dalam proses</div><div class="nilai" style="color:var(--kuning)">' + d.kira.DALAM_PROSES + '</div></div>' +
       '<div class="stat"><div class="label">Lengkap</div><div class="nilai" style="color:var(--hijau)">' + d.kira.LENGKAP + '</div></div></div>' +
@@ -746,6 +980,7 @@ function halamanPengisian() {
     if (admin && d.kelasTanpaGuru.length) h += '<div class="kad"><h3>Kelas tanpa guru kelas (' + d.kelasTanpaGuru.length + ')</h3>' + d.kelasTanpaGuru.map(function (k) { return '<div class="baris-kelas"><div class="atas"><b>' + e(k.nama) + '</b>' + lencanaSt(k.status) + '<span class="nota">' + k.lengkap + '/' + k.bil + ' lengkap</span></div></div>'; }).join('') + '<p class="nota">Tetapkan guru kelas di menu Pengguna.</p></div>';
     if (admin && d.guruTanpaKelas.length) h += '<div class="kad"><h3>Guru kelas belum ditetapkan kelas (' + d.guruTanpaKelas.length + ')</h3><p class="nota">' + d.guruTanpaKelas.map(function (g) { return e(g.nama); }).join(' · ') + '</p></div>';
     $('kandungan').innerHTML = h;
+    pasangMod();
     renderSenaraiPengisian();
     if (admin) {
       Array.prototype.forEach.call($('piTab').querySelectorAll('[data-t]'), function (b) {
@@ -756,6 +991,87 @@ function halamanPengisian() {
       $('btnPiSalin').onclick = function () { salinPeringatan(d); };
     }
   });
+}
+
+
+/* Paparan status mengikut Ketua Guru Penasihat / unit (pengisi data). */
+function renderPengisianUnit(d, tabMod) {
+  var u = d.unit, admin = adalahAdmin(), st = PG('piu', { tapis: 'BELUM_SIAP', cari: '' });
+  var tab = [['BELUM_SIAP', 'Belum siap (' + (u.kira.BELUM_MULA + u.kira.DALAM_PROSES) + ')'], ['BELUM_MULA', 'Belum mula (' + u.kira.BELUM_MULA + ')'],
+    ['DALAM_PROSES', 'Dalam proses (' + u.kira.DALAM_PROSES + ')'], ['LENGKAP', 'Lengkap (' + u.kira.LENGKAP + ')'], ['SEMUA', 'Semua (' + u.kgp.length + ')']];
+  var h = '<h2 class="tajuk">Status Pengisian · ' + e(d.tahun) + '</h2>' + tabMod +
+    '<div class="grid-kad"><div class="stat"><div class="label">KGP belum mula</div><div class="nilai" style="color:var(--merah)">' + u.kira.BELUM_MULA + '</div></div>' +
+    '<div class="stat"><div class="label">KGP dalam proses</div><div class="nilai" style="color:var(--kuning)">' + u.kira.DALAM_PROSES + '</div></div>' +
+    '<div class="stat"><div class="label">KGP lengkap</div><div class="nilai" style="color:var(--hijau)">' + u.kira.LENGKAP + '</div></div>' +
+    (admin ? '<div class="stat ' + (u.unitTanpaKgp.length ? 'amaran' : '') + '"><div class="label">Unit tanpa KGP</div><div class="nilai">' + u.unitTanpaKgp.length + '</div></div>' : '') + '</div>' +
+    '<div class="nota" style="margin-bottom:10px">Medan wajib setiap murid dalam unit: <b>' + e(d.peraturan.medanWajib.join(', ')) + '</b>. Status KGP = gabungan semua unit yang dipimpinnya.</div>' +
+    (admin ? '<div class="baris-alat"><div class="tab-pil" id="piuTab">' + tab.map(function (t) { return '<button type="button" data-t="' + t[0] + '" class="' + (st.tapis === t[0] ? 'aktif' : '') + '">' + e(t[1]) + '</button>'; }).join('') + '</div>' +
+      '<input id="piuCari" placeholder="Cari nama KGP / unit…" style="max-width:240px" value="' + e(st.cari) + '"><div class="rapat"><button class="btn luar" id="btnPiuSalin">Salin senarai peringatan</button><button class="btn luar" id="btnPiuCsv">Muat turun CSV</button></div></div>' : '') +
+    '<div id="senaraiPiu"></div>';
+  if (admin && u.unitTanpaKgp.length) h += '<div class="kad"><h3>Unit tanpa Ketua Guru Penasihat (' + u.unitTanpaKgp.length + ')</h3>' + u.unitTanpaKgp.map(function (k) { var x = u.unit[k]; return '<div class="baris-kelas"><div class="atas"><b>' + e(x.aspek + ' · ' + x.unit) + '</b>' + lencanaSt(x.status) + '<span class="nota">' + x.lengkap + '/' + x.bil + ' lengkap</span></div></div>'; }).join('') + '<p class="nota">Tetapkan KGP dalam e-Kokurikulum (jawatan "KETUA GURU PENASIHAT") atau di menu Pengguna. Admin boleh mengisi unit ini melalui menu Pengisian Unit.</p></div>';
+  $('kandungan').innerHTML = h;
+  var lukis = function () {
+    var cari = String(st.cari || '').trim().toUpperCase();
+    var senarai = u.kgp.filter(function (g) {
+      if (admin) {
+        if (st.tapis === 'BELUM_SIAP' && g.status === 'LENGKAP') return false;
+        if (st.tapis !== 'BELUM_SIAP' && st.tapis !== 'SEMUA' && g.status !== st.tapis) return false;
+      }
+      return !cari || (g.nama + ' ' + g.unit.join(' ')).toUpperCase().indexOf(cari) !== -1;
+    });
+    var kont = $('senaraiPiu');
+    if (!senarai.length) { kont.innerHTML = '<div class="info-kotak">Tiada Ketua Guru Penasihat dalam kategori ini.</div>'; return; }
+    kont.innerHTML = senarai.map(function (g, gi) {
+      return '<div class="kad-guru"><div class="kepala"><div><b>' + e(g.nama) + '</b> ' + lencanaSt(g.status) + '<div class="nota">Aktiviti pengisian terakhir: ' + e(g.aktivitiTerakhir || 'tiada') + '</div></div>' +
+        '<div style="min-width:180px"><div class="bar"><div style="width:' + g.peratus + '%"></div></div><span class="nota">' + g.peratus + '% rekod lengkap</span></div></div>' +
+        g.unit.map(function (k, ui) {
+          var x = u.unit[k], butiran;
+          if (x.status === 'LENGKAP') butiran = '<div class="nota" style="color:var(--hijau)">Semua murid lengkap.</div>';
+          else if (x.status === 'BELUM_MULA') butiran = '<div class="nota" style="color:var(--merah)">Belum memulakan pengisian bagi ' + x.bil + ' murid.</div>';
+          else butiran = '<ul class="senarai-kurang"><li>' + (x.bil - x.lengkap) + ' murid belum lengkap: ' + Object.keys(x.kurangMedan).map(function (m) { return e(m) + ' ' + x.kurangMedan[m]; }).join(', ') + '</li></ul>';
+          return '<div class="baris-kelas"><div class="atas"><b>' + e(x.aspek + ' · ' + x.unit) + '</b>' + lencanaSt(x.status) +
+            '<span class="nota">Lengkap ' + x.lengkap + ' · Dalam proses ' + x.proses + ' · Belum mula ' + x.belum + ' (daripada ' + x.bil + ')</span>' +
+            (x.murid.length ? '<button type="button" class="btn kecil luar" data-m="' + gi + '-' + ui + '">Senarai murid belum lengkap</button>' : '') +
+            (bolehIsi() ? '<button type="button" class="btn kecil" data-isi="' + e(k) + '">Isi</button>' : '') + '</div>' + butiran + '<div class="hidden" id="piu-' + gi + '-' + ui + '"></div></div>';
+        }).join('') + '</div>';
+    }).join('');
+    Array.prototype.forEach.call(kont.querySelectorAll('[data-m]'), function (b) {
+      b.onclick = function () {
+        var ix = b.getAttribute('data-m').split('-'), x = u.unit[senarai[Number(ix[0])].unit[Number(ix[1])]], el = $('piu-' + ix[0] + '-' + ix[1]);
+        if (!el.innerHTML) el.innerHTML = '<div class="jadual-skrol" style="margin-top:8px"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Status</th><th>Belum diisi</th></tr></thead><tbody>' +
+          x.murid.map(function (m) { return '<tr><td>' + e(m.nama) + '</td><td>' + e(paparKelasJs(m.kunciKelas)) + '</td><td>' + lencanaSt(m.status) + '</td><td>' + e(m.kurang.join(', ')) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+        el.classList.toggle('hidden');
+      };
+    });
+    Array.prototype.forEach.call(kont.querySelectorAll('[data-isi]'), function (b) { b.onclick = function () { PG('iu').unit = (adalahAdmin() || (S.user.unit || []).indexOf(b.getAttribute('data-isi')) !== -1) ? b.getAttribute('data-isi') : ''; pergi('isiunit'); }; });
+  };
+  lukis();
+  if (admin) {
+    Array.prototype.forEach.call($('piuTab').querySelectorAll('[data-t]'), function (b) {
+      b.onclick = function () { st.tapis = b.getAttribute('data-t'); Array.prototype.forEach.call($('piuTab').querySelectorAll('[data-t]'), function (x) { x.classList.toggle('aktif', x === b); }); lukis(); };
+    });
+    var t; $('piuCari').oninput = function () { var v = this.value; clearTimeout(t); t = setTimeout(function () { st.cari = v; lukis(); }, 250); };
+    var teksUnit = function (x) { return x.status === 'BELUM_MULA' ? 'Belum mula (' + x.bil + ' murid)' : (x.status === 'LENGKAP' ? 'Lengkap' : 'Dalam proses, ' + x.lengkap + '/' + x.bil + ' lengkap — belum: ' + Object.keys(x.kurangMedan).map(function (m) { return m + ' ' + x.kurangMedan[m]; }).join(', ')); };
+    $('btnPiuSalin').onclick = function () {
+      var belum = u.kgp.filter(function (g) { return g.status !== 'LENGKAP'; });
+      var teks = 'PERINGATAN PENGISIAN e-PAJSK ' + d.tahun + ' (KETUA GURU PENASIHAT)\n' + (belum.length ? belum.map(function (g, i) {
+        return (i + 1) + '. ' + g.nama + '\n' + g.unit.filter(function (k) { return u.unit[k].status !== 'LENGKAP'; }).map(function (k) { var x = u.unit[k]; return '   - ' + x.aspek + ' ' + x.unit + ': ' + teksUnit(x); }).join('\n');
+      }).join('\n') : 'Semua KGP telah melengkapkan pengisian.') + (u.unitTanpaKgp.length ? '\n\nUnit tanpa KGP: ' + u.unitTanpaKgp.map(function (k) { return u.unit[k].aspek + ' ' + u.unit[k].unit; }).join('; ') : '');
+      var m = bukaModal('<h3>Senarai peringatan</h3><textarea id="teksPeringatan" rows="14" style="font-size:12.5px">' + e(teks) + '</textarea><div class="aksi-modal"><button class="btn luar" data-x="t">Tutup</button><button class="btn" data-x="s">Salin</button></div>');
+      m.querySelector('[data-x=t]').onclick = function () { tutupModal(m); };
+      m.querySelector('[data-x=s]').onclick = function () { var ta = $('teksPeringatan'); ta.focus(); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (x) { ok = false; } toast(ok ? 'Disalin.' : 'Sila salin secara manual (Ctrl/Cmd+C).', ok ? 'jaya' : 'info'); };
+    };
+    $('btnPiuCsv').onclick = function () {
+      var baris = [['Ketua Guru Penasihat', 'No KP', 'Aspek', 'Unit', 'Status unit', 'Lengkap', 'Dalam proses', 'Belum mula', 'Jumlah murid', 'Medan belum lengkap', 'Aktiviti terakhir']];
+      u.kgp.forEach(function (g) { g.unit.forEach(function (k) { var x = u.unit[k]; baris.push([g.nama, "'" + g.nokp, x.aspek, x.unit, LABEL_ST[x.status], x.lengkap, x.proses, x.belum, x.bil, Object.keys(x.kurangMedan).map(function (m) { return m + ' ' + x.kurangMedan[m]; }).join(' | '), x.aktivitiTerakhir]); }); });
+      u.unitTanpaKgp.forEach(function (k) { var x = u.unit[k]; baris.push(['(tiada KGP)', '', x.aspek, x.unit, LABEL_ST[x.status], x.lengkap, x.proses, x.belum, x.bil, Object.keys(x.kurangMedan).map(function (m) { return m + ' ' + x.kurangMedan[m]; }).join(' | '), x.aktivitiTerakhir]); });
+      var teks = '﻿' + baris.map(function (b) { return b.map(csvSel).join(','); }).join('\r\n');
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([teks], { type: 'text/csv;charset=utf-8' }));
+      a.download = 'Status-Pengisian-KGP-' + d.tahun + '.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+    };
+  }
 }
 
 function guruDitapis() {
@@ -1014,11 +1330,12 @@ function halamanPengguna() {
       if (!terkini() || S.halaman !== 'pengguna') return;
       st.halaman = r.halaman;
       var kont = $('senaraiPengguna');
-      kont.innerHTML = '<div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Nama</th><th>No. KP</th><th>Peranan</th><th>Kelas dijaga</th><th>Status</th><th></th></tr></thead><tbody>' +
+      kont.innerHTML = '<div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Nama</th><th>No. KP</th><th>Peranan</th><th>Kelas dijaga</th><th>Unit (KGP)</th><th>Status</th><th></th></tr></thead><tbody>' +
         (r.senarai.length ? r.senarai.map(function (u, i) {
-          return '<tr><td>' + e(u.nama) + '</td><td>' + e(u.nokp) + '</td><td>' + (u.peranan === ADMIN ? '<span class="lencana B">Admin</span>' : 'Guru Kelas') + '</td><td>' + (u.kelas.map(paparKelasJs).map(e).join(', ') || '–') + '</td><td><span class="lencana ' + (u.status === 'AKTIF' ? 'hijau' : 'merah') + '">' + e(u.status) + '</span>' + (u.mestiTukarPassword ? ' <span class="lencana kuning">KW lalai</span>' : '') + '</td>' +
+          return '<tr><td>' + e(u.nama) + '</td><td>' + e(u.nokp) + '</td><td>' + (u.peranan === ADMIN ? '<span class="lencana B">Admin</span>' : 'Guru') + '</td><td>' + (u.kelas.map(paparKelasJs).map(e).join(', ') || '–') + '</td><td>' +
+            (u.unitKoko.map(function (k) { return e(k.replace('|', ' · ')) + ' <span class="lencana hijau" title="Daripada e-Kokurikulum">e-Koko</span>'; }).concat(u.unitDijaga.filter(function (k) { return u.unitKoko.indexOf(k) === -1; }).map(function (k) { return e(k.replace('|', ' · ')); })).join('<br>') || '–') + '</td><td><span class="lencana ' + (u.status === 'AKTIF' ? 'hijau' : 'merah') + '">' + e(u.status) + '</span>' + (u.mestiTukarPassword ? ' <span class="lencana kuning">KW lalai</span>' : '') + '</td>' +
             '<td style="white-space:nowrap"><button class="btn kecil" data-e="' + i + '">Sunting</button> <button class="btn kecil luar" data-r="' + i + '">Reset KW</button> <button class="btn kecil merah" data-d="' + i + '">Padam</button></td></tr>';
-        }).join('') : '<tr><td colspan="6" class="nota">Tiada rekod.</td></tr>') + '</tbody></table></div>' + pagerHtml(r) + '</div>';
+        }).join('') : '<tr><td colspan="7" class="nota">Tiada rekod.</td></tr>') + '</tbody></table></div>' + pagerHtml(r) + '</div>';
       pasangPager(k, kont, muat);
       var cari = function (a) { return r.senarai[Number(a)]; };
       Array.prototype.forEach.call(kont.querySelectorAll('[data-e]'), function (b) { b.onclick = function () { borangPengguna(cari(b.getAttribute('data-e')), muat); }; });
@@ -1035,29 +1352,39 @@ function halamanPengguna() {
   $('btnTambahUser').onclick = function () { borangPengguna(null, muat); };
   $('btnImportGuru').onclick = function () {
     sahkan('Import semua guru daripada Sheet PENGGUNA e-Kokurikulum (yang belum ada) sebagai Guru Kelas?', function () {
-      api('apiImportGuruKoko').then(function (x) { toast(x.ditambah + ' guru ditambah, ' + x.sediaAda + ' sedia ada dilangkau.', 'jaya'); muat(); }).catch(gagal);
+      api('apiImportGuruKoko').then(function (x) { toast(x.ditambah + ' guru ditambah, ' + x.sediaAda + ' sedia ada; ' + x.kgp + ' penetapan KGP dikemas kini.', 'jaya'); muat(); }).catch(gagal);
     }, 'Import');
   };
   return muat();
 }
 function borangPengguna(u, selesai) {
-  api('apiSenaraiKelas', {}, true).then(function (kr) {
-    var baru = !u; u = u || { nokp: '', nama: '', peranan: 'GURU_KELAS', emel: '', kelas: [], status: 'AKTIF' };
+  Promise.all([api('apiSenaraiKelas', {}, true), api('apiSenaraiUnit', {}, true)]).then(function (hs) {
+    var kr = hs[0], senaraiUnit = hs[1].unit;
+    var baru = !u; u = u || { nokp: '', nama: '', peranan: 'GURU_KELAS', emel: '', kelas: [], status: 'AKTIF', unitDijaga: [], unitKoko: [] };
     var modal = bukaModal('<h3>' + (baru ? 'Tambah' : 'Sunting') + ' Pengguna</h3><div class="grid-borang">' +
       '<div class="medan"><label>No. KP (12 digit)</label><input id="puKp" inputmode="numeric" maxlength="14" value="' + e(u.nokp) + '"' + (baru ? '' : ' disabled') + '></div>' +
       '<div class="medan"><label>Nama penuh</label><input id="puNama" value="' + e(u.nama) + '"></div>' +
-      '<div class="medan"><label>Peranan</label><select id="puPeranan"><option value="GURU_KELAS"' + (u.peranan === 'GURU_KELAS' ? ' selected' : '') + '>Guru Kelas</option><option value="ADMIN"' + (u.peranan === ADMIN ? ' selected' : '') + '>Admin</option></select></div>' +
+      '<div class="medan"><label>Peranan</label><select id="puPeranan"><option value="GURU_KELAS"' + (u.peranan === 'GURU_KELAS' ? ' selected' : '') + '>Guru (Guru Kelas / Ketua Guru Penasihat)</option><option value="ADMIN"' + (u.peranan === ADMIN ? ' selected' : '') + '>Admin</option></select></div>' +
       '<div class="medan"><label>Status</label><select id="puStatus"><option' + (u.status === 'AKTIF' ? ' selected' : '') + '>AKTIF</option><option' + (u.status !== 'AKTIF' ? ' selected' : '') + '>TIDAK AKTIF</option></select></div>' +
       '<div class="medan penuh"><label>E-mel (pilihan)</label><input id="puEmel" type="email" value="' + e(u.emel) + '"></div>' +
       '<div class="medan penuh" id="puKelasWrap"><label>Kelas yang dijaga (Guru Kelas)</label><div class="kotak-semak">' +
-      (kr.kelas.length ? kr.kelas.map(function (k) { return '<label><input type="checkbox" class="puKelas" value="' + e(k.kunci) + '"' + (u.kelas.indexOf(k.kunci) !== -1 ? ' checked' : '') + '>' + e(k.nama) + '</label>'; }).join('') : '<span class="nota">Belum ada kelas — segerak murid daripada e-Kokurikulum dahulu.</span>') + '</div></div></div>' +
+      (kr.kelas.length ? kr.kelas.map(function (k) { return '<label><input type="checkbox" class="puKelas" value="' + e(k.kunci) + '"' + (u.kelas.indexOf(k.kunci) !== -1 ? ' checked' : '') + '>' + e(k.nama) + '</label>'; }).join('') : '<span class="nota">Belum ada kelas — segerak murid daripada e-Kokurikulum dahulu.</span>') + '</div><div class="nota">Guru Kelas hanya boleh MELIHAT data kelasnya.</div></div>' +
+      '<div class="medan penuh" id="puUnitWrap"><label>Ketua Guru Penasihat (KGP) bagi unit — boleh MENGISI data murid unit ini</label>' +
+      (u.unitKoko.length ? '<div class="nota" style="margin-bottom:6px">Daripada e-Kokurikulum (auto): <b>' + u.unitKoko.map(function (k) { return e(k.replace('|', ' · ')); }).join('; ') + '</b></div>' : '') +
+      ['PBB', 'KP', 'SP'].map(function (a) {
+        var ux = senaraiUnit.filter(function (x) { return x.aspek === a; });
+        return ux.length ? '<div class="nota" style="margin:6px 0 2px"><b>' + a + ' · ' + NAMA_ASPEK[a] + '</b></div><div class="kotak-semak">' + ux.map(function (x) {
+          return '<label><input type="checkbox" class="puUnit" value="' + e(x.kunci) + '"' + (u.unitDijaga.indexOf(x.kunci) !== -1 ? ' checked' : '') + '>' + e(x.unit) + (x.kgp.length ? ' <span class="nota">(' + e(x.kgp.join(', ')) + ')</span>' : '') + '</label>';
+        }).join('') + '</div>' : '';
+      }).join('') + '<div class="nota">Tandakan unit tambahan secara manual (cth. jika belum ditetapkan dalam e-Kokurikulum).</div></div></div>' +
       '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>');
-    var togol = function () { $('puKelasWrap').classList.toggle('hidden', nilaiEl('puPeranan') !== 'GURU_KELAS'); };
+    var togol = function () { var g = nilaiEl('puPeranan') !== 'GURU_KELAS'; $('puKelasWrap').classList.toggle('hidden', g); $('puUnitWrap').classList.toggle('hidden', g); };
     $('puPeranan').onchange = togol; togol();
     modal.querySelector('[data-x=b]').onclick = function () { tutupModal(modal); };
     modal.querySelector('[data-x=s]').onclick = function () {
       var kelas = Array.prototype.map.call(modal.querySelectorAll('.puKelas:checked'), function (c) { return c.value; });
-      api('apiSimpanPengguna', { nokp: nilaiEl('puKp').replace(/\D/g, ''), nama: nilaiEl('puNama'), peranan: nilaiEl('puPeranan'), status: nilaiEl('puStatus'), emel: nilaiEl('puEmel'), kelas: kelas })
+      var unit = Array.prototype.map.call(modal.querySelectorAll('.puUnit:checked'), function (c) { return c.value; });
+      api('apiSimpanPengguna', { nokp: nilaiEl('puKp').replace(/\D/g, ''), nama: nilaiEl('puNama'), peranan: nilaiEl('puPeranan'), status: nilaiEl('puStatus'), emel: nilaiEl('puEmel'), kelas: kelas, unit: unit })
         .then(function () { tutupModal(modal); toast('Disimpan.', 'jaya'); if (selesai) selesai(); }).catch(gagal);
     };
   }).catch(gagal);

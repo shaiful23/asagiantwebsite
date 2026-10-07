@@ -5,12 +5,25 @@ Sistem **Pentaksiran Aktiviti Jasmani, Sukan dan Kokurikulum (PAJSK)** yang meng
 Google Apps Script (satu Web App SPA, `Index.html`), mengikut corak projek lain dalam repo ini
 (`e-bidang`, `e-bidang-bahasa`). Dihubungkan **terus** dengan Sheet **E-KOKURIKULUM**.
 
-## Peranan (dua sahaja)
+## Peranan & siapa mengisi data
 
-| Peranan | Akses |
+| Pengguna | Akses |
 | --- | --- |
-| `ADMIN` | Semua kelas; urus pengguna & murid; segerak e-Kokurikulum; tetapan; **Arkib & Naik Tingkatan**; log audit; analisa semua kelas |
-| `GURU_KELAS` | Hanya kelas yang ditetapkan kepadanya: isi pentaksiran, segerak kelas sendiri, rumusan, slip, analisa kelas |
+| `ADMIN` | Semua: urus pengguna & murid, segerak, tetapan, Arkib & Naik Tingkatan, log audit; boleh mengisi SEMUA unit, serta **ekstra kurikulum & CGPA tahun sebelum** |
+| **Ketua Guru Penasihat (KGP)** | **Mengisi** medan pentaksiran (Jawatan, Pelibatan, Pencapaian, Komitmen, Khidmat sumbangan, Kehadiran manual) bagi murid **unit yang dipimpinnya sahaja**, melalui menu *Pengisian Unit (KGP)* |
+| **Guru Kelas** | **Melihat sahaja** data kelasnya (Data Kelas, Rumusan, Slip, Analisa) untuk rujukan |
+
+Peranan dalam Sheet tetap `ADMIN` atau `GURU_KELAS` ("Guru"); keupayaan ditentukan oleh data:
+- **Guru Kelas** = lajur `PENGGUNA.KelasDijaga` berisi.
+- **KGP** = unit dalam `PENGGUNA.UnitKoko` (auto daripada e-Kokurikulum: Sheet PENGGUNA, `UNITn_JAWATAN = "KETUA GURU PENASIHAT"`) **atau** `PENGGUNA.UnitDijaga` (ditanda manual oleh Admin di menu Pengguna). Format: `ASPEK|NAMA UNIT`, dipisah `;`.
+- Seorang guru boleh menjadi Guru Kelas dan KGP serentak. KGP yang belum ada akaun dicipta automatik semasa segerak (kata laluan lalai = 6 digit terakhir No. KP).
+- Lajur `UnitDijaga` dan `UnitKoko` ditambah automatik pada Sheet PENGGUNA sedia ada.
+
+### Menu Pengisian Unit (KGP)
+- Senarai murid disusun **unit → tingkatan → kelas → nama**; tapis status / tingkatan / carian.
+- Borang satu murid untuk satu aspek dengan pratonton markah, cadangan pencapaian daripada e-Kokurikulum, dan butang **Simpan & seterusnya**.
+- **Isi pukal**: pilih beberapa murid (satu unit) dan tetapkan medan yang sama (cth. Jawatan `AHLI AKTIF`); pilihan *kosong sahaja* tidak menimpa data sedia ada.
+- Medan yang ditarik daripada e-Kokurikulum (unit, kehadiran) tidak perlu diisi.
 
 Kebenaran disahkan di **pelayan** pada setiap panggilan (peranan, status akaun dan kelas dibaca
 semula daripada Sheet — menukar peranan/menyahaktif pengguna berkuat kuasa serta-merta).
@@ -45,15 +58,12 @@ Syarat: akaun Gmail yang men-*deploy* e-PAJSK mesti pemilik/editor/viewer Sheet 
 - Murid yang tiada lagi dalam e-Kokurikulum dilaporkan, **tidak dipadam**. Murid `TAMAT` tidak disentuh.
 - Data yang guru isi (jawatan, pelibatan, komitmen, kehadiran manual, dll.) **tidak ditimpa** oleh segerak.
 
-## Status Pengisian Guru Kelas (menu *Status Pengisian*)
+## Status Pengisian (menu *Status Pengisian*)
 
-- **Admin**: senarai semua guru kelas mengikut status — *Belum mula*, *Dalam proses*, *Lengkap* (tab penapis + carian), peratus murid lengkap dan masa aktiviti pengisian terakhir.
-- Bagi guru **dalam proses**, butiran setiap kelas dipaparkan: aspek (PBB/KP/SP) yang belum lengkap, bilangan murid dan medan yang belum diisi (cth. *PBB: 12 murid belum lengkap (Jawatan 10, Komitmen 8)*), CGPA tahun sebelum yang belum diisi, serta senarai murid satu per satu.
-- Kelas tanpa guru kelas dan guru kelas yang belum ditetapkan kelas turut disenaraikan; ringkasan juga dipaparkan di Dashboard.
-- **Salin senarai peringatan** (teks sedia untuk WhatsApp/e-mel) dan **Muat turun CSV**.
-- **Guru Kelas** melihat status kelas sendiri, dan lajur *Pengisian* dalam *Pentaksiran Kelas* menunjukkan apa yang belum diisi bagi setiap murid.
+- **Mengikut Ketua Guru Penasihat (pengisi)** — paparan utama Admin: setiap KGP dengan status *Belum mula / Dalam proses / Lengkap*, peratus, aktiviti terakhir; bagi yang dalam proses, butiran setiap unit (bilangan murid belum lengkap mengikut medan) dan senarai murid. Unit tanpa KGP disenaraikan. Salin senarai peringatan & CSV. KGP melihat unitnya sendiri.
+- **Mengikut kelas (rujukan)** — Admin & Guru Kelas: kelengkapan data setiap kelas (termasuk CGPA tahun sebelum) untuk rujukan.
 
-Peraturan "lengkap" (boleh diubah dalam `Config.gs`: `MEDAN_WAJIB_ASPEK`, `WAJIB_CGPA_SEBELUM`): bagi setiap aspek yang murid sertai (ada unit), **Jawatan**, **Pelibatan** dan sekurang-kurangnya satu **Komitmen** mesti diisi; **CGPA tahun sebelum** wajib bagi Tingkatan 2 ke atas. Pencapaian, khidmat sumbangan dan ekstra kurikulum adalah pilihan. *Dalam proses* = guru telah menyimpan sekurang-kurangnya satu rekod murid itu tetapi medan wajib masih kosong.
+Peraturan "lengkap" (`Config.gs`: `MEDAN_WAJIB_ASPEK`, `WAJIB_CGPA_SEBELUM`): bagi setiap aspek yang murid sertai, **Jawatan**, **Pelibatan** dan sekurang-kurangnya satu **Komitmen**; CGPA tahun sebelum wajib bagi Tingkatan 2 ke atas (paparan kelas). *Dalam proses* = sudah ada rekod disimpan oleh pengisi tetapi medan wajib masih kosong.
 
 ## Kemas kini langsung & prestasi
 

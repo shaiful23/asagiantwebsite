@@ -10,9 +10,17 @@ function apiSenaraiPengguna(p) {
   const semua = bacaSheetSebagaiObjek(SHEET_PENGGUNA).map(u => ({
     nokp: normalKP(u.NoKP), nama: u.NamaPenuh, peranan: u.Peranan, emel: u.Emel || '',
     kelas: senaraiDaripadaMedan(u.KelasDijaga), status: u.Status,
+    unitDijaga: senaraiUnitDaripadaMedan(u.UnitDijaga), unitKoko: senaraiUnitDaripadaMedan(u.UnitKoko),
     mestiTukarPassword: String(u.MestiTukarPassword).toUpperCase() === 'YA'
   })).sort((a, b) => String(a.nama).localeCompare(String(b.nama)));
-  return jaya(halamanKan(semua, p, u => u.nama + ' ' + u.nokp + ' ' + u.peranan + ' ' + u.kelas.join(' ')));
+  return jaya(halamanKan(semua, p, u => u.nama + ' ' + u.nokp + ' ' + u.peranan + ' ' + u.kelas.join(' ') + ' ' + u.unitDijaga.concat(u.unitKoko).join(' ')));
+}
+
+/* Senarai semua unit (untuk borang penetapan KGP oleh Admin). */
+function apiSenaraiUnit(p) {
+  const sesi = wajibPeranan(p.token, [ROLE_ADMIN]);
+  if (sesi.success === false) return sesi;
+  return jaya({ unit: senaraiUnitBolehIsi(sesi) });
 }
 
 /* Senarai kelas (kunci + bilangan murid aktif) yang boleh diakses pengguna. */
@@ -32,6 +40,7 @@ function apiSimpanPengguna(p) {
   const emel = String(p.emel || '').trim();
   const status = String(p.status || 'AKTIF').toUpperCase() === 'AKTIF' ? 'AKTIF' : 'TIDAK AKTIF';
   const kelas = (Array.isArray(p.kelas) ? p.kelas : senaraiDaripadaMedan(p.kelas)).map(k => String(k).trim()).filter(Boolean);
+  const unitManual = (Array.isArray(p.unit) ? p.unit : senaraiUnitDaripadaMedan(p.unit)).map(k => String(k).trim()).filter(k => pecahKunciUnit(k));
   if (nokp.length !== 12) return ralat('No. KP mesti 12 digit.');
   if (!nama || SEMUA_PERANAN.indexOf(peranan) === -1) return ralat('Data pengguna tidak lengkap/sah.');
   if (emel && emel.indexOf('@') === -1) return ralat('Format e-mel tidak sah.');
@@ -48,10 +57,12 @@ function apiSimpanPengguna(p) {
       Password: sediaAda ? sediaAda.Password : cincangKataLaluan(nokp, kataLaluanLalaiDaripadaIC(nokp)),
       Peranan: peranan,
       NamaPenuh: nama,
-      KelasDijaga: peranan === ROLE_GURU_KELAS ? kelas.join(', ') : '',
+      KelasDijaga: kelas.join(', '),
       MestiTukarPassword: sediaAda ? sediaAda.MestiTukarPassword : 'YA',
       Status: status,
-      Emel: emel
+      Emel: emel,
+      UnitDijaga: unitManual.join('; '),
+      UnitKoko: sediaAda ? (sediaAda.UnitKoko || '') : ''
     };
     if (sediaAda) {
       kemaskiniBaris(SHEET_PENGGUNA, sediaAda.__row, objek);
@@ -115,11 +126,13 @@ function apiImportGuruKoko(p) {
       sedia[g.nokp] = true;
       baharu.push({
         NoKP: g.nokp, Password: cincangKataLaluan(g.nokp, kataLaluanLalaiDaripadaIC(g.nokp)),
-        Peranan: ROLE_GURU_KELAS, NamaPenuh: g.nama, KelasDijaga: '', MestiTukarPassword: 'YA', Status: 'AKTIF', Emel: g.emel
+        Peranan: ROLE_GURU_KELAS, NamaPenuh: g.nama, KelasDijaga: '', MestiTukarPassword: 'YA', Status: 'AKTIF', Emel: g.emel,
+        UnitDijaga: '', UnitKoko: g.unitKgp.slice().sort().join('; ')
       });
     });
     upsertBanyak(SHEET_PENGGUNA, 'NoKP', baharu);
-    catatAudit(sesi, 'IMPORT', 'PENGGUNA', '', 'Import guru e-Kokurikulum: ' + baharu.length + ' baharu, ' + langkau + ' sedia ada');
-    return jaya({ ditambah: baharu.length, sediaAda: langkau });
+    const kgp = segerakKgpDaripadaKoko();   // kemas kini unit KGP guru sedia ada
+    catatAudit(sesi, 'IMPORT', 'PENGGUNA', '', 'Import guru e-Kokurikulum: ' + baharu.length + ' baharu, ' + langkau + ' sedia ada, ' + kgp + ' penetapan KGP dikemas kini');
+    return jaya({ ditambah: baharu.length, sediaAda: langkau, kgp });
   });
 }

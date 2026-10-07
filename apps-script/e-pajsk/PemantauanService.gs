@@ -81,7 +81,78 @@ function ringkasanKelas(kunci, murid, aspekMap, ekstraMap) {
 function apiStatusPengisian(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
-  return jaya(binaStatusPengisian(sesi));
+  const admin = sesi.peranan === ROLE_ADMIN;
+  const hasil = (admin || (sesi.kelas || []).length) ? binaStatusPengisian(sesi) : { guru: [], kira: { LENGKAP: 0, DALAM_PROSES: 0, BELUM_MULA: 0 }, kelasTanpaGuru: [], guruTanpaKelas: [] };
+  hasil.tahun = tahunSemasa();
+  hasil.peraturan = { medanWajib: MEDAN_WAJIB_ASPEK.map(x => x[1]), cgpa: WAJIB_CGPA_SEBELUM };
+  hasil.unit = (admin || (sesi.unit || []).length) ? binaStatusUnit(sesi) : null;
+  return jaya(hasil);
+}
+
+/* ---------- Mengikut UNIT / Ketua Guru Penasihat (pengisi data) ---------- */
+function binaStatusUnit(sesi) {
+  const admin = sesi.peranan === ROLE_ADMIN;
+  const aspekMap = {};
+  bacaSheetSebagaiObjek(SHEET_ASPEK).forEach(r => { aspekMap[r.Kunci] = r; });
+  const sasaran = admin ? null : {};
+  if (!admin) (sesi.unit || []).forEach(k => { sasaran[k] = true; });
+
+  const unit = {};
+  bacaSheetSebagaiObjek(SHEET_MURID).forEach(m => {
+    if (String(m.Status).toUpperCase() !== 'AKTIF') return;
+    const nokp = normalKP(m.NoKP);
+    SEMUA_ASPEK.forEach(a => {
+      const rec = aspekMap[kunciAspek(nokp, a)];
+      const nama = unitMuridAspek(m, a, rec);
+      if (!nama) return;
+      const ku = kunciUnit(a, nama);
+      if (sasaran && !sasaran[ku]) return;
+      const u = unit[ku] = unit[ku] || { kunci: ku, aspek: a, unit: nama, bil: 0, lengkap: 0, proses: 0, belum: 0, aktivitiTerakhir: '', kurangMedan: {}, murid: [] };
+      const st = statusRekodAspek(rec);
+      u.bil++;
+      if (st.status === ST_LENGKAP) u.lengkap++; else if (st.status === ST_PROSES) u.proses++; else u.belum++;
+      if (rec && rec.OlehKP && String(rec.Dikemaskini) > u.aktivitiTerakhir) u.aktivitiTerakhir = String(rec.Dikemaskini);
+      st.kurang.forEach(l => { u.kurangMedan[l] = (u.kurangMedan[l] || 0) + 1; });
+      if (st.status !== ST_LENGKAP) u.murid.push({ nama: m.Nama, kunciKelas: m.KunciKelas, tingkatan: nomborTingkatan(m.Tingkatan), kelas: m.Kelas, status: st.status, kurang: st.kurang });
+    });
+  });
+  const kgp = petaKgpUnit();
+  const senaraiUnit = Object.keys(unit).map(k => {
+    const u = unit[k];
+    u.murid.sort((x, y) => x.tingkatan - y.tingkatan || String(x.kelas).localeCompare(String(y.kelas)) || String(x.nama).localeCompare(String(y.nama)));
+    u.status = u.lengkap === u.bil ? ST_LENGKAP : (u.belum === u.bil ? ST_BELUM : ST_PROSES);
+    u.peratus = u.bil ? Math.round(u.lengkap / u.bil * 100) : 0;
+    u.kgp = kgp[k] || [];
+    return u;
+  }).sort(susunUnit);
+
+  // Kumpul mengikut KGP (seorang KGP boleh memimpin > 1 unit).
+  const ikutKgp = {};
+  bacaSheetSebagaiObjek(SHEET_PENGGUNA).forEach(p => {
+    if (String(p.Status).toUpperCase() !== 'AKTIF') return;
+    if (!admin && normalKP(p.NoKP) !== sesi.nokp) return;
+    const milik = unitPengguna(p).filter(k => unit[k]);
+    if (!milik.length) return;
+    const u = milik.map(k => unit[k]);
+    const bil = u.reduce((j, x) => j + x.bil, 0), lengkap = u.reduce((j, x) => j + x.lengkap, 0);
+    ikutKgp[normalKP(p.NoKP)] = {
+      nokp: normalKP(p.NoKP), nama: p.NamaPenuh, status: statusGabungan(u.map(x => x.status)),
+      peratus: bil ? Math.round(lengkap / bil * 100) : 0,
+      aktivitiTerakhir: u.reduce((t, x) => (x.aktivitiTerakhir > t ? x.aktivitiTerakhir : t), ''),
+      unit: milik.slice().sort((a, b) => susunUnit(unit[a], unit[b]))
+    };
+  });
+  const turutan = { BELUM_MULA: 0, DALAM_PROSES: 1, LENGKAP: 2 };
+  const senaraiKgp = Object.keys(ikutKgp).map(k => ikutKgp[k])
+    .sort((a, b) => turutan[a.status] - turutan[b.status] || a.peratus - b.peratus || String(a.nama).localeCompare(String(b.nama)));
+  const kira = { LENGKAP: 0, DALAM_PROSES: 0, BELUM_MULA: 0 };
+  senaraiKgp.forEach(g => { kira[g.status]++; });
+  const petaUnit = {};
+  senaraiUnit.forEach(u => { petaUnit[u.kunci] = u; });
+  return {
+    kgp: senaraiKgp, kira, unit: petaUnit, susunanUnit: senaraiUnit.map(u => u.kunci),
+    unitTanpaKgp: senaraiUnit.filter(u => !u.kgp.length).map(u => u.kunci)
+  };
 }
 
 function binaStatusPengisian(sesi) {

@@ -74,3 +74,14 @@ const NAMA_FOLDER_ARKIB = 'e-PAJSK SMK Asajaya - Arkib';
 const MEDAN_WAJIB_ASPEK = [['Jawatan', 'Jawatan'], ['Libat1', 'Pelibatan'], ['KOMITMEN', 'Komitmen']];
 // CGPA tahun sebelum wajib bagi Tingkatan 2 ke atas (Tingkatan 1 tiada markah PAJSK tahun lepas).
 const WAJIB_CGPA_SEBELUM = true;
+
+/* ------------------------- KETUA GURU PENASIHAT (KGP) — PENGISI DATA ------------------------- */
+// Medan pentaksiran aspek (Jawatan, Pelibatan, Pencapaian, Komitmen, Khidmat, Kehadiran manual) diisi oleh
+// KGP unit masing-masing; Guru Kelas hanya MELIHAT data kelasnya. KGP sesuatu unit ditentukan oleh:
+//   1. e-Kokurikulum (Sheet PENGGUNA, lajur UNITn_JAWATAN = "KETUA GURU PENASIHAT") -> lajur PENGGUNA.UnitKoko (auto)
+//   2. Tetapan manual Admin (menu Pengguna)                                              -> lajur PENGGUNA.UnitDijaga
+// Format setiap unit: "<ASPEK>|<NAMA UNIT>" (cth. "PBB|PASUKAN KADET REMAJA SEKOLAH"); beberapa unit dipisah ";".
+const LAJUR_PENGGUNA_UNIT = ['UnitDijaga', 'UnitKoko'];
+const KOKO_JAWATAN_KGP = /KETUA\s*GURU\s*PENASIHAT/;
+const KATA_KUNCI_KATEGORI = { PBB: /BERUNIF|PASUKAN|BADAN/, KP: /KELAB|PERSATUAN/, SP: /SUKAN|PERMAINAN/ };
+// Ekstra kurikulum & CGPA tahun sebelum bukan milik mana-mana unit: diisi oleh Admin.

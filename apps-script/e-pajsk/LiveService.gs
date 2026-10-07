@@ -171,10 +171,10 @@ function apiMula(p) {
   if (sesi.success === false) return sesi;
   const pengguna = bacaSheetSebagaiObjek(SHEET_PENGGUNA).find(u => normalKP(u.NoKP) === sesi.nokp);
   const mesti = String(pengguna.MestiTukarPassword).toUpperCase() === 'YA';
-  if (mesti) return jaya({ nama: sesi.nama, peranan: sesi.peranan, kelas: sesi.kelas, mestiTukarPassword: true });
+  if (mesti) return jaya({ nama: sesi.nama, peranan: sesi.peranan, kelas: sesi.kelas, unit: sesi.unit, mestiTukarPassword: true });
   const t = bacaTetapan();
   return jaya({
-    nama: sesi.nama, peranan: sesi.peranan, kelas: sesi.kelas, mestiTukarPassword: false,
+    nama: sesi.nama, peranan: sesi.peranan, kelas: sesi.kelas, unit: sesi.unit, mestiTukarPassword: false,
     rujukan: muatRujukan(),
     tetapan: {
       tahun: Number(t[TET_TAHUN]) || new Date().getFullYear(), kodSekolah: t[TET_KOD_SEKOLAH] || '', namaSekolah: t[TET_NAMA_SEKOLAH] || '',

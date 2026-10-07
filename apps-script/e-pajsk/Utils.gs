@@ -380,6 +380,33 @@ function jantinaDaripadaKP(kp) {
   return Number(d.charAt(d.length - 1)) % 2 === 1 ? 'LELAKI' : 'PEREMPUAN';
 }
 
+/* ---- Unit (aspek + nama unit) ---- */
+function kunciUnit(aspek, unit) { return String(aspek || '') + '|' + banding(unit); }
+function pecahKunciUnit(kunci) { const i = String(kunci || '').indexOf('|'); return i < 0 ? null : { aspek: kunci.substring(0, i), unit: kunci.substring(i + 1) }; }
+// Nama unit boleh mengandungi koma (cth. "SAINS, TEKNOLOGI ... (STEM)") — senarai unit dipisah ';'.
+function senaraiUnitDaripadaMedan(nilai) { return String(nilai || '').split(';').map(s => s.trim()).filter(s => s.indexOf('|') > 0); }
+
+/* Tambah lajur baharu di hujung header jika belum wujud (migrasi automatik deployment sedia ada). */
+function tambahLajurJikaTiada(namaSheet, namaLajur) {
+  const sh = dapatkanSheet(namaSheet);
+  const header = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0];
+  if (header.indexOf(namaLajur) !== -1) return false;
+  const col = sh.getLastColumn() + 1;
+  sh.getRange(1, col).setValue(namaLajur).setFontWeight('bold');
+  sh.getRange(2, col, Math.max(sh.getMaxRows() - 1, 1), 1).setNumberFormat('@');
+  delete _memoHeader[namaSheet];
+  tandaKotor(namaSheet);
+  return true;
+}
+
+/* Pastikan struktur Sheet terkini (dipanggil setiap permintaan; disemak sebenar paling kerap sekali / 6 jam). */
+function pastikanStrukturTerkini() {
+  const c = CacheService.getScriptCache();
+  if (c.get('struktur_epajsk_v3')) return;
+  LAJUR_PENGGUNA_UNIT.forEach(l => tambahLajurJikaTiada(SHEET_PENGGUNA, l));
+  c.put('struktur_epajsk_v3', '1', 6 * 60 * 60);
+}
+
 function senaraiDaripadaMedan(nilai) {
   return String(nilai || '').split(',').map(s => s.trim()).filter(Boolean);
 }
