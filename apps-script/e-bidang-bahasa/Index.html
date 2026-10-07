@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Bidang Bahasa</title>
+  <style>
+    :root {
+      --biru: #1d4ed8; --biru-gelap: #1e3a8a; --biru-terang: #0ea5e9; --hijau: #15803d; --merah: #b91c1c;
+      --kuning: #b45309; --kelabu: #64748b; --latar: #f1f5f9; --kad: #ffffff; --sempadan: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: var(--latar); color: #0f172a; -webkit-font-smoothing: antialiased; }
+    button { cursor: pointer; font-family: inherit; }
+    input, select, textarea { font-family: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--sempadan); border-radius: 6px; width: 100%; transition: border-color .15s ease, box-shadow .15s ease; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--biru); box-shadow: 0 0 0 3px rgba(29,78,216,.14); }
+    a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--biru); outline-offset: 2px; border-radius: 4px; }
+
+    .ikon { width: 16px; height: 16px; flex-shrink: 0; vertical-align: -3px; margin-right: 6px; }
+    .ikon-h3 { width: 18px; height: 18px; vertical-align: -4px; margin-right: 8px; color: var(--biru); }
+    .ikon-sahaja { margin-right: 0; }
+
+    .btn { display: inline-flex; align-items: center; border: none; border-radius: 7px; padding: 8px 14px; font-size: 14px; font-weight: 600; background: var(--biru); color: #fff; box-shadow: 0 1px 2px rgba(29,78,216,.3); transition: background-color .15s ease, box-shadow .15s ease, transform .1s ease; }
+    .btn:hover { background: var(--biru-gelap); box-shadow: 0 4px 10px rgba(29,78,216,.32); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(29,78,216,.3); }
+    .btn.kecil { padding: 5px 10px; font-size: 12px; box-shadow: none; }
+    .btn.kecil:hover { transform: none; box-shadow: none; }
+    .btn.merah { background: var(--merah); box-shadow: 0 1px 2px rgba(185,28,28,.3); } .btn.merah:hover { background: #7f1d1d; box-shadow: 0 4px 10px rgba(185,28,28,.32); }
+    .btn.kelabu { background: var(--kelabu); box-shadow: 0 1px 2px rgba(100,116,139,.3); } .btn.kelabu:hover { background: #475569; box-shadow: 0 4px 10px rgba(100,116,139,.32); }
+    .btn.luar { background: #fff; color: var(--biru); border: 1px solid var(--sempadan); box-shadow: none; } .btn.luar:hover { border-color: var(--biru); background: #eff6ff; box-shadow: none; transform: none; }
+    .hidden { display: none !important; }
+
+    /* ---------- Log Masuk ---------- */
+    #skrinLogin { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--biru-gelap), var(--hijau)); }
+    .kad-login { background: #fff; padding: 32px 28px; border-radius: 16px; width: 340px; box-shadow: 0 20px 45px rgba(2,6,23,.35); }
+    .logo-login { width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, var(--biru), var(--biru-terang)); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 8px 18px rgba(29,78,216,.35); }
+    .logo-login svg { width: 28px; height: 28px; color: #fff; }
+    .kad-login h1 { font-size: 18px; margin: 0 0 4px; color: var(--biru-gelap); text-align: center; }
+    .kad-login p.sub { margin: 0 0 22px; font-size: 13px; color: var(--kelabu); text-align: center; }
+    .medan { margin-bottom: 14px; }
+    .medan label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .ralat-login { color: var(--merah); font-size: 13px; margin-top: 10px; min-height: 16px; }
+
+    /* ---------- Rangka Aplikasi ---------- */
+    #aplikasi { display: flex; min-height: 100vh; }
+    #bilahSisi { width: 240px; background: linear-gradient(180deg, var(--biru-gelap), #16265c); color: #fff; flex-shrink: 0; padding: 18px 0; }
+    #bilahSisi .jenama { display: flex; align-items: center; gap: 10px; padding: 0 18px 16px; margin: 0 0 4px; border-bottom: 1px solid rgba(255,255,255,.15); }
+    #bilahSisi .jenama .lambang { width: 34px; height: 34px; border-radius: 9px; background: rgba(255,255,255,.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    #bilahSisi .jenama .lambang svg { width: 20px; height: 20px; color: #7dd3fc; }
+    #bilahSisi .jenama span { font-size: 14px; font-weight: 700; line-height: 1.25; }
+    .item-nav { display: flex; align-items: center; gap: 10px; padding: 11px 18px; color: #cbd5e1; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; transition: background-color .15s ease, color .15s ease; }
+    .item-nav svg { opacity: .8; transition: opacity .15s ease; }
+    .item-nav:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .item-nav:hover svg { opacity: 1; }
+    .item-nav.aktif { background: rgba(255,255,255,.12); color: #fff; border-left-color: #facc15; font-weight: 600; }
+    .item-nav.aktif svg { opacity: 1; color: #facc15; }
+    #kawasanUtama { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    #barAtas { background: #fff; border-bottom: 1px solid var(--sempadan); padding: 12px 22px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(15,23,42,.03); position: sticky; top: 0; z-index: 20; }
+    #barAtas .info-pengguna { font-size: 13px; color: var(--kelabu); display: flex; align-items: center; gap: 10px; }
+    #barAtas .info-pengguna b { color: #0f172a; }
+    .avatar-inisial { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, var(--biru), var(--biru-terang)); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+    #kandungan { padding: 22px; overflow-x: auto; }
+
+    .kad { background: var(--kad); border: 1px solid var(--sempadan); border-radius: 12px; padding: 18px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(15,23,42,.05); transition: box-shadow .2s ease, border-color .2s ease; }
+    .kad:hover { box-shadow: 0 8px 20px rgba(15,23,42,.08); border-color: #cbd5e1; }
+    .kad h3 { margin: 0 0 14px; font-size: 15px; color: var(--biru-gelap); display: flex; align-items: center; }
+    .grid-kad { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    .kad-statistik { cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .kad-statistik:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rgba(29,78,216,.16); border-color: var(--biru-terang); }
+    .kad-statistik.tanpa-aksi { cursor: default; }
+    .kad-statistik.tanpa-aksi:hover { transform: none; box-shadow: 0 8px 20px rgba(15,23,42,.08); border-color: #cbd5e1; }
+    .kad-statistik .label { font-size: 12px; color: var(--kelabu); text-transform: uppercase; letter-spacing: .03em; }
+    .kad-statistik .nilai { font-size: 26px; font-weight: 700; color: var(--biru-gelap); margin: 6px 0; }
+    .bar-progres { background: #e2e8f0; border-radius: 6px; height: 8px; overflow: hidden; margin-top: 6px; }
+    .bar-progres > div { height: 100%; background: var(--hijau); transition: width .4s ease; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--sempadan); vertical-align: top; }
+    th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: var(--kelabu); }
+    tr:hover td { background: #f8fafc; }
+    .lencana { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .lencana.hijau { background: #dcfce7; color: var(--hijau); }
+    .lencana.kuning { background: #fef3c7; color: var(--kuning); }
+    .lencana.merah { background: #fee2e2; color: var(--merah); }
+    .lencana.kelabu { background: #e2e8f0; color: var(--kelabu); }
+    .baris-alat { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .baris-alat select { width: auto; }
+    .bar-tab { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--sempadan); flex-wrap: wrap; }
+    .bar-tab button { background: none; border: none; padding: 9px 14px; font-size: 13px; font-weight: 600; color: var(--kelabu); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .bar-tab button.aktif { color: var(--biru); border-bottom-color: var(--biru); }
+    .jadual-gantt { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .jadual-gantt th, .jadual-gantt td { border: 1px solid var(--sempadan); padding: 6px; text-align: center; }
+    .jadual-gantt td:first-child, .jadual-gantt th:first-child { text-align: left; min-width: 160px; }
+    .jadual-gantt td.tanda { background: var(--biru); color: #fff; font-weight: 700; }
+
+    /* ---------- Modal ---------- */
+    .latar-modal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: flex; align-items: center; justify-content: center; z-index: 50; }
+    .kad-modal { background: #fff; border-radius: 10px; width: min(520px, 92vw); max-height: 88vh; overflow-y: auto; padding: 22px; }
+    .kad-modal h3 { margin-top: 0; }
+    .grid-borang { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-borang .lebar-penuh { grid-column: 1 / -1; }
+    .aksi-modal { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+    .grid-checkbox-panitia { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+    .checkbox-panitia { display: flex; align-items: center; gap: 6px; font-weight: 400; font-size: 13px; }
+    .checkbox-panitia input { width: auto; }
+
+    #kontainerToast { position: fixed; top: 16px; right: 16px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 10px 16px; border-radius: 8px; color: #fff; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+    .toast.jaya { background: var(--hijau); } .toast.gagal { background: var(--merah); }
+
+    @media (max-width: 820px) {
+      #aplikasi { flex-direction: column; }
+      #bilahSisi { width: 100%; display: flex; align-items: center; overflow-x: auto; padding: 10px; }
+      #bilahSisi .jenama { border-bottom: none; border-right: 1px solid rgba(255,255,255,.15); padding: 0 14px 0 4px; margin: 0 8px 0 0; flex-shrink: 0; }
+      #bilahSisi .jenama span { display: none; }
+      .item-nav { padding: 8px 12px; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; }
+      .item-nav.aktif { border-left-color: transparent; border-bottom-color: #facc15; }
+      .item-nav span:last-child { display: none; }
+      #barAtas { flex-wrap: wrap; gap: 8px 14px; padding: 10px 14px; }
+      #barAtas .info-pengguna { flex-wrap: wrap; row-gap: 6px; }
+      .grid-borang { grid-template-columns: 1fr; }
+    }
+
+    /* ---------- Carta Organisasi & Profil ---------- */
+    .avatar-carta { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--biru), var(--biru-terang)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; flex-shrink: 0; overflow: hidden; }
+    .avatar-carta img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar-carta.besar { width: 96px; height: 96px; font-size: 28px; }
+    .nod-carta { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 12px 10px; border: 1px solid var(--sempadan); border-radius: 10px; background: #fff; cursor: pointer; transition: box-shadow .15s ease, border-color .15s ease, transform .15s ease; width: 140px; }
+    .nod-carta:hover, .nod-carta:focus-visible { box-shadow: 0 10px 22px rgba(29,78,216,.14); border-color: var(--biru-terang); transform: translateY(-2px); outline: none; }
+    .nod-carta .nama { font-size: 13px; font-weight: 600; line-height: 1.25; }
+    .nod-carta .jawatan { font-size: 11px; color: var(--kelabu); line-height: 1.2; }
+    .nod-carta.nod-ketua { border-color: var(--biru-terang); background: #eff6ff; width: 160px; }
+    .grid-nod-carta { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+    .panel-panitia { border: 1px solid var(--sempadan); border-radius: 12px; padding: 16px; margin-bottom: 16px; background: #fafbfc; }
+    .panel-panitia h4 { margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacing: .03em; color: var(--biru-gelap); }
+    .penghubung-carta { width: 2px; height: 16px; background: var(--sempadan); margin: 0 auto; }
+    .medan-gambar-profil { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .medan-gambar-profil input[type=file] { flex: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- ============================ LOG MASUK ============================ -->
+  <div id="skrinLogin">
+    <form class="kad-login" id="borangLogin">
+      <div class="logo-login">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 6.5C10 5 7 4.5 3 4.5v14c4 0 7 .5 9 2 2-1.5 5-2 9-2v-14c-4 0-7 .5-9 2Z"/>
+          <path d="M12 6.5v14"/>
+        </svg>
+      </div>
+      <h1>E-Bidang Bahasa</h1>
+      <p class="sub">SMK Asajaya — Sistem Pengurusan Fail Panitia</p>
+      <div class="medan">
+        <label>No. Kad Pengenalan</label>
+        <input type="text" id="inputNoKP" placeholder="cth. 900101011234" required>
+      </div>
+      <div class="medan">
+        <label>Kata Laluan</label>
+        <input type="password" id="inputKataLaluan" placeholder="Kata laluan lalai: 6 digit terakhir No. KP" required>
+      </div>
+      <button class="btn" type="submit" style="width:100%">Log Masuk</button>
+      <div class="ralat-login" id="ralatLogin"></div>
+    </form>
+  </div>
+
+  <!-- ===================== PAKSA TUKAR KATA LALUAN ===================== -->
+  <div id="latarModal" class="latar-modal hidden" style="z-index:60">
+    <div class="kad-modal" style="max-width:380px">
+      <h3>Tukar Kata Laluan</h3>
+      <p style="font-size:13px;color:var(--kelabu)">Log masuk pertama/kata laluan telah di-set semula — sila tetapkan kata laluan baharu sebelum meneruskan.</p>
+      <form id="borangTukarPassword">
+        <div class="medan">
+          <label>Kata Laluan Baharu</label>
+          <input type="password" id="inputPasswordBaharu" minlength="6" required>
+        </div>
+        <div class="medan">
+          <label>Sahkan Kata Laluan Baharu</label>
+          <input type="password" id="inputPasswordSahkan" minlength="6" required>
+        </div>
+        <div class="ralat-login" id="ralatTukarPassword"></div>
+        <button class="btn" type="submit" style="width:100%">Simpan &amp; Teruskan</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================ APLIKASI ============================ -->
+  <div id="aplikasi" class="hidden">
+    <div id="bilahSisi">
+      <div class="jenama">
+        <span class="lambang">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 6.5C10 5 7 4.5 3 4.5v14c4 0 7 .5 9 2 2-1.5 5-2 9-2v-14c-4 0-7 .5-9 2Z"/>
+            <path d="M12 6.5v14"/>
+          </svg>
+        </span>
+        <span>E-Bidang<br>Bahasa</span>
+      </div>
+      <a href="#" class="item-nav" data-view="dashboard" aria-label="Dashboard"><span class="nav-ikon"></span><span>Dashboard</span></a>
+      <a href="#" class="item-nav" data-view="cartaOrganisasi" aria-label="Carta Organisasi"><span class="nav-ikon"></span><span>Carta Organisasi</span></a>
+      <a href="#" class="item-nav" data-view="profilSaya" aria-label="Profil Saya"><span class="nav-ikon"></span><span>Profil Saya</span></a>
+      <a href="#" class="item-nav" data-view="dokumen" id="navDokumen" aria-label="Fail &amp; Dokumen"><span class="nav-ikon"></span><span>Fail &amp; Dokumen</span></a>
+      <a href="#" class="item-nav" data-view="mesyuarat" id="navMesyuarat" aria-label="Mesyuarat"><span class="nav-ikon"></span><span>Mesyuarat</span></a>
+      <a href="#" class="item-nav" data-view="tindakan" id="navTindakan" aria-label="Tindakan Susulan"><span class="nav-ikon"></span><span>Tindakan Susulan</span></a>
+      <a href="#" class="item-nav" data-view="program" id="navProgram" aria-label="Program &amp; PLC"><span class="nav-ikon"></span><span>Program &amp; PLC</span></a>
+      <a href="#" class="item-nav" data-view="perancangan" id="navPerancangan" aria-label="Perancangan Strategik"><span class="nav-ikon"></span><span>Perancangan Strategik</span></a>
+      <a href="#" class="item-nav" data-view="pencerapan" id="navPencerapan" aria-label="Pencerapan &amp; Semakan"><span class="nav-ikon"></span><span>Pencerapan &amp; Semakan</span></a>
+      <a href="#" class="item-nav" data-view="panitia" id="navPanitia" aria-label="Panitia"><span class="nav-ikon"></span><span>Panitia</span></a>
+      <a href="#" class="item-nav" data-view="pengguna" id="navPengguna" aria-label="Pengguna"><span class="nav-ikon"></span><span>Pengguna</span></a>
+      <a href="#" class="item-nav" data-view="audit" id="navAudit" aria-label="Log Audit"><span class="nav-ikon"></span><span>Log Audit</span></a>
+    </div>
+    <div id="kawasanUtama">
+      <div id="barAtas">
+        <div class="info-pengguna">Panitia semasa: <b id="labelPanitiaAktif">-</b></div>
+        <div class="info-pengguna">
+          <span class="avatar-inisial" id="avatarPengguna"></span>
+          <span><b id="labelNamaPengguna"></b> (<span id="labelPerananPengguna"></span>)</span>
+          <button class="btn kecil kelabu" id="btnTukarPasswordSendiri"></button>
+          <button class="btn kecil merah" id="btnLogout"></button>
+        </div>
+      </div>
+      <div id="kandungan"></div>
+    </div>
+  </div>
+
+  <div id="kontainerToast"></div>
+
+<script>
+/* =========================================================================
+ * Skrip klien SPA — semua panggilan pelayan melalui google.script.run,
+ * disahkan token sesi setiap panggilan (rujuk wajibPeranan() di pelayan).
+ * ========================================================================= */
+// Disuntik oleh pelayan daripada SENARAI_PANITIA (Config.gs) semasa doGet() — satu sumber sahaja,
+// jadi ubah senarai panitia di Config.gs sahaja (jangan tulis semula di sini).
+const SENARAI_PANITIA = <?!= JSON.stringify(SENARAI_PANITIA) ?>;
+const SKOP_BIDANG = 'BIDANG';
+const BULAN_TAHUNAN = ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogos', 'Sep', 'Okt', 'Nov', 'Dis'];
+const LABEL_PERANAN = { ADMIN: 'Admin', KETUA_BIDANG: 'Ketua Bidang', KETUA_PANITIA: 'Ketua Panitia', GURU: 'Guru' };
+const LABEL_STATUS_TINDAKAN = { BELUM_MULA: 'Belum Mula', DALAM_PROSES: 'Dalam Proses', SELESAI: 'Selesai' };
+const LENCANA_STATUS_TINDAKAN = { BELUM_MULA: 'kelabu', DALAM_PROSES: 'kuning', SELESAI: 'hijau' };
+
+let TOKEN = sessionStorage.getItem('ebahasa_token') || null;
+let SESI = null;
+let KATA_LALUAN_SEMENTARA = '';
+let PANITIA_AKTIF = null;
+
+/* ------------------------- IKON SVG (satu sumber untuk seluruh SPA) ------------------------- */
+const LALUAN_IKON = {
+  dashboard: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+  dokumen: '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H13l5 5v12.5A1.5 1.5 0 0 1 16.5 22h-11A1.5 1.5 0 0 1 4 20.5v-16Z"/><path d="M13 3v5h5"/>',
+  mesyuarat: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
+  tindakan: '<path d="M9 12.5 11.2 15 16 9"/><circle cx="12" cy="12" r="9"/>',
+  program: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".9" fill="currentColor" stroke="none"/>',
+  panitia: '<path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M6.5 10.5V16c0 1.4 2.5 2.5 5.5 2.5s5.5-1.1 5.5-2.5v-5.5"/>',
+  pengguna: '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
+  audit: '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3h9L20 8.5V19.5A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-15Z"/><path d="M14 3v5.5H20M8 12h8M8 15.5h5"/>',
+  tambah: '<path d="M12 5v14M5 12h14"/>',
+  muatNaik: '<path d="M12 15.5V4.5M8 8.5l4-4 4 4"/><path d="M4.5 15.5v3A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-3"/>',
+  sunting: '<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4.2 1.2L4 16Z"/>',
+  padam: '<path d="M4 7h16M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7m-8 0 .8 12.1A2 2 0 0 0 9.8 21h4.4a2 2 0 0 0 2-1.9L17 7"/>',
+  lihat: '<path d="M14 4h6v6M20 4 11 13"/><path d="M9 5H6.5A1.5 1.5 0 0 0 5 6.5v11A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5V15"/>',
+  kunci: '<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',
+  keluar: '<path d="M9 21H5.5A1.5 1.5 0 0 1 4 19.5v-15A1.5 1.5 0 0 1 5.5 3H9"/><path d="M16 17l5-5-5-5M21 12H9"/>',
+  kalendar: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
+  jam: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v5l3 2"/>',
+  senaraiSemak: '<path d="M9 12.5 11.2 15 16 9"/><circle cx="12" cy="12" r="9"/>',
+  bangunan: '<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M9 8h1.5M13.5 8H15M9 12h1.5M13.5 12H15M9 16h1.5M13.5 16H15"/>',
+  togol: '<path d="M12 4v7"/><path d="M7.5 6.5a7 7 0 1 0 9 0"/>',
+  cetak: '<path d="M7 8.5V4.5A1 1 0 0 1 8 3.5h8a1 1 0 0 1 1 1v4"/><rect x="4.5" y="8.5" width="15" height="8" rx="1.5"/><rect x="7.5" y="13" width="9" height="7" rx="1"/>',
+  cartaOrganisasi: '<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="12" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v5M12 12.5H5v4M12 12.5h7v4"/>',
+  perancangan: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r=".9" fill="currentColor" stroke="none"/>',
+  pencerapan: '<path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z"/><circle cx="12" cy="12" r="3"/>',
+  profilSaya: '<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>',
+  kamera: '<path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1-2h7l1 2h2A1.5 1.5 0 0 1 20 8.5v10A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5v-10Z"/><circle cx="12" cy="13" r="3.5"/>'
+};
+function ikon(nama, kelasTambahan) {
+  return `<svg class="ikon ${kelasTambahan || ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${LALUAN_IKON[nama] || ''}</svg>`;
+}
+
+document.querySelectorAll('.item-nav .nav-ikon').forEach(span => {
+  span.innerHTML = ikon(span.closest('.item-nav').dataset.view);
+});
+document.getElementById('btnTukarPasswordSendiri').innerHTML = ikon('kunci') + 'Tukar Kata Laluan';
+document.getElementById('btnLogout').innerHTML = ikon('keluar') + 'Log Keluar';
+
+function panggil(namaFungsi, param) {
+  return new Promise((selesai, gagal) => {
+    google.script.run.withSuccessHandler(selesai).withFailureHandler(gagal)[namaFungsi](param || {});
+  });
+}
+
+function papartToast(mesej, jenis) {
+  const t = document.createElement('div');
+  t.className = 'toast ' + (jenis || 'jaya');
+  t.textContent = mesej;
+  document.getElementById('kontainerToast').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+function panggilApi(namaFungsi, param) {
+  return panggil(namaFungsi, Object.assign({ token: TOKEN }, param || {})).then(hasil => {
+    if (!hasil || hasil.success === false) {
+      papartToast((hasil && hasil.message) || 'Ralat tidak diketahui.', 'gagal');
+      throw new Error((hasil && hasil.message) || 'Ralat');
+    }
+    return hasil;
+  });
+}
+
+/* ------------------------- LOG MASUK / LOG KELUAR ------------------------- */
+document.getElementById('borangLogin').addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  const nokp = document.getElementById('inputNoKP').value.trim();
+  const kataLaluan = document.getElementById('inputKataLaluan').value;
+  document.getElementById('ralatLogin').textContent = '';
+  panggil('apiLogin', { nokp, kataLaluan }).then(hasil => {
+    if (!hasil.success) { document.getElementById('ralatLogin').textContent = hasil.message; return; }
+    TOKEN = hasil.token;
+    sessionStorage.setItem('ebahasa_token', TOKEN);
+    SESI = { nama: hasil.nama, peranan: hasil.peranan, panitia: hasil.panitia };
+    if (hasil.mestiTukarPassword) {
+      KATA_LALUAN_SEMENTARA = kataLaluan;
+      document.getElementById('latarModal').classList.remove('hidden');
+    } else {
+      mulakanApp();
+    }
+  });
+});
+
+document.getElementById('borangTukarPassword').addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  const baharu = document.getElementById('inputPasswordBaharu').value;
+  const sahkan = document.getElementById('inputPasswordSahkan').value;
+  const ralatEl = document.getElementById('ralatTukarPassword');
+  if (baharu !== sahkan) { ralatEl.textContent = 'Kata laluan baharu tidak sepadan.'; return; }
+  panggilApi('apiTukarPasswordSendiri', { kataLaluanLama: KATA_LALUAN_SEMENTARA, kataLaluanBaharu: baharu }).then(() => {
+    KATA_LALUAN_SEMENTARA = '';
+    document.getElementById('latarModal').classList.add('hidden');
+    document.getElementById('borangTukarPassword').reset();
+    papartToast('Kata laluan berjaya ditukar.');
+    mulakanApp();
+  }).catch(e => { ralatEl.textContent = e.message; });
+});
+
+document.getElementById('btnTukarPasswordSendiri').addEventListener('click', () => {
+  bukaModal(ikon('kunci', 'ikon-h3') + 'Tukar Kata Laluan', `
+    <form id="borangTukarPasswordSendiri">
+      <div class="medan"><label>Kata Laluan Semasa</label><input type="password" name="lama" required></div>
+      <div class="medan"><label>Kata Laluan Baharu</label><input type="password" name="baharu" minlength="6" required></div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangTukarPasswordSendiri').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiTukarPasswordSendiri', { kataLaluanLama: f.get('lama'), kataLaluanBaharu: f.get('baharu') }).then(() => {
+      papartToast('Kata laluan berjaya ditukar.');
+      tutupModal();
+    });
+  });
+});
+
+document.getElementById('btnLogout').addEventListener('click', () => {
+  panggilApi('apiLogout').finally(() => {
+    sessionStorage.removeItem('ebahasa_token');
+    location.reload();
+  });
+});
+
+/* ------------------------- MULAKAN APP SELEPAS LOG MASUK ------------------------- */
+function mulakanApp() {
+  document.getElementById('skrinLogin').classList.add('hidden');
+  document.getElementById('aplikasi').classList.remove('hidden');
+  document.getElementById('labelNamaPengguna').textContent = SESI.nama;
+  document.getElementById('labelPerananPengguna').textContent = LABEL_PERANAN[SESI.peranan] || SESI.peranan;
+  document.getElementById('avatarPengguna').textContent = inisialDaripadaNama(SESI.nama);
+
+  const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
+  document.getElementById('navPanitia').classList.toggle('hidden', !aksesPenuh);
+  document.getElementById('navPengguna').classList.toggle('hidden', !aksesPenuh);
+  document.getElementById('navAudit').classList.toggle('hidden', !aksesPenuh);
+
+  PANITIA_AKTIF = aksesPenuh ? SENARAI_PANITIA[0] : ((SESI.panitia && SESI.panitia[0]) || null);
+  document.getElementById('labelPanitiaAktif').textContent = PANITIA_AKTIF;
+
+  document.querySelectorAll('.item-nav').forEach(a => a.addEventListener('click', ev => {
+    ev.preventDefault();
+    navigasi(a.dataset.view);
+  }));
+  navigasi('dashboard');
+}
+
+/* Cuba sambung semula sesi jika token tersimpan (cth. selepas refresh pelayar). */
+window.addEventListener('load', () => {
+  if (!TOKEN) return;
+  panggil('apiSemakSesi', { token: TOKEN }).then(hasil => {
+    if (hasil.success) { SESI = hasil; mulakanApp(); }
+    else { sessionStorage.removeItem('ebahasa_token'); TOKEN = null; }
+  });
+});
+
+/* ------------------------- NAVIGASI & MODAL ------------------------- */
+function navigasi(view) {
+  document.querySelectorAll('.item-nav').forEach(a => a.classList.toggle('aktif', a.dataset.view === view));
+  const peta = {
+    dashboard: paparDashboard, cartaOrganisasi: paparCartaOrganisasi, profilSaya: paparProfilSaya,
+    dokumen: paparDokumen, mesyuarat: paparMesyuarat,
+    tindakan: paparTindakan, program: paparProgram, perancangan: paparPerancangan, pencerapan: paparPencerapan,
+    panitia: paparPanitia, pengguna: paparPengguna, audit: paparAudit
+  };
+  (peta[view] || paparDashboard)();
+}
+
+function bukaModal(tajuk, htmlBadan) {
+  let latar = document.getElementById('latarModalUmum');
+  if (!latar) {
+    latar = document.createElement('div');
+    latar.id = 'latarModalUmum';
+    latar.className = 'latar-modal';
+    latar.style.zIndex = '70';
+    latar.innerHTML = '<div id="kadModalUmum" class="kad-modal"></div>';
+    document.body.appendChild(latar);
+  }
+  document.getElementById('kadModalUmum').innerHTML = '<h3 style="margin-top:0">' + tajuk + '</h3>' + htmlBadan;
+  latar.classList.remove('hidden');
+}
+function tutupModal() {
+  const latar = document.getElementById('latarModalUmum');
+  if (latar) latar.classList.add('hidden');
+}
+
+function pilihanPanitiaHtml(namaAtribut, nilaiSemasa) {
+  return SENARAI_PANITIA.map(p => `<option value="${p}" ${p === nilaiSemasa ? 'selected' : ''}>${p}</option>`).join('');
+}
+
+function selEmpangan(baris) { return baris === undefined || baris === null ? '' : baris; }
+
+/* Pelayan/Sheet simpan & sort tarikh sebagai "yyyy-MM-dd" (ISO, perlu untuk
+   <input type="date"> asli & perbandingan rentetan seperti localeCompare/>=).
+   Fungsi ini HANYA untuk paparan — tukar ke format dd/MM/yyyy diminta pengguna.
+   Jangan guna hasil fungsi ini untuk nilai <input type="date"> atau logik sort. */
+function formatTarikhPaparan(iso) {
+  const tarikhSahaja = String(iso || '').trim().split(' ')[0];
+  const bahagian = tarikhSahaja.split('-');
+  if (bahagian.length !== 3) return iso || '';
+  return bahagian[2] + '/' + bahagian[1] + '/' + bahagian[0];
+}
+
+/* Sama seperti formatTarikhPaparan() tetapi bagi rentetan tarikh+masa
+   ("yyyy-MM-dd HH:mm:ss") — masa dikekalkan seperti asal. */
+function formatTarikhMasaPaparan(iso) {
+  const bahagian = String(iso || '').trim().split(' ');
+  const tarikh = formatTarikhPaparan(bahagian[0]);
+  return bahagian[1] ? (tarikh + ' ' + bahagian[1]) : tarikh;
+}
+
+/* Eksport senarai (array baris) sebagai fail CSV & muat turun terus di pelayar —
+   tiada panggilan pelayan, guna data yang sudah dimuatkan pada jadual semasa.
+   `header` & `baris` ialah array rentetan/array-array rentetan (bukan objek). */
+function eksportCSV(namaFail, header, baris) {
+  const escapeCSV = nilai => {
+    const s = nilai === undefined || nilai === null ? '' : String(nilai);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const isi = [header].concat(baris).map(b => b.map(escapeCSV).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + isi], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = namaFail;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function inisialDaripadaNama(nama) {
+  const perkataan = String(nama || '').trim().split(/\s+/).filter(Boolean);
+  if (!perkataan.length) return '?';
+  return (perkataan[0][0] + (perkataan.length > 1 ? perkataan[perkataan.length - 1][0] : '')).toUpperCase();
+}
+
+/* Kad ringkasan panitia di Dashboard boleh diklik terus ke Fail & Dokumen panitia berkenaan. */
+function bukaPanitiaDariDashboard(namaPanitia) {
+  PANITIA_AKTIF = namaPanitia;
+  document.getElementById('labelPanitiaAktif').textContent = namaPanitia;
+  navigasi('dokumen');
+}
+
+/* Selektor Panitia — dipaparkan di atas setiap view berkenaan. ADMIN/KETUA_BIDANG boleh
+   pilih mana-mana daripada 5 panitia; guru/ketua panitia yang mengajar > 1 panitia boleh
+   tukar antara panitia sendiri sahaja. Guru bagi 1 panitia tunggal tak perlu selektor. */
+function pemilihPanitiaHtml() {
+  const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
+  const senarai = aksesPenuh ? SENARAI_PANITIA : (SESI.panitia || []);
+  if (senarai.length <= 1) return '';
+  return `<select id="pemilihPanitia" style="width:auto">${senarai.map(p => `<option value="${p}" ${p === PANITIA_AKTIF ? 'selected' : ''}>${p}</option>`).join('')}</select>`;
+}
+function pasangPemilihPanitia(muatSemula) {
+  const el = document.getElementById('pemilihPanitia');
+  if (!el) return;
+  el.addEventListener('change', () => {
+    PANITIA_AKTIF = el.value;
+    document.getElementById('labelPanitiaAktif').textContent = PANITIA_AKTIF;
+    muatSemula();
+  });
+}
+
+/* ============================ DASHBOARD ============================ */
+function paparDashboard() {
+  const k = document.getElementById('kandungan');
+
+  k.innerHTML =
+    `<div class="kad"><h3>${ikon('dashboard', 'ikon-h3')}Ringkasan Kelengkapan Fail Panitia</h3><p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Klik kad panitia untuk terus ke Fail &amp; Dokumen.</p><div id="gridRingkasan" class="grid-kad"></div></div>` +
+    `<div class="kad"><h3>${ikon('senaraiSemak', 'ikon-h3')}Tindakan Susulan Saya (Belum Selesai)</h3><div id="jadualTindakanSaya"></div></div>`;
+
+  panggilApi('apiDashboard').then(hasil => {
+    document.getElementById('gridRingkasan').innerHTML = hasil.ringkasanPanitia.map(r => `
+      <div class="kad kad-statistik" style="margin-bottom:0" onclick="bukaPanitiaDariDashboard('${r.panitia}')" tabindex="0" role="button" aria-label="Buka Fail &amp; Dokumen ${r.panitia}">
+        <div class="label">${r.panitia}</div>
+        <div class="nilai">${r.jumlahDokumen} <span style="font-size:12px;color:var(--kelabu)">dokumen</span></div>
+        <div style="font-size:12px;color:var(--kelabu)">Checklist wajib lengkap: ${r.peratusChecklist}%</div>
+        <div class="bar-progres"><div style="width:${r.peratusChecklist}%"></div></div>
+        <div style="font-size:12px;margin-top:8px;color:var(--kelabu)">${ikon('kalendar', 'ikon-sahaja')} ${r.mesyuaratAkanDatang} akan datang &nbsp; ${ikon('senaraiSemak', 'ikon-sahaja')} ${r.tindakanTertunggak} tertunggak</div>
+      </div>`).join('') + (hasil.jumlahPenggunaAktif !== null ? `
+      <div class="kad kad-statistik tanpa-aksi" style="margin-bottom:0"><div class="label">Pengguna Aktif</div><div class="nilai">${hasil.jumlahPenggunaAktif}</div></div>` : '');
+
+    document.querySelectorAll('#gridRingkasan .kad-statistik:not(.tanpa-aksi)').forEach(el => {
+      el.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); el.click(); } });
+    });
+
+    document.getElementById('jadualTindakanSaya').innerHTML = hasil.tindakanSaya.length ? `<table><thead><tr>
+      <th>Panitia</th><th>Perkara</th><th>Tarikh Akhir</th><th>Status</th></tr></thead><tbody>` +
+      hasil.tindakanSaya.map(t => `<tr><td>${t.panitia}</td><td>${t.perkara}</td><td>${formatTarikhPaparan(t.tarikhAkhir)}</td>
+        <td><span class="lencana ${LENCANA_STATUS_TINDAKAN[t.status]}">${LABEL_STATUS_TINDAKAN[t.status]}</span></td></tr>`).join('') +
+      `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada tindakan tertunggak.</p>';
+  });
+}
+
+/* ============================ CARTA ORGANISASI ============================ */
+function avatarCartaHtml(profil, kelasTambahan) {
+  const isi = profil.gambarDataUri ? `<img src="${profil.gambarDataUri}" alt="${profil.nama}">` : inisialDaripadaNama(profil.nama);
+  return `<div class="avatar-carta ${kelasTambahan || ''}">${isi}</div>`;
+}
+
+function nodCartaHtml(profil, ketua) {
+  const labelKedua = profil.jawatan || LABEL_PERANAN[profil.peranan] || profil.peranan;
+  return `<div class="nod-carta ${ketua ? 'nod-ketua' : ''}" tabindex="0" role="button" aria-label="Lihat profil ${profil.nama}" onclick="bukaProfilModal('${profil.nokp}')" onkeydown="if(event.key==='Enter')bukaProfilModal('${profil.nokp}')">
+    ${avatarCartaHtml(profil)}
+    <div class="nama">${profil.nama}</div>
+    <div class="jawatan">${labelKedua}</div>
+  </div>`;
+}
+
+function paparCartaOrganisasi() {
+  const k = document.getElementById('kandungan');
+  k.innerHTML = `<div class="kad"><h3>${ikon('cartaOrganisasi', 'ikon-h3')}Carta Organisasi Bidang Bahasa</h3>
+    <p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Klik nama untuk lihat profil lengkap.</p>
+    <div id="kandunganCarta"></div></div>`;
+
+  panggilApi('apiCartaOrganisasi').then(hasil => {
+    let html = '';
+    if (hasil.pentadbir.length) {
+      html += `<div class="grid-nod-carta">${hasil.pentadbir.map(pr => nodCartaHtml(pr, true)).join('')}</div>
+        <div class="penghubung-carta"></div>`;
+    }
+    const senaraiKetua = hasil.panitia.filter(pn => pn.ketua);
+    if (senaraiKetua.length) {
+      html += `<div class="grid-nod-carta" style="margin-bottom:18px">${senaraiKetua.map(pn => nodCartaHtml(pn.ketua, true)).join('')}</div>`;
+    }
+
+    hasil.panitia.forEach(pn => {
+      html += `<div class="panel-panitia"><h4>${ikon('bangunan', 'ikon-sahaja')} Panitia ${pn.namaPanitia}</h4>
+        <div class="grid-nod-carta">
+          ${pn.ketua ? nodCartaHtml(pn.ketua, true) : '<p style="color:var(--kelabu);font-size:13px">Ketua Panitia belum ditetapkan.</p>'}
+          ${pn.ahli.map(a => nodCartaHtml(a, false)).join('')}
+        </div></div>`;
+    });
+
+    document.getElementById('kandunganCarta').innerHTML = html;
+  });
+}
+
+/* Modal profil lengkap — dibuka daripada nod Carta Organisasi ATAU daripada
+   jadual Pengguna (Admin/Ketua Bidang). Sesiapa yang log masuk boleh lihat
+   (direktori staf dalaman) — rujuk nota kebenaran dalam apiProfilPengguna(). */
+function bukaProfilModal(nokp) {
+  panggilApi('apiProfilPengguna', { nokp }).then(hasil => {
+    const pr = hasil.profil;
+    const baris = (label, nilai) => nilai ? `<tr><td style="color:var(--kelabu);padding:4px 12px 4px 0;white-space:nowrap">${label}</td><td style="padding:4px 0">${nilai}</td></tr>` : '';
+    bukaModal(ikon('profilSaya', 'ikon-h3') + 'Profil Guru', `
+      <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px">
+        ${avatarCartaHtml(pr, 'besar')}
+        <div>
+          <div style="font-size:17px;font-weight:700">${pr.nama}</div>
+          <div style="font-size:13px;color:var(--kelabu)">${pr.jawatan || LABEL_PERANAN[pr.peranan] || pr.peranan}</div>
+        </div>
+      </div>
+      <table style="width:100%;font-size:13px">
+        ${baris('Peranan', LABEL_PERANAN[pr.peranan] || pr.peranan)}
+        ${baris('Panitia', pr.panitia.join(', '))}
+        ${baris('Gred Jawatan', pr.gredJawatan)}
+        ${baris('Opsyen/Pengkhususan', pr.opsyenPengkhususan)}
+        ${baris('Kelayakan Akademik', pr.kelayakanAkademik)}
+        ${baris('Kelas Diajar', pr.kelasDiajar)}
+        ${baris('Tempoh Mengajar Subjek Semasa', pr.tempohMengajarTahun !== null ? (pr.tempohMengajarTahun + ' tahun (sejak ' + pr.tahunMulaSubjekSemasa + ')') : '')}
+        ${baris('No. Telefon', pr.noTelefon)}
+        ${baris('E-mel', pr.emel)}
+      </table>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Tutup</button></div>`);
+  });
+}
+
+/* ============================ PROFIL SAYA ============================ */
+function paparProfilSaya() {
+  const k = document.getElementById('kandungan');
+  k.innerHTML = `<div class="kad"><h3>${ikon('profilSaya', 'ikon-h3')}Profil Saya</h3>
+    <p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Maklumat ini dipaparkan di Carta Organisasi &amp; boleh dilihat oleh staf lain.</p>
+    <p id="statusMuatProfilSaya" style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Memuatkan profil sedia ada&hellip;</p>
+    <div class="medan-gambar-profil">
+      <div class="avatar-carta besar" id="avatarProfilSaya"></div>
+      <div>
+        <input type="file" id="inputGambarProfilSaya" accept="image/*" disabled>
+        <p style="font-size:11px;color:var(--kelabu);margin:4px 0 0">Gambar akan dikecilkan secara automatik.</p>
+      </div>
+    </div>
+    <form id="borangProfilSaya">
+      <div class="grid-borang">
+        <div class="medan"><label>Jawatan/Gelaran</label><input type="text" name="jawatan" placeholder="cth. Ketua Panitia Bahasa Melayu, Guru Cemerlang" disabled></div>
+        <div class="medan"><label>Gred Jawatan</label><input type="text" name="gredJawatan" placeholder="cth. DG44" disabled></div>
+        <div class="medan"><label>No. Telefon</label><input type="tel" name="noTelefon" placeholder="cth. 012-3456789" disabled></div>
+        <div class="medan"><label>Tahun Mula Mengajar Subjek Semasa</label><input type="number" name="tahunMulaSubjekSemasa" min="1980" max="2100" placeholder="cth. 2019" disabled></div>
+        <div class="medan lebar-penuh"><label>Opsyen/Bidang Pengkhususan Mengajar</label><input type="text" name="opsyenPengkhususan" placeholder="cth. Bahasa Melayu &amp; Kesusasteraan Melayu" disabled></div>
+        <div class="medan lebar-penuh"><label>Kelayakan Akademik</label><input type="text" name="kelayakanAkademik" placeholder="cth. Ijazah Sarjana Muda Pendidikan Bahasa Melayu, UPSI" disabled></div>
+        <div class="medan lebar-penuh"><label>Kelas Yang Diajar</label><input type="text" name="kelasDiajar" placeholder="cth. 5 Bestari, 4 Cemerlang, 1 Arif" disabled></div>
+      </div>
+      <div class="aksi-modal" style="justify-content:flex-start"><button type="submit" class="btn" disabled>Simpan Profil</button></div>
+    </form>`;
+
+  document.getElementById('inputGambarProfilSaya').addEventListener('change', ev => {
+    const fail = ev.target.files[0];
+    if (!fail) return;
+    resizeGambarSebagaiBase64(fail, 300).then(({ dataBase64, jenisMime }) =>
+      panggilApi('apiMuatNaikGambarProfilSendiri', { namaFail: fail.name, jenisMime, dataBase64 })
+    ).then(hasil => {
+      document.getElementById('avatarProfilSaya').innerHTML = `<img src="${hasil.gambarDataUri}" alt="Gambar profil">`;
+      papartToast('Gambar profil dikemaskini.');
+    }).catch(e => {
+      // panggilApi() sudah papar toast bagi ralat peringkat aplikasi (success:false);
+      // .catch() ini hanya untuk tangkap ralat RPC/pelayar yang tidak dijangka supaya
+      // muat naik gambar yang gagal senyap tidak lagi kelihatan seolah-olah berjaya.
+      papartToast(e.message || 'Gagal memuat naik gambar profil.', 'gagal');
+      ev.target.value = '';
+    });
+  });
+
+  panggilApi('apiProfilPengguna', {}).then(hasil => {
+    const pr = hasil.profil;
+    document.getElementById('avatarProfilSaya').innerHTML = pr.gambarDataUri ? `<img src="${pr.gambarDataUri}" alt="Gambar profil">` : inisialDaripadaNama(pr.nama);
+    const borang = document.getElementById('borangProfilSaya');
+    ['jawatan', 'gredJawatan', 'noTelefon', 'tahunMulaSubjekSemasa', 'opsyenPengkhususan', 'kelayakanAkademik', 'kelasDiajar'].forEach(medan => {
+      borang.elements[medan].value = pr[medan] || '';
+      borang.elements[medan].disabled = false;
+    });
+    document.getElementById('inputGambarProfilSaya').disabled = false;
+    borang.querySelector('button[type=submit]').disabled = false;
+    document.getElementById('statusMuatProfilSaya').remove();
+  }).catch(() => {
+    // panggilApi() sudah papar toast ralat; kekalkan medan dilumpuhkan (bukan
+    // kosong senyap) supaya pengguna tidak tersimpan borang kosong menimpa
+    // profil sedia ada akibat gagal memuatkan data asal.
+    document.getElementById('statusMuatProfilSaya').textContent = 'Gagal memuatkan profil sedia ada. Sila muat semula halaman.';
+  });
+
+  document.getElementById('borangProfilSaya').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiKemaskiniProfilSendiri', {
+      jawatan: f.get('jawatan'), gredJawatan: f.get('gredJawatan'), noTelefon: f.get('noTelefon'),
+      tahunMulaSubjekSemasa: f.get('tahunMulaSubjekSemasa'), opsyenPengkhususan: f.get('opsyenPengkhususan'),
+      kelayakanAkademik: f.get('kelayakanAkademik'), kelasDiajar: f.get('kelasDiajar')
+    }).then(() => papartToast('Profil disimpan.'));
+  });
+}
+
+/* ============================ DOKUMEN ============================ */
+function paparDokumen() {
+  const k = document.getElementById('kandungan');
+  k.innerHTML = `
+    <div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn kecil luar" id="btnEksportDokumen">${ikon('cetak')}Eksport CSV</button><button class="btn" id="btnMuatNaikDokumen">${ikon('muatNaik')}Muat Naik Dokumen</button></div>
+    <div class="kad"><h3>${ikon('senaraiSemak', 'ikon-h3')}Checklist Kelengkapan Fail</h3><div id="jadualChecklist"></div></div>
+    <div class="kad"><h3>${ikon('dokumen', 'ikon-h3')}Senarai Dokumen</h3><div id="jadualDokumen"></div></div>`;
+  pasangPemilihPanitia(muatSemulaDokumen);
+  document.getElementById('btnMuatNaikDokumen').addEventListener('click', bukaBorangMuatNaikDokumen);
+  document.getElementById('btnEksportDokumen').addEventListener('click', () => eksportCSV(
+    'Dokumen_' + PANITIA_AKTIF + '.csv',
+    ['Nama Dokumen', 'Kategori', 'Tarikh', 'Dimuat Naik Oleh', 'Catatan'],
+    (SENARAI_DOKUMEN_SEMASA || []).map(d => [d.namaDokumen, d.namaKategori, formatTarikhPaparan(d.tarikhDokumen), d.dimuatNaikOleh, d.catatan || ''])
+  ));
+  muatSemulaDokumen();
+}
+
+let SENARAI_DOKUMEN_SEMASA = [];
+function muatSemulaDokumen() {
+  Promise.all([
+    panggilApi('apiChecklistDokumen', { panitia: PANITIA_AKTIF }),
+    panggilApi('apiSenaraiDokumen', { panitia: PANITIA_AKTIF })
+  ]).then(([checklist, dokumen]) => {
+    SENARAI_DOKUMEN_SEMASA = dokumen.senarai;
+    document.getElementById('jadualChecklist').innerHTML = `<table><thead><tr>
+      <th>Kategori</th><th>Wajib?</th><th>Bilangan Fail</th><th>Status</th></tr></thead><tbody>` +
+      checklist.checklist.map(c => `<tr><td>${c.namaKategori}</td><td>${c.wajib === 'YA' ? 'Ya' : 'Tidak'}</td><td>${c.bilangan}</td>
+        <td><span class="lencana ${c.lengkap ? 'hijau' : 'merah'}">${c.lengkap ? 'Lengkap' : 'Belum Lengkap'}</span></td></tr>`).join('') +
+      `</tbody></table><p style="font-size:12px;color:var(--kelabu);margin-top:10px">Keseluruhan kelengkapan wajib: <b>${checklist.peratusLengkap}%</b></p>`;
+
+    document.getElementById('jadualDokumen').innerHTML = dokumen.senarai.length ? `<table><thead><tr>
+      <th>Nama Dokumen</th><th>Kategori</th><th>Tarikh</th><th>Dimuat Naik Oleh</th><th>Fail</th><th>Catatan</th><th></th></tr></thead><tbody>` +
+      dokumen.senarai.map(d => `<tr>
+        <td>${d.namaDokumen}</td><td>${d.namaKategori}</td><td>${formatTarikhPaparan(d.tarikhDokumen)}</td><td>${d.dimuatNaikOleh}</td>
+        <td><a href="${d.failUrl}" target="_blank">${ikon('lihat')}Lihat Fail</a></td><td>${d.catatan || ''}</td>
+        <td><button class="btn kecil luar" onclick='bukaBorangSuntingDokumen(${JSON.stringify(d)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamDokumen('${d.idDokumen}')">${ikon('padam')}Padam</button></td>
+      </tr>`).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada dokumen lagi.</p>';
+  });
+}
+
+function bukaBorangMuatNaikDokumen() {
+  panggilApi('apiSenaraiKategoriDokumen').then(hasil => {
+    bukaModal(ikon('muatNaik', 'ikon-h3') + 'Muat Naik Dokumen — ' + PANITIA_AKTIF, `
+      <form id="borangMuatNaikDokumen">
+        <div class="grid-borang">
+          <div class="medan lebar-penuh"><label>Kategori</label>
+            <select name="kodKategori" required>${hasil.senarai.map(kt => `<option value="${kt.kodKategori}">${kt.namaKategori}${kt.wajib === 'YA' ? ' (wajib)' : ''}</option>`).join('')}</select></div>
+          <div class="medan lebar-penuh"><label>Nama Dokumen</label><input type="text" name="namaDokumen" required></div>
+          <div class="medan"><label>Tarikh Dokumen</label><input type="date" name="tarikhDokumen"></div>
+          <div class="medan lebar-penuh"><label>Catatan</label><input type="text" name="catatan"></div>
+          <div class="medan lebar-penuh"><label>Fail</label><input type="file" name="fail" required></div>
+        </div>
+        <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Muat Naik</button></div>
+      </form>`);
+    document.getElementById('borangMuatNaikDokumen').addEventListener('submit', hantarBorangMuatNaikDokumen);
+  });
+}
+
+function hantarBorangMuatNaikDokumen(ev) {
+  ev.preventDefault();
+  const f = new FormData(ev.target);
+  const fail = f.get('fail');
+  bacaFailSebagaiBase64(fail).then(base64 => panggilApi('apiMuatNaikDokumen', {
+    panitia: PANITIA_AKTIF, kodKategori: f.get('kodKategori'), namaDokumen: f.get('namaDokumen'),
+    tarikhDokumen: f.get('tarikhDokumen'), catatan: f.get('catatan'),
+    namaFail: fail.name, jenisMime: fail.type, dataBase64: base64
+  })).then(() => { papartToast('Dokumen berjaya dimuat naik.'); tutupModal(); muatSemulaDokumen(); });
+}
+
+function bukaBorangSuntingDokumen(d) {
+  bukaModal(ikon('sunting', 'ikon-h3') + 'Sunting Dokumen', `
+    <form id="borangSuntingDokumen">
+      <div class="grid-borang">
+        <div class="medan lebar-penuh"><label>Nama Dokumen</label><input type="text" name="namaDokumen" value="${d.namaDokumen}" required></div>
+        <div class="medan"><label>Tarikh Dokumen</label><input type="date" name="tarikhDokumen" value="${d.tarikhDokumen}"></div>
+        <div class="medan lebar-penuh"><label>Catatan</label><input type="text" name="catatan" value="${d.catatan || ''}"></div>
+        <div class="medan lebar-penuh"><label>Ganti Fail (pilihan)</label><input type="file" name="fail"></div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangSuntingDokumen').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    const fail = f.get('fail');
+    const param = { idDokumen: d.idDokumen, namaDokumen: f.get('namaDokumen'), tarikhDokumen: f.get('tarikhDokumen'), catatan: f.get('catatan') };
+    const proses = (fail && fail.size) ? bacaFailSebagaiBase64(fail).then(b64 => Object.assign(param, { namaFail: fail.name, jenisMime: fail.type, dataBase64: b64 })) : Promise.resolve(param);
+    proses.then(p => panggilApi('apiKemaskiniDokumen', p)).then(() => { papartToast('Dokumen dikemaskini.'); tutupModal(); muatSemulaDokumen(); });
+  });
+}
+
+function padamDokumen(idDokumen) {
+  if (!confirm('Padam dokumen ini?')) return;
+  panggilApi('apiPadamDokumen', { idDokumen }).then(() => { papartToast('Dokumen dipadam.'); muatSemulaDokumen(); });
+}
+
+function bacaFailSebagaiBase64(fail) {
+  return new Promise((selesai, gagal) => {
+    const pembaca = new FileReader();
+    pembaca.onload = () => selesai(pembaca.result.split(',')[1]);
+    pembaca.onerror = gagal;
+    pembaca.readAsDataURL(fail);
+  });
+}
+
+/* Kecilkan & mampatkan imej (guna <canvas>) sebelum muat naik gambar profil —
+   dibenamkan sebagai data URI base64 dalam respons apiCartaOrganisasi()/
+   apiProfilPengguna() bagi SEMUA staf sekali gus, jadi saiz setiap gambar
+   mesti dikekalkan kecil. Pulangkan base64 (tanpa prefix "data:...") + jenis MIME. */
+function resizeGambarSebagaiBase64(fail, saizMaksimum) {
+  const saiz = saizMaksimum || 300;
+  return new Promise((selesai, gagal) => {
+    const imej = new Image();
+    const url = URL.createObjectURL(fail);
+    imej.onload = () => {
+      URL.revokeObjectURL(url);
+      const skala = Math.min(1, saiz / Math.max(imej.width, imej.height));
+      const lebar = Math.round(imej.width * skala);
+      const tinggi = Math.round(imej.height * skala);
+      const kanvas = document.createElement('canvas');
+      kanvas.width = lebar;
+      kanvas.height = tinggi;
+      kanvas.getContext('2d').drawImage(imej, 0, 0, lebar, tinggi);
+      const dataUrl = kanvas.toDataURL('image/jpeg', 0.72);
+      selesai({ dataBase64: dataUrl.split(',')[1], jenisMime: 'image/jpeg' });
+    };
+    imej.onerror = gagal;
+    imej.src = url;
+  });
+}
+
+/* ============================ MESYUARAT ============================ */
+function bolehUrusPanitia() { return ['ADMIN', 'KETUA_BIDANG', 'KETUA_PANITIA'].indexOf(SESI.peranan) !== -1; }
+
+function paparMesyuarat() {
+  const k = document.getElementById('kandungan');
+  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn kecil luar" id="btnEksportMesyuarat">${ikon('cetak')}Eksport CSV</button>${bolehUrusPanitia() ? `<button class="btn" id="btnTambahMesyuarat">${ikon('tambah')}Mesyuarat Baharu</button>` : ''}</div>
+    <div class="kad"><h3>${ikon('mesyuarat', 'ikon-h3')}Senarai Mesyuarat</h3><div id="jadualMesyuarat"></div></div>`;
+  pasangPemilihPanitia(muatSemulaMesyuarat);
+  const btn = document.getElementById('btnTambahMesyuarat');
+  if (btn) btn.addEventListener('click', () => bukaBorangMesyuarat(null));
+  document.getElementById('btnEksportMesyuarat').addEventListener('click', () => eksportCSV(
+    'Mesyuarat_' + PANITIA_AKTIF + '.csv',
+    ['Tarikh', 'Masa', 'Tajuk', 'Minit'],
+    (SENARAI_MESYUARAT_SEMASA || []).map(m => [formatTarikhPaparan(m.TarikhMesyuarat), m.MasaMula && m.MasaTamat ? (m.MasaMula + '-' + m.MasaTamat) : '-', m.Tajuk, m.MinitUrl || '-'])
+  ));
+  muatSemulaMesyuarat();
+}
+
+let SENARAI_MESYUARAT_SEMASA = [];
+function muatSemulaMesyuarat() {
+  panggilApi('apiSenaraiMesyuarat', { panitia: PANITIA_AKTIF }).then(hasil => {
+    SENARAI_MESYUARAT_SEMASA = hasil.senarai;
+    document.getElementById('jadualMesyuarat').innerHTML = hasil.senarai.length ? `<table><thead><tr>
+      <th>Tarikh</th><th>Masa</th><th>Tajuk</th><th>Minit</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(m => `<tr>
+        <td>${formatTarikhPaparan(m.TarikhMesyuarat)}</td><td>${m.MasaMula && m.MasaTamat ? (m.MasaMula + '&ndash;' + m.MasaTamat) : '-'}</td><td>${m.Tajuk}</td>
+        <td>${m.MinitUrl ? `<a href="${m.MinitUrl}" target="_blank">${ikon('lihat')}Lihat Minit</a>` : '-'}</td>
+        <td>
+          <button class="btn kecil luar" onclick='bukaKehadiran(${JSON.stringify(m.IDMesyuarat)}, ${JSON.stringify(m.Tajuk)})'>${ikon('pengguna')}Kehadiran</button>
+          ${bolehUrusPanitia() ? `<button class="btn kecil luar" onclick='bukaBorangMesyuarat(${JSON.stringify(m)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamMesyuarat('${m.IDMesyuarat}')">${ikon('padam')}Padam</button>` : ''}
+        </td></tr>`).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada mesyuarat direkod.</p>';
+  });
+}
+
+function bukaBorangMesyuarat(m) {
+  bukaModal(ikon('mesyuarat', 'ikon-h3') + (m ? 'Sunting Mesyuarat' : 'Mesyuarat Baharu'), `
+    <form id="borangMesyuarat">
+      <div class="grid-borang">
+        <div class="medan"><label>Tarikh</label><input type="date" name="tarikhMesyuarat" value="${m ? m.TarikhMesyuarat : ''}" required></div>
+        <div class="medan"><label>Tajuk</label><input type="text" name="tajuk" value="${m ? m.Tajuk : ''}" required></div>
+        <div class="medan"><label>Masa Mula (pilihan)</label><input type="time" name="masaMula" value="${m ? (m.MasaMula || '') : ''}"></div>
+        <div class="medan"><label>Masa Tamat (pilihan)</label><input type="time" name="masaTamat" value="${m ? (m.MasaTamat || '') : ''}"></div>
+        <div class="medan lebar-penuh"><label>Agenda</label><textarea name="agenda" rows="3">${m ? (m.Agenda || '') : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Fail Minit (pilihan)</label><input type="file" name="fail"></div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangMesyuarat').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    const masaMula = f.get('masaMula'), masaTamat = f.get('masaTamat');
+    if (masaMula && masaTamat && masaTamat <= masaMula) { papartToast('Masa tamat mesti selepas masa mula.', 'gagal'); return; }
+    const fail = f.get('fail');
+    const param = {
+      idMesyuarat: m ? m.IDMesyuarat : '', panitia: PANITIA_AKTIF, tarikhMesyuarat: f.get('tarikhMesyuarat'),
+      tajuk: f.get('tajuk'), masaMula, masaTamat, agenda: f.get('agenda')
+    };
+    const proses = (fail && fail.size) ? bacaFailSebagaiBase64(fail).then(b64 => Object.assign(param, { namaFail: fail.name, jenisMime: fail.type, dataBase64: b64 })) : Promise.resolve(param);
+    proses.then(p => panggilApi('apiSimpanMesyuarat', p)).then(() => { papartToast('Mesyuarat disimpan.'); tutupModal(); muatSemulaMesyuarat(); });
+  });
+}
+
+function padamMesyuarat(idMesyuarat) {
+  if (!confirm('Padam mesyuarat ini (termasuk rekod kehadiran)?')) return;
+  panggilApi('apiPadamMesyuarat', { idMesyuarat }).then(() => { papartToast('Mesyuarat dipadam.'); muatSemulaMesyuarat(); });
+}
+
+function bukaKehadiran(idMesyuarat, tajuk) {
+  Promise.all([
+    panggilApi('apiSenaraiAhliPanitia', { panitia: PANITIA_AKTIF }),
+    panggilApi('apiSenaraiKehadiran', { idMesyuarat })
+  ]).then(([ahli, kehadiranSediaAda]) => {
+    const petaSediaAda = {};
+    kehadiranSediaAda.senarai.forEach(k => { petaSediaAda[k.NamaAhli] = k.Status; });
+    bukaModal(ikon('pengguna', 'ikon-h3') + 'Kehadiran — ' + tajuk, `
+      <form id="borangKehadiran">
+        <table><thead><tr><th>Nama</th><th>Hadir?</th></tr></thead><tbody>
+          ${ahli.senarai.map(a => `<tr><td>${a.nama}</td><td>
+            <select name="status_${a.nama.replace(/"/g, '')}" data-nama="${a.nama}">
+              <option value="HADIR" ${petaSediaAda[a.nama] === 'HADIR' || !petaSediaAda[a.nama] ? 'selected' : ''}>Hadir</option>
+              <option value="TIDAK_HADIR" ${petaSediaAda[a.nama] === 'TIDAK_HADIR' ? 'selected' : ''}>Tidak Hadir</option>
+            </select></td></tr>`).join('')}
+        </tbody></table>
+        <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Tutup</button>
+        ${bolehUrusPanitia() ? '<button type="submit" class="btn">Simpan Kehadiran</button>' : ''}</div>
+      </form>`);
+    const borang = document.getElementById('borangKehadiran');
+    if (bolehUrusPanitia()) borang.addEventListener('submit', ev => {
+      ev.preventDefault();
+      const senarai = ahli.senarai.map(a => ({ namaAhli: a.nama, status: new FormData(ev.target).get('status_' + a.nama.replace(/"/g, '')) }));
+      panggilApi('apiSimpanKehadiranPukal', { idMesyuarat, senarai }).then(() => { papartToast('Kehadiran disimpan.'); tutupModal(); });
+    });
+  });
+}
+
+/* ============================ TINDAKAN SUSULAN ============================ */
+function paparTindakan() {
+  const k = document.getElementById('kandungan');
+  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn kecil luar" id="btnEksportTindakan">${ikon('cetak')}Eksport CSV</button>${bolehUrusPanitia() ? `<button class="btn" id="btnTambahTindakan">${ikon('tambah')}Tindakan Baharu</button>` : ''}</div>
+    <div class="kad"><h3>${ikon('tindakan', 'ikon-h3')}Senarai Tindakan Susulan</h3><div id="jadualTindakan"></div></div>`;
+  pasangPemilihPanitia(muatSemulaTindakan);
+  const btn = document.getElementById('btnTambahTindakan');
+  if (btn) btn.addEventListener('click', () => bukaBorangTindakan(null));
+  document.getElementById('btnEksportTindakan').addEventListener('click', () => eksportCSV(
+    'Tindakan_Susulan_' + PANITIA_AKTIF + '.csv',
+    ['Perkara', 'Tanggungjawab', 'Tarikh Akhir', 'Status'],
+    (SENARAI_TINDAKAN_SEMASA || []).map(t => [t.Perkara, (window.__ahliPanitiaSemasa.find(a => a.nokp === t.TanggungjawabNoKP) || {}).nama || t.TanggungjawabNoKP, formatTarikhPaparan(t.TarikhAkhir), LABEL_STATUS_TINDAKAN[t.Status] || t.Status])
+  ));
+  muatSemulaTindakan();
+}
+
+let SENARAI_TINDAKAN_SEMASA = [];
+function muatSemulaTindakan() {
+  panggilApi('apiSenaraiAhliPanitia', { panitia: PANITIA_AKTIF }).then(ahli => {
+    window.__ahliPanitiaSemasa = ahli.senarai;
+    return panggilApi('apiSenaraiTindakanSusulan', { panitia: PANITIA_AKTIF });
+  }).then(hasil => {
+    SENARAI_TINDAKAN_SEMASA = hasil.senarai;
+    document.getElementById('jadualTindakan').innerHTML = hasil.senarai.length ? `<table><thead><tr>
+      <th>Perkara</th><th>Tanggungjawab</th><th>Tarikh Akhir</th><th>Status</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(t => {
+        const ahliNama = (window.__ahliPanitiaSemasa.find(a => a.nokp === t.TanggungjawabNoKP) || {}).nama || t.TanggungjawabNoKP;
+        return `<tr><td>${t.Perkara}</td><td>${ahliNama}</td><td>${formatTarikhPaparan(t.TarikhAkhir)}</td>
+        <td><select onchange="tukarStatusTindakan('${t.IDTindakan}', this.value)">
+          ${Object.keys(LABEL_STATUS_TINDAKAN).map(s => `<option value="${s}" ${s === t.Status ? 'selected' : ''}>${LABEL_STATUS_TINDAKAN[s]}</option>`).join('')}
+        </select></td>
+        <td>${bolehUrusPanitia() ? `<button class="btn kecil luar" onclick='bukaBorangTindakan(${JSON.stringify(t)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamTindakan('${t.IDTindakan}')">${ikon('padam')}Padam</button>` : ''}</td></tr>`;
+      }).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada tindakan susulan.</p>';
+  });
+}
+
+function bukaBorangTindakan(t) {
+  const ahli = window.__ahliPanitiaSemasa || [];
+  bukaModal(ikon('tindakan', 'ikon-h3') + (t ? 'Sunting Tindakan' : 'Tindakan Susulan Baharu'), `
+    <form id="borangTindakan">
+      <div class="grid-borang">
+        <div class="medan lebar-penuh"><label>Perkara</label><input type="text" name="perkara" value="${t ? t.Perkara : ''}" required></div>
+        <div class="medan"><label>Tanggungjawab</label><select name="tanggungjawabNoKP">${ahli.map(a => `<option value="${a.nokp}" ${t && t.TanggungjawabNoKP === a.nokp ? 'selected' : ''}>${a.nama}</option>`).join('')}</select></div>
+        <div class="medan"><label>Tarikh Akhir</label><input type="date" name="tarikhAkhir" value="${t ? t.TarikhAkhir : ''}"></div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangTindakan').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiSimpanTindakanSusulan', {
+      idTindakan: t ? t.IDTindakan : '', panitia: PANITIA_AKTIF, perkara: f.get('perkara'),
+      tanggungjawabNoKP: f.get('tanggungjawabNoKP'), tarikhAkhir: f.get('tarikhAkhir')
+    }).then(() => { papartToast('Tindakan disimpan.'); tutupModal(); muatSemulaTindakan(); });
+  });
+}
+
+function tukarStatusTindakan(idTindakan, status) {
+  panggilApi('apiKemaskiniStatusTindakan', { idTindakan, status }).then(() => papartToast('Status dikemaskini.'));
+}
+function padamTindakan(idTindakan) {
+  if (!confirm('Padam tindakan ini?')) return;
+  panggilApi('apiPadamTindakanSusulan', { idTindakan }).then(() => { papartToast('Tindakan dipadam.'); muatSemulaTindakan(); });
+}
+
+/* ============================ PROGRAM & PLC ============================ */
+function paparProgram() {
+  const k = document.getElementById('kandungan');
+  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn kecil luar" id="btnEksportProgram">${ikon('cetak')}Eksport CSV</button>${bolehUrusPanitia() ? `<button class="btn" id="btnTambahProgram">${ikon('tambah')}Program/PLC Baharu</button>` : ''}</div>
+    <div class="kad"><h3>${ikon('program', 'ikon-h3')}Senarai Program &amp; PLC</h3><div id="jadualProgram"></div></div>`;
+  pasangPemilihPanitia(muatSemulaProgram);
+  const btn = document.getElementById('btnTambahProgram');
+  if (btn) btn.addEventListener('click', () => bukaBorangProgram(null));
+  document.getElementById('btnEksportProgram').addEventListener('click', () => eksportCSV(
+    'Program_PLC_' + PANITIA_AKTIF + '.csv',
+    ['Nama', 'Jenis', 'Tarikh Mula', 'Tarikh Tamat', 'Masa', 'Status'],
+    (SENARAI_PROGRAM_SEMASA || []).map(pr => [pr.NamaProgram, pr.JenisProgram, pr.TarikhMula ? formatTarikhPaparan(pr.TarikhMula) : '-', pr.TarikhTamat ? formatTarikhPaparan(pr.TarikhTamat) : '-', pr.MasaMula && pr.MasaTamat ? (pr.MasaMula + '-' + pr.MasaTamat) : '-', pr.Status])
+  ));
+  muatSemulaProgram();
+}
+
+let SENARAI_PROGRAM_SEMASA = [];
+function muatSemulaProgram() {
+  panggilApi('apiSenaraiProgram', { panitia: PANITIA_AKTIF }).then(hasil => {
+    SENARAI_PROGRAM_SEMASA = hasil.senarai;
+    document.getElementById('jadualProgram').innerHTML = hasil.senarai.length ? `<table><thead><tr>
+      <th>Nama</th><th>Jenis</th><th>Tarikh</th><th>Masa</th><th>Status</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(pr => `<tr>
+        <td>${pr.NamaProgram}</td><td>${pr.JenisProgram}</td><td>${pr.TarikhMula ? formatTarikhPaparan(pr.TarikhMula) : '-'} &rarr; ${pr.TarikhTamat ? formatTarikhPaparan(pr.TarikhTamat) : '-'}</td>
+        <td>${pr.MasaMula && pr.MasaTamat ? (pr.MasaMula + '&ndash;' + pr.MasaTamat) : '-'}</td>
+        <td><span class="lencana ${pr.Status === 'SELESAI' ? 'hijau' : pr.Status === 'BERJALAN' ? 'kuning' : 'kelabu'}">${pr.Status}</span></td>
+        <td><button class="btn kecil luar" onclick='bukaEvidens(${JSON.stringify(pr.IDProgram)}, ${JSON.stringify(pr.NamaProgram)})'>${ikon('dokumen')}Evidens</button>
+          ${bolehUrusPanitia() ? `<button class="btn kecil luar" onclick='bukaBorangProgram(${JSON.stringify(pr)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamProgram('${pr.IDProgram}')">${ikon('padam')}Padam</button>` : ''}</td>
+      </tr>`).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada program direkod.</p>';
+  });
+}
+
+function bukaBorangProgram(pr) {
+  bukaModal(ikon('program', 'ikon-h3') + (pr ? 'Sunting Program' : 'Program/PLC Baharu'), `
+    <form id="borangProgram">
+      <div class="grid-borang">
+        <div class="medan lebar-penuh"><label>Nama Program</label><input type="text" name="namaProgram" value="${pr ? pr.NamaProgram : ''}" required></div>
+        <div class="medan"><label>Jenis</label><select name="jenisProgram">
+          <option value="PROGRAM" ${pr && pr.JenisProgram === 'PROGRAM' ? 'selected' : ''}>Program/Aktiviti</option>
+          <option value="PLC" ${pr && pr.JenisProgram === 'PLC' ? 'selected' : ''}>PLC</option></select></div>
+        <div class="medan"><label>Status</label><select name="status">
+          <option value="DIRANCANG" ${pr && pr.Status === 'DIRANCANG' ? 'selected' : ''}>Dirancang</option>
+          <option value="BERJALAN" ${pr && pr.Status === 'BERJALAN' ? 'selected' : ''}>Berjalan</option>
+          <option value="SELESAI" ${pr && pr.Status === 'SELESAI' ? 'selected' : ''}>Selesai</option></select></div>
+        <div class="medan"><label>Tarikh Mula</label><input type="date" name="tarikhMula" value="${pr ? pr.TarikhMula : ''}"></div>
+        <div class="medan"><label>Tarikh Tamat</label><input type="date" name="tarikhTamat" value="${pr ? pr.TarikhTamat : ''}"></div>
+        <div class="medan"><label>Masa Mula (pilihan)</label><input type="time" name="masaMula" value="${pr ? (pr.MasaMula || '') : ''}"></div>
+        <div class="medan"><label>Masa Tamat (pilihan)</label><input type="time" name="masaTamat" value="${pr ? (pr.MasaTamat || '') : ''}"></div>
+        <div class="medan lebar-penuh"><label>Objektif</label><textarea name="objektif" rows="2">${pr ? (pr.Objektif || '') : ''}</textarea></div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangProgram').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    const masaMula = f.get('masaMula'), masaTamat = f.get('masaTamat');
+    if (masaMula && masaTamat && masaTamat <= masaMula) { papartToast('Masa tamat mesti selepas masa mula.', 'gagal'); return; }
+    panggilApi('apiSimpanProgram', {
+      idProgram: pr ? pr.IDProgram : '', panitia: PANITIA_AKTIF, namaProgram: f.get('namaProgram'),
+      jenisProgram: f.get('jenisProgram'), status: f.get('status'), tarikhMula: f.get('tarikhMula'),
+      tarikhTamat: f.get('tarikhTamat'), masaMula, masaTamat, objektif: f.get('objektif')
+    }).then(() => { papartToast('Program disimpan.'); tutupModal(); muatSemulaProgram(); });
+  });
+}
+
+function padamProgram(idProgram) {
+  if (!confirm('Padam program ini (termasuk semua evidens)?')) return;
+  panggilApi('apiPadamProgram', { idProgram }).then(() => { papartToast('Program dipadam.'); muatSemulaProgram(); });
+}
+
+function bukaEvidens(idProgram, namaProgram) {
+  panggilApi('apiSenaraiEvidens', { idProgram }).then(hasil => {
+    bukaModal(ikon('dokumen', 'ikon-h3') + 'Evidens — ' + namaProgram, `
+      <div id="jadualEvidens">${hasil.senarai.length ? `<table><thead><tr><th>Keterangan</th><th>Fail</th><th></th></tr></thead><tbody>` +
+        hasil.senarai.map(ev => `<tr><td>${ev.Keterangan || '-'}</td><td><a href="${ev.FailUrl}" target="_blank">${ikon('lihat')}Lihat</a></td>
+          <td><button class="btn kecil merah" onclick="padamEvidens('${ev.IDEvidens}', '${idProgram}', '${namaProgram.replace(/'/g, "\\'")}')">${ikon('padam')}Padam</button></td></tr>`).join('') +
+        `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada evidens lagi.</p>'}</div>
+      <form id="borangEvidens" style="margin-top:14px">
+        <div class="medan"><label>Keterangan</label><input type="text" name="keterangan"></div>
+        <div class="medan"><label>Fail</label><input type="file" name="fail" required></div>
+        <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Tutup</button><button type="submit" class="btn">${ikon('muatNaik')}Muat Naik Evidens</button></div>
+      </form>`);
+    document.getElementById('borangEvidens').addEventListener('submit', ev => {
+      ev.preventDefault();
+      const f = new FormData(ev.target);
+      const fail = f.get('fail');
+      bacaFailSebagaiBase64(fail).then(b64 => panggilApi('apiMuatNaikEvidens', {
+        idProgram, keterangan: f.get('keterangan'), namaFail: fail.name, jenisMime: fail.type, dataBase64: b64
+      })).then(() => { papartToast('Evidens dimuat naik.'); bukaEvidens(idProgram, namaProgram); });
+    });
+  });
+}
+
+function padamEvidens(idEvidens, idProgram, namaProgram) {
+  if (!confirm('Padam evidens ini?')) return;
+  panggilApi('apiPadamEvidens', { idEvidens }).then(() => { papartToast('Evidens dipadam.'); bukaEvidens(idProgram, namaProgram); });
+}
+
+/* ============================ PERANCANGAN STRATEGIK (PS/PT/PO) & CARTA GANTT ============================ */
+/* Skop = satu Panitia ATAU SKOP_BIDANG (peringkat Ketua Bidang, merentasi semua panitia).
+   Sesiapa log masuk boleh LIHAT skop Bidang (dikongsi) + panitia sendiri; hanya
+   ADMIN/KETUA_BIDANG boleh URUS skop Bidang, dan ADMIN/KETUA_BIDANG/KETUA_PANITIA
+   panitia berkenaan boleh urus skop Panitia (selaras PERANAN_URUS_PANITIA pelayan). */
+function senaraiSkopBolehDilihat() {
+  const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
+  const panitiaSendiri = aksesPenuh ? SENARAI_PANITIA : (SESI.panitia || []);
+  return [SKOP_BIDANG].concat(panitiaSendiri);
+}
+function labelSkop(skop) { return skop === SKOP_BIDANG ? 'Bidang (Keseluruhan)' : skop; }
+function bolehUrusSkopJS(skop) {
+  const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
+  if (skop === SKOP_BIDANG) return aksesPenuh;
+  return aksesPenuh || (SESI.peranan === 'KETUA_PANITIA' && (SESI.panitia || []).indexOf(skop) !== -1);
+}
+
+let SKOP_PERANCANGAN_AKTIF = null;
+let TAB_PERANCANGAN_AKTIF = 'ps';
+
+function paparPerancangan() {
+  if (!SKOP_PERANCANGAN_AKTIF) SKOP_PERANCANGAN_AKTIF = senaraiSkopBolehDilihat()[0];
+  const k = document.getElementById('kandungan');
+  const pilihanSkop = senaraiSkopBolehDilihat().map(sk => `<option value="${sk}" ${sk === SKOP_PERANCANGAN_AKTIF ? 'selected' : ''}>${labelSkop(sk)}</option>`).join('');
+  const tab = (kunci, label) => `<button type="button" data-tab="${kunci}" class="${TAB_PERANCANGAN_AKTIF === kunci ? 'aktif' : ''}">${label}</button>`;
+  k.innerHTML = `<div class="kad"><h3>${ikon('perancangan', 'ikon-h3')}Perancangan Strategik</h3>
+    <p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Perancangan Strategik (PS), Pelan Taktikal (PT), Pelan Operasi (PO) dan Carta Gantt aktiviti tahunan.</p>
+    <div class="baris-alat"><label style="font-size:13px;font-weight:600">Skop:</label><select id="pemilihSkopPerancangan" style="width:auto">${pilihanSkop}</select></div>
+    <div class="bar-tab">${tab('ps', 'Perancangan Strategik (PS)')}${tab('pt', 'Pelan Taktikal (PT)')}${tab('po', 'Pelan Operasi (PO)')}${tab('gantt', 'Carta Gantt')}</div>
+    <div id="kandunganTabPerancangan"></div></div>`;
+
+  document.getElementById('pemilihSkopPerancangan').addEventListener('change', ev => { SKOP_PERANCANGAN_AKTIF = ev.target.value; muatSemulaTabPerancangan(); });
+  document.querySelectorAll('.bar-tab button').forEach(btn => btn.addEventListener('click', () => { TAB_PERANCANGAN_AKTIF = btn.dataset.tab; paparPerancangan(); }));
+  muatSemulaTabPerancangan();
+}
+
+function muatSemulaTabPerancangan() {
+  ({ ps: muatSemulaPS, pt: muatSemulaPT, po: muatSemulaPO, gantt: muatSemulaGantt })[TAB_PERANCANGAN_AKTIF]();
+}
+
+/* ---------- Perancangan Strategik (PS) ---------- */
+function muatSemulaPS() {
+  const bolehUrus = bolehUrusSkopJS(SKOP_PERANCANGAN_AKTIF);
+  const k = document.getElementById('kandunganTabPerancangan');
+  k.innerHTML = `<div class="baris-alat">${bolehUrus ? `<button class="btn" id="btnTambahPS">${ikon('tambah')}PS Baharu</button>` : '<span></span>'}</div><div id="jadualPS"></div>`;
+  const btn = document.getElementById('btnTambahPS');
+  if (btn) btn.addEventListener('click', () => bukaBorangPS(null));
+  panggilApi('apiSenaraiPS', { skop: SKOP_PERANCANGAN_AKTIF }).then(hasil => {
+    document.getElementById('jadualPS').innerHTML = hasil.senarai.length ? hasil.senarai.map(ps => `
+      <div class="kad" style="margin-bottom:12px">
+        <div class="baris-alat" style="margin-bottom:8px"><b>${ps.TahunMula}&ndash;${ps.TahunTamat}</b>
+          ${bolehUrus ? `<span><button class="btn kecil luar" onclick='bukaBorangPS(${JSON.stringify(ps)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamPS('${ps.IDPS}')">${ikon('padam')}Padam</button></span>` : ''}</div>
+        <table style="width:100%;font-size:13px">
+          <tr><td style="color:var(--kelabu);width:180px;vertical-align:top">Isu Strategik</td><td>${ps.IsuStrategik}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Matlamat Strategik</td><td>${ps.MatlamatStrategik}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Objektif</td><td>${ps.Objektif}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">KPI</td><td>${ps.KPI}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Sasaran (TOV &rarr; ETR)</td><td>${ps.SasaranTOV || '-'} &rarr; ${ps.SasaranETR || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Strategi/Inisiatif</td><td>${ps.Strategi || '-'}</td></tr>
+        </table>
+      </div>`).join('') : '<p style="color:var(--kelabu);font-size:13px">Tiada Perancangan Strategik direkod bagi skop ini.</p>';
+  });
+}
+
+function bukaBorangPS(ps) {
+  bukaModal(ikon('perancangan', 'ikon-h3') + (ps ? 'Sunting Perancangan Strategik' : 'Perancangan Strategik Baharu') + ' — ' + labelSkop(SKOP_PERANCANGAN_AKTIF), `
+    <form id="borangPS">
+      <div class="grid-borang">
+        <div class="medan"><label>Tahun Mula</label><input type="number" name="tahunMula" min="1980" max="2100" value="${ps ? ps.TahunMula : new Date().getFullYear()}" required></div>
+        <div class="medan"><label>Tahun Tamat</label><input type="number" name="tahunTamat" min="1980" max="2100" value="${ps ? ps.TahunTamat : (new Date().getFullYear() + 4)}" required></div>
+        <div class="medan lebar-penuh"><label>Isu Strategik</label><textarea name="isuStrategik" rows="2" required>${ps ? ps.IsuStrategik : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Matlamat Strategik</label><textarea name="matlamatStrategik" rows="2" required>${ps ? ps.MatlamatStrategik : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Objektif</label><textarea name="objektif" rows="2" required>${ps ? ps.Objektif : ''}</textarea></div>
+        <div class="medan"><label>KPI</label><input type="text" name="kpi" value="${ps ? ps.KPI : ''}" required></div>
+        <div class="medan"><label>Sasaran (TOV)</label><input type="text" name="sasaranTOV" value="${ps ? (ps.SasaranTOV || '') : ''}" placeholder="cth. 12%"></div>
+        <div class="medan"><label>Sasaran (ETR)</label><input type="text" name="sasaranETR" value="${ps ? (ps.SasaranETR || '') : ''}" placeholder="cth. 17%"></div>
+        <div class="medan lebar-penuh"><label>Strategi/Inisiatif</label><textarea name="strategi" rows="2">${ps ? (ps.Strategi || '') : ''}</textarea></div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangPS').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiSimpanPS', {
+      idPS: ps ? ps.IDPS : '', skop: SKOP_PERANCANGAN_AKTIF, tahunMula: f.get('tahunMula'), tahunTamat: f.get('tahunTamat'),
+      isuStrategik: f.get('isuStrategik'), matlamatStrategik: f.get('matlamatStrategik'), objektif: f.get('objektif'),
+      kpi: f.get('kpi'), sasaranTOV: f.get('sasaranTOV'), sasaranETR: f.get('sasaranETR'), strategi: f.get('strategi')
+    }).then(() => { papartToast('Perancangan Strategik disimpan.'); tutupModal(); muatSemulaPS(); });
+  });
+}
+
+function padamPS(idPS) {
+  if (!confirm('Padam Perancangan Strategik ini?')) return;
+  panggilApi('apiPadamPS', { idPS }).then(() => { papartToast('Dipadam.'); muatSemulaPS(); });
+}
+
+/* ---------- Pelan Taktikal (PT) ---------- */
+function muatSemulaPT() {
+  const bolehUrus = bolehUrusSkopJS(SKOP_PERANCANGAN_AKTIF);
+  const k = document.getElementById('kandunganTabPerancangan');
+  k.innerHTML = `<div class="baris-alat">${bolehUrus ? `<button class="btn" id="btnTambahPT">${ikon('tambah')}PT Baharu</button>` : '<span></span>'}</div><div id="jadualPT"></div>`;
+  const btn = document.getElementById('btnTambahPT');
+  if (btn) btn.addEventListener('click', () => bukaBorangPT(null));
+  panggilApi('apiSenaraiPT', { skop: SKOP_PERANCANGAN_AKTIF }).then(hasil => {
+    document.getElementById('jadualPT').innerHTML = hasil.senarai.length ? `<table><thead><tr>
+      <th>Tahun</th><th>Program</th><th>Tanggungjawab</th><th>Tempoh/Hari</th><th>KPI</th><th>Sasaran</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(pt => `<tr>
+        <td>${pt.Tahun}</td><td>${pt.Program}</td><td>${pt.Tanggungjawab}</td><td>${pt.TempohHari || '-'}</td><td>${pt.KPI}</td><td>${pt.Sasaran || '-'}</td>
+        <td>${bolehUrus ? `<button class="btn kecil luar" onclick='bukaBorangPT(${JSON.stringify(pt)})'>${ikon('sunting')}</button>
+        <button class="btn kecil merah" onclick="padamPT('${pt.IDPT}')">${ikon('padam')}</button>` : ''}</td>
+      </tr>`).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada Pelan Taktikal direkod bagi skop ini.</p>';
+  });
+}
+
+function bukaBorangPT(pt) {
+  bukaModal(ikon('perancangan', 'ikon-h3') + (pt ? 'Sunting Pelan Taktikal' : 'Pelan Taktikal Baharu') + ' — ' + labelSkop(SKOP_PERANCANGAN_AKTIF), `
+    <form id="borangPT">
+      <div class="grid-borang">
+        <div class="medan"><label>Tahun</label><input type="number" name="tahun" min="1980" max="2100" value="${pt ? pt.Tahun : new Date().getFullYear()}" required></div>
+        <div class="medan lebar-penuh"><label>Program/Projek</label><input type="text" name="program" value="${pt ? pt.Program : ''}" required></div>
+        <div class="medan"><label>Tanggungjawab</label><input type="text" name="tanggungjawab" value="${pt ? pt.Tanggungjawab : ''}" required></div>
+        <div class="medan"><label>Tempoh/Hari</label><input type="text" name="tempohHari" value="${pt ? (pt.TempohHari || '') : ''}" placeholder="cth. Mac &amp; Ogos"></div>
+        <div class="medan"><label>Kos/Sumber</label><input type="text" name="kosSumber" value="${pt ? (pt.KosSumber || '') : ''}" placeholder="cth. RM 300 / PCG Panitia"></div>
+        <div class="medan"><label>KPI</label><input type="text" name="kpi" value="${pt ? pt.KPI : ''}" required></div>
+        <div class="medan"><label>Sasaran</label><input type="text" name="sasaran" value="${pt ? (pt.Sasaran || '') : ''}"></div>
+        <div class="medan lebar-penuh"><label>Pelan Kontinjensi</label><textarea name="pelanKontinjensi" rows="2">${pt ? (pt.PelanKontinjensi || '') : ''}</textarea></div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangPT').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiSimpanPT', {
+      idPT: pt ? pt.IDPT : '', skop: SKOP_PERANCANGAN_AKTIF, tahun: f.get('tahun'), program: f.get('program'),
+      tanggungjawab: f.get('tanggungjawab'), tempohHari: f.get('tempohHari'), kosSumber: f.get('kosSumber'),
+      kpi: f.get('kpi'), sasaran: f.get('sasaran'), pelanKontinjensi: f.get('pelanKontinjensi')
+    }).then(() => { papartToast('Pelan Taktikal disimpan.'); tutupModal(); muatSemulaPT(); });
+  });
+}
+
+function padamPT(idPT) {
+  if (!confirm('Padam Pelan Taktikal ini?')) return;
+  panggilApi('apiPadamPT', { idPT }).then(() => { papartToast('Dipadam.'); muatSemulaPT(); });
+}
+
+/* ---------- Pelan Operasi (PO) ---------- */
+function muatSemulaPO() {
+  const bolehUrus = bolehUrusSkopJS(SKOP_PERANCANGAN_AKTIF);
+  const k = document.getElementById('kandunganTabPerancangan');
+  k.innerHTML = `<div class="baris-alat">${bolehUrus ? `<button class="btn" id="btnTambahPO">${ikon('tambah')}PO Baharu</button>` : '<span></span>'}</div><div id="jadualPO"></div>`;
+  const btn = document.getElementById('btnTambahPO');
+  if (btn) btn.addEventListener('click', () => bukaBorangPO(null));
+  panggilApi('apiSenaraiPO', { skop: SKOP_PERANCANGAN_AKTIF }).then(hasil => {
+    document.getElementById('jadualPO').innerHTML = hasil.senarai.length ? hasil.senarai.map(po => `
+      <div class="kad" style="margin-bottom:12px">
+        <div class="baris-alat" style="margin-bottom:8px"><b>${po.NamaProgram}</b>
+          ${bolehUrus ? `<span><button class="btn kecil luar" onclick='bukaBorangPO(${JSON.stringify(po)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamPO('${po.IDPO}')">${ikon('padam')}Padam</button></span>` : ''}</div>
+        <table style="width:100%;font-size:13px">
+          <tr><td style="color:var(--kelabu);width:200px;vertical-align:top">Objektif</td><td>${po.Objektif || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Kumpulan Sasaran</td><td>${po.KumpulanSasaran || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Pegawai Bertanggungjawab</td><td>${po.PegawaiBertanggungjawab || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Pratugas</td><td style="white-space:pre-wrap">${po.LangkahPratugas || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Penyediaan Bahan/Publisiti</td><td style="white-space:pre-wrap">${po.LangkahPenyediaan || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Pelaksanaan</td><td style="white-space:pre-wrap">${po.LangkahPelaksanaan || '-'}</td></tr>
+          <tr><td style="color:var(--kelabu);vertical-align:top">Penilaian &amp; Post-Mortem</td><td style="white-space:pre-wrap">${po.LangkahPenilaian || '-'}</td></tr>
+        </table>
+      </div>`).join('') : '<p style="color:var(--kelabu);font-size:13px">Tiada Pelan Operasi direkod bagi skop ini.</p>';
+  });
+}
+
+function bukaBorangPO(po) {
+  bukaModal(ikon('perancangan', 'ikon-h3') + (po ? 'Sunting Pelan Operasi' : 'Pelan Operasi Baharu') + ' — ' + labelSkop(SKOP_PERANCANGAN_AKTIF), `
+    <form id="borangPO">
+      <div class="grid-borang">
+        <div class="medan lebar-penuh"><label>Nama Program</label><input type="text" name="namaProgram" value="${po ? po.NamaProgram : ''}" required></div>
+        <div class="medan lebar-penuh"><label>Objektif</label><textarea name="objektif" rows="2">${po ? (po.Objektif || '') : ''}</textarea></div>
+        <div class="medan"><label>Kumpulan Sasaran</label><input type="text" name="kumpulanSasaran" value="${po ? (po.KumpulanSasaran || '') : ''}"></div>
+        <div class="medan"><label>Pegawai Bertanggungjawab</label><input type="text" name="pegawaiBertanggungjawab" value="${po ? (po.PegawaiBertanggungjawab || '') : ''}"></div>
+        <div class="medan lebar-penuh"><label>Langkah — Pratugas</label><textarea name="langkahPratugas" rows="2">${po ? (po.LangkahPratugas || '') : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Langkah — Penyediaan Bahan/Publisiti</label><textarea name="langkahPenyediaan" rows="2">${po ? (po.LangkahPenyediaan || '') : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Langkah — Pelaksanaan (Hari Kejadian)</label><textarea name="langkahPelaksanaan" rows="2">${po ? (po.LangkahPelaksanaan || '') : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Langkah — Penilaian &amp; Post-Mortem</label><textarea name="langkahPenilaian" rows="2">${po ? (po.LangkahPenilaian || '') : ''}</textarea></div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangPO').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiSimpanPO', {
+      idPO: po ? po.IDPO : '', skop: SKOP_PERANCANGAN_AKTIF, namaProgram: f.get('namaProgram'), objektif: f.get('objektif'),
+      kumpulanSasaran: f.get('kumpulanSasaran'), pegawaiBertanggungjawab: f.get('pegawaiBertanggungjawab'),
+      langkahPratugas: f.get('langkahPratugas'), langkahPenyediaan: f.get('langkahPenyediaan'),
+      langkahPelaksanaan: f.get('langkahPelaksanaan'), langkahPenilaian: f.get('langkahPenilaian')
+    }).then(() => { papartToast('Pelan Operasi disimpan.'); tutupModal(); muatSemulaPO(); });
+  });
+}
+
+function padamPO(idPO) {
+  if (!confirm('Padam Pelan Operasi ini?')) return;
+  panggilApi('apiPadamPO', { idPO }).then(() => { papartToast('Dipadam.'); muatSemulaPO(); });
+}
+
+/* ---------- Carta Gantt (Aktiviti Tahunan) ---------- */
+let TAHUN_GANTT_AKTIF = new Date().getFullYear();
+function muatSemulaGantt() {
+  const bolehUrus = bolehUrusSkopJS(SKOP_PERANCANGAN_AKTIF);
+  const k = document.getElementById('kandunganTabPerancangan');
+  k.innerHTML = `<div class="baris-alat">
+      <label style="font-size:13px;font-weight:600">Tahun:</label><input type="number" id="inputTahunGantt" style="width:90px" value="${TAHUN_GANTT_AKTIF}">
+      ${bolehUrus ? `<button class="btn" id="btnTambahGantt">${ikon('tambah')}Aktiviti Baharu</button>` : '<span></span>'}
+    </div><div id="jadualGantt" style="overflow-x:auto"></div>`;
+  document.getElementById('inputTahunGantt').addEventListener('change', ev => { TAHUN_GANTT_AKTIF = ev.target.value; muatSemulaGantt(); });
+  const btn = document.getElementById('btnTambahGantt');
+  if (btn) btn.addEventListener('click', () => bukaBorangGantt(null));
+  panggilApi('apiSenaraiAktivitiTahunan', { skop: SKOP_PERANCANGAN_AKTIF, tahun: TAHUN_GANTT_AKTIF }).then(hasil => {
+    document.getElementById('jadualGantt').innerHTML = hasil.senarai.length ? `<table class="jadual-gantt"><thead><tr>
+      <th>Aktiviti/Program</th>${BULAN_TAHUNAN.map(b => `<th>${b}</th>`).join('')}${bolehUrus ? '<th></th>' : ''}</tr></thead><tbody>` +
+      hasil.senarai.map(ak => `<tr><td>${ak.Aktiviti}</td>${BULAN_TAHUNAN.map(b => `<td class="${ak[b] === 'YA' ? 'tanda' : ''}">${ak[b] === 'YA' ? 'X' : ''}</td>`).join('')}
+        ${bolehUrus ? `<td><button class="btn kecil luar" onclick='bukaBorangGantt(${JSON.stringify(ak)})'>${ikon('sunting')}</button>
+        <button class="btn kecil merah" onclick="padamGantt('${ak.IDAktiviti}')">${ikon('padam')}</button></td>` : ''}</tr>`).join('') +
+      `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada aktiviti direkod bagi tahun/skop ini.</p>';
+  });
+}
+
+function bukaBorangGantt(ak) {
+  const bulanTertanda = ak ? BULAN_TAHUNAN.filter(b => ak[b] === 'YA') : [];
+  bukaModal(ikon('perancangan', 'ikon-h3') + (ak ? 'Sunting Aktiviti' : 'Aktiviti Baharu') + ' — ' + labelSkop(SKOP_PERANCANGAN_AKTIF), `
+    <form id="borangGantt">
+      <div class="grid-borang">
+        <div class="medan"><label>Tahun</label><input type="number" name="tahun" min="1980" max="2100" value="${ak ? ak.Tahun : TAHUN_GANTT_AKTIF}" required></div>
+        <div class="medan lebar-penuh"><label>Aktiviti/Program</label><input type="text" name="aktiviti" value="${ak ? ak.Aktiviti : ''}" required></div>
+      </div>
+      <div class="medan lebar-penuh" style="margin-top:10px"><label>Bulan Pelaksanaan</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">${BULAN_TAHUNAN.map(b => `
+          <label style="display:flex;align-items:center;gap:4px;font-weight:400;width:auto"><input type="checkbox" name="bulan" value="${b}" style="width:auto" ${bulanTertanda.indexOf(b) !== -1 ? 'checked' : ''}>${b}</label>`).join('')}</div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangGantt').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiSimpanAktivitiTahunan', {
+      idAktiviti: ak ? ak.IDAktiviti : '', skop: SKOP_PERANCANGAN_AKTIF, tahun: f.get('tahun'), aktiviti: f.get('aktiviti'),
+      bulan: f.getAll('bulan')
+    }).then(() => { papartToast('Aktiviti disimpan.'); tutupModal(); muatSemulaGantt(); });
+  });
+}
+
+function padamGantt(idAktiviti) {
+  if (!confirm('Padam aktiviti ini?')) return;
+  panggilApi('apiPadamAktivitiTahunan', { idAktiviti }).then(() => { papartToast('Dipadam.'); muatSemulaGantt(); });
+}
+
+/* ============================ PENCERAPAN PdP & SEMAKAN BUKU LATIHAN ============================ */
+let TAB_PENCERAPAN_AKTIF = 'pdp';
+
+function paparPencerapan() {
+  const k = document.getElementById('kandungan');
+  const tab = (kunci, label) => `<button type="button" data-tab="${kunci}" class="${TAB_PENCERAPAN_AKTIF === kunci ? 'aktif' : ''}">${label}</button>`;
+  k.innerHTML = `<div class="kad"><h3>${ikon('pencerapan', 'ikon-h3')}Pencerapan &amp; Semakan</h3>
+    <p style="margin:-8px 0 14px;font-size:12px;color:var(--kelabu)">Pencerapan PdP (pemerhatian pengajaran guru) dan Semakan Buku Latihan murid.</p>
+    <div class="baris-alat">${pemilihPanitiaHtml()}</div>
+    <div class="bar-tab">${tab('pdp', 'Pencerapan PdP')}${tab('buku', 'Semakan Buku Latihan')}</div>
+    <div id="kandunganTabPencerapan"></div></div>`;
+  pasangPemilihPanitia(muatSemulaTabPencerapan);
+  document.querySelectorAll('.bar-tab button').forEach(btn => btn.addEventListener('click', () => { TAB_PENCERAPAN_AKTIF = btn.dataset.tab; paparPencerapan(); }));
+  muatSemulaTabPencerapan();
+}
+
+function muatSemulaTabPencerapan() {
+  ({ pdp: muatSemulaPencerapanPdp, buku: muatSemulaSemakanBuku })[TAB_PENCERAPAN_AKTIF]();
+}
+
+/* ---------- Pencerapan PdP ---------- */
+let SENARAI_AHLI_PANITIA_PENCERAPAN = [];
+function muatSemulaPencerapanPdp() {
+  const bolehUrus = bolehUrusPanitia();
+  const k = document.getElementById('kandunganTabPencerapan');
+  k.innerHTML = `<div class="baris-alat">${bolehUrus ? `<button class="btn" id="btnTambahPencerapan">${ikon('tambah')}Pencerapan Baharu</button>` : '<span></span>'}</div><div id="jadualPencerapan"></div>`;
+  Promise.all([
+    panggilApi('apiSenaraiAhliPanitia', { panitia: PANITIA_AKTIF }),
+    panggilApi('apiSenaraiPencerapan', { panitia: PANITIA_AKTIF })
+  ]).then(([ahli, hasil]) => {
+    SENARAI_AHLI_PANITIA_PENCERAPAN = ahli.senarai;
+    const btn = document.getElementById('btnTambahPencerapan');
+    if (btn) btn.addEventListener('click', () => bukaBorangPencerapan(null));
+    document.getElementById('jadualPencerapan').innerHTML = hasil.senarai.length ? `<table><thead><tr>
+      <th>Guru Diperc</th><th>Pencerap</th><th>Tarikh</th><th>Mata Pelajaran/Tingkatan</th><th>Instrumen/Skor</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(pc => {
+        const namaGuru = (SENARAI_AHLI_PANITIA_PENCERAPAN.find(a => a.nokp === pc.GuruDipercNoKP) || {}).nama || pc.GuruDipercNoKP;
+        return `<tr><td>${namaGuru}</td><td>${pc.Pencerap}</td><td>${formatTarikhPaparan(pc.TarikhPencerapan)}</td>
+          <td>${pc.MataPelajaran || '-'}${pc.Tingkatan ? (' / ' + pc.Tingkatan) : ''}</td><td>${pc.Instrumen || '-'}${pc.Skor ? (' (' + pc.Skor + ')') : ''}</td>
+          <td>${pc.FailBorangUrl ? `<a href="${pc.FailBorangUrl}" target="_blank">${ikon('lihat')}Borang</a>` : ''}
+          ${bolehUrus ? `<button class="btn kecil luar" onclick='bukaBorangPencerapan(${JSON.stringify(pc)})'>${ikon('sunting')}</button>
+          <button class="btn kecil merah" onclick="padamPencerapan('${pc.IDPencerapan}')">${ikon('padam')}</button>` : ''}</td></tr>`;
+      }).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada pencerapan direkod.</p>';
+  });
+}
+
+function bukaBorangPencerapan(pc) {
+  bukaModal(ikon('pencerapan', 'ikon-h3') + (pc ? 'Sunting Pencerapan PdP' : 'Pencerapan PdP Baharu'), `
+    <form id="borangPencerapan">
+      <div class="grid-borang">
+        <div class="medan lebar-penuh"><label>Guru Diperc</label><select name="guruDipercNoKP" required>
+          <option value="">- Pilih -</option>
+          ${SENARAI_AHLI_PANITIA_PENCERAPAN.map(a => `<option value="${a.nokp}" ${pc && pc.GuruDipercNoKP === a.nokp ? 'selected' : ''}>${a.nama}</option>`).join('')}
+        </select></div>
+        <div class="medan"><label>Pencerap</label><input type="text" name="pencerap" value="${pc ? pc.Pencerap : ''}" required></div>
+        <div class="medan"><label>Tarikh Pencerapan</label><input type="date" name="tarikhPencerapan" value="${pc ? pc.TarikhPencerapan : ''}" required></div>
+        <div class="medan"><label>Mata Pelajaran</label><input type="text" name="mataPelajaran" value="${pc ? (pc.MataPelajaran || '') : ''}"></div>
+        <div class="medan"><label>Tingkatan</label><input type="text" name="tingkatan" value="${pc ? (pc.Tingkatan || '') : ''}"></div>
+        <div class="medan"><label>Instrumen</label><input type="text" name="instrumen" value="${pc ? (pc.Instrumen || '') : ''}" placeholder="cth. SKPMg2"></div>
+        <div class="medan"><label>Skor/Gred</label><input type="text" name="skor" value="${pc ? (pc.Skor || '') : ''}"></div>
+        <div class="medan lebar-penuh"><label>Catatan</label><textarea name="catatan" rows="2">${pc ? (pc.Catatan || '') : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Fail Borang Pencerapan (pilihan)</label><input type="file" id="inputFailPencerapan">
+          ${pc && pc.FailBorangUrl ? `<p style="font-size:11px;margin:4px 0 0"><a href="${pc.FailBorangUrl}" target="_blank">Lihat fail sedia ada</a></p>` : ''}</div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangPencerapan').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    const fail = document.getElementById('inputFailPencerapan').files[0];
+    panggilApi('apiSimpanPencerapan', {
+      idPencerapan: pc ? pc.IDPencerapan : '', panitia: PANITIA_AKTIF, guruDipercNoKP: f.get('guruDipercNoKP'),
+      pencerap: f.get('pencerap'), tarikhPencerapan: f.get('tarikhPencerapan'), mataPelajaran: f.get('mataPelajaran'),
+      tingkatan: f.get('tingkatan'), instrumen: f.get('instrumen'), skor: f.get('skor'), catatan: f.get('catatan')
+    }).then(hasil => {
+      const idPencerapan = pc ? pc.IDPencerapan : hasil.idPencerapan;
+      if (fail) return bacaFailSebagaiBase64(fail).then(b64 => panggilApi('apiMuatNaikBorangPencerapan', {
+        idPencerapan, namaFail: fail.name, jenisMime: fail.type, dataBase64: b64
+      }));
+    }).then(() => { papartToast('Pencerapan disimpan.'); tutupModal(); muatSemulaPencerapanPdp(); });
+  });
+}
+
+function padamPencerapan(idPencerapan) {
+  if (!confirm('Padam rekod pencerapan ini?')) return;
+  panggilApi('apiPadamPencerapan', { idPencerapan }).then(() => { papartToast('Dipadam.'); muatSemulaPencerapanPdp(); });
+}
+
+/* ---------- Semakan Buku Latihan ---------- */
+function muatSemulaSemakanBuku() {
+  const bolehUrus = bolehUrusPanitia();
+  const k = document.getElementById('kandunganTabPencerapan');
+  k.innerHTML = `<div class="baris-alat">${bolehUrus ? `<button class="btn" id="btnTambahSemakanBuku">${ikon('tambah')}Semakan Baharu</button>` : '<span></span>'}</div><div id="jadualSemakanBuku"></div>`;
+  const btn = document.getElementById('btnTambahSemakanBuku');
+  if (btn) btn.addEventListener('click', () => bukaBorangSemakanBuku(null));
+  panggilApi('apiSenaraiSemakanBuku', { panitia: PANITIA_AKTIF }).then(hasil => {
+    document.getElementById('jadualSemakanBuku').innerHTML = hasil.senarai.length ? `<table><thead><tr>
+      <th>Tingkatan/Kelas</th><th>Kali Ke</th><th>Tarikh</th><th>Pemeriksa</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(sm => `<tr><td>${sm.TingkatanKelas}</td><td>${sm.BilanganKe || '-'}</td><td>${formatTarikhPaparan(sm.TarikhSemakan)}</td><td>${sm.Pemeriksa}</td>
+        <td>${sm.FailLaporanUrl ? `<a href="${sm.FailLaporanUrl}" target="_blank">${ikon('lihat')}Laporan</a>` : ''}
+        ${bolehUrus ? `<button class="btn kecil luar" onclick='bukaBorangSemakanBuku(${JSON.stringify(sm)})'>${ikon('sunting')}</button>
+        <button class="btn kecil merah" onclick="padamSemakanBuku('${sm.IDSemakan}')">${ikon('padam')}</button>` : ''}</td></tr>`).join('') +
+      `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada semakan buku latihan direkod.</p>';
+  });
+}
+
+function bukaBorangSemakanBuku(sm) {
+  bukaModal(ikon('pencerapan', 'ikon-h3') + (sm ? 'Sunting Semakan Buku Latihan' : 'Semakan Buku Latihan Baharu'), `
+    <form id="borangSemakanBuku">
+      <div class="grid-borang">
+        <div class="medan"><label>Tingkatan/Kelas</label><input type="text" name="tingkatanKelas" value="${sm ? sm.TingkatanKelas : ''}" required></div>
+        <div class="medan"><label>Semakan Kali Ke</label><input type="text" name="bilanganKe" value="${sm ? (sm.BilanganKe || '') : ''}" placeholder="cth. 1"></div>
+        <div class="medan"><label>Tarikh Semakan</label><input type="date" name="tarikhSemakan" value="${sm ? sm.TarikhSemakan : ''}" required></div>
+        <div class="medan"><label>Pemeriksa</label><input type="text" name="pemeriksa" value="${sm ? sm.Pemeriksa : ''}" required></div>
+        <div class="medan lebar-penuh"><label>Catatan</label><textarea name="catatan" rows="2">${sm ? (sm.Catatan || '') : ''}</textarea></div>
+        <div class="medan lebar-penuh"><label>Fail Laporan (pilihan)</label><input type="file" id="inputFailSemakanBuku">
+          ${sm && sm.FailLaporanUrl ? `<p style="font-size:11px;margin:4px 0 0"><a href="${sm.FailLaporanUrl}" target="_blank">Lihat fail sedia ada</a></p>` : ''}</div>
+      </div>
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  document.getElementById('borangSemakanBuku').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    const fail = document.getElementById('inputFailSemakanBuku').files[0];
+    panggilApi('apiSimpanSemakanBuku', {
+      idSemakan: sm ? sm.IDSemakan : '', panitia: PANITIA_AKTIF, tingkatanKelas: f.get('tingkatanKelas'),
+      bilanganKe: f.get('bilanganKe'), tarikhSemakan: f.get('tarikhSemakan'), pemeriksa: f.get('pemeriksa'), catatan: f.get('catatan')
+    }).then(hasil => {
+      const idSemakan = sm ? sm.IDSemakan : hasil.idSemakan;
+      if (fail) return bacaFailSebagaiBase64(fail).then(b64 => panggilApi('apiMuatNaikLaporanSemakanBuku', {
+        idSemakan, namaFail: fail.name, jenisMime: fail.type, dataBase64: b64
+      }));
+    }).then(() => { papartToast('Semakan buku latihan disimpan.'); tutupModal(); muatSemulaSemakanBuku(); });
+  });
+}
+
+function padamSemakanBuku(idSemakan) {
+  if (!confirm('Padam rekod semakan ini?')) return;
+  panggilApi('apiPadamSemakanBuku', { idSemakan }).then(() => { papartToast('Dipadam.'); muatSemulaSemakanBuku(); });
+}
+
+/* ============================ PANITIA (ADMIN/KETUA_BIDANG) ============================ */
+function paparPanitia() {
+  const k = document.getElementById('kandungan');
+  k.innerHTML = `<div class="kad"><h3>${ikon('bangunan', 'ikon-h3')}Panitia Bidang Bahasa</h3><div id="jadualPanitia"></div></div>`;
+  panggilApi('apiSenaraiPanitia').then(hasil => {
+    document.getElementById('jadualPanitia').innerHTML = `<table><thead><tr>
+      <th>Panitia</th><th>Ketua Panitia Semasa</th><th>Tetapkan Ketua Panitia</th></tr></thead><tbody>` +
+      hasil.senarai.map(pn => `<tr><td>${pn.namaPanitia}</td><td>${pn.ketuaPanitiaNama || '-'}</td>
+        <td><div id="pilihKetua_${pn.kodPanitia}"></div></td></tr>`).join('') + `</tbody></table>`;
+    hasil.senarai.forEach(pn => muatPemilihKetua(pn));
+  });
+}
+
+function muatPemilihKetua(pn) {
+  panggilApi('apiSenaraiAhliPanitia', { panitia: pn.namaPanitia }).then(ahli => {
+    const sasaran = document.getElementById('pilihKetua_' + pn.kodPanitia);
+    sasaran.innerHTML = `<select style="display:inline-block;width:auto">
+      <option value="">- Tiada -</option>
+      ${ahli.senarai.map(a => `<option value="${a.nokp}" ${a.nokp === pn.ketuaPanitiaNoKP ? 'selected' : ''}>${a.nama}</option>`).join('')}
+      </select> <button class="btn kecil">Simpan</button>`;
+    sasaran.querySelector('button').addEventListener('click', () => {
+      panggilApi('apiTetapkanKetuaPanitia', { kodPanitia: pn.kodPanitia, nokpKetua: sasaran.querySelector('select').value })
+        .then(() => { papartToast('Ketua Panitia dikemaskini.'); paparPanitia(); });
+    });
+  });
+}
+
+/* ============================ PENGGUNA (ADMIN/KETUA_BIDANG) ============================ */
+function paparPengguna() {
+  const k = document.getElementById('kandungan');
+  k.innerHTML = `<div class="baris-alat"><span></span><button class="btn" id="btnTambahPengguna">${ikon('tambah')}Pengguna Baharu</button></div><div class="kad"><h3>${ikon('pengguna', 'ikon-h3')}Senarai Pengguna</h3><div id="jadualPengguna"></div></div>`;
+  document.getElementById('btnTambahPengguna').addEventListener('click', () => bukaBorangPengguna(null));
+  muatSemulaPengguna();
+}
+
+function muatSemulaPengguna() {
+  panggilApi('apiSenaraiPengguna').then(hasil => {
+    document.getElementById('jadualPengguna').innerHTML = `<table><thead><tr>
+      <th>No. KP</th><th>Nama</th><th>Peranan</th><th>Panitia</th><th>E-mel</th><th>Status</th><th></th></tr></thead><tbody>` +
+      hasil.senarai.map(u => `<tr><td>${u.nokp}</td><td><a href="#" onclick="event.preventDefault();bukaProfilModal('${u.nokp}')">${u.nama}</a></td><td>${LABEL_PERANAN[u.peranan] || u.peranan}</td><td>${u.panitia || '-'}</td><td>${u.emel || '-'}</td>
+        <td><span class="lencana ${u.status === 'AKTIF' ? 'hijau' : 'merah'}">${u.status}</span></td>
+        <td><button class="btn kecil luar" onclick='bukaBorangPengguna(${JSON.stringify(u)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil kelabu" onclick="setSemulaPasswordPengguna('${u.nokp}')">${ikon('kunci')}Set Semula Kata Laluan</button>
+          <button class="btn kecil merah" onclick="tukarStatusPengguna('${u.nokp}')">${ikon('togol')}${u.status === 'AKTIF' ? 'Nyahaktif' : 'Aktifkan'}</button></td>
+      </tr>`).join('') + `</tbody></table>`;
+  });
+}
+
+function bukaBorangPengguna(u) {
+  bukaModal(ikon('pengguna', 'ikon-h3') + (u ? 'Sunting Pengguna' : 'Pengguna Baharu'), `
+    <form id="borangPengguna">
+      <div class="grid-borang">
+        <div class="medan"><label>No. KP</label><input type="text" name="nokp" value="${u ? u.nokp : ''}" ${u ? 'readonly' : ''} required></div>
+        <div class="medan"><label>Nama Penuh</label><input type="text" name="nama" value="${u ? u.nama : ''}" required></div>
+        <div class="medan"><label>Peranan</label><select name="peranan" id="pilihPerananPengguna">
+          ${Object.keys(LABEL_PERANAN).map(r => `<option value="${r}" ${u && u.peranan === r ? 'selected' : ''}>${LABEL_PERANAN[r]}</option>`).join('')}</select></div>
+        <div class="medan lebar-penuh" id="medanPanitiaPengguna"><label>Panitia (boleh pilih > 1 jika mengajar > 1 mata pelajaran)</label>
+          <div class="grid-checkbox-panitia">${SENARAI_PANITIA.map(p => `<label class="checkbox-panitia"><input type="checkbox" name="panitia" value="${p}" ${u && u.panitiaSenarai && u.panitiaSenarai.indexOf(p) !== -1 ? 'checked' : ''}> ${p}</label>`).join('')}</div>
+        </div>
+        <div class="medan lebar-penuh"><label>E-mel (untuk notifikasi, pilihan)</label><input type="email" name="emel" value="${u ? (u.emel || '') : ''}" placeholder="nama@contoh.edu.my"></div>
+      </div>
+      <h4 style="margin:16px 0 8px;font-size:13px;color:var(--kelabu);text-transform:uppercase">Profil (Pilihan — boleh juga dikemaskini sendiri oleh pengguna di "Profil Saya")</h4>
+      <div class="grid-borang">
+        <div class="medan"><label>Jawatan/Gelaran</label><input type="text" name="jawatan" value="${u ? (u.jawatan || '') : ''}" placeholder="cth. Ketua Panitia Bahasa Inggeris"></div>
+        <div class="medan"><label>Gred Jawatan</label><input type="text" name="gredJawatan" value="${u ? (u.gredJawatan || '') : ''}" placeholder="cth. DG44"></div>
+        <div class="medan"><label>No. Telefon</label><input type="tel" name="noTelefon" value="${u ? (u.noTelefon || '') : ''}"></div>
+        <div class="medan"><label>Tahun Mula Mengajar Subjek Semasa</label><input type="number" name="tahunMulaSubjekSemasa" min="1980" max="2100" value="${u ? (u.tahunMulaSubjekSemasa || '') : ''}"></div>
+        <div class="medan lebar-penuh"><label>Opsyen/Bidang Pengkhususan Mengajar</label><input type="text" name="opsyenPengkhususan" value="${u ? (u.opsyenPengkhususan || '') : ''}"></div>
+        <div class="medan lebar-penuh"><label>Kelayakan Akademik</label><input type="text" name="kelayakanAkademik" value="${u ? (u.kelayakanAkademik || '') : ''}"></div>
+        <div class="medan lebar-penuh"><label>Kelas Yang Diajar</label><input type="text" name="kelasDiajar" value="${u ? (u.kelasDiajar || '') : ''}"></div>
+      </div>
+      ${!u ? '<p style="font-size:12px;color:var(--kelabu)">Kata laluan lalai = 6 digit terakhir No. KP; sistem akan paksa tukar kata laluan semasa log masuk pertama.</p>' : ''}
+      <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Batal</button><button type="submit" class="btn">Simpan</button></div>
+    </form>`);
+  const togolMedanPanitia = () => {
+    const perananSemasa = document.getElementById('pilihPerananPengguna').value;
+    document.getElementById('medanPanitiaPengguna').classList.toggle('hidden', ['KETUA_PANITIA', 'GURU'].indexOf(perananSemasa) === -1);
+  };
+  togolMedanPanitia();
+  document.getElementById('pilihPerananPengguna').addEventListener('change', togolMedanPanitia);
+  document.getElementById('borangPengguna').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    panggilApi('apiSimpanPengguna', {
+      nokp: f.get('nokp'), nama: f.get('nama'), peranan: f.get('peranan'),
+      panitia: f.getAll('panitia'), emel: f.get('emel'),
+      jawatan: f.get('jawatan'), gredJawatan: f.get('gredJawatan'), noTelefon: f.get('noTelefon'),
+      tahunMulaSubjekSemasa: f.get('tahunMulaSubjekSemasa'), opsyenPengkhususan: f.get('opsyenPengkhususan'),
+      kelayakanAkademik: f.get('kelayakanAkademik'), kelasDiajar: f.get('kelasDiajar')
+    }).then(() => { papartToast('Pengguna disimpan.'); tutupModal(); muatSemulaPengguna(); });
+  });
+}
+
+function setSemulaPasswordPengguna(nokp) {
+  if (!confirm('Set semula kata laluan pengguna ini kepada nilai lalai (6 digit terakhir No. KP)?')) return;
+  panggilApi('apiTetapSemulaPasswordPengguna', { nokp }).then(() => papartToast('Kata laluan di-set semula.'));
+}
+function tukarStatusPengguna(nokp) {
+  panggilApi('apiTukarStatusPengguna', { nokp }).then(() => { papartToast('Status pengguna dikemaskini.'); muatSemulaPengguna(); });
+}
+
+/* ============================ LOG AUDIT (ADMIN/KETUA_BIDANG) ============================ */
+function paparAudit() {
+  const k = document.getElementById('kandungan');
+  k.innerHTML = `<div class="baris-alat"><span></span><button class="btn kecil luar" id="btnEksportAudit">${ikon('cetak')}Eksport CSV</button></div>
+    <div class="kad"><h3>${ikon('audit', 'ikon-h3')}Log Audit (300 rekod terkini)</h3><div id="jadualAudit"></div></div>`;
+  document.getElementById('btnEksportAudit').addEventListener('click', () => eksportCSV(
+    'Log_Audit.csv',
+    ['Tarikh', 'Nama', 'Peranan', 'Tindakan', 'Modul', 'Butiran'],
+    (SENARAI_AUDIT_SEMASA || []).map(a => [formatTarikhMasaPaparan(a.Tarikh), a.Nama, LABEL_PERANAN[a.Peranan] || a.Peranan, a.Tindakan, a.Modul, a.Butiran])
+  ));
+  panggilApi('apiSenaraiAudit').then(hasil => {
+    SENARAI_AUDIT_SEMASA = hasil.senarai;
+    document.getElementById('jadualAudit').innerHTML = `<table><thead><tr>
+      <th>Tarikh</th><th>Nama</th><th>Peranan</th><th>Tindakan</th><th>Modul</th><th>Butiran</th></tr></thead><tbody>` +
+      hasil.senarai.map(a => `<tr><td>${formatTarikhMasaPaparan(a.Tarikh)}</td><td>${a.Nama}</td><td>${LABEL_PERANAN[a.Peranan] || a.Peranan}</td>
+        <td>${a.Tindakan}</td><td>${a.Modul}</td><td>${a.Butiran}</td></tr>`).join('') + `</tbody></table>`;
+  });
+}
+let SENARAI_AUDIT_SEMASA = [];
+</script>
+</body>
+</html>

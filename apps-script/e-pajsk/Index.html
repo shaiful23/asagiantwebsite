@@ -1,0 +1,1926 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>e-PAJSK SMK Asajaya</title>
+  <style>
+    :root {
+      --biru: #1d4ed8; --biru-gelap: #1e3a8a; --biru-terang: #0ea5e9; --hijau: #15803d; --merah: #b91c1c;
+      --kuning: #b45309; --kelabu: #64748b; --latar: #f1f5f9; --kad: #ffffff; --sempadan: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: var(--latar); color: #0f172a; -webkit-font-smoothing: antialiased; }
+    button { cursor: pointer; font-family: inherit; }
+    input, select, textarea { font-family: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--sempadan); border-radius: 6px; width: 100%; background: #fff; }
+    select { text-overflow: ellipsis; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--biru); box-shadow: 0 0 0 3px rgba(29,78,216,.14); }
+    button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--biru); outline-offset: 2px; border-radius: 4px; }
+    .hidden { display: none !important; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 7px; padding: 8px 14px; font-size: 14px; font-weight: 600; background: var(--biru); color: #fff; box-shadow: 0 1px 2px rgba(29,78,216,.3); }
+    .btn:hover { background: var(--biru-gelap); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn.kecil { padding: 5px 10px; font-size: 12px; box-shadow: none; }
+    .btn.merah { background: var(--merah); } .btn.merah:hover { background: #7f1d1d; }
+    .btn.hijau { background: var(--hijau); } .btn.hijau:hover { background: #166534; }
+    .btn.kelabu { background: var(--kelabu); } .btn.kelabu:hover { background: #475569; }
+    .btn.luar { background: #fff; color: var(--biru); border: 1px solid var(--sempadan); box-shadow: none; } .btn.luar:hover { background: #eff6ff; border-color: var(--biru); }
+
+    /* Log masuk */
+    .skrin-tengah { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--biru-gelap), var(--hijau)); padding: 16px; }
+    .kad-login { background: #fff; padding: 30px 26px; border-radius: 16px; width: 360px; max-width: 100%; box-shadow: 0 20px 45px rgba(2,6,23,.35); }
+    .kad-login h1 { font-size: 19px; margin: 0 0 4px; color: var(--biru-gelap); text-align: center; }
+    .kad-login p.sub { margin: 0 0 20px; font-size: 13px; color: var(--kelabu); text-align: center; }
+    .logo { display: block; margin: 0 auto 12px; width: 76px; height: 76px; object-fit: contain; }
+    .medan { margin-bottom: 13px; }
+    .medan label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 4px; color: #334155; }
+    .ralat-login { color: var(--merah); font-size: 13px; margin-top: 10px; min-height: 16px; }
+    .nota { font-size: 12px; color: var(--kelabu); margin-top: 6px; }
+
+    /* Rangka */
+    #aplikasi { display: flex; min-height: 100vh; }
+    #bilahSisi { width: 230px; background: linear-gradient(180deg, var(--biru-gelap), #16265c); color: #fff; flex-shrink: 0; padding: 16px 0; }
+    #bilahSisi .jenama { padding: 0 18px 14px; font-weight: 700; font-size: 14px; line-height: 1.3; border-bottom: 1px solid rgba(255,255,255,.15); margin-bottom: 6px; }
+    #bilahSisi .jenama small { display: block; font-weight: 400; color: #bfdbfe; font-size: 11.5px; margin-top: 2px; }
+    .item-nav { display: block; width: 100%; text-align: left; background: none; border: none; border-left: 3px solid transparent; padding: 11px 18px; color: #cbd5e1; font-size: 14px; }
+    .item-nav:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .item-nav.aktif { background: rgba(255,255,255,.12); color: #fff; border-left-color: #facc15; font-weight: 600; }
+    #kawasanUtama { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    #barAtas { background: #fff; border-bottom: 1px solid var(--sempadan); padding: 11px 20px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; position: sticky; top: 0; z-index: 20; }
+    #barAtas .info { font-size: 13px; color: var(--kelabu); } #barAtas .info b { color: #0f172a; }
+    #kandungan { padding: 20px; overflow-x: auto; }
+
+    .kad { background: var(--kad); border: 1px solid var(--sempadan); border-radius: 12px; padding: 18px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(15,23,42,.05); }
+    .kad h3 { margin: 0 0 12px; font-size: 15px; color: var(--biru-gelap); }
+    h2.tajuk { margin: 0 0 14px; font-size: 20px; color: var(--biru-gelap); }
+    .grid-kad { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .stat { background: #fff; border: 1px solid var(--sempadan); border-radius: 12px; padding: 14px 16px; }
+    .stat .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; color: var(--kelabu); }
+    .stat .nilai { font-size: 26px; font-weight: 700; color: var(--biru-gelap); margin-top: 4px; }
+    .stat.amaran .nilai { color: var(--kuning); }
+    .bar { background: #e2e8f0; border-radius: 6px; height: 8px; overflow: hidden; min-width: 70px; } .bar > div { height: 100%; background: var(--hijau); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 9px; border-bottom: 1px solid var(--sempadan); vertical-align: top; }
+    th { background: #f8fafc; font-size: 11.5px; text-transform: uppercase; color: var(--kelabu); white-space: nowrap; }
+    tr:hover td { background: #f8fafc; }
+    td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+    .lencana { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #e2e8f0; color: var(--kelabu); }
+    .lencana.A { background: #dcfce7; color: #166534; } .lencana.B { background: #dbeafe; color: #1e40af; }
+    .lencana.C { background: #fef9c3; color: #854d0e; } .lencana.D { background: #ffedd5; color: #9a3412; } .lencana.E { background: #fee2e2; color: #991b1b; }
+    .lencana.hijau { background: #dcfce7; color: var(--hijau); } .lencana.merah { background: #fee2e2; color: var(--merah); } .lencana.kuning { background: #fef3c7; color: var(--kuning); }
+    .baris-alat { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .baris-alat select, .baris-alat input { width: auto; min-width: 150px; }
+    .baris-alat .rapat { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .amaran-kotak { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+    .info-kotak { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+    .jadual-skrol { overflow-x: auto; }
+
+    /* Modal */
+    .latar-modal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: flex; align-items: flex-start; justify-content: center; z-index: 50; overflow-y: auto; padding: 24px 12px; }
+    .kad-modal { background: #fff; border-radius: 12px; width: min(860px, 100%); padding: 20px; }
+    .kad-modal.kecil { width: min(520px, 100%); }
+    .kad-modal h3 { margin: 0 0 12px; color: var(--biru-gelap); }
+    .grid-borang { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-borang .penuh { grid-column: 1 / -1; }
+    .aksi-modal { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+    .tab-bar { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 1px solid var(--sempadan); margin-bottom: 14px; }
+    .tab-bar button { background: none; border: none; padding: 9px 13px; font-size: 13px; font-weight: 600; color: var(--kelabu); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .tab-bar button.aktif { color: var(--biru); border-bottom-color: var(--biru); }
+    .panel-tab { display: none; } .panel-tab.aktif { display: block; }
+    .pratonton { background: #f8fafc; border: 1px solid var(--sempadan); border-radius: 8px; padding: 10px 12px; margin-top: 12px; font-size: 13px; display: flex; gap: 18px; flex-wrap: wrap; }
+    .pratonton b { color: var(--biru-gelap); }
+    .kotak-semak { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+    .kotak-semak label { display: flex; align-items: center; gap: 6px; font-weight: 400; font-size: 13px; }
+    .kotak-semak input { width: auto; }
+
+    .pager { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 2px 0; }
+    .pager .btn { padding: 5px 10px; font-size: 12px; box-shadow: none; }
+    .pager .btn:disabled { opacity: .4; }
+    .pager-kumpulan { display: flex; gap: 6px; }
+    #bannerBaru { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 95; background: #1e3a8a; color: #fff; padding: 9px 14px; border-radius: 999px; font-size: 13px; box-shadow: 0 6px 18px rgba(2,6,23,.35); display: flex; gap: 10px; align-items: center; }
+    #bannerBaru button { background: #facc15; color: #1e3a8a; border: none; border-radius: 999px; padding: 4px 10px; font-weight: 700; font-size: 12px; }
+    .titik-hidup { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; margin-right: 6px; }
+    .titik-hidup.mati { background: #94a3b8; }
+    .rangka-muat { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: rangka 1.2s infinite; border-radius: 8px; height: 14px; margin: 10px 0; }
+    @keyframes rangka { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    .kad-guru { border: 1px solid var(--sempadan); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; background: #fff; }
+    .kad-guru .kepala { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .kad-guru .kepala b { font-size: 14px; }
+    .baris-kelas { border-top: 1px dashed var(--sempadan); margin-top: 10px; padding-top: 10px; font-size: 13px; }
+    .baris-kelas .atas { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .senarai-kurang { margin: 6px 0 0; padding-left: 18px; color: #334155; }
+    .senarai-kurang li { margin: 2px 0; }
+    .tab-pil { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tab-pil button { border: 1px solid var(--sempadan); background: #fff; border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 600; color: var(--kelabu); }
+    .tab-pil button.aktif { background: var(--biru); color: #fff; border-color: var(--biru); }
+    #kontainerToast { position: fixed; top: 14px; right: 14px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 10px 16px; border-radius: 8px; color: #fff; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,.2); max-width: 340px; }
+    .toast.jaya { background: var(--hijau); } .toast.gagal { background: var(--merah); } .toast.info { background: var(--biru); }
+    #selimutSibuk { position: fixed; inset: 0; background: rgba(255,255,255,.6); z-index: 90; display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--biru-gelap); }
+
+    /* Slip */
+    .slip { background: #fff; border: 1px solid #94a3b8; padding: 12px 14px; margin: 0 auto 18px; width: 190mm; max-width: 100%; font-size: 11.5px; page-break-after: always; break-after: page; color: #000; }
+    .slip h4 { margin: 0; text-align: center; font-size: 13.5px; } .slip .sub { text-align: center; margin-bottom: 8px; font-size: 12px; }
+    .slip table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    .slip th, .slip td { border: 1px solid #475569; padding: 3px 5px; font-size: 11px; text-transform: none; color: #000; background: #fff; vertical-align: top; }
+    .slip th { background: #e2e8f0; text-align: center; font-weight: 700; }
+    .slip td.skor { text-align: center; width: 38px; white-space: nowrap; }
+    .slip .tebal td { font-weight: 700; background: #f1f5f9; }
+    .slip .rumusan-teks { border: 1px solid #475569; padding: 5px 7px; font-style: italic; }
+    #kawasanCetak { display: none; }
+
+    /* ================= RESPONSIF: komputer / tablet / telefon ================= */
+    #btnMenu { display: none; background: none; border: 1px solid var(--sempadan); border-radius: 8px; width: 40px; height: 40px; align-items: center; justify-content: center; font-size: 20px; color: var(--biru-gelap); flex-shrink: 0; }
+    #latarMenu { display: none; }
+    .tab-bar { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+    .tab-bar button { white-space: nowrap; flex-shrink: 0; }
+    img, svg { max-width: 100%; }
+
+    /* Tablet landskap / komputer riba kecil */
+    /* Tarikh akhir & kiraan detik */
+    .kotak-ta { border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; border: 1px solid #bfdbfe; background: #eff6ff; color: #1e3a8a; }
+    .kotak-ta.kuning { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .kotak-ta.merah { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .kotak-ta.hijau { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .kotak-ta .ta-atas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+    .kotak-ta .ta-tajuk { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; opacity: .85; }
+    .kotak-ta .ta-tarikh { font-size: 15px; font-weight: 700; margin-top: 2px; }
+    .detik { display: flex; gap: 8px; flex-wrap: wrap; }
+    .detik .unit-detik { min-width: 62px; text-align: center; background: rgba(255,255,255,.75); border: 1px solid rgba(0,0,0,.06); border-radius: 10px; padding: 6px 8px; }
+    .detik .unit-detik b { display: block; font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .detik .unit-detik span { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
+    .kotak-ta .ta-bawah { margin-top: 10px; font-size: 13px; }
+    .kotak-ta .ta-bawah ul { margin: 6px 0 0; padding-left: 18px; }
+    .lencana-menu { display: inline-block; min-width: 18px; padding: 0 6px; margin-left: 6px; border-radius: 999px; background: #facc15; color: #0f172a; font-size: 11px; font-weight: 700; text-align: center; }
+    .gembok { font-size: 12px; font-weight: 700; color: var(--merah); }
+
+    @media (max-width: 1100px) {
+      #bilahSisi { width: 200px; }
+      .item-nav { padding: 10px 14px; font-size: 13.5px; }
+      #kandungan { padding: 16px; }
+    }
+
+    /* Tablet potret & telefon: menu jadi laci (drawer) */
+    @media (max-width: 900px) {
+      #btnMenu { display: inline-flex; }
+      #bilahSisi { position: fixed; top: 0; left: 0; bottom: 0; width: 260px; z-index: 60; transform: translateX(-105%); transition: transform .22s ease; overflow-y: auto; box-shadow: 4px 0 24px rgba(2,6,23,.35); }
+      body.menu-buka #bilahSisi { transform: translateX(0); }
+      body.menu-buka #latarMenu { display: block; position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 55; }
+      #barAtas { padding: 8px 12px; gap: 8px; }
+      #barAtas .info { flex: 1; min-width: 0; }
+      .item-nav { padding: 13px 18px; font-size: 14.5px; }
+      .grid-borang { grid-template-columns: 1fr; }
+      .kad { padding: 14px; }
+      .kad-modal { width: min(860px, 100%); }
+    }
+
+    /* Telefon */
+    @media (max-width: 640px) {
+      body { font-size: 14px; }
+      input, select, textarea { font-size: 16px; }              /* elak zum automatik iOS */
+      h2.tajuk { font-size: 17px; }
+      #kandungan { padding: 10px; }
+      #barAtas .info { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #barAtas .info .peranan-info { display: none; }
+      #barAtas .butang-atas .btn { padding: 6px 9px; font-size: 12px; }
+      #btnTukarKW .teks-panjang { display: none; }
+      .grid-kad { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .stat { padding: 10px 12px; } .stat .nilai { font-size: 21px; }
+      .baris-alat { gap: 8px; }
+      .baris-alat > select, .baris-alat > input { width: 100%; min-width: 0; flex: 1 1 100%; }
+      .baris-alat .rapat { margin-left: 0; width: 100%; }
+      .baris-alat .rapat .btn { flex: 1 1 auto; justify-content: center; }
+      .baris-alat > .btn { flex: 1 1 auto; justify-content: center; }
+      .pager { flex-direction: column; align-items: stretch; }
+      .pager-kumpulan { justify-content: space-between; }
+      .pager .btn { flex: 1; justify-content: center; }
+      .kad-guru .kepala > div:last-child { width: 100%; }
+      /* Modal skrin penuh */
+      .latar-modal { padding: 0; align-items: stretch; }
+      .kad-modal, .kad-modal.kecil { width: 100%; min-height: 100%; border-radius: 0; padding: 14px 14px 0; }
+      .aksi-modal { position: sticky; bottom: 0; background: #fff; padding: 10px 0 12px; margin-top: 12px; border-top: 1px solid var(--sempadan); }
+      .aksi-modal .btn { flex: 1 1 auto; justify-content: center; }
+      .pratonton { gap: 8px 14px; }
+      .kad-login { padding: 24px 18px; }
+      #kontainerToast { left: 10px; right: 10px; top: 10px; } .toast { max-width: none; }
+      .slip { width: 100%; padding: 8px; }
+
+      /* Jadual -> kad (label diambil daripada tajuk lajur oleh skrip) */
+      table.responsif thead { display: none; }
+      table.responsif, table.responsif tbody, table.responsif tr, table.responsif td { display: block; width: 100%; }
+      table.responsif tr { border: 1px solid var(--sempadan); border-radius: 10px; margin-bottom: 10px; padding: 6px 12px; background: #fff; }
+      table.responsif tr:hover td { background: transparent; }
+      table.responsif td { border: none; padding: 5px 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; text-align: right; }
+      table.responsif td::before { content: attr(data-label); font-weight: 600; color: var(--kelabu); text-align: left; font-size: 12px; flex-shrink: 0; max-width: 45%; text-transform: uppercase; letter-spacing: .02em; }
+      table.responsif td[data-label=""]::before { content: none; }
+      table.responsif td[data-label=""] { justify-content: flex-start; }
+      table.responsif td > .nota, table.responsif td > div { text-align: right; }
+      table.responsif td.kumpulan { display: block; text-align: left; }
+      table.responsif tr.baris-kumpulan { border: none; background: #eff6ff; padding: 8px 12px; }
+      table.responsif td .btn { min-height: 38px; }
+      table.responsif td[data-label="Bil"] { display: none; }
+      table.responsif td[data-label="Nama"] { display: block; text-align: left; font-weight: 700; font-size: 14.5px; border-bottom: 1px dashed var(--sempadan); padding-bottom: 6px; margin-bottom: 2px; }
+      table.responsif td[data-label="Nama"]::before { content: none; }
+      table.responsif td[data-label="Nama"] > .nota, table.responsif td[data-label="Nama"] > div { text-align: left; font-weight: 400; }
+      .jadual-skrol { overflow-x: visible; }
+    }
+
+    /* Peranti sentuh: sasaran sentuhan lebih besar */
+    @media (max-width: 640px) {
+      .detik { gap: 6px; } .detik .unit-detik { min-width: 0; flex: 1; padding: 5px 4px; } .detik .unit-detik b { font-size: 20px; }
+      .kotak-ta .ta-atas > * { width: 100%; }
+    }
+    @media (pointer: coarse) {
+      .btn { min-height: 40px; }
+      .btn.kecil { min-height: 34px; }
+      .tab-bar button, .tab-pil button { min-height: 40px; }
+      input[type=checkbox] { width: 20px !important; height: 20px; }
+    }
+    @media print {
+      body { background: #fff; }
+      #aplikasi, #skrinLogin, #skrinTukar, #modalRoot, #kontainerToast, #selimutSibuk { display: none !important; }
+      #kawasanCetak { display: block !important; }
+      .slip { border: none; margin: 0 auto; padding: 4mm 0 0; }
+      .rujukan-idme .putus { page-break-after: always; break-after: page; }
+      @page { size: A4; margin: 10mm; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ======================= LOG MASUK ======================= -->
+<div id="skrinLogin" class="skrin-tengah">
+  <form class="kad-login" id="borangLogin" autocomplete="on">
+    <img class="logo" alt="Logo SMK Asajaya" id="logoLogin" src="data:image/jpeg;base64,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">
+    <h1>e-PAJSK</h1>
+    <p class="sub">Pentaksiran Aktiviti Jasmani, Sukan &amp; Kokurikulum<br>SMK Asajaya</p>
+    <div class="medan"><label for="lgKP">No. Kad Pengenalan</label><input id="lgKP" inputmode="numeric" autocomplete="username" placeholder="12 digit, tanpa tanda &quot;-&quot;" required></div>
+    <div class="medan"><label for="lgKW">Kata Laluan</label><input id="lgKW" type="password" autocomplete="current-password" required>
+      <div class="nota">Kali pertama: 6 digit terakhir No. KP anda.</div></div>
+    <button class="btn" style="width:100%;justify-content:center" type="submit" id="btnLogin">Log Masuk</button>
+    <div class="ralat-login" id="ralatLogin" role="alert"></div>
+  </form>
+</div>
+
+<!-- ======================= TUKAR KATA LALUAN (PAKSA) ======================= -->
+<div id="skrinTukar" class="skrin-tengah hidden">
+  <form class="kad-login" id="borangTukar">
+    <h1>Tukar Kata Laluan</h1>
+    <p class="sub">Atas sebab keselamatan, anda mesti menetapkan kata laluan baharu sebelum meneruskan.</p>
+    <div class="medan"><label for="tkLama">Kata laluan semasa</label><input id="tkLama" type="password" autocomplete="current-password" required></div>
+    <div class="medan"><label for="tkBaru">Kata laluan baharu (min. 6 aksara)</label><input id="tkBaru" type="password" autocomplete="new-password" minlength="6" required></div>
+    <div class="medan"><label for="tkSah">Sahkan kata laluan baharu</label><input id="tkSah" type="password" autocomplete="new-password" minlength="6" required></div>
+    <button class="btn" style="width:100%;justify-content:center" type="submit">Simpan &amp; Teruskan</button>
+    <button class="btn luar" style="width:100%;justify-content:center;margin-top:8px" type="button" id="btnTukarKeluar">Log Keluar</button>
+    <div class="ralat-login" id="ralatTukar" role="alert"></div>
+  </form>
+</div>
+
+<!-- ======================= APLIKASI ======================= -->
+<div id="aplikasi" class="hidden">
+  <nav id="bilahSisi" aria-label="Menu utama">
+    <div class="jenama">e-PAJSK<small>SMK Asajaya</small></div>
+    <div id="menuNav"></div>
+  </nav>
+  <div id="kawasanUtama">
+    <header id="barAtas">
+      <button type="button" id="btnMenu" aria-label="Buka menu" aria-expanded="false">&#9776;</button>
+      <div class="info" id="infoPengguna"></div>
+      <div class="butang-atas" style="display:flex;gap:8px">
+        <button class="btn luar kecil" id="btnTukarKW"><span class="teks-panjang">Tukar&nbsp;</span>Kata Laluan</button>
+        <button class="btn kelabu kecil" id="btnLogout">Log Keluar</button>
+      </div>
+    </header>
+    <main id="kandungan"></main>
+  </div>
+</div>
+
+<div id="latarMenu"></div>
+<div id="modalRoot"></div>
+<div id="kawasanCetak"></div>
+<div id="kontainerToast"></div>
+<div id="selimutSibuk" class="hidden">Sila tunggu…</div>
+<div id="bannerBaru" class="hidden"><span>Data baharu tersedia.</span><button type="button" id="btnBannerSegar">Muat semula</button></div>
+
+<script><?!= kodKiraan ?></script>
+<script>
+/* =========================================================================
+ * Skrip klien SPA e-PAJSK. Semua panggilan pelayan melalui google.script.run.
+ * Pengiraan markah (kiraAspekMurni dll.) disalin daripada Scoring.gs oleh pelayan
+ * — pratonton di sini hanya untuk paparan; markah SAH dikira semula di pelayan.
+ * ========================================================================= */
+var S = { token: null, user: null, ref: null, tetapan: null, kelasSenarai: [], kelasPilihan: '', data: null, halaman: 'dashboard', cacheKelas: {}, versi: null, kemaskini: null, segar: null, pg: {}, seq: 0 };
+var ASPEK = ['PBB', 'KP', 'SP'];
+var NAMA_ASPEK = { PBB: 'Pasukan Badan Beruniform', KP: 'Kelab & Persatuan', SP: 'Sukan & Permainan' };
+var ADMIN = 'ADMIN';
+
+/* ---------- Utiliti ---------- */
+function e(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function $(id) { return document.getElementById(id); }
+function nilaiEl(id) { var el = $(id); return el ? el.value : ''; }
+function fmt(n) { var v = Number(n); return isNaN(v) ? '' : (Math.round(v * 100) / 100).toFixed(2).replace(/\.?0+$/, ''); }
+function tanda(n) { return n === '' || n === null || n === undefined ? '–' : e(fmt(n)); }
+
+function toast(mesej, jenis) {
+  var el = document.createElement('div');
+  el.className = 'toast ' + (jenis || 'info');
+  el.textContent = mesej;
+  $('kontainerToast').appendChild(el);
+  setTimeout(function () { el.remove(); }, jenis === 'gagal' ? 6500 : 3500);
+}
+var bilSibuk = 0;
+function sibuk(hidup) {
+  bilSibuk = Math.max(0, bilSibuk + (hidup ? 1 : -1));
+  $('selimutSibuk').classList.toggle('hidden', bilSibuk === 0);
+}
+// Hanya operasi TULIS menyekat skrin; bacaan dipaparkan dengan petunjuk 'memuatkan' setempat supaya terasa pantas.
+var API_TULIS = /^api(Simpan|Segerak|Arkib|Naik|Reset|Padam|Import|Kira|Tukar|Auto|Login|Mohon|Proses)/;
+var RALAT_SEMENTARA = /Service|timed out|Server|bersambung|temporarily|Try again|sibuk/i;
+
+function api(fn, param, tanpaSibuk, cubaan) {
+  return new Promise(function (res, rej) {
+    if (!window.google || !google.script || !google.script.run) { rej(new Error('Tidak bersambung dengan pelayan.')); return; }
+    var tulis = API_TULIS.test(fn);
+    var blok = tulis && !tanpaSibuk;
+    if (blok) sibuk(true);
+    var tamat = function () { if (blok) sibuk(false); };
+    google.script.run
+      .withSuccessHandler(function (r) {
+        tamat();
+        if (r === null || r === undefined) { rej(new Error('Respons kosong daripada pelayan.')); return; }
+        if (r.success === false) {
+          if (/Sesi tamat|Akaun tidak aktif/.test(r.message || '')) { setTimeout(keluar, 50); }
+          rej(new Error(r.message)); return;
+        }
+        res(r);
+      })
+      .withFailureHandler(function (err) {
+        tamat();
+        var mesej = err && err.message ? err.message : String(err);
+        if (!tulis && !cubaan && RALAT_SEMENTARA.test(mesej)) {   // bacaan sahaja boleh diulang dengan selamat
+          setTimeout(function () { api(fn, param, tanpaSibuk, 1).then(res, rej); }, 800);
+          return;
+        }
+        rej(new Error(mesej));
+      })[fn](Object.assign({ token: S.token }, param || {}));
+  });
+}
+function gagal(err) { toast(err.message || String(err), 'gagal'); }
+
+function simpanToken(t) { try { if (t) sessionStorage.setItem('epajsk_token', t); else sessionStorage.removeItem('epajsk_token'); } catch (x) { /* storan disekat */ } }
+function bacaToken() { try { return sessionStorage.getItem('epajsk_token'); } catch (x) { return null; } }
+
+/* ---------- Modal ---------- */
+function bukaModal(html, kecil) {
+  var root = $('modalRoot');
+  var d = document.createElement('div');
+  d.className = 'latar-modal';
+  d.innerHTML = '<div class="kad-modal' + (kecil ? ' kecil' : '') + '" role="dialog" aria-modal="true">' + html + '</div>';
+  root.appendChild(d);
+  return d;
+}
+function tutupModal(el) { var m = el ? (el.closest ? el.closest('.latar-modal') : el) : $('modalRoot').lastElementChild; if (m) m.remove(); }
+function semuaModalTutup() { $('modalRoot').innerHTML = ''; }
+function sahkan(mesej, ok, labelOk) {
+  var m = bukaModal('<h3>Pengesahan</h3><p>' + e(mesej) + '</p><div class="aksi-modal"><button class="btn luar" data-x="batal">Batal</button><button class="btn merah" data-x="ok">' + e(labelOk || 'Teruskan') + '</button></div>', true);
+  m.querySelector('[data-x=batal]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=ok]').onclick = function () { tutupModal(m); ok(); };
+}
+
+/* ---------- Log masuk / sesi ---------- */
+$('borangLogin').addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  $('ralatLogin').textContent = '';
+  $('btnLogin').disabled = true;
+  api('apiLogin', { nokp: nilaiEl('lgKP').replace(/\D/g, ''), kataLaluan: nilaiEl('lgKW') }).then(function (r) {
+    S.token = r.token; simpanToken(r.token);
+    S.user = { nama: r.nama, peranan: r.peranan, kelas: r.kelas || [], unit: r.unit || [] };
+    $('lgKW').value = '';
+    if (r.mestiTukarPassword) { paparSkrin('skrinTukar'); } else { mulaAplikasi(); }
+  }).catch(function (er) { $('ralatLogin').textContent = er.message; }).then(function () { $('btnLogin').disabled = false; });
+});
+
+function paparSkrin(id) {
+  ['skrinLogin', 'skrinTukar', 'aplikasi'].forEach(function (x) { $(x).classList.toggle('hidden', x !== id); });
+}
+
+$('borangTukar').addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  $('ralatTukar').textContent = '';
+  if (nilaiEl('tkBaru') !== nilaiEl('tkSah')) { $('ralatTukar').textContent = 'Pengesahan kata laluan tidak sepadan.'; return; }
+  api('apiTukarPasswordSendiri', { kataLaluanLama: nilaiEl('tkLama'), kataLaluanBaharu: nilaiEl('tkBaru') }).then(function () {
+    ['tkLama', 'tkBaru', 'tkSah'].forEach(function (i) { $(i).value = ''; });
+    toast('Kata laluan berjaya ditukar.', 'jaya');
+    mulaAplikasi();
+  }).catch(function (er) { $('ralatTukar').textContent = er.message; });
+});
+$('btnTukarKeluar').onclick = function () { keluar(); };
+$('btnLogout').onclick = function () { api('apiLogout').catch(function () {}).then(keluar); };
+$('btnTukarKW').onclick = function () {
+  var m = bukaModal('<h3>Tukar Kata Laluan</h3><div class="medan"><label>Kata laluan semasa</label><input id="mLama" type="password"></div><div class="medan"><label>Kata laluan baharu (min. 6 aksara)</label><input id="mBaru" type="password"></div><div class="medan"><label>Sahkan</label><input id="mSah" type="password"></div><div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>', true);
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    if (nilaiEl('mBaru') !== nilaiEl('mSah')) { toast('Pengesahan tidak sepadan.', 'gagal'); return; }
+    api('apiTukarPasswordSendiri', { kataLaluanLama: nilaiEl('mLama'), kataLaluanBaharu: nilaiEl('mBaru') })
+      .then(function () { tutupModal(m); toast('Kata laluan ditukar.', 'jaya'); }).catch(gagal);
+  };
+};
+
+function keluar() {
+  S.token = null; S.user = null; S.data = null; S.cacheKelas = {}; S.versi = null; S.segar = null; S.pg = {}; S.ta = null; simpanToken(null);
+  clearInterval(pollTimer); clearInterval(detikTimer); $('bannerBaru').classList.add('hidden');
+  semuaModalTutup();
+  paparSkrin('skrinLogin');
+}
+
+/* ---------- Mula aplikasi (SATU panggilan: pengguna + rujukan skor + tetapan + kelas) ---------- */
+function mulaAplikasi() {
+  api('apiMula').then(function (r) {
+    S.user = { nama: r.nama, peranan: r.peranan, kelas: r.kelas || [], unit: r.unit || [] };
+    if (r.mestiTukarPassword) { paparSkrin('skrinTukar'); return; }
+    S.ref = r.rujukan; S.tetapan = r.tetapan; S.kelasSenarai = r.kelasSenarai; S.versi = r.versi;
+    setTarikhAkhir(r.tarikhAkhir);
+    if (!S.kelasSenarai.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = S.kelasSenarai.length ? S.kelasSenarai[0].kunci : '';
+    paparSkrin('aplikasi');
+    $('infoPengguna').innerHTML = '<span class="titik-hidup" id="titikHidup" title="Disegerakkan automatik dengan e-Kokurikulum"></span><b>' + e(S.user.nama) + '</b><span class="peranan-info"> · ' + (adalahAdmin() ? 'Admin' : [adalahGuruKelas() ? 'Guru Kelas' : '', adalahKgp() ? 'Ketua Guru Penasihat' : ''].filter(Boolean).join(' & ') || 'Guru') + '</span> · <span class="peranan-info">Tahun pentaksiran </span><b id="infoTahun">' + e(S.tetapan.tahun) + '</b>';
+    binaMenu();
+    var hal = MENU.filter(function (m) { return m.id === S.halaman; })[0];
+    pergi(hal && menuDibenarkan(hal) ? S.halaman : 'dashboard');
+    mulaPoll();
+    mulaDetik();
+  }).catch(function (er) { gagal(er); keluar(); });
+}
+
+/* ---------- Kemas kini langsung ---------- */
+var pollTimer = null, pollDaftar = false, sedangPoll = false;
+function modalTerbuka() { return $('modalRoot').children.length > 0; }
+
+function mulaPoll() {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(semakVersi, 45000);
+  if (!pollDaftar) { pollDaftar = true; document.addEventListener('visibilitychange', function () { if (!document.hidden) semakVersi(); }); }
+}
+
+function semakVersi() {
+  if (!S.token || document.hidden || sedangPoll) return;
+  sedangPoll = true;
+  api('apiVersi', {}, true).then(function (r) {
+    var titik = $('titikHidup'); if (titik) titik.classList.remove('mati');
+    if (S.kemaskini !== null && r.kemaskini && r.kemaskini !== S.kemaskini) toast('Data dikemas kini daripada e-Kokurikulum.', 'info');
+    S.kemaskini = r.kemaskini || '';
+    if (S.versi && r.versi !== S.versi) {
+      S.versi = r.versi;
+      if (modalTerbuka()) { $('bannerBaru').classList.remove('hidden'); } else { segarSenyap(); }
+    } else if (!S.versi) { S.versi = r.versi; }
+  }).catch(function () { var titik = $('titikHidup'); if (titik) titik.classList.add('mati'); }).then(function () { sedangPoll = false; });
+}
+
+function segarSenyap() {
+  $('bannerBaru').classList.add('hidden');
+  Promise.all([api('apiSenaraiKelas', {}, true), muatTarikhAkhir()]).then(function (h) {
+    var r = h[0];
+    S.kelasSenarai = r.kelas;
+    if (!r.kelas.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = r.kelas.length ? r.kelas[0].kunci : '';
+    S.cacheKelas = {};
+    if (S.segar) S.segar();
+  }).catch(function () {});
+}
+$('btnBannerSegar').onclick = segarSenyap;
+
+/* Keupayaan pengguna: Admin = semua; Guru Kelas = LIHAT data kelas sendiri; KGP = ISI data unit sendiri. */
+function adalahAdmin() { return S.user && S.user.peranan === ADMIN; }
+function adalahKgp() { return S.user && (S.user.unit || []).length > 0; }
+function adalahGuruKelas() { return S.user && (S.user.kelas || []).length > 0; }
+function bolehIsi() { return adalahAdmin() || adalahKgp(); }
+function bolehLihatKelas() { return adalahAdmin() || adalahGuruKelas(); }
+
+var MENU = [
+  { id: 'dashboard', label: 'Dashboard', paparan: dashboard },
+  { id: 'isiunit', label: 'Pengisian Unit (KGP)', boleh: bolehIsi, paparan: halamanIsiUnit },
+  { id: 'pengisian', label: 'Status Pengisian', paparan: halamanPengisian },
+  { id: 'pentaksiran', label: 'Data Kelas', boleh: bolehLihatKelas, paparan: halamanPentaksiran },
+  { id: 'rumusan', label: 'Rumusan Kelas', boleh: bolehLihatKelas, paparan: halamanRumusan },
+  { id: 'slip', label: 'Slip PAJSK', boleh: bolehLihatKelas, paparan: halamanSlip },
+  { id: 'analisa', label: 'Analisa Ringkas', boleh: bolehLihatKelas, paparan: halamanAnalisa },
+  { id: 'murid', label: 'Murid', admin: true, paparan: halamanMurid },
+  { id: 'pengguna', label: 'Pengguna', admin: true, paparan: halamanPengguna },
+  { id: 'arkib', label: 'Arkib & Naik Tingkatan', admin: true, paparan: halamanArkib },
+  { id: 'tarikhakhir', label: 'Tarikh Akhir & Permohonan', admin: true, paparan: halamanTarikhAkhir },
+  { id: 'tetapan', label: 'Tetapan', admin: true, paparan: halamanTetapan },
+  { id: 'audit', label: 'Log Audit', admin: true, paparan: halamanAudit }
+];
+function menuDibenarkan(m) { return (!m.admin || adalahAdmin()) && (!m.boleh || m.boleh()); }
+function binaMenu() {
+  $('menuNav').innerHTML = MENU.filter(menuDibenarkan)
+    .map(function (m) { return '<button class="item-nav" data-id="' + m.id + '">' + e(m.label) + (m.id === 'tarikhakhir' ? '<span class="lencana-menu hidden" id="bilMenunggu"></span>' : '') + '</button>'; }).join('');
+  kemasLencanaMenu();
+  Array.prototype.forEach.call($('menuNav').querySelectorAll('.item-nav'), function (b) { b.onclick = function () { pergi(b.getAttribute('data-id')); }; });
+}
+function pergi(id) {
+  tutupMenu();
+  S.halaman = id; S.segar = null;
+  $('bannerBaru').classList.add('hidden');
+  Array.prototype.forEach.call($('menuNav').querySelectorAll('.item-nav'), function (b) { b.classList.toggle('aktif', b.getAttribute('data-id') === id); });
+  var m = MENU.filter(function (x) { return x.id === id; })[0];
+  $('kandungan').innerHTML = '<div class="rangka-muat" style="width:40%"></div><div class="rangka-muat"></div><div class="rangka-muat" style="width:85%"></div><div class="rangka-muat" style="width:70%"></div>';
+  Promise.resolve().then(function () { return m.paparan(); })
+    .catch(function (er) { $('kandungan').innerHTML = '<div class="amaran-kotak">' + e(er.message) + '</div>'; });
+}
+
+/* Muat semula senarai kelas selepas tindakan yang mengubahnya (segerak, sunting murid, naik tingkatan). */
+function muatSemulaKelas() {
+  return api('apiSenaraiKelas', {}, true).then(function (r) {
+    S.kelasSenarai = r.kelas; S.cacheKelas = {};
+    if (!r.kelas.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = r.kelas.length ? r.kelas[0].kunci : '';
+  });
+}
+
+/* ---------- Penomboran generik (carian & halaman diproses di pelayan) ---------- */
+function PG(k, lalai) { return S.pg[k] = S.pg[k] || Object.assign({ halaman: 1, saiz: 25, cari: '' }, lalai || {}); }
+function palangPg(k, tanpaCari) {
+  return (tanpaCari ? '' : '<input id="' + k + 'Cari" placeholder="Cari nama / No. KP…" style="max-width:240px" aria-label="Carian">') +
+    '<select id="' + k + 'Saiz" aria-label="Baris setiap halaman"><option>10</option><option>25</option><option>50</option><option>100</option></select>';
+}
+function pasangPg(k, muat) {
+  var st = PG(k), c = $(k + 'Cari'), sz = $(k + 'Saiz'), t;
+  if (c) { c.value = st.cari; c.oninput = function () { clearTimeout(t); t = setTimeout(function () { st.cari = c.value; st.halaman = 1; muat(); }, 300); }; }
+  if (sz) { sz.value = String(st.saiz); sz.onchange = function () { st.saiz = Number(sz.value); st.halaman = 1; muat(); }; }
+}
+function pagerHtml(r) {
+  var h = r.halaman, jh = r.jumlahHalaman;
+  return '<div class="pager"><span class="nota">' + r.jumlah + ' rekod · halaman ' + h + ' / ' + jh + '</span><span class="pager-kumpulan">' +
+    '<button type="button" class="btn luar" data-pg="1"' + (h <= 1 ? ' disabled' : '') + '>« Pertama</button>' +
+    '<button type="button" class="btn luar" data-pg="' + (h - 1) + '"' + (h <= 1 ? ' disabled' : '') + '>‹ Sebelum</button>' +
+    '<button type="button" class="btn luar" data-pg="' + (h + 1) + '"' + (h >= jh ? ' disabled' : '') + '>Seterus ›</button>' +
+    '<button type="button" class="btn luar" data-pg="' + jh + '"' + (h >= jh ? ' disabled' : '') + '>Akhir »</button></span></div>';
+}
+function pasangPager(k, kontena, muat) {
+  Array.prototype.forEach.call(kontena.querySelectorAll('[data-pg]'), function (b) {
+    b.onclick = function () { PG(k).halaman = Number(b.getAttribute('data-pg')); muat(); };
+  });
+}
+/* Pastikan hanya jawapan permintaan TERKINI dipaparkan (elak jawapan lambat menimpa yang baharu). */
+function permintaanTerkini() { var n = ++S.seq; return function () { return n === S.seq; }; }
+
+/* ---------- Komponen pilih kelas ---------- */
+function pilihKelasHtml(id, termasukSemua) {
+  if (!S.kelasSenarai.length && !termasukSemua) return '';
+  return '<select id="' + id + '" aria-label="Pilih kelas">' + (termasukSemua ? '<option value="">Semua kelas</option>' : '') +
+    S.kelasSenarai.map(function (k) { return '<option value="' + e(k.kunci) + '"' + (k.kunci === S.kelasPilihan ? ' selected' : '') + '>' + e(k.nama) + ' (' + k.bilMurid + ')</option>'; }).join('') + '</select>';
+}
+function adaKelas() {
+  // Pastikan kelas pilihan masih wujud (cth. selepas Naik Tingkatan / segerak senarai kelas berubah).
+  if (S.kelasSenarai.length && !S.kelasSenarai.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = S.kelasSenarai[0].kunci;
+  if (S.kelasSenarai.length) return true;
+  $('kandungan').innerHTML = '<div class="amaran-kotak">' + (S.user.peranan === ADMIN
+    ? 'Belum ada murid. Pergi ke menu <b>Tetapan</b>/<b>Murid</b> dan jalankan <b>Segerak daripada e-Kokurikulum</b>.'
+    : 'Tiada kelas ditetapkan kepada anda. Sila hubungi Admin untuk menetapkan kelas yang anda jaga.') + '</div>';
+  return false;
+}
+
+/* ---------- Dashboard ---------- */
+function dashboard() {
+  S.segar = dashboard;
+  return api('apiDashboard').then(function (d) {
+    if (S.halaman !== 'dashboard') return;
+    var admin = S.user.peranan === ADMIN;
+    var h = '<h2 class="tajuk">Dashboard · ' + e(d.tahun) + '</h2>';
+    h += kotakTarikhAkhirHtml();
+    h += '<div class="grid-kad">' +
+      '<div class="stat"><div class="label">Jumlah murid</div><div class="nilai">' + d.jumlah.bil + '</div></div>' +
+      '<div class="stat"><div class="label">Pentaksiran dimulakan</div><div class="nilai">' + d.jumlah.siap + '</div></div>' +
+      '<div class="stat"><div class="label">Kemajuan</div><div class="nilai">' + (d.jumlah.bil ? Math.round(d.jumlah.siap / d.jumlah.bil * 100) : 0) + '%</div></div>' +
+      '<div class="stat"><div class="label">Segerak e-Koko terakhir</div><div class="nilai" style="font-size:14px">' + e(d.segerakTerakhir || 'Belum pernah') + '</div></div>' +
+      (admin ? '<div class="stat"><div class="label">Guru kelas</div><div class="nilai">' + d.bilGuru + '</div></div>' +
+        '<div class="stat ' + (d.kelasTanpaGuru ? 'amaran' : '') + '"><div class="label">Kelas tanpa guru</div><div class="nilai">' + d.kelasTanpaGuru + '</div></div>' : '') + '</div>';
+    if (admin && d.pengisian) {
+      var pk = d.pengisian.kira;
+      h += '<div class="kad"><h3>Status pengisian Ketua Guru Penasihat (KGP)</h3><div class="baris-alat" style="margin:0"><span class="lencana merah">Belum mula: ' + pk.BELUM_MULA + '</span><span class="lencana kuning">Dalam proses: ' + pk.DALAM_PROSES + '</span><span class="lencana hijau">Lengkap: ' + pk.LENGKAP + '</span>' +
+        (d.pengisian.unitTanpaKgp ? '<span class="lencana merah">' + d.pengisian.unitTanpaKgp + ' unit tanpa KGP</span>' : '') +
+        '<div class="rapat"><button class="btn kecil" id="btnLihatPengisian">Lihat butiran</button></div></div></div>';
+    }
+    if (admin && d.bilPerluSemak) h += '<div class="amaran-kotak"><b>' + d.bilPerluSemak + ' murid</b> baru dinaikkan tingkatan dan kelas barunya belum disahkan. Naikkan tingkatan di e-Kokurikulum, kemudian jalankan <b>Segerak daripada e-Kokurikulum</b> (menu Murid).</div>';
+    if (admin && !d.arkibTahunIni) h += '<div class="info-kotak">Arkib tahun ' + e(d.tahun) + ' belum dibuat. Buat di menu <b>Arkib &amp; Naik Tingkatan</b> pada akhir tahun.</div>';
+    if (d.unitSaya && d.unitSaya.length) {
+      h += '<div class="kad"><h3>Unit yang anda isi (Ketua Guru Penasihat)</h3><div class="jadual-skrol"><table><thead><tr><th>Unit</th><th class="n">Murid</th><th>Kemajuan</th><th>Status</th><th></th></tr></thead><tbody>' +
+        d.unitSaya.map(function (u) {
+          return '<tr><td><b>' + e(u.aspek) + '</b> · ' + e(u.unit) + '</td><td class="n">' + u.bil + '</td><td><div class="bar"><div style="width:' + u.peratus + '%"></div></div><span class="nota">' + u.lengkap + '/' + u.bil + ' lengkap (' + u.peratus + '%)</span></td><td>' + lencanaSt(u.status) + '</td><td><button class="btn kecil" data-isiunit="' + e(u.kunci) + '">Isi</button></td></tr>';
+        }).join('') + '</tbody></table></div></div>';
+    }
+    if (!d.kelas.length && !(d.unitSaya && d.unitSaya.length)) { h += '<div class="amaran-kotak">' + (admin ? 'Belum ada data murid. Jalankan <b>Segerak daripada e-Kokurikulum</b> di menu Murid.' : 'Tiada kelas atau unit ditetapkan kepada anda. Sila hubungi Admin.') + '</div>'; }
+    else if (d.kelas.length) {
+      h += '<div class="kad"><h3>Kemajuan mengikut kelas</h3><div class="jadual-skrol"><table><thead><tr><th>Kelas</th><th class="n">Murid</th><th>Kemajuan</th><th class="n">Purata CGPA</th><th class="n">A</th><th class="n">B</th><th class="n">C</th><th class="n">D</th><th class="n">E</th><th></th></tr></thead><tbody>' +
+        d.kelas.map(function (k) {
+          var pc = k.bil ? Math.round(k.siap / k.bil * 100) : 0;
+          return '<tr><td>' + e(k.nama) + '</td><td class="n">' + k.bil + '</td><td><div class="bar"><div style="width:' + pc + '%"></div></div><span class="nota">' + k.siap + '/' + k.bil + ' (' + pc + '%)</span></td><td class="n">' + (k.purata ? fmt(k.purata) : '–') + '</td>' +
+            ['A', 'B', 'C', 'D', 'E'].map(function (g) { return '<td class="n">' + k.gred[g] + '</td>'; }).join('') +
+            '<td><button class="btn kecil" data-kelas="' + e(k.kunci) + '">Buka</button></td></tr>';
+        }).join('') + '</tbody></table></div></div>';
+    }
+    $('kandungan').innerHTML = h;
+    pasangKotakTarikhAkhir();
+    if ($('btnLihatPengisian')) $('btnLihatPengisian').onclick = function () { pergi('pengisian'); };
+    Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-isiunit]'), function (b) {
+      b.onclick = function () { PG('iu').unit = b.getAttribute('data-isiunit'); pergi('isiunit'); };
+    });
+    Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-kelas]'), function (b) {
+      b.onclick = function () { S.kelasPilihan = b.getAttribute('data-kelas'); pergi('pentaksiran'); };
+    });
+  });
+}
+
+/* ---------- Tarikh akhir pengisian KGP + kiraan detik + permohonan buka semula ---------- */
+var detikTimer = null;
+var NAMA_BULAN = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+var NAMA_HARI = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
+var LABEL_MOHON = { MENUNGGU: ['Menunggu', 'kuning'], LULUS: ['Diluluskan', 'hijau'], DITOLAK: ['Ditolak', 'merah'], DITUTUP: ['Ditutup', ''] };
+
+function setTarikhAkhir(ta) {
+  S.ta = ta || null;
+  if (ta) S.ofsetMasa = ta.sekarangMs - Date.now();   // guna jam pelayan (jam peranti mungkin tidak tepat)
+  kemasLencanaMenu();
+}
+function muatTarikhAkhir() {
+  return api('apiTarikhAkhir', {}, true).then(function (r) { setTarikhAkhir(r.tarikhAkhir); }).catch(function () {});
+}
+function kini() { return Date.now() + (S.ofsetMasa || 0); }
+function kemasLencanaMenu() {
+  var el = $('bilMenunggu'); if (!el) return;
+  var n = (S.ta && S.ta.menunggu) || 0;
+  el.textContent = n; el.classList.toggle('hidden', !n);
+}
+/* Sama seperti semakan pelayan (semakKunciPengisian): pelayan tetap menjadi penentu muktamad. */
+function dikunciUnit(ku) {
+  var ta = S.ta;
+  if (!ta || !ta.ada || adalahAdmin() || kini() <= ta.akhirMs) return false;
+  return !(ta.bukaan || []).some(function (b) { return (b.unit === 'SEMUA' || b.unit === ku) && b.hinggaMs > kini(); });
+}
+function paparTarikhMasa(t) {
+  var m = String(t || '').match(/^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}))?/);
+  if (!m) return t || '';
+  var hari = NAMA_HARI[new Date(Date.UTC(+m[1], m[2] - 1, +m[3])).getUTCDay()];
+  return hari + ', ' + (+m[3]) + ' ' + NAMA_BULAN[m[2] - 1] + ' ' + m[1] + (m[4] ? ', ' + m[4] + ':' + m[5] : '');
+}
+function pecahBaki(ms) {
+  var s = Math.floor(Math.max(0, ms) / 1000);
+  return { h: Math.floor(s / 86400), j: Math.floor(s % 86400 / 3600), m: Math.floor(s % 3600 / 60), s: s % 60 };
+}
+function dua(n) { return n < 10 ? '0' + n : String(n); }
+function isiDetik(sasaran) {
+  var b = pecahBaki(sasaran - kini());
+  return [[b.h, 'hari'], [dua(b.j), 'jam'], [dua(b.m), 'minit'], [dua(b.s), 'saat']].map(function (x) {
+    return '<div class="unit-detik"><b>' + x[0] + '</b><span>' + x[1] + '</span></div>';
+  }).join('');
+}
+function bakiTeks(sasaran) {
+  var b = pecahBaki(sasaran - kini());
+  return (b.h ? b.h + ' hari ' : '') + b.j + ' jam ' + dua(b.m) + ' minit' + (b.h ? '' : ' ' + dua(b.s) + ' saat');
+}
+function namaUnitPapar(k) { return k === 'SEMUA' ? 'Semua unit saya' : String(k || '').replace('|', ' · '); }
+function lencanaMohon(s) { var x = LABEL_MOHON[s] || [s, '']; return '<span class="lencana ' + x[1] + '">' + e(x[0]) + '</span>'; }
+
+/* Kotak tarikh akhir + kiraan detik (Dashboard, Pengisian Unit, halaman Tarikh Akhir). */
+function kotakTarikhAkhirHtml(diHalamanTa) {
+  var ta = S.ta, admin = adalahAdmin();
+  if (!ta || (!admin && !adalahKgp())) return '';
+  var pautan = function (label, kecil) { return diHalamanTa ? '' : '<button class="btn kecil' + (kecil ? ' luar' : '') + '" data-ta="urus">' + label + '</button>'; };
+  if (!ta.ada) {
+    return admin ? '<div class="kotak-ta"><div class="ta-tajuk">Tarikh akhir pengisian KGP</div><div class="ta-bawah">Belum ditetapkan — KGP boleh mengisi tanpa had masa. ' + pautan('Tetapkan tarikh akhir', true) + '</div></div>' : '';
+  }
+  var baki = ta.akhirMs - kini();
+  if (baki > 0) {
+    var warna = baki <= 86400000 ? 'merah' : baki <= 7 * 86400000 ? 'kuning' : 'hijau';
+    return '<div class="kotak-ta ' + warna + '"><div class="ta-atas"><div><div class="ta-tajuk">Tarikh akhir pengisian KGP</div>' +
+      '<div class="ta-tarikh">' + e(paparTarikhMasa(ta.akhirTeks)) + '</div><div class="nota" style="color:inherit">Baki masa sebelum pengisian dikunci</div></div>' +
+      '<div class="detik kiraDetik" data-hingga="' + ta.akhirMs + '">' + isiDetik(ta.akhirMs) + '</div></div>' +
+      '<div class="ta-bawah">' + (admin ? (ta.menunggu ? '<b>' + ta.menunggu + '</b> permohonan buka semula menunggu. ' : '') + pautan('Urus tarikh akhir', true)
+        : 'Selepas tarikh ini pengisian akan <b>dikunci</b>; anda perlu memohon kepada Admin untuk membukanya semula.') + '</div></div>';
+  }
+  var bukaan = ta.bukaan || [];
+  var h = '<div class="kotak-ta ' + (!admin && bukaan.length ? 'kuning' : 'merah') + '"><div class="ta-atas"><div>' +
+    '<div class="ta-tajuk">' + (!admin && bukaan.length ? '🔓 Pengisian dibuka semula (sementara)' : '🔒 Pengisian KGP telah dikunci') + '</div>' +
+    '<div class="ta-tarikh">Tarikh akhir: ' + e(paparTarikhMasa(ta.akhirTeks)) + '</div></div>';
+  if (admin) {
+    return h + '<div>' + pautan(ta.menunggu ? 'Semak ' + ta.menunggu + ' permohonan' : 'Urus tarikh akhir &amp; permohonan') + '</div></div>' +
+      '<div class="ta-bawah">KGP tidak lagi boleh menyimpan pengisian kecuali permohonan buka semula mereka diluluskan. Admin tidak terkesan.</div></div>';
+  }
+  h += '<div><button class="btn kecil" data-ta="mohon">Mohon buka semula</button></div></div>';
+  if (bukaan.length) {
+    h += '<div class="ta-bawah"><b>Dibuka untuk anda:</b><ul>' + bukaan.map(function (b) {
+      return '<li>' + e(namaUnitPapar(b.unit)) + ' — hingga ' + e(paparTarikhMasa(b.hinggaTeks)) + ' (baki <b class="kiraTeks" data-hingga="' + b.hinggaMs + '">' + e(bakiTeks(b.hinggaMs)) + '</b>)</li>';
+    }).join('') + '</ul></div>';
+  }
+  if ((ta.permohonanSaya || []).length) {
+    h += '<div class="ta-bawah"><b>Permohonan saya:</b><ul>' + ta.permohonanSaya.map(function (p) {
+      return '<li>' + e(String(p.tarikh).substring(0, 16)) + ' · ' + e(namaUnitPapar(p.unit)) + ' · ' + lencanaMohon(p.status) +
+        (p.status === 'LULUS' ? ' hingga ' + e(paparTarikhMasa(p.bukaHingga)) : '') + (p.catatan ? ' <span class="nota">— ' + e(p.catatan) + '</span>' : '') + '</li>';
+    }).join('') + '</ul></div>';
+  }
+  return h + '</div>';
+}
+function pasangKotakTarikhAkhir() {
+  Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-ta]'), function (b) {
+    b.onclick = function () { if (b.getAttribute('data-ta') === 'mohon') bukaMohonBuka(''); else pergi('tarikhakhir'); };
+  });
+}
+
+/* Detik setiap saat. Apabila tarikh akhir / tempoh bukaan tamat semasa skrin terbuka, status dimuat semula. */
+function mulaDetik() { clearInterval(detikTimer); detikTimer = setInterval(detik, 1000); }
+function detik() {
+  if (!S.token || document.hidden) return;
+  var lepas = false;
+  Array.prototype.forEach.call(document.querySelectorAll('.kiraDetik, .kiraTeks'), function (el) {
+    var ms = Number(el.getAttribute('data-hingga'));
+    if (el.classList.contains('kiraDetik')) el.innerHTML = isiDetik(ms); else el.textContent = bakiTeks(ms);
+    if (ms <= kini() && !el.getAttribute('data-lepas')) { el.setAttribute('data-lepas', '1'); lepas = true; }
+  });
+  if (!lepas) return;
+  muatTarikhAkhir().then(function () {
+    if (['dashboard', 'isiunit', 'tarikhakhir'].indexOf(S.halaman) === -1) return;
+    if (modalTerbuka()) $('bannerBaru').classList.remove('hidden'); else pergi(S.halaman);
+  });
+}
+
+/* KGP: borang permohonan buka semula. */
+function bukaMohonBuka(unitAwal) {
+  var unit = (S.user.unit || []).slice().sort();
+  var m = bukaModal('<h3>Mohon buka semula pengisian</h3>' +
+    '<p class="nota">Tarikh akhir pengisian (' + e(paparTarikhMasa(S.ta && S.ta.akhirTeks)) + ') telah tamat. Permohonan akan dihantar kepada Admin untuk kelulusan.</p>' +
+    '<div class="medan"><label>Unit</label><select id="mbUnit"><option value="SEMUA">Semua unit saya (' + unit.length + ')</option>' +
+    unit.map(function (k) { return '<option value="' + e(k) + '"' + (k === unitAwal ? ' selected' : '') + '>' + e(namaUnitPapar(k)) + '</option>'; }).join('') + '</select></div>' +
+    '<div class="medan"><label>Sebab permohonan</label><textarea id="mbSebab" rows="3" maxlength="500" placeholder="Cth. 5 murid belum diisi kerana pertandingan peringkat negeri baru selesai."></textarea></div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Hantar permohonan</button></div>', true);
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    api('apiMohonBuka', { unit: nilaiEl('mbUnit'), sebab: nilaiEl('mbSebab') }).then(function (r) {
+      setTarikhAkhir(r.tarikhAkhir); tutupModal(m);
+      toast('Permohonan dihantar kepada Admin.', 'jaya');
+      if (['dashboard', 'isiunit'].indexOf(S.halaman) !== -1) pergi(S.halaman);
+    }).catch(gagal);
+  };
+}
+
+/* Admin: tetapkan tarikh akhir + proses permohonan. */
+function halamanTarikhAkhir() {
+  var st = PG('pm', { status: '' });
+  S.segar = function () { if (S.halaman === 'tarikhakhir' && !modalTerbuka()) halamanTarikhAkhir(); };
+  return api('apiSenaraiPermohonan', { status: st.status, halaman: st.halaman, saiz: st.saiz, cari: st.cari }).then(function (r) {
+    if (S.halaman !== 'tarikhakhir') return;
+    setTarikhAkhir(r.tarikhAkhir);
+    var ta = S.ta, bhg = String(ta.akhirTeks || '').split(' ');
+    var h = '<h2 class="tajuk">Tarikh Akhir Pengisian &amp; Permohonan Buka</h2>' + kotakTarikhAkhirHtml(true) +
+      '<div class="kad"><h3>Tetapkan tarikh akhir pengisian KGP</h3>' +
+      '<p class="nota" style="margin-top:0">Selepas tarikh &amp; masa ini, Ketua Guru Penasihat <b>tidak boleh menyimpan</b> pengisian (borang dan isi pukal dikunci). Mereka boleh menghantar permohonan buka semula yang perlu diluluskan di bawah. Admin tidak dikunci.</p>' +
+      '<div class="grid-borang"><div class="medan"><label>Tarikh akhir</label><input type="date" id="taTarikh" value="' + e(bhg[0] || '') + '"></div>' +
+      '<div class="medan"><label>Masa</label><input type="time" id="taMasa" value="' + e(bhg[1] || '23:59') + '"></div></div>' +
+      '<div class="aksi-modal">' + (ta.ada ? '<button class="btn luar" id="btnTaKosong">Kosongkan (tiada had)</button>' : '') + '<button class="btn" id="btnTaSimpan">Simpan tarikh akhir</button></div></div>' +
+      '<div class="kad"><h3>Permohonan buka semula</h3><div class="baris-alat">' +
+      '<select id="pmStatus" aria-label="Status"><option value="">Semua status</option><option value="MENUNGGU">Menunggu</option><option value="LULUS">Diluluskan</option><option value="DITOLAK">Ditolak</option><option value="DITUTUP">Ditutup</option></select>' +
+      palangPg('pm') + '</div><div class="jadual-skrol"><table><thead><tr><th>Tarikh</th><th>Guru (KGP)</th><th>Unit</th><th>Sebab</th><th>Status</th><th></th></tr></thead><tbody>' +
+      (r.senarai.length ? r.senarai.map(function (p, i) {
+        var aktif = p.status === 'LULUS' && p.bukaHinggaMs > kini();
+        return '<tr><td>' + e(String(p.tarikh).substring(0, 16)) + '</td><td>' + e(p.nama) + '<div class="nota">' + e(p.nokp) + '</div></td><td>' + e(namaUnitPapar(p.unit)) + '</td>' +
+          '<td style="max-width:320px">' + e(p.sebab) + (p.catatan ? '<div class="nota">Catatan Admin: ' + e(p.catatan) + '</div>' : '') + '</td>' +
+          '<td>' + lencanaMohon(p.status) + (p.status === 'LULUS' ? '<div class="nota">' + (aktif ? 'Dibuka hingga ' : 'Tamat ') + e(paparTarikhMasa(p.bukaHingga)) + '</div>' : '') +
+          (p.diprosesOleh ? '<div class="nota">oleh ' + e(p.diprosesOleh) + '</div>' : '') + '</td>' +
+          '<td style="white-space:nowrap">' + (p.status === 'MENUNGGU' ? '<button class="btn kecil hijau" data-pm="LULUS" data-i="' + i + '">Lulus</button> <button class="btn kecil merah" data-pm="DITOLAK" data-i="' + i + '">Tolak</button>'
+            : aktif ? '<button class="btn kecil luar" data-pm="DITUTUP" data-i="' + i + '">Tutup sekarang</button>' : '') + '</td></tr>';
+      }).join('') : '<tr><td colspan="6" class="nota">Tiada permohonan.</td></tr>') +
+      '</tbody></table></div>' + pagerHtml(r) + '</div>';
+    $('kandungan').innerHTML = h;
+    $('pmStatus').value = st.status;
+    $('pmStatus').onchange = function () { st.status = this.value; st.halaman = 1; halamanTarikhAkhir(); };
+    pasangPg('pm', halamanTarikhAkhir);
+    pasangPager('pm', $('kandungan'), halamanTarikhAkhir);
+    $('btnTaSimpan').onclick = function () {
+      if (!nilaiEl('taTarikh')) { toast('Pilih tarikh akhir.', 'gagal'); return; }
+      api('apiSimpanTarikhAkhir', { tarikh: nilaiEl('taTarikh'), masa: nilaiEl('taMasa') || '23:59' }).then(function (x) {
+        setTarikhAkhir(x.tarikhAkhir); toast('Tarikh akhir disimpan: ' + paparTarikhMasa(x.tarikhAkhir.akhirTeks), 'jaya'); halamanTarikhAkhir();
+      }).catch(gagal);
+    };
+    if ($('btnTaKosong')) $('btnTaKosong').onclick = function () {
+      sahkan('Kosongkan tarikh akhir? KGP akan boleh mengisi semula tanpa had masa.', function () {
+        api('apiSimpanTarikhAkhir', { tarikh: '' }).then(function (x) { setTarikhAkhir(x.tarikhAkhir); toast('Tarikh akhir dikosongkan.', 'jaya'); halamanTarikhAkhir(); }).catch(gagal);
+      }, 'Kosongkan');
+    };
+    Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-pm]'), function (b) {
+      b.onclick = function () { prosesPermohonan(r.senarai[Number(b.getAttribute('data-i'))], b.getAttribute('data-pm')); };
+    });
+  });
+}
+
+function tarikhTempatan(ms) { var d = new Date(ms); return d.getFullYear() + '-' + dua(d.getMonth() + 1) + '-' + dua(d.getDate()); }
+
+function prosesPermohonan(p, tindakan) {
+  if (!p) return;
+  var hantar = function (param, m) {
+    api('apiProsesPermohonan', Object.assign({ id: p.id, tindakan: tindakan }, param)).then(function () {
+      if (m) tutupModal(m);
+      toast({ LULUS: 'Permohonan diluluskan.', DITOLAK: 'Permohonan ditolak.', DITUTUP: 'Bukaan ditutup.' }[tindakan], 'jaya');
+      halamanTarikhAkhir();
+    }).catch(gagal);
+  };
+  if (tindakan === 'DITUTUP') { sahkan('Tutup bukaan pengisian untuk ' + p.nama + ' sekarang?', function () { hantar({}); }, 'Tutup'); return; }
+  var lulus = tindakan === 'LULUS';
+  var m = bukaModal('<h3>' + (lulus ? 'Luluskan' : 'Tolak') + ' permohonan</h3>' +
+    '<p class="nota" style="margin-top:0"><b>' + e(p.nama) + '</b> · ' + e(namaUnitPapar(p.unit)) + '<br>Sebab: ' + e(p.sebab) + '</p>' +
+    (lulus ? '<div class="grid-borang"><div class="medan"><label>Dibuka sehingga (tarikh)</label><input type="date" id="ppTarikh" value="' + tarikhTempatan(kini() + 3 * 86400000) + '"></div>' +
+      '<div class="medan"><label>Masa</label><input type="time" id="ppMasa" value="23:59"></div></div>' +
+      '<div class="baris-alat" style="margin:-4px 0 10px">' + [1, 3, 7].map(function (n) { return '<button type="button" class="btn kecil luar" data-hari="' + n + '">+' + n + ' hari</button>'; }).join('') + '</div>' : '') +
+    '<div class="medan"><label>Catatan kepada guru (pilihan)</label><input id="ppCatatan" maxlength="300"></div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn ' + (lulus ? 'hijau' : 'merah') + '" data-x="s">' + (lulus ? 'Luluskan' : 'Tolak') + '</button></div>', true);
+  Array.prototype.forEach.call(m.querySelectorAll('[data-hari]'), function (b) {
+    b.onclick = function () { $('ppTarikh').value = tarikhTempatan(kini() + Number(b.getAttribute('data-hari')) * 86400000); };
+  });
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    hantar(lulus ? { hingga: nilaiEl('ppTarikh') + ' ' + (nilaiEl('ppMasa') || '23:59'), catatan: nilaiEl('ppCatatan') } : { catatan: nilaiEl('ppCatatan') }, m);
+  };
+}
+
+/* ---------- Pentaksiran kelas ---------- */
+function muatDataKelas(kelas) {
+  return api('apiDataKelas', { kelas: kelas }).then(function (d) { S.data = d; S.cacheKelas[kelas] = d; S.versi = d.versi || S.versi; return d; });
+}
+
+/* "Stale-while-revalidate": jika kelas ini pernah dimuat, paparkan serta-merta kemudian segarkan di latar belakang. */
+function paparKelasSWR(render) {
+  var kelas = S.kelasPilihan, cache = S.cacheKelas[kelas];
+  var segar = muatDataKelas(kelas).then(function (d) {
+    if (kelas !== S.kelasPilihan) return;
+    if (!modalTerbuka() || !cache) render(d);
+  });
+  if (cache) { S.data = cache; render(cache); }
+  return segar;
+}
+
+function halamanPentaksiran() {
+  if (!adaKelas()) return;
+  var id = S.halaman;
+  S.segar = function () { if (S.halaman === id) paparKelasSWR(function () { renderPentaksiran(); }); };
+  return paparKelasSWR(function () { if (S.halaman === id) renderPentaksiran(); });
+}
+
+function lencanaGred(g) { return g ? '<span class="lencana ' + e(g) + '">' + e(g) + '</span>' : '<span class="lencana">–</span>'; }
+
+function renderPentaksiran() {
+  var d = S.data;
+  var h = '<h2 class="tajuk">Data Kelas</h2><div class="baris-alat">' + pilihKelasHtml('pkKelas') +
+    '<button class="btn hijau" id="btnSegerak">Segerak daripada e-Kokurikulum</button>' +
+    '<button class="btn" id="btnRujukanIdme" title="Semua medan yang diisi, untuk rujukan semasa mengisi PAJSK dalam idME">PDF rujukan idME</button>' +
+    '<span class="nota">Segerak terakhir: ' + e(d.segerakTerakhir || 'belum pernah') + '</span></div>';
+  var perlu = d.murid.filter(function (m) { return m.perluSemak === 'YA'; }).length;
+  var bilLengkap = d.murid.filter(function (m) { return m.kelengkapan && m.kelengkapan.status === 'LENGKAP'; }).length;
+  if (d.murid.length) h += '<div class="info-kotak">' + (adalahAdmin() ? '' : '<b>Paparan rujukan sahaja.</b> Data aspek PBB/KP/SP diisi oleh Ketua Guru Penasihat unit masing-masing; ekstra kurikulum &amp; CGPA tahun sebelum oleh Admin. ') +
+    'Pengisian lengkap: <b>' + bilLengkap + ' / ' + d.murid.length + '</b> murid. Medan wajib bagi setiap aspek yang disertai: Jawatan, Pelibatan dan sekurang-kurangnya satu Komitmen; serta CGPA tahun sebelum bagi Tingkatan 2 ke atas.</div>';
+  if (perlu) h += '<div class="amaran-kotak">' + perlu + ' murid dalam kelas ini baru dinaikkan tingkatan dan kelasnya belum disahkan melalui e-Kokurikulum.</div>';
+  if (!d.murid.length) h += '<div class="amaran-kotak">Tiada murid dalam kelas ini. Tekan <b>Segerak daripada e-Kokurikulum</b>.</div>';
+  else {
+    h += '<div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Bil</th><th>Nama</th><th class="n">PBB</th><th class="n">KP</th><th class="n">SP</th><th class="n">Ekstra</th><th class="n">GPA</th><th class="n">CGPA</th><th>Gred</th><th>Pengisian</th><th></th></tr></thead><tbody>' +
+      d.murid.map(function (m, i) {
+        var r = m.rumusan || {};
+        return '<tr><td>' + (i + 1) + '</td><td>' + e(m.nama) + '<div class="nota">' + e(m.nokp) + '</div></td>' +
+          '<td class="n">' + tanda(r.PBB) + '</td><td class="n">' + tanda(r.KP) + '</td><td class="n">' + tanda(r.SP) + '</td><td class="n">' + tanda(r.Ekstra) + '</td>' +
+          '<td class="n">' + tanda(r.GPA) + '</td><td class="n"><b>' + tanda(r.CGPA) + '</b></td><td>' + lencanaGred(r.Gred) + '</td>' +
+          '<td>' + (m.kelengkapan ? lencanaSt(m.kelengkapan.status) + (m.kelengkapan.kurang.length ? '<div class="nota">Belum: ' + m.kelengkapan.kurang.map(e).join('; ') + '</div>' : '') : '') + '</td>' +
+          '<td><button class="btn kecil' + (adalahAdmin() ? '' : ' luar') + '" data-nokp="' + e(m.nokp) + '">' + (adalahAdmin() ? 'Isi / Kemaskini' : 'Lihat') + '</button></td></tr>';
+      }).join('') + '</tbody></table></div></div>';
+  }
+  $('kandungan').innerHTML = h;
+  $('pkKelas').onchange = function () { S.kelasPilihan = this.value; halamanPentaksiran(); };
+  $('btnSegerak').onclick = function () { segerakKoko(S.kelasPilihan, function () { halamanPentaksiran(); }); };
+  $('btnRujukanIdme').onclick = function () { bukaRujukanIdme(S.data); };
+  Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-nokp]'), function (b) { b.onclick = function () { bukaPentaksiran(b.getAttribute('data-nokp')); }; });
+}
+
+function segerakKoko(kelas, selesai, paksa) {
+  api('apiSegerakKoko', { kelas: kelas || '', paksa: !!paksa }).then(function (r) {
+    var l = r.laporan;
+    S.versi = r.versi || S.versi;
+    var h = '<h3>Segerak e-Kokurikulum selesai</h3><p>' + l.jumlahDiproses + ' murid disemak · <b>' + l.diubah + ' rekod dikemaskini</b> · ' + l.baharu + ' murid baharu · ' + l.kelasBerubah + ' bertukar kelas.' + (l.dariCache && !l.diubah ? ' <span class="nota">(e-Kokurikulum tiada perubahan sejak segerak terakhir)</span>' : '') + '</p>';
+    if (l.tiadaDiKoko) h += '<div class="info-kotak">' + l.tiadaDiKoko + ' murid aktif dalam e-PAJSK tiada lagi dalam e-Kokurikulum (pindah/tamat) — tidak dipadam; Admin boleh menandakannya PINDAH di menu Murid.</div>';
+    if (l.tingkatanBeza.length) h += '<div class="amaran-kotak"><b>Tingkatan berbeza (tidak diubah):</b><br>' + l.tingkatanBeza.slice(0, 15).map(e).join('<br>') + (l.tingkatanBeza.length > 15 ? '<br>… dan ' + (l.tingkatanBeza.length - 15) + ' lagi' : '') + '</div>';
+    if (l.amaran.length) h += '<div class="amaran-kotak">' + l.amaran.map(e).join('<br>') + '</div>';
+    h += '<div class="aksi-modal"><button class="btn" data-x="o">OK</button></div>';
+    var m = bukaModal(h, true);
+    m.querySelector('[data-x=o]').onclick = function () { tutupModal(m); };
+    muatSemulaKelas().then(function () { if (selesai) selesai(); });
+  }).catch(gagal);
+}
+
+/* ---------- Borang pentaksiran murid ---------- */
+var FIELD_ASPEK = [
+  ['Jawatan', 'JAWATAN', 'Jawatan'], ['Libat1', 'PELIBATAN', 'Pelibatan (aktiviti 1)'], ['Capai1', 'PENCAPAIAN', 'Pencapaian (aktiviti 1)'],
+  ['Libat2', 'PELIBATAN', 'Pelibatan (tambahan aktiviti)'], ['Capai2', 'PENCAPAIAN', 'Pencapaian (tambahan aktiviti)'],
+  ['Komit1', 'KOMITMEN', 'Komitmen 1'], ['Komit2', 'KOMITMEN', 'Komitmen 2'], ['Komit3', 'KOMITMEN', 'Komitmen 3'], ['Komit4', 'KOMITMEN', 'Komitmen 4'],
+  ['Khidmat', 'KHIDMAT_SUMBANGAN', 'Khidmat sumbangan di peringkat sekolah']
+];
+var FIELD_EKSTRA = [
+  ['Perkhidmatan', 'PERKHIDMATAN', 'Perkhidmatan'], ['AnugerahKhas', 'ANUGERAH_KHAS', 'Anugerah khas'], ['KhidmatMasyarakat', 'KHIDMAT_MASYARAKAT', 'Khidmat masyarakat'],
+  ['Nilam', 'NILAM', 'NILAM'], ['TimmsPisa', 'TIMMS_PISA', 'TIMSS & PISA'], ['TugasKhas', 'TUGAS_KHAS', 'Tugas-tugas khas']
+];
+
+function selHtml(id, jenis, nilai) {
+  var senarai = (S.ref.pilihan[jenis] || []);
+  var ada = !nilai || senarai.some(function (x) { return x[0] === nilai; });
+  return '<select id="' + id + '"><option value="">— tiada —</option>' +
+    (ada ? '' : '<option value="' + e(nilai) + '" selected>' + e(nilai) + ' (tiada dalam senarai)</option>') +
+    senarai.map(function (x) { return '<option value="' + e(x[0]) + '"' + (x[0] === nilai ? ' selected' : '') + ' title="' + e(x[0]) + '">' + e(x[0]) + '  [' + fmt(x[1]) + ']</option>'; }).join('') + '</select>';
+}
+
+function bukaPentaksiran(nokp) {
+  var m = S.data.murid.filter(function (x) { return x.nokp === nokp; })[0];
+  if (!m) return;
+  var tabs = ['Maklumat'].concat(ASPEK).concat(['Ekstra']);
+  var h = '<h3>' + e(m.nama) + '</h3><div class="nota" style="margin:-8px 0 10px">' + e(S.data.namaKelas) + ' · ' + e(m.nokp) + ' · ' + e(m.jantina) + '</div>' +
+    '<div class="tab-bar">' + tabs.map(function (t, i) { return '<button type="button" data-tab="' + t + '" class="' + (i === 0 ? 'aktif' : '') + '">' + e(t === 'Maklumat' ? 'Maklumat & CGPA' : (t === 'Ekstra' ? 'Ekstra Kurikulum' : t + ' · ' + NAMA_ASPEK[t])) + '</button>'; }).join('') + '</div>';
+
+  h += '<div class="panel-tab aktif" data-panel="Maklumat"><div class="grid-borang">' +
+    '<div class="medan"><label>CGPA tahun sebelum (%)</label><input id="f_cgpa" type="number" min="0" max="100" step="0.01" value="' + e(m.cgpaSebelum) + '"><div class="nota">Kosongkan jika tiada (Tingkatan 1 / murid baharu). Diisi automatik selepas Naik Tingkatan.</div></div>' +
+    '<div class="medan"><label>Sejarah CGPA tingkatan lain (untuk slip)</label><input id="f_sejarah" maxlength="300" value="' + e(m.sejarah) + '"></div>' +
+    '<div class="penuh"><button type="button" class="btn luar" id="btnCadangan">Semak pencapaian daripada e-Kokurikulum</button><div id="kotakCadangan"></div></div></div></div>';
+
+  ASPEK.forEach(function (a) {
+    var r = m.aspek[a];
+    h += '<div class="panel-tab" data-panel="' + a + '"><div class="grid-borang">' +
+      '<div class="medan"><label>Unit / aktiviti (daripada e-Kokurikulum)</label><input id="f_' + a + '_Unit" value="' + e(r.Unit) + '" disabled></div>' +
+      '<div class="medan"><label>Tambahan aktiviti (nama, jika ada)</label><input id="f_' + a + '_Aktiviti2" maxlength="120" value="' + e(r.Aktiviti2) + '"></div>' +
+      FIELD_ASPEK.map(function (f) {
+        return '<div class="medan' + (f[0] === 'Jawatan' || f[0] === 'Khidmat' ? ' penuh' : '') + '"><label>' + f[2] + '</label>' + selHtml('f_' + a + '_' + f[0], f[1], r[f[0]]) + '</div>';
+      }).join('') +
+      '<div class="medan"><label>Kehadiran daripada e-Kokurikulum (perjumpaan)</label><input value="' + e(r.KehadiranAuto) + '" disabled></div>' +
+      '<div class="medan"><label>Kehadiran manual (0–12, ganti auto)</label><input id="f_' + a + '_KehadiranManual" type="number" min="0" max="12" step="1" value="' + e(r.KehadiranManual) + '"></div></div>' +
+      '<div class="pratonton" id="prev_' + a + '"></div></div>';
+  });
+
+  h += '<div class="panel-tab" data-panel="Ekstra"><div class="grid-borang">' + FIELD_EKSTRA.map(function (f) {
+    return '<div class="medan penuh"><label>' + f[2] + '</label>' + selHtml('f_E_' + f[0], f[1], m.ekstra[f[0]]) + '</div>';
+  }).join('') + '</div><div class="pratonton" id="prev_E"></div></div>';
+
+  h += '<div class="pratonton" id="prev_R" style="background:#eff6ff"></div>' +
+    '<div class="aksi-modal"><button type="button" class="btn luar" data-x="b">Tutup</button><button type="button" class="btn hijau" data-x="s">Simpan</button></div>';
+  var modal = bukaModal(h);
+
+  Array.prototype.forEach.call(modal.querySelectorAll('[data-tab]'), function (b) {
+    b.onclick = function () {
+      Array.prototype.forEach.call(modal.querySelectorAll('[data-tab]'), function (x) { x.classList.toggle('aktif', x === b); });
+      Array.prototype.forEach.call(modal.querySelectorAll('[data-panel]'), function (x) { x.classList.toggle('aktif', x.getAttribute('data-panel') === b.getAttribute('data-tab')); });
+    };
+  });
+  modal.addEventListener('input', function () { kemasPratonton(m); });
+  modal.addEventListener('change', function () { kemasPratonton(m); });
+  modal.querySelector('[data-x=b]').onclick = function () { tutupModal(modal); };
+  modal.querySelector('[data-x=s]').onclick = function () {
+    var p = kumpulBorang(m);
+    p.nokp = m.nokp;
+    api('apiSimpanPentaksiran', p).then(function (r) {
+      var i = S.data.murid.findIndex(function (x) { return x.nokp === m.nokp; });
+      if (i >= 0) S.data.murid[i] = r.murid;
+      S.versi = r.versi || S.versi;
+      toast('Pentaksiran disimpan.', 'jaya');
+      tutupModal(modal);
+      renderPentaksiran();
+    }).catch(gagal);
+  };
+  $('btnCadangan').onclick = function () { muatCadangan(m); };
+  kemasPratonton(m);
+  if (!adalahAdmin()) {   // Guru Kelas: rujukan sahaja
+    Array.prototype.forEach.call(modal.querySelectorAll('input, select, textarea'), function (el) { el.disabled = true; });
+    modal.querySelector('[data-x=s]').remove();
+    $('btnCadangan').remove();
+    modal.querySelector('h3').insertAdjacentHTML('beforeend', ' <span class="lencana">Paparan rujukan</span>');
+  }
+}
+
+function kumpulBorang(m) {
+  var aspek = {};
+  ASPEK.forEach(function (a) {
+    var o = {};
+    FIELD_ASPEK.forEach(function (f) { o[f[0]] = nilaiEl('f_' + a + '_' + f[0]); });
+    o.Aktiviti2 = nilaiEl('f_' + a + '_Aktiviti2');
+    o.KehadiranManual = nilaiEl('f_' + a + '_KehadiranManual');
+    aspek[a] = o;
+  });
+  var ekstra = {};
+  FIELD_EKSTRA.forEach(function (f) { ekstra[f[0]] = nilaiEl('f_E_' + f[0]); });
+  return { aspek: aspek, ekstra: ekstra, cgpaSebelum: nilaiEl('f_cgpa'), sejarah: nilaiEl('f_sejarah') };
+}
+
+function kemasPratonton(m) {
+  var p = kumpulBorang(m), markah = {};
+  ASPEK.forEach(function (a) {
+    var rec = Object.assign({}, p.aspek[a]);
+    var auto = Number(m.aspek[a].KehadiranAuto) || 0;
+    rec.Kehadiran = rec.KehadiranManual !== '' ? Number(rec.KehadiranManual) : auto;
+    var k = kiraAspekMurni(rec, S.ref);
+    markah[a] = k.Markah;
+    var dup = [rec.Komit1, rec.Komit2, rec.Komit3, rec.Komit4].filter(Boolean);
+    var ada = dup.length !== dup.filter(function (x, i) { return dup.indexOf(x) === i; }).length;
+    $('prev_' + a).innerHTML = '<span>Jawatan <b>' + fmt(k.SkorJawatan) + '</b></span><span>Libat <b>' + fmt(k.SkorLibat) + '</b></span><span>Capai <b>' + fmt(k.SkorCapai) + '</b></span><span>Komitmen <b>' + fmt(k.SkorKomit) + '</b></span><span>Khidmat <b>' + fmt(k.SkorKhidmat) + '</b></span><span>Hadir <b>' + fmt(k.SkorKehadiran) + '</b> (' + rec.Kehadiran + ')</span><span>Skor <b>' + fmt(k.Skor) + '/110</b> = <b>' + fmt(k.Markah) + '%</b></span>' +
+      (ada ? '<span style="color:#b45309">Pilihan komitmen yang sama hanya dikira sekali.</span>' : '');
+  });
+  var ek = kiraEkstraMurni(p.ekstra, S.ref);
+  $('prev_E').innerHTML = '<span>Skor tertinggi ekstra kurikulum: <b>' + fmt(ek.SkorTertinggi) + '</b></span>';
+  var cg = p.cgpaSebelum === '' ? '' : Number(p.cgpaSebelum);
+  var r = kiraRumusanMurni(markah.PBB, markah.SP, markah.KP, ek.SkorTertinggi, cg, S.ref);
+  $('prev_R').innerHTML = '<span>PBB <b>' + fmt(markah.PBB) + '</b></span><span>KP <b>' + fmt(markah.KP) + '</b></span><span>SP <b>' + fmt(markah.SP) + '</b></span><span>Purata 2 tertinggi <b>' + fmt(r.Purata2Tertinggi) + '</b></span><span>GPA <b>' + fmt(r.GPA) + '</b></span><span>CGPA <b>' + fmt(r.CGPA) + '</b></span><span>Gred <b>' + e(r.Gred || '–') + '</b> ' + e(r.Label) + '</span>';
+}
+
+function muatCadangan(m) {
+  var k = $('kotakCadangan');
+  k.innerHTML = '<div class="nota">Memuatkan…</div>';
+  api('apiCadanganKoko', { nokp: m.nokp }, true).then(function (r) {
+    if (!r.senarai.length) { k.innerHTML = '<div class="info-kotak" style="margin-top:10px">Tiada rekod pencapaian untuk murid ini dalam e-Kokurikulum bagi tahun ' + e(S.tetapan.tahun) + '.</div>'; return; }
+    var pilihanSasaran = ASPEK.map(function (a) { return [1, 2].map(function (n) { return '<option value="' + a + '|' + n + '">' + a + ' · aktiviti ' + n + '</option>'; }).join(''); }).join('');
+    k.innerHTML = '<div class="nota" style="margin:10px 0 6px">Cadangan sahaja — semak dan tekan <b>Guna</b> untuk mengisi borang (belum disimpan sehingga anda tekan Simpan).</div><div class="jadual-skrol"><table><thead><tr><th>Pertandingan</th><th>Peringkat</th><th>Pencapaian</th><th>Cadangan PAJSK</th><th>Isi ke</th><th></th></tr></thead><tbody>' +
+      r.senarai.map(function (c, i) {
+        var def = (c.aspekCadangan || 'SP') + '|1';
+        return '<tr><td>' + e(c.pertandingan) + '<div class="nota">' + e(c.tarikh) + '</div></td><td>' + e(c.peringkat) + '</td><td>' + e(c.pencapaian) + '</td><td>' + (c.cadanganLibat ? 'Libat: ' + e(c.cadanganLibat) + '<br>' : '') + (c.cadanganCapai ? 'Capai: ' + e(c.cadanganCapai) : '') + (!c.cadanganLibat && !c.cadanganCapai ? '<span class="nota">tiada padanan</span>' : '') + '</td>' +
+          '<td><select id="cs' + i + '">' + pilihanSasaran.replace('value="' + def + '"', 'value="' + def + '" selected') + '</select></td>' +
+          '<td><button type="button" class="btn kecil" data-i="' + i + '"' + (!c.cadanganLibat && !c.cadanganCapai ? ' disabled' : '') + '>Guna</button></td></tr>';
+      }).join('') + '</tbody></table></div>';
+    Array.prototype.forEach.call(k.querySelectorAll('[data-i]'), function (b) {
+      b.onclick = function () {
+        var i = Number(b.getAttribute('data-i')), c = r.senarai[i];
+        var t = nilaiEl('cs' + i).split('|'), a = t[0], n = t[1];
+        if (c.cadanganLibat) $('f_' + a + '_Libat' + n).value = c.cadanganLibat;
+        if (c.cadanganCapai) $('f_' + a + '_Capai' + n).value = c.cadanganCapai;
+        kemasPratonton(m);
+        toast('Diisi ke ' + a + ' aktiviti ' + n + '. Jangan lupa Simpan.', 'info');
+      };
+    });
+  }).catch(function (er) { k.innerHTML = '<div class="amaran-kotak" style="margin-top:10px">' + e(er.message) + '</div>'; });
+}
+
+/* ---------- Pengisian Unit oleh Ketua Guru Penasihat ---------- */
+function pendek(t, n) { t = String(t || ''); return t.length > n ? t.substring(0, n - 1) + '…' : t; }
+function statusRekodJs(rec) {
+  var kurang = [];
+  ((S.iu && S.iu.medanWajib) || []).forEach(function (x) {
+    var kosong = x[0] === 'KOMITMEN' ? !(rec.Komit1 || rec.Komit2 || rec.Komit3 || rec.Komit4) : !rec[x[0]];
+    if (kosong) kurang.push(x[1]);
+  });
+  return { status: !kurang.length ? 'LENGKAP' : (rec.OlehKP ? 'DALAM_PROSES' : 'BELUM_MULA'), kurang: kurang };
+}
+
+function halamanIsiUnit() {
+  var st = PG('iu', { unit: '', tapis: 'SEMUA', ting: '', cari: '' });
+  S.segar = function () { if (S.halaman === 'isiunit' && !modalTerbuka()) muatIsiUnit(true); };
+  S.iuPilih = {};
+  return muatIsiUnit(false);
+}
+
+function muatIsiUnit(senyap) {
+  var st = PG('iu');
+  return api('apiDataUnit', { unit: st.unit || '' }).then(function (d) {
+    if (S.halaman !== 'isiunit') return;
+    S.iu = d; S.versi = d.versi || S.versi;
+    if (adalahAdmin()) st.unit = d.dipilih;
+    if (!senyap || !$('iuJadual')) renderIsiUnit(); else renderJadualIsiUnit();
+  });
+}
+
+function renderIsiUnit() {
+  var d = S.iu, st = PG('iu');
+  if (!d.unitSaya.length) {
+    $('kandungan').innerHTML = '<h2 class="tajuk">Pengisian Unit</h2><div class="amaran-kotak">Anda belum ditetapkan sebagai Ketua Guru Penasihat mana-mana unit. Penetapan dibuat dalam e-Kokurikulum (jawatan "KETUA GURU PENASIHAT") atau oleh Admin di menu Pengguna.</div>';
+    return;
+  }
+  var pilihan = (adalahAdmin() ? '' : '<option value="">Semua unit saya (' + d.unitSaya.length + ')</option>') +
+    d.unitSaya.map(function (u) { return '<option value="' + e(u.kunci) + '"' + (u.kunci === st.unit ? ' selected' : '') + '>' + e(u.aspek + ' · ' + u.unit + ' (' + u.bilMurid + ')') + '</option>'; }).join('');
+  var h = '<h2 class="tajuk">Pengisian Unit · ' + e(d.tahun) + '</h2>' + kotakTarikhAkhirHtml() +
+    '<div class="info-kotak">Isi medan pentaksiran bagi murid unit anda. Data <b>unit</b> dan <b>kehadiran</b> ditarik automatik daripada e-Kokurikulum. Senarai disusun mengikut <b>unit → tingkatan → kelas → nama</b>. Medan wajib: <b>' + e((d.medanWajib || []).map(function (x) { return x[1]; }).join(', ')) + '</b>.</div>' +
+    '<div class="baris-alat"><select id="iuUnit" aria-label="Unit">' + pilihan + '</select>' +
+    '<select id="iuTapis" aria-label="Status"><option value="SEMUA">Semua status</option><option value="BELUM_SIAP">Belum lengkap</option><option value="BELUM_MULA">Belum mula</option><option value="DALAM_PROSES">Dalam proses</option><option value="LENGKAP">Lengkap</option></select>' +
+    '<select id="iuTing" aria-label="Tingkatan"><option value="">Semua tingkatan</option>' + [1, 2, 3, 4, 5].map(function (t) { return '<option value="' + t + '">Tingkatan ' + t + '</option>'; }).join('') + '</select>' +
+    '<input id="iuCari" placeholder="Cari nama / kelas…" style="max-width:220px">' +
+    '<div class="rapat"><button class="btn luar" id="btnIuPukal" disabled>Isi pukal (0)</button></div></div>' +
+    '<div id="iuInfoUnit" class="nota" style="margin-bottom:8px"></div><div id="iuJadual"></div>';
+  $('kandungan').innerHTML = h;
+  $('iuTapis').value = st.tapis; $('iuTing').value = st.ting; $('iuCari').value = st.cari;
+  $('iuUnit').onchange = function () { st.unit = this.value; S.iuPilih = {}; muatIsiUnit(false); };
+  $('iuTapis').onchange = function () { st.tapis = this.value; renderJadualIsiUnit(); };
+  $('iuTing').onchange = function () { st.ting = this.value; renderJadualIsiUnit(); };
+  var t; $('iuCari').oninput = function () { var v = this.value; clearTimeout(t); t = setTimeout(function () { st.cari = v; renderJadualIsiUnit(); }, 250); };
+  $('btnIuPukal').onclick = bukaIsiPukal;
+  pasangKotakTarikhAkhir();
+  renderJadualIsiUnit();
+}
+
+function barisIsiUnitDitapis() {
+  var st = PG('iu'), cari = String(st.cari || '').trim().toUpperCase();
+  return S.iu.baris.filter(function (b) {
+    if (st.tapis === 'BELUM_SIAP' && b.status === 'LENGKAP') return false;
+    if (st.tapis !== 'SEMUA' && st.tapis !== 'BELUM_SIAP' && b.status !== st.tapis) return false;
+    if (st.ting && String(b.tingkatan) !== String(st.ting)) return false;
+    if (cari && (b.nama + ' ' + b.kunciKelas + ' ' + b.kelas).toUpperCase().indexOf(cari) === -1) return false;
+    return true;
+  });
+}
+
+function kunciPilih(b) { return b.kunciUnit + '::' + b.nokp; }
+
+function renderJadualIsiUnit() {
+  var senarai = barisIsiUnitDitapis(), unitLepas = null, bil = 0;
+  var kgp = {};
+  S.iu.unitSaya.forEach(function (u) { kgp[u.kunci] = u; });
+  var lengkap = S.iu.baris.filter(function (b) { return b.status === 'LENGKAP'; }).length;
+  $('iuInfoUnit').innerHTML = 'Lengkap <b>' + lengkap + ' / ' + S.iu.baris.length + '</b> rekod · dipaparkan ' + senarai.length;
+  var h = '<div class="kad"><div class="jadual-skrol"><table id="iuTable"><thead><tr><th><input type="checkbox" id="iuPilihSemua" title="Pilih semua yang dipaparkan" style="width:auto"></th><th>Bil</th><th>Nama</th><th>Kelas</th><th>Jawatan</th><th>Pelibatan</th><th>Pencapaian</th><th class="n">Komitmen</th><th>Khidmat</th><th class="n">Hadir</th><th class="n">Markah</th><th>Status</th><th></th></tr></thead><tbody>';
+  senarai.forEach(function (b, i) {
+    if (b.kunciUnit !== unitLepas) {
+      unitLepas = b.kunciUnit; bil = 0;
+      var u = kgp[b.kunciUnit] || {};
+      h += '<tr><td colspan="13" style="background:#eff6ff;font-weight:700;color:var(--biru-gelap)">' + e(b.aspek + ' · ' + NAMA_ASPEK[b.aspek] + ' — ' + b.unit) + ' <span class="nota" style="font-weight:400">· KGP: ' + e((u.kgp || []).join(', ') || 'belum ditetapkan') + '</span></td></tr>';
+    }
+    bil++;
+    var r = b.rec, komit = [r.Komit1, r.Komit2, r.Komit3, r.Komit4].filter(Boolean).length;
+    h += '<tr><td><input type="checkbox" class="iuPilih" data-k="' + e(kunciPilih(b)) + '"' + (S.iuPilih[kunciPilih(b)] ? ' checked' : '') + ' style="width:auto"></td><td>' + bil + '</td>' +
+      '<td>' + e(b.nama) + '</td><td>' + e(paparKelasJs(b.kunciKelas)) + '</td>' +
+      '<td title="' + e(r.Jawatan) + '">' + e(pendek(r.Jawatan, 24)) + '</td>' +
+      '<td title="' + e([r.Libat1, r.Libat2].filter(Boolean).join(' / ')) + '">' + e(pendek(r.Libat1, 22)) + '</td>' +
+      '<td title="' + e([r.Capai1, r.Capai2].filter(Boolean).join(' / ')) + '">' + e(pendek(r.Capai1, 20)) + '</td>' +
+      '<td class="n">' + (komit || '–') + '</td><td>' + (r.Khidmat ? '✓' : '–') + '</td><td class="n">' + e(r.Kehadiran) + '</td><td class="n">' + tanda(r.Markah) + '</td>' +
+      '<td>' + lencanaSt(b.status) + (b.kurang.length && b.status !== 'BELUM_MULA' ? '<div class="nota">Belum: ' + e(b.kurang.join(', ')) + '</div>' : '') + '</td>' +
+      '<td>' + (dikunciUnit(b.kunciUnit) ? '<button class="btn kecil kelabu" data-i="' + i + '" title="Pengisian dikunci (tarikh akhir)">🔒 Lihat</button>' : '<button class="btn kecil" data-i="' + i + '">Isi</button>') + '</td></tr>';
+  });
+  if (!senarai.length) h += '<tr><td colspan="13" class="nota">Tiada murid dalam paparan ini.</td></tr>';
+  h += '</tbody></table></div></div>';
+  $('iuJadual').innerHTML = h;
+  S.iuPaparan = senarai;
+  Array.prototype.forEach.call($('iuJadual').querySelectorAll('[data-i]'), function (bt) { bt.onclick = function () { bukaIsiAspek(Number(bt.getAttribute('data-i'))); }; });
+  Array.prototype.forEach.call($('iuJadual').querySelectorAll('.iuPilih'), function (c) { c.onchange = function () { if (c.checked) S.iuPilih[c.getAttribute('data-k')] = true; else delete S.iuPilih[c.getAttribute('data-k')]; kemasButangPukal(); }; });
+  $('iuPilihSemua').checked = senarai.length > 0 && senarai.every(function (b) { return S.iuPilih[kunciPilih(b)]; });
+  $('iuPilihSemua').onchange = function () { var on = this.checked; senarai.forEach(function (b) { if (on) S.iuPilih[kunciPilih(b)] = true; else delete S.iuPilih[kunciPilih(b)]; }); renderJadualIsiUnit(); };
+  kemasButangPukal();
+}
+
+function kemasButangPukal() {
+  var n = Object.keys(S.iuPilih || {}).length, b = $('btnIuPukal');
+  if (b) { b.disabled = !n; b.textContent = 'Isi pukal (' + n + ')'; }
+}
+
+/* Borang satu murid, satu aspek. */
+function bukaIsiAspek(indeks) {
+  var b = S.iuPaparan[indeks]; if (!b) return;
+  var a = b.aspek, r = b.rec, kunci = dikunciUnit(b.kunciUnit);
+  var h = '<h3>' + e(b.nama) + '</h3><div class="nota" style="margin:-8px 0 10px">' + e(paparKelasJs(b.kunciKelas)) + ' · ' + e(b.nokp) + ' · <b>' + e(a + ' · ' + b.unit) + '</b> · ' + (indeks + 1) + ' / ' + S.iuPaparan.length + '</div>' +
+    '<div class="grid-borang"><div class="medan penuh"><label>Tambahan aktiviti (nama, jika ada)</label><input id="ia_Aktiviti2" maxlength="120" value="' + e(r.Aktiviti2) + '"></div>' +
+    FIELD_ASPEK.map(function (f) { return '<div class="medan' + (f[0] === 'Jawatan' || f[0] === 'Khidmat' ? ' penuh' : '') + '"><label>' + f[2] + '</label>' + selHtml('ia_' + f[0], f[1], r[f[0]]) + '</div>'; }).join('') +
+    '<div class="medan"><label>Kehadiran daripada e-Kokurikulum</label><input value="' + e(r.KehadiranAuto) + ' perjumpaan" disabled></div>' +
+    '<div class="medan"><label>Kehadiran manual (0–12, ganti auto)</label><input id="ia_KehadiranManual" type="number" min="0" max="12" step="1" value="' + e(r.KehadiranManual) + '"></div></div>' +
+    '<div><button type="button" class="btn luar kecil" id="btnIaCadangan">Semak pencapaian daripada e-Kokurikulum</button><div id="iaCadangan"></div></div>' +
+    '<div class="pratonton" id="iaPrev"></div>' +
+    (kunci ? '<div class="amaran-kotak" style="margin-top:12px">🔒 Pengisian telah <b>dikunci</b> kerana melepasi tarikh akhir (' + e(paparTarikhMasa(S.ta.akhirTeks)) + '). Mohon buka semula daripada Admin untuk menyunting.</div>' : '') +
+    '<div class="aksi-modal"><button type="button" class="btn luar" data-x="b">Tutup</button>' +
+    (kunci ? '<button type="button" class="btn" data-x="m">Mohon buka semula</button>' : '<button type="button" class="btn" data-x="s">Simpan</button>' +
+    (indeks < S.iuPaparan.length - 1 ? '<button type="button" class="btn hijau" data-x="n">Simpan &amp; seterusnya ›</button>' : '')) + '</div>';
+  var modal = bukaModal(h);
+  if (kunci) {
+    Array.prototype.forEach.call(modal.querySelectorAll('input,select'), function (x) { x.disabled = true; });
+    $('btnIaCadangan').disabled = true;
+    modal.querySelector('[data-x=m]').onclick = function () { tutupModal(modal); bukaMohonBuka(b.kunciUnit); };
+  }
+  var kumpul = function () {
+    var o = {};
+    FIELD_ASPEK.forEach(function (f) { o[f[0]] = nilaiEl('ia_' + f[0]); });
+    o.Aktiviti2 = nilaiEl('ia_Aktiviti2'); o.KehadiranManual = nilaiEl('ia_KehadiranManual');
+    return o;
+  };
+  var pratonton = function () {
+    var o = kumpul(), rec = Object.assign({}, o);
+    rec.Kehadiran = o.KehadiranManual !== '' ? Number(o.KehadiranManual) : (Number(r.KehadiranAuto) || 0);
+    var k = kiraAspekMurni(rec, S.ref);
+    $('iaPrev').innerHTML = '<span>Jawatan <b>' + fmt(k.SkorJawatan) + '</b></span><span>Libat <b>' + fmt(k.SkorLibat) + '</b></span><span>Capai <b>' + fmt(k.SkorCapai) + '</b></span><span>Komitmen <b>' + fmt(k.SkorKomit) + '</b></span><span>Khidmat <b>' + fmt(k.SkorKhidmat) + '</b></span><span>Hadir <b>' + fmt(k.SkorKehadiran) + '</b></span><span>Skor <b>' + fmt(k.Skor) + '/110</b> = <b>' + fmt(k.Markah) + '%</b></span>';
+  };
+  modal.addEventListener('input', pratonton); modal.addEventListener('change', pratonton); pratonton();
+  modal.querySelector('[data-x=b]').onclick = function () { tutupModal(modal); };
+  var simpan = function (seterusnya) {
+    var data = {}; data[a] = kumpul();
+    api('apiSimpanPentaksiran', { nokp: b.nokp, aspek: data }).then(function (res) {
+      b.rec = res.murid.aspek[a];
+      var s2 = statusRekodJs(b.rec); b.status = s2.status; b.kurang = s2.kurang;
+      S.versi = res.versi || S.versi;
+      toast('Disimpan: ' + b.nama, 'jaya');
+      tutupModal(modal);
+      renderJadualIsiUnit();
+      if (seterusnya) {
+        var i2 = S.iuPaparan.indexOf(S.iuPaparan.filter(function (x) { return x === b; })[0]);
+        var seterus = i2 >= 0 ? i2 + 1 : indeks;   // jika baris hilang daripada paparan (ditapis), indeks sama = baris seterusnya
+        if (S.iuPaparan[seterus]) bukaIsiAspek(seterus);
+      }
+    }).catch(gagal);
+  };
+  if (modal.querySelector('[data-x=s]')) modal.querySelector('[data-x=s]').onclick = function () { simpan(false); };
+  if (modal.querySelector('[data-x=n]')) modal.querySelector('[data-x=n]').onclick = function () { simpan(true); };
+  $('btnIaCadangan').onclick = function () {
+    var k = $('iaCadangan'); k.innerHTML = '<div class="nota">Memuatkan…</div>';
+    api('apiCadanganKoko', { nokp: b.nokp }, true).then(function (res) {
+      if (!res.senarai.length) { k.innerHTML = '<div class="info-kotak" style="margin-top:8px">Tiada rekod pencapaian dalam e-Kokurikulum bagi tahun ini.</div>'; return; }
+      k.innerHTML = '<div class="jadual-skrol" style="margin-top:8px"><table><thead><tr><th>Pertandingan</th><th>Cadangan</th><th></th></tr></thead><tbody>' + res.senarai.map(function (c, i) {
+        return '<tr><td>' + e(c.pertandingan) + '<div class="nota">' + e(c.peringkat + ' · ' + c.pencapaian) + '</div></td><td>' + e([c.cadanganLibat, c.cadanganCapai].filter(Boolean).join(' / ') || 'tiada padanan') + '</td><td style="white-space:nowrap">' +
+          [1, 2].map(function (n) { return '<button type="button" class="btn kecil luar" data-c="' + i + '" data-n="' + n + '"' + (!c.cadanganLibat && !c.cadanganCapai ? ' disabled' : '') + '>Aktiviti ' + n + '</button>'; }).join(' ') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+      Array.prototype.forEach.call(k.querySelectorAll('[data-c]'), function (bt) {
+        bt.onclick = function () {
+          var c = res.senarai[Number(bt.getAttribute('data-c'))], n = bt.getAttribute('data-n');
+          if (c.cadanganLibat) $('ia_Libat' + n).value = c.cadanganLibat;
+          if (c.cadanganCapai) $('ia_Capai' + n).value = c.cadanganCapai;
+          pratonton(); toast('Diisi ke aktiviti ' + n + '. Jangan lupa Simpan.', 'info');
+        };
+      });
+    }).catch(function (er) { k.innerHTML = '<div class="amaran-kotak">' + e(er.message) + '</div>'; });
+  };
+}
+
+/* Isi pukal: medan sama bagi murid yang dipilih (satu unit). */
+function bukaIsiPukal() {
+  var dipilih = Object.keys(S.iuPilih || {});
+  if (!dipilih.length) return;
+  var unit = {};
+  dipilih.forEach(function (k) { unit[k.split('::')[0]] = true; });
+  var senaraiUnit = Object.keys(unit);
+  if (senaraiUnit.length > 1) { toast('Pilih murid daripada SATU unit sahaja untuk isi pukal.', 'gagal'); return; }
+  var ku = senaraiUnit[0];
+  if (dikunciUnit(ku)) { toast('Pengisian unit ini telah dikunci (melepasi tarikh akhir). Mohon buka semula daripada Admin.', 'gagal'); return; }
+  var pilihPukal = function (id, jenis) {
+    return '<select id="' + id + '"><option value="">— tidak diubah —</option>' + (S.ref.pilihan[jenis] || []).map(function (x) { return '<option value="' + e(x[0]) + '">' + e(x[0]) + '  [' + fmt(x[1]) + ']</option>'; }).join('') + '</select>';
+  };
+  var modal = bukaModal('<h3>Isi pukal · ' + e(ku.replace('|', ' · ')) + '</h3><p class="nota">' + dipilih.length + ' murid dipilih. Hanya medan yang dipilih akan diisi.</p><div class="grid-borang">' +
+    FIELD_ASPEK.map(function (f) { return '<div class="medan' + (f[0] === 'Jawatan' || f[0] === 'Khidmat' ? ' penuh' : '') + '"><label>' + f[2] + '</label>' + pilihPukal('pk_' + f[0], f[1]) + '</div>'; }).join('') +
+    '<div class="medan penuh"><label style="font-weight:400"><input type="checkbox" id="pkKosong" checked style="width:auto"> Isi medan yang masih <b>kosong sahaja</b> (jangan timpa data sedia ada)</label></div></div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn hijau" data-x="s">Isi ' + dipilih.length + ' murid</button></div>');
+  modal.querySelector('[data-x=b]').onclick = function () { tutupModal(modal); };
+  modal.querySelector('[data-x=s]').onclick = function () {
+    var medan = {};
+    FIELD_ASPEK.forEach(function (f) { var v = nilaiEl('pk_' + f[0]); if (v) medan[f[0]] = v; });
+    if (!Object.keys(medan).length) { toast('Pilih sekurang-kurangnya satu medan.', 'gagal'); return; }
+    var nokp = dipilih.map(function (k) { return k.split('::')[1]; });
+    api('apiSimpanPukal', { unit: ku, nokp: nokp, medan: medan, hanyaKosong: $('pkKosong').checked }).then(function (r) {
+      tutupModal(modal); toast(r.dikemaskini + ' murid dikemas kini.', 'jaya'); S.iuPilih = {}; S.versi = r.versi || S.versi; muatIsiUnit(true);
+    }).catch(gagal);
+  };
+}
+
+/* ---------- Rujukan idME (PDF / cetak) ---------- */
+function muatTurunBase64(namaFail, b64, jenis) {
+  var bin = atob(b64), arr = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  var url = URL.createObjectURL(new Blob([arr], { type: jenis }));
+  var a = document.createElement('a');
+  a.href = url; a.download = namaFail; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 120000);
+}
+
+function bukaRujukanIdme(d) {
+  if (!d || !d.murid || !d.murid.length) { toast('Tiada murid dalam kelas ini.', 'gagal'); return; }
+  var modal = bukaModal('<h3>Rujukan pengisian PAJSK (idME)</h3>' +
+    '<p class="nota">Dokumen mengandungi semua medan yang telah diisi dalam e-PAJSK (Sukan &amp; Permainan, Kelab &amp; Persatuan, Badan Beruniform, Ekstra Kurikulum, CGPA) beserta senarai semak. Medan wajib yang masih kosong ditanda <b style="color:var(--merah)">BELUM DIISI</b>.</p>' +
+    '<div class="medan"><label>Murid</label><select id="riSkop"><option value="">Seluruh kelas — ' + e(d.namaKelas) + ' (' + d.murid.length + ' murid)</option>' +
+    d.murid.map(function (m) { return '<option value="' + e(m.nokp) + '">' + e(m.nama) + '</option>'; }).join('') + '</select></div>' +
+    '<p class="nota">Jika muat turun tidak bermula pada telefon, gunakan <b>Cetak / Simpan PDF</b> dan pilih "Simpan sebagai PDF".</p>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Tutup</button><button class="btn luar" data-x="c">Cetak / Simpan PDF</button><button class="btn" data-x="p">Muat turun PDF</button></div>', true);
+  modal.querySelector('[data-x=b]').onclick = function () { tutupModal(modal); };
+  modal.querySelector('[data-x=p]').onclick = function () {
+    toast('Menjana PDF… (boleh mengambil beberapa saat)', 'info');
+    sibuk(true);
+    api('apiRujukanIdme', { kelas: d.kelas, nokp: nilaiEl('riSkop'), format: 'pdf' }, true).then(function (r) {
+      sibuk(false);
+      muatTurunBase64(r.namaFail, r.data, 'application/pdf');
+      toast('PDF dijana (' + r.bilMurid + ' murid).', 'jaya');
+    }).catch(function (er) { sibuk(false); gagal(er); });
+  };
+  modal.querySelector('[data-x=c]').onclick = function () {
+    sibuk(true);
+    api('apiRujukanIdme', { kelas: d.kelas, nokp: nilaiEl('riSkop'), format: 'html' }, true).then(function (r) {
+      sibuk(false);
+      $('kawasanCetak').innerHTML = r.html;
+      tutupModal(modal);
+      setTimeout(function () { window.print(); }, 100);
+    }).catch(function (er) { sibuk(false); gagal(er); });
+  };
+}
+
+/* ---------- Status pengisian guru kelas ---------- */
+var LABEL_ST = { LENGKAP: 'Lengkap', DALAM_PROSES: 'Dalam proses', BELUM_MULA: 'Belum mula' };
+var WARNA_ST = { LENGKAP: 'hijau', DALAM_PROSES: 'kuning', BELUM_MULA: 'merah' };
+function lencanaSt(st) { return '<span class="lencana ' + (WARNA_ST[st] || '') + '">' + e(LABEL_ST[st] || st) + '</span>'; }
+
+/* "PBB: 12 murid (Jawatan 10, Komitmen 8)" bagi setiap aspek yang belum lengkap dalam satu kelas. */
+function senaraiKurangKelas(k) {
+  var hasil = [];
+  ASPEK.forEach(function (a) {
+    var x = k.kurangAspek[a];
+    if (!x) return;
+    hasil.push(a + ' · ' + NAMA_ASPEK[a] + ': ' + x.murid + ' murid belum lengkap (' + Object.keys(x.medan).map(function (md) { return md + ' ' + x.medan[md]; }).join(', ') + ')');
+  });
+  if (k.kurangCgpa) hasil.push('CGPA tahun sebelum: ' + k.kurangCgpa + ' murid belum diisi');
+  return hasil;
+}
+
+function halamanPengisian() {
+  var st = PG('pi', { tapis: 'BELUM_SIAP', cari: '' });
+  S.segar = function () { if (S.halaman === 'pengisian') halamanPengisian(); };
+  return api('apiStatusPengisian').then(function (d) {
+    if (S.halaman !== 'pengisian') return;
+    S.pengisian = d;
+    var admin = S.user.peranan === ADMIN;
+    var mod = [];
+    if (d.unit) mod.push(['unit', 'Mengikut Ketua Guru Penasihat (pengisi)']);
+    if (admin || adalahGuruKelas()) mod.push(['kelas', 'Mengikut kelas (rujukan)']);
+    if (!mod.some(function (m) { return m[0] === st.mod; })) st.mod = mod.length ? mod[0][0] : 'kelas';
+    var tabMod = mod.length > 1 ? '<div class="tab-bar" id="piMod">' + mod.map(function (m) { return '<button type="button" data-m="' + m[0] + '" class="' + (st.mod === m[0] ? 'aktif' : '') + '">' + e(m[1]) + '</button>'; }).join('') + '</div>' : '';
+    var pasangMod = function () { if ($('piMod')) Array.prototype.forEach.call($('piMod').querySelectorAll('[data-m]'), function (b) { b.onclick = function () { st.mod = b.getAttribute('data-m'); halamanPengisian(); }; }); };
+    if (st.mod === 'unit') { renderPengisianUnit(d, tabMod); pasangMod(); return; }
+    var tab = [['BELUM_SIAP', 'Belum siap (' + (d.kira.BELUM_MULA + d.kira.DALAM_PROSES) + ')'], ['BELUM_MULA', 'Belum mula (' + d.kira.BELUM_MULA + ')'],
+      ['DALAM_PROSES', 'Dalam proses (' + d.kira.DALAM_PROSES + ')'], ['LENGKAP', 'Lengkap (' + d.kira.LENGKAP + ')'], ['SEMUA', 'Semua (' + d.guru.length + ')']];
+    var h = '<h2 class="tajuk">Status Pengisian · ' + e(d.tahun) + '</h2>' + tabMod +
+      '<div class="grid-kad"><div class="stat"><div class="label">Belum mula</div><div class="nilai" style="color:var(--merah)">' + d.kira.BELUM_MULA + '</div></div>' +
+      '<div class="stat"><div class="label">Dalam proses</div><div class="nilai" style="color:var(--kuning)">' + d.kira.DALAM_PROSES + '</div></div>' +
+      '<div class="stat"><div class="label">Lengkap</div><div class="nilai" style="color:var(--hijau)">' + d.kira.LENGKAP + '</div></div></div>' +
+      '<div class="nota" style="margin-bottom:10px">Medan wajib bagi setiap aspek yang murid sertai: <b>' + e(d.peraturan.medanWajib.join(', ')) + '</b>' + (d.peraturan.cgpa ? ' serta <b>CGPA tahun sebelum</b> (Tingkatan 2 ke atas)' : '') + '. Pencapaian, khidmat sumbangan dan ekstra kurikulum adalah pilihan.</div>' +
+      '<div class="baris-alat">' + (admin ? '<div class="tab-pil" id="piTab">' + tab.map(function (t) { return '<button type="button" data-t="' + t[0] + '" class="' + (st.tapis === t[0] ? 'aktif' : '') + '">' + e(t[1]) + '</button>'; }).join('') + '</div>' +
+        '<input id="piCari" placeholder="Cari nama guru / kelas…" style="max-width:240px" value="' + e(st.cari) + '">' : '') +
+      '<div class="rapat">' + (admin ? '<button class="btn luar" id="btnPiSalin">Salin senarai peringatan</button><button class="btn luar" id="btnPiCsv">Muat turun CSV</button>' : '') + '</div></div>' +
+      '<div id="senaraiPi"></div>';
+    if (admin && d.kelasTanpaGuru.length) h += '<div class="kad"><h3>Kelas tanpa guru kelas (' + d.kelasTanpaGuru.length + ')</h3>' + d.kelasTanpaGuru.map(function (k) { return '<div class="baris-kelas"><div class="atas"><b>' + e(k.nama) + '</b>' + lencanaSt(k.status) + '<span class="nota">' + k.lengkap + '/' + k.bil + ' lengkap</span></div></div>'; }).join('') + '<p class="nota">Tetapkan guru kelas di menu Pengguna.</p></div>';
+    if (admin && d.guruTanpaKelas.length) h += '<div class="kad"><h3>Guru kelas belum ditetapkan kelas (' + d.guruTanpaKelas.length + ')</h3><p class="nota">' + d.guruTanpaKelas.map(function (g) { return e(g.nama); }).join(' · ') + '</p></div>';
+    $('kandungan').innerHTML = h;
+    pasangMod();
+    renderSenaraiPengisian();
+    if (admin) {
+      Array.prototype.forEach.call($('piTab').querySelectorAll('[data-t]'), function (b) {
+        b.onclick = function () { st.tapis = b.getAttribute('data-t'); Array.prototype.forEach.call($('piTab').querySelectorAll('[data-t]'), function (x) { x.classList.toggle('aktif', x === b); }); renderSenaraiPengisian(); };
+      });
+      var t; $('piCari').oninput = function () { var v = this.value; clearTimeout(t); t = setTimeout(function () { st.cari = v; renderSenaraiPengisian(); }, 250); };
+      $('btnPiCsv').onclick = function () { muatTurunCsvPengisian(d); };
+      $('btnPiSalin').onclick = function () { salinPeringatan(d); };
+    }
+  });
+}
+
+
+/* Paparan status mengikut Ketua Guru Penasihat / unit (pengisi data). */
+function renderPengisianUnit(d, tabMod) {
+  var u = d.unit, admin = adalahAdmin(), st = PG('piu', { tapis: 'BELUM_SIAP', cari: '' });
+  var tab = [['BELUM_SIAP', 'Belum siap (' + (u.kira.BELUM_MULA + u.kira.DALAM_PROSES) + ')'], ['BELUM_MULA', 'Belum mula (' + u.kira.BELUM_MULA + ')'],
+    ['DALAM_PROSES', 'Dalam proses (' + u.kira.DALAM_PROSES + ')'], ['LENGKAP', 'Lengkap (' + u.kira.LENGKAP + ')'], ['SEMUA', 'Semua (' + u.kgp.length + ')']];
+  var h = '<h2 class="tajuk">Status Pengisian · ' + e(d.tahun) + '</h2>' + tabMod +
+    '<div class="grid-kad"><div class="stat"><div class="label">KGP belum mula</div><div class="nilai" style="color:var(--merah)">' + u.kira.BELUM_MULA + '</div></div>' +
+    '<div class="stat"><div class="label">KGP dalam proses</div><div class="nilai" style="color:var(--kuning)">' + u.kira.DALAM_PROSES + '</div></div>' +
+    '<div class="stat"><div class="label">KGP lengkap</div><div class="nilai" style="color:var(--hijau)">' + u.kira.LENGKAP + '</div></div>' +
+    (admin ? '<div class="stat ' + (u.unitTanpaKgp.length ? 'amaran' : '') + '"><div class="label">Unit tanpa KGP</div><div class="nilai">' + u.unitTanpaKgp.length + '</div></div>' : '') + '</div>' +
+    '<div class="nota" style="margin-bottom:10px">Medan wajib setiap murid dalam unit: <b>' + e(d.peraturan.medanWajib.join(', ')) + '</b>. Status KGP = gabungan semua unit yang dipimpinnya.</div>' +
+    (admin ? '<div class="baris-alat"><div class="tab-pil" id="piuTab">' + tab.map(function (t) { return '<button type="button" data-t="' + t[0] + '" class="' + (st.tapis === t[0] ? 'aktif' : '') + '">' + e(t[1]) + '</button>'; }).join('') + '</div>' +
+      '<input id="piuCari" placeholder="Cari nama KGP / unit…" style="max-width:240px" value="' + e(st.cari) + '"><div class="rapat"><button class="btn luar" id="btnPiuSalin">Salin senarai peringatan</button><button class="btn luar" id="btnPiuCsv">Muat turun CSV</button></div></div>' : '') +
+    '<div id="senaraiPiu"></div>';
+  if (admin && u.unitTanpaKgp.length) h += '<div class="kad"><h3>Unit tanpa Ketua Guru Penasihat (' + u.unitTanpaKgp.length + ')</h3>' + u.unitTanpaKgp.map(function (k) { var x = u.unit[k]; return '<div class="baris-kelas"><div class="atas"><b>' + e(x.aspek + ' · ' + x.unit) + '</b>' + lencanaSt(x.status) + '<span class="nota">' + x.lengkap + '/' + x.bil + ' lengkap</span></div></div>'; }).join('') + '<p class="nota">Tetapkan KGP dalam e-Kokurikulum (jawatan "KETUA GURU PENASIHAT") atau di menu Pengguna. Admin boleh mengisi unit ini melalui menu Pengisian Unit.</p></div>';
+  $('kandungan').innerHTML = h;
+  var lukis = function () {
+    var cari = String(st.cari || '').trim().toUpperCase();
+    var senarai = u.kgp.filter(function (g) {
+      if (admin) {
+        if (st.tapis === 'BELUM_SIAP' && g.status === 'LENGKAP') return false;
+        if (st.tapis !== 'BELUM_SIAP' && st.tapis !== 'SEMUA' && g.status !== st.tapis) return false;
+      }
+      return !cari || (g.nama + ' ' + g.unit.join(' ')).toUpperCase().indexOf(cari) !== -1;
+    });
+    var kont = $('senaraiPiu');
+    if (!senarai.length) { kont.innerHTML = '<div class="info-kotak">Tiada Ketua Guru Penasihat dalam kategori ini.</div>'; return; }
+    kont.innerHTML = senarai.map(function (g, gi) {
+      return '<div class="kad-guru"><div class="kepala"><div><b>' + e(g.nama) + '</b> ' + lencanaSt(g.status) + '<div class="nota">Aktiviti pengisian terakhir: ' + e(g.aktivitiTerakhir || 'tiada') + '</div></div>' +
+        '<div style="min-width:180px"><div class="bar"><div style="width:' + g.peratus + '%"></div></div><span class="nota">' + g.peratus + '% rekod lengkap</span></div></div>' +
+        g.unit.map(function (k, ui) {
+          var x = u.unit[k], butiran;
+          if (x.status === 'LENGKAP') butiran = '<div class="nota" style="color:var(--hijau)">Semua murid lengkap.</div>';
+          else if (x.status === 'BELUM_MULA') butiran = '<div class="nota" style="color:var(--merah)">Belum memulakan pengisian bagi ' + x.bil + ' murid.</div>';
+          else butiran = '<ul class="senarai-kurang"><li>' + (x.bil - x.lengkap) + ' murid belum lengkap: ' + Object.keys(x.kurangMedan).map(function (m) { return e(m) + ' ' + x.kurangMedan[m]; }).join(', ') + '</li></ul>';
+          return '<div class="baris-kelas"><div class="atas"><b>' + e(x.aspek + ' · ' + x.unit) + '</b>' + lencanaSt(x.status) +
+            '<span class="nota">Lengkap ' + x.lengkap + ' · Dalam proses ' + x.proses + ' · Belum mula ' + x.belum + ' (daripada ' + x.bil + ')</span>' +
+            (x.murid.length ? '<button type="button" class="btn kecil luar" data-m="' + gi + '-' + ui + '">Senarai murid belum lengkap</button>' : '') +
+            (bolehIsi() ? '<button type="button" class="btn kecil" data-isi="' + e(k) + '">Isi</button>' : '') + '</div>' + butiran + '<div class="hidden" id="piu-' + gi + '-' + ui + '"></div></div>';
+        }).join('') + '</div>';
+    }).join('');
+    Array.prototype.forEach.call(kont.querySelectorAll('[data-m]'), function (b) {
+      b.onclick = function () {
+        var ix = b.getAttribute('data-m').split('-'), x = u.unit[senarai[Number(ix[0])].unit[Number(ix[1])]], el = $('piu-' + ix[0] + '-' + ix[1]);
+        if (!el.innerHTML) el.innerHTML = '<div class="jadual-skrol" style="margin-top:8px"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Status</th><th>Belum diisi</th></tr></thead><tbody>' +
+          x.murid.map(function (m) { return '<tr><td>' + e(m.nama) + '</td><td>' + e(paparKelasJs(m.kunciKelas)) + '</td><td>' + lencanaSt(m.status) + '</td><td>' + e(m.kurang.join(', ')) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+        el.classList.toggle('hidden');
+      };
+    });
+    Array.prototype.forEach.call(kont.querySelectorAll('[data-isi]'), function (b) { b.onclick = function () { PG('iu').unit = (adalahAdmin() || (S.user.unit || []).indexOf(b.getAttribute('data-isi')) !== -1) ? b.getAttribute('data-isi') : ''; pergi('isiunit'); }; });
+  };
+  lukis();
+  if (admin) {
+    Array.prototype.forEach.call($('piuTab').querySelectorAll('[data-t]'), function (b) {
+      b.onclick = function () { st.tapis = b.getAttribute('data-t'); Array.prototype.forEach.call($('piuTab').querySelectorAll('[data-t]'), function (x) { x.classList.toggle('aktif', x === b); }); lukis(); };
+    });
+    var t; $('piuCari').oninput = function () { var v = this.value; clearTimeout(t); t = setTimeout(function () { st.cari = v; lukis(); }, 250); };
+    var teksUnit = function (x) { return x.status === 'BELUM_MULA' ? 'Belum mula (' + x.bil + ' murid)' : (x.status === 'LENGKAP' ? 'Lengkap' : 'Dalam proses, ' + x.lengkap + '/' + x.bil + ' lengkap — belum: ' + Object.keys(x.kurangMedan).map(function (m) { return m + ' ' + x.kurangMedan[m]; }).join(', ')); };
+    $('btnPiuSalin').onclick = function () {
+      var belum = u.kgp.filter(function (g) { return g.status !== 'LENGKAP'; });
+      var teks = 'PERINGATAN PENGISIAN e-PAJSK ' + d.tahun + ' (KETUA GURU PENASIHAT)\n' + (belum.length ? belum.map(function (g, i) {
+        return (i + 1) + '. ' + g.nama + '\n' + g.unit.filter(function (k) { return u.unit[k].status !== 'LENGKAP'; }).map(function (k) { var x = u.unit[k]; return '   - ' + x.aspek + ' ' + x.unit + ': ' + teksUnit(x); }).join('\n');
+      }).join('\n') : 'Semua KGP telah melengkapkan pengisian.') + (u.unitTanpaKgp.length ? '\n\nUnit tanpa KGP: ' + u.unitTanpaKgp.map(function (k) { return u.unit[k].aspek + ' ' + u.unit[k].unit; }).join('; ') : '');
+      var m = bukaModal('<h3>Senarai peringatan</h3><textarea id="teksPeringatan" rows="14" style="font-size:12.5px">' + e(teks) + '</textarea><div class="aksi-modal"><button class="btn luar" data-x="t">Tutup</button><button class="btn" data-x="s">Salin</button></div>');
+      m.querySelector('[data-x=t]').onclick = function () { tutupModal(m); };
+      m.querySelector('[data-x=s]').onclick = function () { var ta = $('teksPeringatan'); ta.focus(); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (x) { ok = false; } toast(ok ? 'Disalin.' : 'Sila salin secara manual (Ctrl/Cmd+C).', ok ? 'jaya' : 'info'); };
+    };
+    $('btnPiuCsv').onclick = function () {
+      var baris = [['Ketua Guru Penasihat', 'No KP', 'Aspek', 'Unit', 'Status unit', 'Lengkap', 'Dalam proses', 'Belum mula', 'Jumlah murid', 'Medan belum lengkap', 'Aktiviti terakhir']];
+      u.kgp.forEach(function (g) { g.unit.forEach(function (k) { var x = u.unit[k]; baris.push([g.nama, "'" + g.nokp, x.aspek, x.unit, LABEL_ST[x.status], x.lengkap, x.proses, x.belum, x.bil, Object.keys(x.kurangMedan).map(function (m) { return m + ' ' + x.kurangMedan[m]; }).join(' | '), x.aktivitiTerakhir]); }); });
+      u.unitTanpaKgp.forEach(function (k) { var x = u.unit[k]; baris.push(['(tiada KGP)', '', x.aspek, x.unit, LABEL_ST[x.status], x.lengkap, x.proses, x.belum, x.bil, Object.keys(x.kurangMedan).map(function (m) { return m + ' ' + x.kurangMedan[m]; }).join(' | '), x.aktivitiTerakhir]); });
+      var teks = '﻿' + baris.map(function (b) { return b.map(csvSel).join(','); }).join('\r\n');
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([teks], { type: 'text/csv;charset=utf-8' }));
+      a.download = 'Status-Pengisian-KGP-' + d.tahun + '.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+    };
+  }
+}
+
+function guruDitapis() {
+  var d = S.pengisian, st = PG('pi');
+  var cari = String(st.cari || '').trim().toUpperCase();
+  return d.guru.filter(function (g) {
+    if (S.user.peranan === ADMIN) {
+      if (st.tapis === 'BELUM_SIAP' && g.status === 'LENGKAP') return false;
+      if (st.tapis !== 'BELUM_SIAP' && st.tapis !== 'SEMUA' && g.status !== st.tapis) return false;
+    }
+    if (cari && (g.nama + ' ' + g.kelas.map(function (k) { return k.nama; }).join(' ')).toUpperCase().indexOf(cari) === -1) return false;
+    return true;
+  });
+}
+
+function renderSenaraiPengisian() {
+  var senarai = guruDitapis();
+  var kont = $('senaraiPi');
+  if (!senarai.length) { kont.innerHTML = '<div class="info-kotak">Tiada guru kelas dalam kategori ini.</div>'; return; }
+  kont.innerHTML = senarai.map(function (g, gi) {
+    return '<div class="kad-guru"><div class="kepala"><div><b>' + e(g.nama) + '</b> ' + lencanaSt(g.status) +
+      '<div class="nota">Aktiviti pengisian terakhir: ' + e(g.aktivitiTerakhir || 'tiada') + '</div></div>' +
+      '<div style="min-width:180px"><div class="bar"><div style="width:' + g.peratus + '%"></div></div><span class="nota">' + g.peratus + '% murid lengkap</span></div></div>' +
+      g.kelas.map(function (k, ki) {
+        var butiran;
+        if (k.status === 'LENGKAP') butiran = '<div class="nota" style="color:var(--hijau)">Semua murid lengkap.</div>';
+        else if (k.status === 'BELUM_MULA') butiran = '<div class="nota" style="color:var(--merah)">Belum memulakan pengisian bagi ' + k.bil + ' murid.</div>';
+        else butiran = '<ul class="senarai-kurang">' + senaraiKurangKelas(k).map(function (x) { return '<li>' + e(x) + '</li>'; }).join('') + '</ul>';
+        return '<div class="baris-kelas"><div class="atas"><b>' + e(k.nama) + '</b>' + lencanaSt(k.status) +
+          '<span class="nota">Lengkap ' + k.lengkap + ' · Dalam proses ' + k.proses + ' · Belum mula ' + k.belum + ' (daripada ' + k.bil + ')</span>' +
+          (k.murid.length ? '<button type="button" class="btn kecil luar" data-murid="' + gi + '-' + ki + '">Senarai murid belum lengkap</button>' : '') +
+          '<button type="button" class="btn kecil" data-buka="' + e(k.kunci) + '">Buka kelas</button></div>' + butiran +
+          '<div class="hidden" id="pim-' + gi + '-' + ki + '"></div></div>';
+      }).join('') + '</div>';
+  }).join('');
+  Array.prototype.forEach.call(kont.querySelectorAll('[data-murid]'), function (b) {
+    b.onclick = function () {
+      var ix = b.getAttribute('data-murid').split('-'), k = senarai[Number(ix[0])].kelas[Number(ix[1])], el = $('pim-' + ix[0] + '-' + ix[1]);
+      if (!el.innerHTML) el.innerHTML = '<div class="jadual-skrol" style="margin-top:8px"><table><thead><tr><th>Nama</th><th>Status</th><th>Belum diisi</th></tr></thead><tbody>' +
+        k.murid.map(function (m) { return '<tr><td>' + e(m.nama) + '</td><td>' + lencanaSt(m.status) + '</td><td>' + (m.status === 'BELUM_MULA' ? '<span class="nota">Semua</span>' : m.kurang.map(e).join('<br>')) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+      el.classList.toggle('hidden');
+    };
+  });
+  Array.prototype.forEach.call(kont.querySelectorAll('[data-buka]'), function (b) {
+    b.onclick = function () { S.kelasPilihan = b.getAttribute('data-buka'); pergi('pentaksiran'); };
+  });
+}
+
+function teksRingkasKelas(k) {
+  if (k.status === 'BELUM_MULA') return 'Belum mula (' + k.bil + ' murid)';
+  if (k.status === 'LENGKAP') return 'Lengkap';
+  return 'Dalam proses, ' + k.lengkap + '/' + k.bil + ' lengkap — ' + senaraiKurangKelas(k).join('; ');
+}
+
+function salinPeringatan(d) {
+  var belum = d.guru.filter(function (g) { return g.status !== 'LENGKAP'; });
+  var teks = 'PERINGATAN PENGISIAN e-PAJSK ' + d.tahun + '\n' + (belum.length ? belum.map(function (g, i) {
+    return (i + 1) + '. ' + g.nama + '\n' + g.kelas.filter(function (k) { return k.status !== 'LENGKAP'; }).map(function (k) { return '   - ' + paparKelasJs(k.kunci) + ': ' + teksRingkasKelas(k); }).join('\n');
+  }).join('\n') : 'Semua guru kelas telah melengkapkan pengisian.');
+  var m = bukaModal('<h3>Senarai peringatan</h3><textarea id="teksPeringatan" rows="14" style="font-size:12.5px">' + e(teks) + '</textarea><div class="aksi-modal"><button class="btn luar" data-x="t">Tutup</button><button class="btn" data-x="s">Salin</button></div>');
+  m.querySelector('[data-x=t]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    var ta = $('teksPeringatan'); ta.focus(); ta.select();
+    var ok = false; try { ok = document.execCommand('copy'); } catch (x) { ok = false; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(teks).then(function () { toast('Disalin.', 'jaya'); }, function () { if (!ok) toast('Sila salin secara manual (Ctrl/Cmd+C).', 'info'); });
+    else toast(ok ? 'Disalin.' : 'Sila salin secara manual (Ctrl/Cmd+C).', ok ? 'jaya' : 'info');
+  };
+}
+
+function muatTurunCsvPengisian(d) {
+  var baris = [['Guru kelas', 'No KP', 'Kelas', 'Status kelas', 'Murid lengkap', 'Dalam proses', 'Belum mula', 'Jumlah murid', 'Aspek belum lengkap', 'Aktiviti terakhir']];
+  d.guru.forEach(function (g) {
+    g.kelas.forEach(function (k) {
+      baris.push([g.nama, "'" + g.nokp, paparKelasJs(k.kunci), LABEL_ST[k.status], k.lengkap, k.proses, k.belum, k.bil, senaraiKurangKelas(k).join(' | '), k.aktivitiTerakhir]);
+    });
+  });
+  var teks = '\ufeff' + baris.map(function (b) { return b.map(csvSel).join(','); }).join('\r\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([teks], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'Status-Pengisian-PAJSK-' + d.tahun + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------- Rumusan kelas ---------- */
+function halamanRumusan() {
+  if (!adaKelas()) return;
+  S.segar = function () { if (S.halaman === 'rumusan') halamanRumusan(); };
+  return paparKelasSWR(function (d) {
+    if (S.halaman !== 'rumusan') return;
+    var h = '<h2 class="tajuk">Rumusan Kelas</h2><div class="baris-alat">' + pilihKelasHtml('rmKelas') +
+      '<div class="rapat"><button class="btn luar" id="btnCsv">Muat turun CSV</button><button class="btn luar" id="btnRumIdme">PDF rujukan idME</button><button class="btn" id="btnCetakRum">Cetak</button></div></div>';
+    h += '<div class="kad" id="kawasanRumusan"><h3>' + e(d.namaKelas) + ' · Tahun ' + e(d.tahun) + '</h3><div class="jadual-skrol"><table id="jadualRumusan"><thead><tr><th>Bil</th><th>Nama</th><th class="n">CGPA lepas</th><th class="n">PBB</th><th class="n">SP</th><th class="n">KP</th><th class="n">Ekstra</th><th class="n">Purata 2 tertinggi</th><th class="n">GPA</th><th class="n">CGPA</th><th class="n">10%</th><th>Gred</th><th>Tahap</th></tr></thead><tbody>' +
+      d.murid.map(function (m, i) {
+        var r = m.rumusan || {};
+        return '<tr><td>' + (i + 1) + '</td><td>' + e(m.nama) + '</td><td class="n">' + tanda(m.cgpaSebelum) + '</td><td class="n">' + tanda(r.PBB) + '</td><td class="n">' + tanda(r.SP) + '</td><td class="n">' + tanda(r.KP) + '</td><td class="n">' + tanda(r.Ekstra) + '</td><td class="n">' + tanda(r.Purata2Tertinggi) + '</td><td class="n">' + tanda(r.GPA) + '</td><td class="n"><b>' + tanda(r.CGPA) + '</b></td><td class="n">' + tanda(r.Persepuluh) + '</td><td>' + lencanaGred(r.Gred) + '</td><td>' + e(r.Label || '') + '</td></tr>';
+      }).join('') + '</tbody></table></div></div>';
+    $('kandungan').innerHTML = h;
+    $('rmKelas').onchange = function () { S.kelasPilihan = this.value; halamanRumusan(); };
+    $('btnCsv').onclick = function () { muatTurunCsv(d); };
+    $('btnRumIdme').onclick = function () { bukaRujukanIdme(d); };
+    $('btnCetakRum').onclick = function () {
+      $('kawasanCetak').innerHTML = '<div class="slip" style="width:auto;border:none;page-break-after:auto"><h4>RUMUSAN PAJSK ' + e(d.tahun) + ' · SMK ASAJAYA</h4><div class="sub">' + e(d.namaKelas) + '</div>' + $('jadualRumusan').outerHTML.replace('<table', '<table class="rum"') + '</div>';
+      window.print();
+    };
+  });
+}
+
+function csvSel(v) { var s = String(v === null || v === undefined ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+function muatTurunCsv(d) {
+  var baris = [['Bil', 'Nama', 'No KP', 'CGPA tahun sebelum', 'PBB', 'SP', 'KP', 'Ekstra', 'Purata 2 tertinggi', 'GPA', 'CGPA', '10%', 'Gred', 'Tahap']];
+  d.murid.forEach(function (m, i) {
+    var r = m.rumusan || {};
+    baris.push([i + 1, m.nama, "'" + m.nokp, m.cgpaSebelum, r.PBB, r.SP, r.KP, r.Ekstra, r.Purata2Tertinggi, r.GPA, r.CGPA, r.Persepuluh, r.Gred, r.Label]);
+  });
+  var teks = '﻿' + baris.map(function (b) { return b.map(csvSel).join(','); }).join('\r\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([teks], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'Rumusan-PAJSK-' + d.tahun + '-' + d.kelas.replace(/\s+/g, '_') + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------- Slip ---------- */
+function halamanSlip() {
+  if (!adaKelas()) return;
+  S.segar = function () { if (S.halaman === 'slip') halamanSlip(); };
+  return paparKelasSWR(function (d) {
+    if (S.halaman !== 'slip') return;
+    var h = '<h2 class="tajuk">Slip PAJSK</h2><div class="baris-alat">' + pilihKelasHtml('slKelas') +
+      '<div class="rapat"><button class="btn" id="btnSemuaSlip">Cetak semua slip kelas</button></div></div><div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Bil</th><th>Nama</th><th class="n">CGPA</th><th>Gred</th><th></th></tr></thead><tbody>' +
+      d.murid.map(function (m, i) { var r = m.rumusan || {}; return '<tr><td>' + (i + 1) + '</td><td>' + e(m.nama) + '</td><td class="n">' + tanda(r.CGPA) + '</td><td>' + lencanaGred(r.Gred) + '</td><td><button class="btn kecil" data-nokp="' + e(m.nokp) + '">Pratonton / Cetak</button></td></tr>'; }).join('') + '</tbody></table></div></div>';
+    $('kandungan').innerHTML = h;
+    $('slKelas').onchange = function () { S.kelasPilihan = this.value; halamanSlip(); };
+    $('btnSemuaSlip').onclick = function () { cetakSlip(d.murid); };
+    Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-nokp]'), function (b) {
+      b.onclick = function () { cetakSlip(d.murid.filter(function (x) { return x.nokp === b.getAttribute('data-nokp'); })); };
+    });
+  });
+}
+
+function cetakSlip(senarai) {
+  if (!senarai.length) { toast('Tiada murid.', 'gagal'); return; }
+  $('kawasanCetak').innerHTML = senarai.map(slipHtml).join('');
+  window.print();
+}
+
+function slipHtml(m) {
+  var A = m.aspek, r = m.rumusan || {}, ek = m.ekstra;
+  var urut = ['SP', 'KP', 'PBB'];
+  function baris(label, fungsi) { return '<tr><td><b>' + label + '</b></td>' + urut.map(function (a) { return fungsi(A[a]); }).join('') + '</tr>'; }
+  function sel(isi, skor) { return '<td>' + isi + (skor !== undefined && skor !== null && isi !== '' ? ' <b>(' + fmt(skor) + ')</b>' : '') + '</td>'; }
+  function unik(arr) { return arr.filter(function (x, i) { return x && arr.indexOf(x) === i; }); }
+  var h = '<div class="slip"><img src="' + $('logoLogin').src + '" alt="" style="float:left;width:46px;height:auto;margin-right:8px"><h4>PELAPORAN PENTAKSIRAN AKTIVITI JASMANI, SUKAN &amp; KOKURIKULUM</h4>' +
+    '<div class="sub">TAHUN : ' + e(S.tetapan.tahun) + ' &nbsp;·&nbsp; ' + e(S.tetapan.namaSekolah) + (S.tetapan.kodSekolah ? ' (' + e(S.tetapan.kodSekolah) + ')' : '') + '</div>' +
+    '<table><tr><td style="width:18%"><b>NAMA MURID</b></td><td>' + e(m.nama) + '</td><td style="width:16%"><b>NO. KAD PENGENALAN</b></td><td style="width:20%">' + e(m.nokp) + '</td></tr>' +
+    '<tr><td><b>KELAS</b></td><td colspan="3">' + e(paparKelasJs(m.kunciKelas)) + '</td></tr></table>' +
+    '<table><thead><tr><th style="width:17%">ASPEK</th><th>SUKAN / PERMAINAN</th><th>KELAB / PERSATUAN</th><th>BADAN BERUNIFORM</th></tr></thead><tbody>' +
+    baris('AKTIVITI', function (a) { return sel(e(a.Unit) + (a.Aktiviti2 ? '<br>+ ' + e(a.Aktiviti2) : '')); }) +
+    baris('JAWATAN', function (a) { return sel(e(a.Jawatan), a.Jawatan ? a.SkorJawatan : null); }) +
+    baris('PELIBATAN', function (a) { return sel([a.Libat1, a.Libat2].filter(Boolean).map(e).join('<br>'), a.SkorLibat); }) +
+    baris('KOMITMEN', function (a) { return sel(unik([a.Komit1, a.Komit2, a.Komit3, a.Komit4]).map(e).join(', '), a.SkorKomit); }) +
+    baris('KHIDMAT SUMBANGAN', function (a) { return sel(e(a.Khidmat), a.SkorKhidmat); }) +
+    baris('KEHADIRAN', function (a) { return sel(e(a.Kehadiran) + ' perjumpaan', a.SkorKehadiran); }) +
+    baris('TAHAP PENCAPAIAN', function (a) { return sel([a.Capai1, a.Capai2].filter(Boolean).map(e).join('<br>'), a.SkorCapai); }) +
+    '<tr class="tebal"><td>JUMLAH SKOR</td>' + urut.map(function (a) { return '<td>' + fmt(A[a].Skor) + ' (' + fmt(A[a].Markah) + '%)</td>'; }).join('') + '</tr></tbody></table>' +
+    '<table><thead><tr><th colspan="4">EKSTRA KURIKULUM</th></tr></thead><tbody>' +
+    FIELD_EKSTRA.map(function (f, i) { return i % 2 ? '' : '<tr>' + [FIELD_EKSTRA[i], FIELD_EKSTRA[i + 1]].filter(Boolean).map(function (g) {
+      var sk = { Perkhidmatan: 'SkPerkhidmatan', AnugerahKhas: 'SkAnugerah', KhidmatMasyarakat: 'SkKM', Nilam: 'SkNilam', TimmsPisa: 'SkTimms', TugasKhas: 'SkTugas' }[g[0]];
+      return '<td style="width:18%"><b>' + e(g[2]) + '</b></td><td>' + e(ek[g[0]]) + (ek[g[0]] ? ' <b>(' + fmt(ek[sk]) + ')</b>' : '') + '</td>'; }).join('') + '</tr>'; }).join('') +
+    '<tr class="tebal"><td colspan="3">SKOR EKSTRA KURIKULUM (TERTINGGI)</td><td>' + fmt(ek.SkorTertinggi) + '</td></tr></tbody></table>' +
+    '<table><tbody>' +
+    '<tr><td style="width:30%"><b>CGPA TAHUN SEBELUM</b></td><td>' + (m.sejarah ? e(m.sejarah) : (m.cgpaSebelum !== '' ? fmt(m.cgpaSebelum) + '%' : '–')) + '</td></tr>' +
+    '<tr><td><b>GPA / CGPA TAHUN SEMASA</b></td><td>' + (r.GPA !== undefined ? fmt(r.GPA) + ' / ' + fmt(r.CGPA) + '%' : '–') + '</td></tr>' +
+    '<tr class="tebal"><td>10% / GRED</td><td>' + (r.Gred ? fmt(r.Persepuluh) + ' / ' + fmt(r.CGPA) + '% / ' + e(r.Gred) + ' — ' + e(r.Label) : '–') + '</td></tr></tbody></table>' +
+    (r.Rumusan ? '<div class="rumusan-teks">' + e(r.Rumusan) + '</div>' : '') + '</div>';
+  return h;
+}
+function paparKelasJs(k) { var x = String(k || '').match(/^(\d)\s+(.*)$/); return x ? 'Tingkatan ' + x[1] + ' ' + x[2].charAt(0) + x[2].slice(1).toLowerCase() : k; }
+
+/* ---------- Analisa ringkas ---------- */
+function halamanAnalisa() {
+  var admin = S.user.peranan === ADMIN;
+  var h = '<h2 class="tajuk">Analisa Ringkas</h2><div class="baris-alat">' +
+    (admin ? '<select id="anTing"><option value="">Semua tingkatan</option>' + [1, 2, 3, 4, 5].map(function (t) { return '<option value="' + t + '">Tingkatan ' + t + '</option>'; }).join('') + '</select>' : '') +
+    pilihKelasHtml('anKelas', true) + '<button class="btn" id="btnAnalisa">Papar</button></div><div id="hasilAnalisa"></div>';
+  $('kandungan').innerHTML = h;
+  var jalan = function () {
+    api('apiAnalisa', { tingkatan: admin ? nilaiEl('anTing') : '', kelas: nilaiEl('anKelas') }).then(function (r) {
+      $('hasilAnalisa').innerHTML = '<div class="kad"><h3>Taburan gred · ' + r.bilMurid + ' murid · Tahun ' + e(r.tahun) + '</h3><div class="jadual-skrol"><table><thead><tr><th>Aspek</th><th class="n">A</th><th class="n">B</th><th class="n">C</th><th class="n">D</th><th class="n">E</th><th class="n">%A</th><th class="n">%B</th><th class="n">%C</th><th class="n">%D</th><th class="n">%E</th><th class="n">Gred purata</th><th class="n">%GPS</th></tr></thead><tbody>' +
+        r.baris.map(function (b) {
+          return '<tr><td><b>' + e(b.nama) + '</b></td>' + ['A', 'B', 'C', 'D', 'E'].map(function (g) { return '<td class="n">' + b.bil[g] + '</td>'; }).join('') + ['A', 'B', 'C', 'D', 'E'].map(function (g) { return '<td class="n">' + fmt(b.peratus[g]) + '</td>'; }).join('') + '<td class="n">' + (b.gredPurata ? fmt(b.gredPurata) : '–') + '</td><td class="n">' + (b.peratusGPS ? fmt(b.peratusGPS) : '–') + '</td></tr>';
+        }).join('') + '</tbody></table></div><div class="nota">Gred aspek: &gt;79 A, &gt;59 B, &gt;39 C, &gt;19 D, &gt;0 E. Peratus ke atas jumlah murid; Gred purata &amp; %GPS ke atas murid bergred (%GPS = (5 − gred purata) ÷ 4 × 100).</div></div>';
+    }).catch(gagal);
+  };
+  $('btnAnalisa').onclick = jalan;
+  S.segar = function () { if (S.halaman === 'analisa') jalan(); };
+  jalan();
+}
+
+/* ---------- Murid (Admin) ---------- */
+function halamanMurid() {
+  var k = 'mu';
+  var h = '<h2 class="tajuk">Murid</h2><div class="baris-alat"><select id="muStatus"><option value="AKTIF">Aktif</option><option value="PINDAH">Pindah</option><option value="TAMAT">Tamat</option><option value="SEMUA">Semua</option></select>' +
+    pilihKelasHtml('muKelas', true) + palangPg(k) + '<div class="rapat"><button class="btn hijau" id="btnSegerakSemua">Segerak SEMUA daripada e-Kokurikulum</button><button class="btn luar" id="btnSegerakPaksa" title="Abaikan cache — baca semula seluruh e-Kokurikulum">Segerak paksa</button></div></div><div id="senaraiMurid"><div class="rangka-muat"></div><div class="rangka-muat"></div></div>';
+  $('kandungan').innerHTML = h;
+  var st = PG(k, { status: 'AKTIF', kelas: '' });
+  $('muStatus').value = st.status; $('muKelas').value = st.kelas;
+  var muat = function () {
+    var terkini = permintaanTerkini();
+    api('apiSenaraiMurid', { status: st.status, kelas: st.kelas, halaman: st.halaman, saiz: st.saiz, cari: st.cari }).then(function (r) {
+      if (!terkini() || S.halaman !== 'murid') return;
+      st.halaman = r.halaman;
+      var kont = $('senaraiMurid');
+      kont.innerHTML = (r.bilPerluSemak ? '<div class="amaran-kotak">' + r.bilPerluSemak + ' murid aktif ditanda <b>Perlu semak</b> (baru dinaikkan tingkatan).</div>' : '') +
+        '<div class="nota" style="margin-bottom:8px">Kemas kini terakhir daripada e-Kokurikulum: ' + e(r.segerakTerakhir || 'belum pernah') + '</div>' +
+        '<div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Nama</th><th>Kelas</th><th>PBB</th><th>KP</th><th>SP</th><th class="n">CGPA lepas</th><th>Status</th><th></th></tr></thead><tbody>' +
+        (r.senarai.length ? r.senarai.map(function (m, i) {
+          return '<tr><td>' + e(m.nama) + '<div class="nota">' + e(m.nokp) + '</div></td><td>' + e(paparKelasJs(m.kunciKelas)) + (m.perluSemak === 'YA' ? ' <span class="lencana kuning">Perlu semak</span>' : '') + '</td><td>' + e(m.pbb) + '</td><td>' + e(m.kp) + '</td><td>' + e(m.sp) + '</td><td class="n">' + tanda(m.cgpaSebelum) + '</td><td><span class="lencana ' + (m.status === 'AKTIF' ? 'hijau' : '') + '">' + e(m.status) + '</span></td><td>' + (m.status === 'TAMAT' ? '' : '<button class="btn kecil" data-i="' + i + '">Sunting</button>') + '</td></tr>';
+        }).join('') : '<tr><td colspan="8" class="nota">Tiada rekod.</td></tr>') + '</tbody></table></div>' + pagerHtml(r) + '</div>';
+      pasangPager(k, kont, muat);
+      Array.prototype.forEach.call(kont.querySelectorAll('[data-i]'), function (b) { b.onclick = function () { suntingMurid(r.senarai[Number(b.getAttribute('data-i'))], function () { muatSemulaKelas().then(muat); }); }; });
+    }).catch(gagal);
+  };
+  S.segar = muat;
+  pasangPg(k, muat);
+  $('muStatus').onchange = function () { st.status = this.value; st.halaman = 1; muat(); };
+  $('muKelas').onchange = function () { st.kelas = this.value; st.halaman = 1; muat(); };
+  $('btnSegerakSemua').onclick = function () { sahkan('Segerak SEMUA murid daripada e-Kokurikulum? Hanya rekod yang berubah akan dikemas kini.', function () { segerakKoko('', muat); }, 'Segerak'); };
+  $('btnSegerakPaksa').onclick = function () { sahkan('Segerak paksa membaca semula SELURUH e-Kokurikulum (lebih perlahan). Teruskan?', function () { segerakKoko('', muat, true); }, 'Segerak paksa'); };
+  muat();
+}
+function suntingMurid(m, selesai) {
+  var modal = bukaModal('<h3>Sunting Murid</h3><div class="nota" style="margin-bottom:10px">' + e(m.nama) + ' · ' + e(m.nokp) + '</div><div class="grid-borang">' +
+    '<div class="medan"><label>Tingkatan</label><select id="smTing">' + [1, 2, 3, 4, 5].map(function (t) { return '<option' + (String(m.tingkatan) === String(t) ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></div>' +
+    '<div class="medan"><label>Kelas</label><input id="smKelas" value="' + e(m.kelas) + '"></div>' +
+    '<div class="medan"><label>Status</label><select id="smStatus"><option' + (m.status === 'AKTIF' ? ' selected' : '') + '>AKTIF</option><option' + (m.status === 'PINDAH' ? ' selected' : '') + '>PINDAH</option></select></div>' +
+    '<div class="medan"><label>CGPA tahun sebelum (%)</label><input id="smCg" type="number" min="0" max="100" step="0.01" value="' + e(m.cgpaSebelum) + '"></div>' +
+    '<div class="medan penuh"><label>Sejarah CGPA</label><input id="smSej" maxlength="300" value="' + e(m.sejarah) + '"></div></div>' +
+    '<div class="nota">Tingkatan/kelas hanya perlu diubah secara manual bagi pengecualian; kelas biasa dikemaskini melalui Segerak e-Kokurikulum.</div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>', true);
+  modal.querySelector('[data-x=b]').onclick = function () { tutupModal(modal); };
+  modal.querySelector('[data-x=s]').onclick = function () {
+    api('apiSimpanMurid', { nokp: m.nokp, tingkatan: nilaiEl('smTing'), kelas: nilaiEl('smKelas'), status: nilaiEl('smStatus'), cgpaSebelum: nilaiEl('smCg'), sejarah: nilaiEl('smSej') })
+      .then(function () { tutupModal(modal); toast('Disimpan.', 'jaya'); return api('apiSenaraiKelas', {}, true); })
+      .then(function (r) { S.kelasSenarai = r.kelas; selesai(); }).catch(gagal);
+  };
+}
+
+/* ---------- Pengguna (Admin) ---------- */
+function halamanPengguna() {
+  var k = 'pu';
+  $('kandungan').innerHTML = '<h2 class="tajuk">Pengguna</h2><div class="baris-alat"><button class="btn" id="btnTambahUser">Tambah Pengguna</button><button class="btn hijau" id="btnImportGuru">Import guru daripada e-Kokurikulum</button>' + palangPg(k) +
+    '</div><div class="nota" style="margin-bottom:8px">Kata laluan lalai = 6 digit terakhir No. KP; pengguna dipaksa menukarnya semasa log masuk pertama.</div><div id="senaraiPengguna"><div class="rangka-muat"></div><div class="rangka-muat"></div></div>';
+  var st = PG(k);
+  var muat = function () {
+    var terkini = permintaanTerkini();
+    return api('apiSenaraiPengguna', { halaman: st.halaman, saiz: st.saiz, cari: st.cari }).then(function (r) {
+      if (!terkini() || S.halaman !== 'pengguna') return;
+      st.halaman = r.halaman;
+      var kont = $('senaraiPengguna');
+      kont.innerHTML = '<div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Nama</th><th>No. KP</th><th>Peranan</th><th>Kelas dijaga</th><th>Unit (KGP)</th><th>Status</th><th></th></tr></thead><tbody>' +
+        (r.senarai.length ? r.senarai.map(function (u, i) {
+          return '<tr><td>' + e(u.nama) + '</td><td>' + e(u.nokp) + '</td><td>' + (u.peranan === ADMIN ? '<span class="lencana B">Admin</span>' : 'Guru') + '</td><td>' + (u.kelas.map(paparKelasJs).map(e).join(', ') || '–') + '</td><td>' +
+            (u.unitKoko.map(function (k) { return e(k.replace('|', ' · ')) + ' <span class="lencana hijau" title="Daripada e-Kokurikulum">e-Koko</span>'; }).concat(u.unitDijaga.filter(function (k) { return u.unitKoko.indexOf(k) === -1; }).map(function (k) { return e(k.replace('|', ' · ')); })).join('<br>') || '–') + '</td><td><span class="lencana ' + (u.status === 'AKTIF' ? 'hijau' : 'merah') + '">' + e(u.status) + '</span>' + (u.mestiTukarPassword ? ' <span class="lencana kuning">KW lalai</span>' : '') + '</td>' +
+            '<td style="white-space:nowrap"><button class="btn kecil" data-e="' + i + '">Sunting</button> <button class="btn kecil luar" data-r="' + i + '">Reset KW</button> <button class="btn kecil merah" data-d="' + i + '">Padam</button></td></tr>';
+        }).join('') : '<tr><td colspan="7" class="nota">Tiada rekod.</td></tr>') + '</tbody></table></div>' + pagerHtml(r) + '</div>';
+      pasangPager(k, kont, muat);
+      var cari = function (a) { return r.senarai[Number(a)]; };
+      Array.prototype.forEach.call(kont.querySelectorAll('[data-e]'), function (b) { b.onclick = function () { borangPengguna(cari(b.getAttribute('data-e')), muat); }; });
+      Array.prototype.forEach.call(kont.querySelectorAll('[data-r]'), function (b) {
+        b.onclick = function () { var u = cari(b.getAttribute('data-r')); sahkan('Set semula kata laluan ' + u.nama + ' kepada 6 digit terakhir No. KP?', function () { api('apiResetPassword', { nokp: u.nokp }).then(function () { toast('Kata laluan di-set semula.', 'jaya'); muat(); }).catch(gagal); }, 'Reset'); };
+      });
+      Array.prototype.forEach.call(kont.querySelectorAll('[data-d]'), function (b) {
+        b.onclick = function () { var u = cari(b.getAttribute('data-d')); sahkan('Padam pengguna ' + u.nama + '? Pertimbangkan menukar status kepada TIDAK AKTIF sahaja.', function () { api('apiPadamPengguna', { nokp: u.nokp }).then(function () { toast('Dipadam.', 'jaya'); muat(); }).catch(gagal); }, 'Padam'); };
+      });
+    }).catch(gagal);
+  };
+  S.segar = muat;
+  pasangPg(k, muat);
+  $('btnTambahUser').onclick = function () { borangPengguna(null, muat); };
+  $('btnImportGuru').onclick = function () {
+    sahkan('Import semua guru daripada Sheet PENGGUNA e-Kokurikulum (yang belum ada) sebagai Guru Kelas?', function () {
+      api('apiImportGuruKoko').then(function (x) { toast(x.ditambah + ' guru ditambah, ' + x.sediaAda + ' sedia ada; ' + x.kgp + ' penetapan KGP dikemas kini.', 'jaya'); muat(); }).catch(gagal);
+    }, 'Import');
+  };
+  return muat();
+}
+function borangPengguna(u, selesai) {
+  Promise.all([api('apiSenaraiKelas', {}, true), api('apiSenaraiUnit', {}, true)]).then(function (hs) {
+    var kr = hs[0], senaraiUnit = hs[1].unit;
+    var baru = !u; u = u || { nokp: '', nama: '', peranan: 'GURU_KELAS', emel: '', kelas: [], status: 'AKTIF', unitDijaga: [], unitKoko: [] };
+    var modal = bukaModal('<h3>' + (baru ? 'Tambah' : 'Sunting') + ' Pengguna</h3><div class="grid-borang">' +
+      '<div class="medan"><label>No. KP (12 digit)</label><input id="puKp" inputmode="numeric" maxlength="14" value="' + e(u.nokp) + '"' + (baru ? '' : ' disabled') + '></div>' +
+      '<div class="medan"><label>Nama penuh</label><input id="puNama" value="' + e(u.nama) + '"></div>' +
+      '<div class="medan"><label>Peranan</label><select id="puPeranan"><option value="GURU_KELAS"' + (u.peranan === 'GURU_KELAS' ? ' selected' : '') + '>Guru (Guru Kelas / Ketua Guru Penasihat)</option><option value="ADMIN"' + (u.peranan === ADMIN ? ' selected' : '') + '>Admin</option></select></div>' +
+      '<div class="medan"><label>Status</label><select id="puStatus"><option' + (u.status === 'AKTIF' ? ' selected' : '') + '>AKTIF</option><option' + (u.status !== 'AKTIF' ? ' selected' : '') + '>TIDAK AKTIF</option></select></div>' +
+      '<div class="medan penuh"><label>E-mel (pilihan)</label><input id="puEmel" type="email" value="' + e(u.emel) + '"></div>' +
+      '<div class="medan penuh" id="puKelasWrap"><label>Kelas yang dijaga (Guru Kelas)</label><div class="kotak-semak">' +
+      (kr.kelas.length ? kr.kelas.map(function (k) { return '<label><input type="checkbox" class="puKelas" value="' + e(k.kunci) + '"' + (u.kelas.indexOf(k.kunci) !== -1 ? ' checked' : '') + '>' + e(k.nama) + '</label>'; }).join('') : '<span class="nota">Belum ada kelas — segerak murid daripada e-Kokurikulum dahulu.</span>') + '</div><div class="nota">Guru Kelas hanya boleh MELIHAT data kelasnya.</div></div>' +
+      '<div class="medan penuh" id="puUnitWrap"><label>Ketua Guru Penasihat (KGP) bagi unit — boleh MENGISI data murid unit ini</label>' +
+      (u.unitKoko.length ? '<div class="nota" style="margin-bottom:6px">Daripada e-Kokurikulum (auto): <b>' + u.unitKoko.map(function (k) { return e(k.replace('|', ' · ')); }).join('; ') + '</b></div>' : '') +
+      ['PBB', 'KP', 'SP'].map(function (a) {
+        var ux = senaraiUnit.filter(function (x) { return x.aspek === a; });
+        return ux.length ? '<div class="nota" style="margin:6px 0 2px"><b>' + a + ' · ' + NAMA_ASPEK[a] + '</b></div><div class="kotak-semak">' + ux.map(function (x) {
+          return '<label><input type="checkbox" class="puUnit" value="' + e(x.kunci) + '"' + (u.unitDijaga.indexOf(x.kunci) !== -1 ? ' checked' : '') + '>' + e(x.unit) + (x.kgp.length ? ' <span class="nota">(' + e(x.kgp.join(', ')) + ')</span>' : '') + '</label>';
+        }).join('') + '</div>' : '';
+      }).join('') + '<div class="nota">Tandakan unit tambahan secara manual (cth. jika belum ditetapkan dalam e-Kokurikulum).</div></div></div>' +
+      '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>');
+    var togol = function () { var g = nilaiEl('puPeranan') !== 'GURU_KELAS'; $('puKelasWrap').classList.toggle('hidden', g); $('puUnitWrap').classList.toggle('hidden', g); };
+    $('puPeranan').onchange = togol; togol();
+    modal.querySelector('[data-x=b]').onclick = function () { tutupModal(modal); };
+    modal.querySelector('[data-x=s]').onclick = function () {
+      var kelas = Array.prototype.map.call(modal.querySelectorAll('.puKelas:checked'), function (c) { return c.value; });
+      var unit = Array.prototype.map.call(modal.querySelectorAll('.puUnit:checked'), function (c) { return c.value; });
+      api('apiSimpanPengguna', { nokp: nilaiEl('puKp').replace(/\D/g, ''), nama: nilaiEl('puNama'), peranan: nilaiEl('puPeranan'), status: nilaiEl('puStatus'), emel: nilaiEl('puEmel'), kelas: kelas, unit: unit })
+        .then(function () { tutupModal(modal); toast('Disimpan.', 'jaya'); if (selesai) selesai(); }).catch(gagal);
+    };
+  }).catch(gagal);
+}
+
+/* ---------- Tetapan (Admin) ---------- */
+function halamanTetapan() {
+  return Promise.all([api('apiTetapan'), api('apiSenaraiRujukanPenuh')]).then(function (h) {
+    var t = h[0], rujuk = h[1].senarai, kira = {};
+    rujuk.forEach(function (x) { kira[x.jenis] = (kira[x.jenis] || 0) + 1; });
+    $('kandungan').innerHTML = '<h2 class="tajuk">Tetapan</h2><div class="kad"><h3>Tetapan am</h3><div class="grid-borang">' +
+      '<div class="medan"><label>Tahun pentaksiran</label><input id="teTahun" type="number" value="' + e(t.tahun) + '"><div class="nota">Berubah automatik selepas Naik Tingkatan.</div></div>' +
+      '<div class="medan"><label>Kod sekolah</label><input id="teKod" value="' + e(t.kodSekolah) + '"></div>' +
+      '<div class="medan"><label>Nama sekolah</label><input id="teNama" value="' + e(t.namaSekolah) + '"></div>' +
+      '<div class="medan"><label>ID Google Sheet e-Kokurikulum</label><input id="teKoko" value="' + e(t.idKoko) + '"><div class="nota">Akaun yang men-deploy e-PAJSK mesti mempunyai akses kepada Sheet ini.</div></div></div>' +
+      '<div class="aksi-modal"><button class="btn" id="btnSimpanTet">Simpan Tetapan</button></div></div>' +
+      '<div class="kad"><h3>Segerak automatik dengan e-Kokurikulum</h3>' +
+      '<p class="nota">Sistem menyemak masa kemas kini fail e-Kokurikulum dan <b>hanya jika berubah</b> mengemas kini rekod yang berbeza. Skrin pengguna dimuat semula sendiri apabila data berubah. <b>Pencetus masa</b> memastikan data kekal terkini walaupun tiada sesiapa membuka sistem.</p>' +
+      '<div class="grid-borang"><div class="medan"><label>Auto-segerak</label><select id="asAktif"><option value="1"' + (t.autoSegerak.aktif ? ' selected' : '') + '>Hidup</option><option value="0"' + (!t.autoSegerak.aktif ? ' selected' : '') + '>Mati</option></select></div>' +
+      '<div class="medan"><label>Semak setiap</label><select id="asMinit">' + [1, 5, 10, 15, 30].map(function (m) { return '<option value="' + m + '"' + (t.autoSegerak.minit === m ? ' selected' : '') + '>' + m + ' minit</option>'; }).join('') + '</select><div class="nota">Disyorkan 5 minit.</div></div></div>' +
+      '<p class="nota">Pencetus masa: <b>' + (t.autoSegerak.pencetus ? 'dipasang' : 'belum dipasang') + '</b> · Kemas kini data terakhir: ' + e(t.autoSegerak.kemaskiniTerakhir || '–') + '<br>Status terakhir: ' + e(t.autoSegerak.status || '–') + '</p>' +
+      '<div class="aksi-modal"><button class="btn luar" id="btnSegerakSekarang">Segerak sekarang</button><button class="btn" id="btnSimpanAuto">Simpan &amp; pasang pencetus</button></div>' +
+      '<hr style="border:none;border-top:1px solid var(--sempadan);margin:16px 0"><p class="nota"><b>Segera (pilihan):</b> e-Kokurikulum boleh memanggil URL ping rahsia selepas menyimpan data supaya e-PAJSK segerak serta-merta. Rujuk README untuk kod ringkas bagi e-Kokurikulum.</p>' +
+      '<div class="aksi-modal" style="justify-content:flex-start"><button class="btn luar" id="btnPing">Papar / jana URL ping</button></div><div id="kotakPing"></div></div>' +
+      '<div class="kad"><h3>Jadual skor (Sheet REFERENSI)</h3><p class="nota">' + Object.keys(kira).map(function (k) { return e(k) + ': ' + kira[k]; }).join(' · ') + '</p>' +
+      '<p class="nota">Sunting jadual skor terus dalam Sheet <b>REFERENSI</b> (lajur JENIS / KOD / NILAI). Perubahan dikesan serta-merta (atau guna menu <i>Sistem e-PAJSK → Kosongkan Semua Cache</i> jika disunting melalui cara lain). Kemudian tekan butang di bawah untuk mengira semula semua markah.</p>' +
+      '<button class="btn luar" id="btnKiraSemula">Kira semula semua markah</button></div>';
+    $('btnSimpanTet').onclick = function () {
+      api('apiSimpanTetapan', { tahun: nilaiEl('teTahun'), kodSekolah: nilaiEl('teKod'), namaSekolah: nilaiEl('teNama'), idKoko: nilaiEl('teKoko') })
+        .then(function () { toast('Tetapan disimpan.', 'jaya'); return api('apiTetapan'); }).then(function (r) { S.tetapan = r; }).catch(gagal);
+    };
+    $('btnSimpanAuto').onclick = function () {
+      api('apiAutoSegerak', { aktif: nilaiEl('asAktif') === '1', minit: nilaiEl('asMinit') }).then(function (r) {
+        if (r.amaran) { var m = bukaModal('<h3>Tetapan disimpan — pencetus belum dipasang</h3><p>' + e(r.amaran) + '</p><div class="aksi-modal"><button class="btn" data-x="o">OK</button></div>', true); m.querySelector('[data-x=o]').onclick = function () { tutupModal(m); halamanTetapan(); }; }
+        else { toast('Tetapan auto-segerak disimpan dan pencetus dipasang.', 'jaya'); halamanTetapan(); }
+      }).catch(gagal);
+    };
+    $('btnPing').onclick = function () {
+      api('apiKunciPing', {}).then(function (r) {
+        $('kotakPing').innerHTML = '<div class="info-kotak" style="margin-top:10px;word-break:break-all"><b>URL ping:</b><br>' + (r.url ? '<code>' + e(r.url) + '</code>' : '<i>URL belum ada — deploy sebagai Web App dahulu.</i>') + '<br><br><button class="btn kecil luar" id="btnPingBaru">Jana kunci baharu</button></div>';
+        $('btnPingBaru').onclick = function () { sahkan('Kunci lama akan berhenti berfungsi. Jana kunci baharu?', function () { api('apiKunciPing', { jana: true }).then(function () { $('btnPing').click(); }).catch(gagal); }, 'Jana'); };
+      }).catch(gagal);
+    };
+    $('btnSegerakSekarang').onclick = function () { segerakKoko('', function () { halamanTetapan(); }); };
+    $('btnKiraSemula').onclick = function () {
+      sahkan('Kira semula semua markah menggunakan jadual REFERENSI semasa?', function () {
+        api('apiKiraSemula', {}).then(function (r) { toast(r.murid + ' murid dikira semula.', 'jaya'); return api('apiRujukan', {}, true); }).then(function (r) { S.ref = r.rujukan; }).catch(gagal);
+      }, 'Kira semula');
+    };
+  });
+}
+
+/* ---------- Arkib & Naik Tingkatan (Admin) ---------- */
+function halamanArkib() {
+  return api('apiStatusArkib').then(function (s) {
+    var sudahArkib = !!s.arkibSemasa, sudahNaik = sudahArkib && s.arkibSemasa.naik === 'YA';
+    var h = '<h2 class="tajuk">Arkib &amp; Naik Tingkatan</h2><div class="info-kotak">Lakukan pada akhir tahun <b>mengikut turutan</b>: <b>(1) Arkib tahun ' + e(s.tahun) + '</b> → <b>(2) Naik Tingkatan</b>. Selepas itu, naikkan tingkatan di e-Kokurikulum dan jalankan <i>Segerak</i> supaya kelas baharu disahkan.</div>';
+    h += '<div class="grid-kad"><div class="stat"><div class="label">Murid aktif</div><div class="nilai">' + s.bilMurid + '</div></div>' +
+      [1, 2, 3, 4, 5].map(function (t) { return '<div class="stat"><div class="label">Tingkatan ' + t + '</div><div class="nilai">' + s.bilTingkatan[t] + '</div></div>'; }).join('') +
+      '<div class="stat ' + (s.tanpaMarkah ? 'amaran' : '') + '"><div class="label">Belum ada markah</div><div class="nilai">' + s.tanpaMarkah + '</div></div></div>';
+    h += '<div class="kad"><h3>Langkah 1 — Arkib tahun ' + e(s.tahun) + '</h3>' +
+      (sudahArkib ? '<p>Diarkibkan pada ' + e(s.arkibSemasa.tarikh) + ' · <a href="' + e(s.arkibSemasa.url) + '" target="_blank" rel="noopener">Buka fail arkib</a></p>' : '<p class="nota">Menyimpan salinan penuh tahun ini (murid, pentaksiran, rumusan, jadual skor) ke satu Google Sheet baharu dalam Drive.</p>') +
+      (s.tanpaMarkah ? '<div class="amaran-kotak">' + s.tanpaMarkah + ' murid aktif belum mempunyai markah. Mereka tetap diarkibkan tetapi CGPA mereka tidak akan dibawa ke tahun hadapan.</div>' : '') +
+      (sudahNaik ? '<p class="nota">Tahun ini sudah dinaikkan tingkatan.</p>' : '<div class="baris-alat"><input id="arkSah" placeholder="Taip ARKIB" style="max-width:160px">' + (sudahArkib ? '<label style="font-size:13px"><input type="checkbox" id="arkGanti" style="width:auto"> Ganti arkib sedia ada</label>' : '') + '<button class="btn" id="btnArkib">Arkib Tahun ' + e(s.tahun) + '</button></div>') + '</div>';
+    h += '<div class="kad"><h3>Langkah 2 — Naik Tingkatan</h3>' + (!sudahArkib ? '<p class="nota">Dikunci sehingga arkib tahun ' + e(s.tahun) + ' dibuat.</p>' : (sudahNaik ? '<p>Sudah dilaksanakan. Tahun pentaksiran semasa: <b>' + e(s.tahun) + '</b>.</p>' :
+      '<ul class="nota"><li>CGPA tahun ' + e(s.tahun) + ' menjadi CGPA tahun sebelum bagi tahun hadapan dan ditambah pada sejarah CGPA.</li><li>Tingkatan 1–4 dinaikkan; Tingkatan 5 (' + s.bilTingkatan[5] + ' murid) ditanda <b>TAMAT</b>.</li><li>Data pentaksiran ' + e(s.tahun) + ' dikosongkan daripada sistem aktif (kekal dalam arkib).</li><li>Tidak boleh dibatalkan daripada antara muka — pastikan arkib betul dahulu.</li></ul>' +
+      '<div class="grid-borang"><div class="medan"><label>Tahun pentaksiran baharu</label><input id="nkTahun" type="number" value="' + (s.tahun + 1) + '"></div><div class="medan"><label>Taip NAIK TINGKATAN</label><input id="nkSah"></div>' +
+      '<div class="medan penuh"><label style="font-weight:400"><input type="checkbox" id="nkGuru" checked style="width:auto"> Kosongkan penetapan kelas Guru Kelas (tetapkan semula untuk tahun baharu)</label></div></div>' +
+      '<div class="aksi-modal"><button class="btn merah" id="btnNaik">Naik Tingkatan</button></div>')) + '</div>';
+    h += '<div class="kad"><h3>Sejarah arkib</h3>' + (s.arkib.length ? '<div class="jadual-skrol"><table><thead><tr><th>Tahun</th><th>Tarikh arkib</th><th>Oleh</th><th class="n">Murid</th><th>Naik tingkatan</th><th></th></tr></thead><tbody>' +
+      s.arkib.map(function (a, i) { return '<tr><td>' + e(a.tahun) + '</td><td>' + e(a.tarikh) + '</td><td>' + e(a.oleh) + '</td><td class="n">' + e(a.bilMurid) + '</td><td>' + (a.naik === 'YA' ? 'Ya (' + e(a.tarikhNaik) + ')' : 'Belum') + '</td><td><button class="btn kecil" data-lihat="' + i + '">Lihat</button> <a class="btn kecil luar" href="' + e(a.url) + '" target="_blank" rel="noopener">Buka Sheet</a></td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="nota">Belum ada arkib.</p>') + '</div><div id="paparArkib"></div>';
+    $('kandungan').innerHTML = h;
+    if ($('btnArkib')) $('btnArkib').onclick = function () {
+      api('apiArkibTahun', { pengesahan: nilaiEl('arkSah'), ganti: $('arkGanti') ? $('arkGanti').checked : false }).then(function (r) { toast('Arkib tahun ' + r.tahun + ' berjaya dibuat.', 'jaya'); halamanArkib(); }).catch(gagal);
+    };
+    if ($('btnNaik')) $('btnNaik').onclick = function () {
+      sahkan('Naikkan tingkatan semua murid dan mulakan tahun ' + nilaiEl('nkTahun') + '? Tindakan ini tidak boleh dibatalkan daripada antara muka.', function () {
+        api('apiNaikTingkatan', { pengesahan: nilaiEl('nkSah'), tahunBaharu: nilaiEl('nkTahun'), kosongkanGuruKelas: $('nkGuru').checked }).then(function (r) {
+          toast('Selesai: ' + r.naik + ' dinaikkan, ' + r.tamat + ' tamat. Tahun baharu ' + r.tahunBaharu + '.', 'jaya');
+          return Promise.all([api('apiTetapan', {}, true), api('apiSenaraiKelas', {}, true)]);
+        }).then(function (x) { S.tetapan = x[0]; S.kelasSenarai = x[1].kelas; S.cacheKelas = {}; if ($('infoTahun')) $('infoTahun').textContent = S.tetapan.tahun; halamanArkib(); }).catch(gagal);
+      }, 'Naik Tingkatan');
+    };
+    Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-lihat]'), function (b) {
+      b.onclick = function () { lihatArkib(s.arkib[Number(b.getAttribute('data-lihat'))].id, ''); };
+    });
+  });
+}
+function lihatArkib(id, kelas) {
+  var k = 'ark', st = PG(k), baru = st.id !== id;
+  if (baru) { st.id = id; st.halaman = 1; st.cari = ''; }
+  st.kelas = kelas === undefined ? st.kelas : kelas;
+  api('apiLihatArkib', { id: id, kelas: st.kelas || '', halaman: st.halaman, saiz: st.saiz, cari: st.cari }).then(function (r) {
+    st.halaman = r.halaman;
+    $('paparArkib').innerHTML = '<div class="kad"><h3>Arkib ' + e(r.tahun) + '</h3><div class="baris-alat"><select id="arkKelas"><option value="">Semua kelas</option>' + r.kelas.map(function (kk) { return '<option value="' + e(kk) + '"' + (kk === st.kelas ? ' selected' : '') + '>' + e(paparKelasJs(kk)) + '</option>'; }).join('') + '</select><input id="arkCari" placeholder="Cari nama / No. KP…" style="max-width:240px" value="' + e(st.cari) + '"></div><div class="jadual-skrol"><table><thead><tr><th>Nama</th><th>Kelas</th><th class="n">PBB</th><th class="n">SP</th><th class="n">KP</th><th class="n">GPA</th><th class="n">CGPA</th><th>Gred</th></tr></thead><tbody>' +
+      r.senarai.map(function (m) { return '<tr><td>' + e(m.nama) + '</td><td>' + e(paparKelasJs(m.kunciKelas)) + '</td><td class="n">' + tanda(m.pbb) + '</td><td class="n">' + tanda(m.sp) + '</td><td class="n">' + tanda(m.kp) + '</td><td class="n">' + tanda(m.gpa) + '</td><td class="n"><b>' + tanda(m.cgpa) + '</b></td><td>' + lencanaGred(m.gred) + '</td></tr>'; }).join('') + '</tbody></table></div>' + pagerHtml(r) + '</div>';
+    $('arkKelas').onchange = function () { st.halaman = 1; lihatArkib(id, this.value); };
+    var t; $('arkCari').oninput = function () { var v = this.value; clearTimeout(t); t = setTimeout(function () { st.cari = v; st.halaman = 1; lihatArkib(id); }, 300); };
+    pasangPager(k, $('paparArkib'), function () { lihatArkib(id); });
+    if (st.cari) { var ci = $('arkCari'); ci.focus(); ci.setSelectionRange(ci.value.length, ci.value.length); }
+    if (baru) $('paparArkib').scrollIntoView({ behavior: 'smooth' });
+  }).catch(gagal);
+}
+
+/* ---------- Log audit ---------- */
+function halamanAudit() {
+  var k = 'au';
+  $('kandungan').innerHTML = '<h2 class="tajuk">Log Audit</h2><div class="baris-alat">' + palangPg(k, true) + '<span class="nota">Terbaharu dahulu</span></div><div id="senaraiAudit"><div class="rangka-muat"></div><div class="rangka-muat"></div></div>';
+  var st = PG(k);
+  var muat = function () {
+    var terkini = permintaanTerkini();
+    api('apiSenaraiAudit', { halaman: st.halaman, saiz: st.saiz }).then(function (r) {
+      if (!terkini() || S.halaman !== 'audit') return;
+      st.halaman = r.halaman;
+      var kont = $('senaraiAudit');
+      kont.innerHTML = '<div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Tarikh</th><th>Pengguna</th><th>Tindakan</th><th>Modul</th><th>Butiran</th></tr></thead><tbody>' +
+        r.senarai.map(function (a) { return '<tr><td style="white-space:nowrap">' + e(a.tarikh) + '</td><td>' + e(a.nama) + '<div class="nota">' + e(a.peranan) + '</div></td><td>' + e(a.tindakan) + '</td><td>' + e(a.modul) + '</td><td>' + e(a.butiran) + '</td></tr>'; }).join('') + '</tbody></table></div>' + pagerHtml(r) + '</div>';
+      pasangPager(k, kont, muat);
+    }).catch(gagal);
+  };
+  S.segar = muat;
+  pasangPg(k, muat);
+  muat();
+}
+
+/* ---------- Menu laci (telefon/tablet) ---------- */
+function bukaMenu() { document.body.classList.add('menu-buka'); $('btnMenu').setAttribute('aria-expanded', 'true'); }
+function tutupMenu() { document.body.classList.remove('menu-buka'); if ($('btnMenu')) $('btnMenu').setAttribute('aria-expanded', 'false'); }
+$('btnMenu').onclick = function () { if (document.body.classList.contains('menu-buka')) tutupMenu(); else bukaMenu(); };
+$('latarMenu').onclick = tutupMenu;
+document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') tutupMenu(); });
+
+/* ---------- Jadual responsif: label setiap sel daripada tajuk lajur (dipaparkan sebagai kad pada telefon) ---------- */
+function labelJadual(root) {
+  Array.prototype.forEach.call((root || document).querySelectorAll('table'), function (t) {
+    if (t.closest('#kawasanCetak') || t.closest('.slip') || t.classList.contains('tanpa-kad')) return;
+    var th = t.tHead ? Array.prototype.map.call(t.tHead.rows[0] ? t.tHead.rows[0].cells : [], function (c) { return (c.textContent || '').trim(); }) : [];
+    if (!th.length) return;
+    t.classList.add('responsif');
+    Array.prototype.forEach.call(t.tBodies, function (tb) {
+      Array.prototype.forEach.call(tb.rows, function (tr) {
+        if (tr.cells.length === 1 && tr.cells[0].colSpan > 1) { tr.cells[0].classList.add('kumpulan'); tr.classList.add('baris-kumpulan'); return; }
+        var col = 0;
+        Array.prototype.forEach.call(tr.cells, function (td) {
+          if (!td.hasAttribute('data-label')) td.setAttribute('data-label', th[col] || '');
+          col += td.colSpan || 1;
+        });
+      });
+    });
+  });
+}
+(function () {
+  var jadual = null;
+  var pantau = new MutationObserver(function () { if (jadual) return; jadual = setTimeout(function () { jadual = null; labelJadual($('kandungan')); labelJadual($('modalRoot')); }, 30); });
+  pantau.observe($('kandungan'), { childList: true, subtree: true });
+  pantau.observe($('modalRoot'), { childList: true, subtree: true });
+})();
+
+/* ---------- Mula ---------- */
+(function () {
+  var t = bacaToken();
+  if (!t) return;
+  S.token = t;
+  mulaAplikasi();
+})();
+</script>
+</body>
+</html>
