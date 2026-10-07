@@ -140,6 +140,23 @@
     img, svg { max-width: 100%; }
 
     /* Tablet landskap / komputer riba kecil */
+    /* Tarikh akhir & kiraan detik */
+    .kotak-ta { border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; border: 1px solid #bfdbfe; background: #eff6ff; color: #1e3a8a; }
+    .kotak-ta.kuning { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .kotak-ta.merah { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .kotak-ta.hijau { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .kotak-ta .ta-atas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+    .kotak-ta .ta-tajuk { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; opacity: .85; }
+    .kotak-ta .ta-tarikh { font-size: 15px; font-weight: 700; margin-top: 2px; }
+    .detik { display: flex; gap: 8px; flex-wrap: wrap; }
+    .detik .unit-detik { min-width: 62px; text-align: center; background: rgba(255,255,255,.75); border: 1px solid rgba(0,0,0,.06); border-radius: 10px; padding: 6px 8px; }
+    .detik .unit-detik b { display: block; font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .detik .unit-detik span { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
+    .kotak-ta .ta-bawah { margin-top: 10px; font-size: 13px; }
+    .kotak-ta .ta-bawah ul { margin: 6px 0 0; padding-left: 18px; }
+    .lencana-menu { display: inline-block; min-width: 18px; padding: 0 6px; margin-left: 6px; border-radius: 999px; background: #facc15; color: #0f172a; font-size: 11px; font-weight: 700; text-align: center; }
+    .gembok { font-size: 12px; font-weight: 700; color: var(--merah); }
+
     @media (max-width: 1100px) {
       #bilahSisi { width: 200px; }
       .item-nav { padding: 10px 14px; font-size: 13.5px; }
@@ -212,6 +229,10 @@
     }
 
     /* Peranti sentuh: sasaran sentuhan lebih besar */
+    @media (max-width: 640px) {
+      .detik { gap: 6px; } .detik .unit-detik { min-width: 0; flex: 1; padding: 5px 4px; } .detik .unit-detik b { font-size: 20px; }
+      .kotak-ta .ta-atas > * { width: 100%; }
+    }
     @media (pointer: coarse) {
       .btn { min-height: 40px; }
       .btn.kecil { min-height: 34px; }
@@ -316,7 +337,7 @@ function sibuk(hidup) {
   $('selimutSibuk').classList.toggle('hidden', bilSibuk === 0);
 }
 // Hanya operasi TULIS menyekat skrin; bacaan dipaparkan dengan petunjuk 'memuatkan' setempat supaya terasa pantas.
-var API_TULIS = /^api(Simpan|Segerak|Arkib|Naik|Reset|Padam|Import|Kira|Tukar|Auto|Login)/;
+var API_TULIS = /^api(Simpan|Segerak|Arkib|Naik|Reset|Padam|Import|Kira|Tukar|Auto|Login|Mohon|Proses)/;
 var RALAT_SEMENTARA = /Service|timed out|Server|bersambung|temporarily|Try again|sibuk/i;
 
 function api(fn, param, tanpaSibuk, cubaan) {
@@ -409,8 +430,8 @@ $('btnTukarKW').onclick = function () {
 };
 
 function keluar() {
-  S.token = null; S.user = null; S.data = null; S.cacheKelas = {}; S.versi = null; S.segar = null; S.pg = {}; simpanToken(null);
-  clearInterval(pollTimer); $('bannerBaru').classList.add('hidden');
+  S.token = null; S.user = null; S.data = null; S.cacheKelas = {}; S.versi = null; S.segar = null; S.pg = {}; S.ta = null; simpanToken(null);
+  clearInterval(pollTimer); clearInterval(detikTimer); $('bannerBaru').classList.add('hidden');
   semuaModalTutup();
   paparSkrin('skrinLogin');
 }
@@ -421,6 +442,7 @@ function mulaAplikasi() {
     S.user = { nama: r.nama, peranan: r.peranan, kelas: r.kelas || [], unit: r.unit || [] };
     if (r.mestiTukarPassword) { paparSkrin('skrinTukar'); return; }
     S.ref = r.rujukan; S.tetapan = r.tetapan; S.kelasSenarai = r.kelasSenarai; S.versi = r.versi;
+    setTarikhAkhir(r.tarikhAkhir);
     if (!S.kelasSenarai.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = S.kelasSenarai.length ? S.kelasSenarai[0].kunci : '';
     paparSkrin('aplikasi');
     $('infoPengguna').innerHTML = '<span class="titik-hidup" id="titikHidup" title="Disegerakkan automatik dengan e-Kokurikulum"></span><b>' + e(S.user.nama) + '</b><span class="peranan-info"> · ' + (adalahAdmin() ? 'Admin' : [adalahGuruKelas() ? 'Guru Kelas' : '', adalahKgp() ? 'Ketua Guru Penasihat' : ''].filter(Boolean).join(' & ') || 'Guru') + '</span> · <span class="peranan-info">Tahun pentaksiran </span><b id="infoTahun">' + e(S.tetapan.tahun) + '</b>';
@@ -428,6 +450,7 @@ function mulaAplikasi() {
     var hal = MENU.filter(function (m) { return m.id === S.halaman; })[0];
     pergi(hal && menuDibenarkan(hal) ? S.halaman : 'dashboard');
     mulaPoll();
+    mulaDetik();
   }).catch(function (er) { gagal(er); keluar(); });
 }
 
@@ -457,7 +480,8 @@ function semakVersi() {
 
 function segarSenyap() {
   $('bannerBaru').classList.add('hidden');
-  api('apiSenaraiKelas', {}, true).then(function (r) {
+  Promise.all([api('apiSenaraiKelas', {}, true), muatTarikhAkhir()]).then(function (h) {
+    var r = h[0];
     S.kelasSenarai = r.kelas;
     if (!r.kelas.some(function (k) { return k.kunci === S.kelasPilihan; })) S.kelasPilihan = r.kelas.length ? r.kelas[0].kunci : '';
     S.cacheKelas = {};
@@ -484,13 +508,15 @@ var MENU = [
   { id: 'murid', label: 'Murid', admin: true, paparan: halamanMurid },
   { id: 'pengguna', label: 'Pengguna', admin: true, paparan: halamanPengguna },
   { id: 'arkib', label: 'Arkib & Naik Tingkatan', admin: true, paparan: halamanArkib },
+  { id: 'tarikhakhir', label: 'Tarikh Akhir & Permohonan', admin: true, paparan: halamanTarikhAkhir },
   { id: 'tetapan', label: 'Tetapan', admin: true, paparan: halamanTetapan },
   { id: 'audit', label: 'Log Audit', admin: true, paparan: halamanAudit }
 ];
 function menuDibenarkan(m) { return (!m.admin || adalahAdmin()) && (!m.boleh || m.boleh()); }
 function binaMenu() {
   $('menuNav').innerHTML = MENU.filter(menuDibenarkan)
-    .map(function (m) { return '<button class="item-nav" data-id="' + m.id + '">' + e(m.label) + '</button>'; }).join('');
+    .map(function (m) { return '<button class="item-nav" data-id="' + m.id + '">' + e(m.label) + (m.id === 'tarikhakhir' ? '<span class="lencana-menu hidden" id="bilMenunggu"></span>' : '') + '</button>'; }).join('');
+  kemasLencanaMenu();
   Array.prototype.forEach.call($('menuNav').querySelectorAll('.item-nav'), function (b) { b.onclick = function () { pergi(b.getAttribute('data-id')); }; });
 }
 function pergi(id) {
@@ -562,6 +588,7 @@ function dashboard() {
     if (S.halaman !== 'dashboard') return;
     var admin = S.user.peranan === ADMIN;
     var h = '<h2 class="tajuk">Dashboard · ' + e(d.tahun) + '</h2>';
+    h += kotakTarikhAkhirHtml();
     h += '<div class="grid-kad">' +
       '<div class="stat"><div class="label">Jumlah murid</div><div class="nilai">' + d.jumlah.bil + '</div></div>' +
       '<div class="stat"><div class="label">Pentaksiran dimulakan</div><div class="nilai">' + d.jumlah.siap + '</div></div>' +
@@ -594,6 +621,7 @@ function dashboard() {
         }).join('') + '</tbody></table></div></div>';
     }
     $('kandungan').innerHTML = h;
+    pasangKotakTarikhAkhir();
     if ($('btnLihatPengisian')) $('btnLihatPengisian').onclick = function () { pergi('pengisian'); };
     Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-isiunit]'), function (b) {
       b.onclick = function () { PG('iu').unit = b.getAttribute('data-isiunit'); pergi('isiunit'); };
@@ -602,6 +630,215 @@ function dashboard() {
       b.onclick = function () { S.kelasPilihan = b.getAttribute('data-kelas'); pergi('pentaksiran'); };
     });
   });
+}
+
+/* ---------- Tarikh akhir pengisian KGP + kiraan detik + permohonan buka semula ---------- */
+var detikTimer = null;
+var NAMA_BULAN = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+var NAMA_HARI = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
+var LABEL_MOHON = { MENUNGGU: ['Menunggu', 'kuning'], LULUS: ['Diluluskan', 'hijau'], DITOLAK: ['Ditolak', 'merah'], DITUTUP: ['Ditutup', ''] };
+
+function setTarikhAkhir(ta) {
+  S.ta = ta || null;
+  if (ta) S.ofsetMasa = ta.sekarangMs - Date.now();   // guna jam pelayan (jam peranti mungkin tidak tepat)
+  kemasLencanaMenu();
+}
+function muatTarikhAkhir() {
+  return api('apiTarikhAkhir', {}, true).then(function (r) { setTarikhAkhir(r.tarikhAkhir); }).catch(function () {});
+}
+function kini() { return Date.now() + (S.ofsetMasa || 0); }
+function kemasLencanaMenu() {
+  var el = $('bilMenunggu'); if (!el) return;
+  var n = (S.ta && S.ta.menunggu) || 0;
+  el.textContent = n; el.classList.toggle('hidden', !n);
+}
+/* Sama seperti semakan pelayan (semakKunciPengisian): pelayan tetap menjadi penentu muktamad. */
+function dikunciUnit(ku) {
+  var ta = S.ta;
+  if (!ta || !ta.ada || adalahAdmin() || kini() <= ta.akhirMs) return false;
+  return !(ta.bukaan || []).some(function (b) { return (b.unit === 'SEMUA' || b.unit === ku) && b.hinggaMs > kini(); });
+}
+function paparTarikhMasa(t) {
+  var m = String(t || '').match(/^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}))?/);
+  if (!m) return t || '';
+  var hari = NAMA_HARI[new Date(Date.UTC(+m[1], m[2] - 1, +m[3])).getUTCDay()];
+  return hari + ', ' + (+m[3]) + ' ' + NAMA_BULAN[m[2] - 1] + ' ' + m[1] + (m[4] ? ', ' + m[4] + ':' + m[5] : '');
+}
+function pecahBaki(ms) {
+  var s = Math.floor(Math.max(0, ms) / 1000);
+  return { h: Math.floor(s / 86400), j: Math.floor(s % 86400 / 3600), m: Math.floor(s % 3600 / 60), s: s % 60 };
+}
+function dua(n) { return n < 10 ? '0' + n : String(n); }
+function isiDetik(sasaran) {
+  var b = pecahBaki(sasaran - kini());
+  return [[b.h, 'hari'], [dua(b.j), 'jam'], [dua(b.m), 'minit'], [dua(b.s), 'saat']].map(function (x) {
+    return '<div class="unit-detik"><b>' + x[0] + '</b><span>' + x[1] + '</span></div>';
+  }).join('');
+}
+function bakiTeks(sasaran) {
+  var b = pecahBaki(sasaran - kini());
+  return (b.h ? b.h + ' hari ' : '') + b.j + ' jam ' + dua(b.m) + ' minit' + (b.h ? '' : ' ' + dua(b.s) + ' saat');
+}
+function namaUnitPapar(k) { return k === 'SEMUA' ? 'Semua unit saya' : String(k || '').replace('|', ' · '); }
+function lencanaMohon(s) { var x = LABEL_MOHON[s] || [s, '']; return '<span class="lencana ' + x[1] + '">' + e(x[0]) + '</span>'; }
+
+/* Kotak tarikh akhir + kiraan detik (Dashboard, Pengisian Unit, halaman Tarikh Akhir). */
+function kotakTarikhAkhirHtml(diHalamanTa) {
+  var ta = S.ta, admin = adalahAdmin();
+  if (!ta || (!admin && !adalahKgp())) return '';
+  var pautan = function (label, kecil) { return diHalamanTa ? '' : '<button class="btn kecil' + (kecil ? ' luar' : '') + '" data-ta="urus">' + label + '</button>'; };
+  if (!ta.ada) {
+    return admin ? '<div class="kotak-ta"><div class="ta-tajuk">Tarikh akhir pengisian KGP</div><div class="ta-bawah">Belum ditetapkan — KGP boleh mengisi tanpa had masa. ' + pautan('Tetapkan tarikh akhir', true) + '</div></div>' : '';
+  }
+  var baki = ta.akhirMs - kini();
+  if (baki > 0) {
+    var warna = baki <= 86400000 ? 'merah' : baki <= 7 * 86400000 ? 'kuning' : 'hijau';
+    return '<div class="kotak-ta ' + warna + '"><div class="ta-atas"><div><div class="ta-tajuk">Tarikh akhir pengisian KGP</div>' +
+      '<div class="ta-tarikh">' + e(paparTarikhMasa(ta.akhirTeks)) + '</div><div class="nota" style="color:inherit">Baki masa sebelum pengisian dikunci</div></div>' +
+      '<div class="detik kiraDetik" data-hingga="' + ta.akhirMs + '">' + isiDetik(ta.akhirMs) + '</div></div>' +
+      '<div class="ta-bawah">' + (admin ? (ta.menunggu ? '<b>' + ta.menunggu + '</b> permohonan buka semula menunggu. ' : '') + pautan('Urus tarikh akhir', true)
+        : 'Selepas tarikh ini pengisian akan <b>dikunci</b>; anda perlu memohon kepada Admin untuk membukanya semula.') + '</div></div>';
+  }
+  var bukaan = ta.bukaan || [];
+  var h = '<div class="kotak-ta ' + (!admin && bukaan.length ? 'kuning' : 'merah') + '"><div class="ta-atas"><div>' +
+    '<div class="ta-tajuk">' + (!admin && bukaan.length ? '🔓 Pengisian dibuka semula (sementara)' : '🔒 Pengisian KGP telah dikunci') + '</div>' +
+    '<div class="ta-tarikh">Tarikh akhir: ' + e(paparTarikhMasa(ta.akhirTeks)) + '</div></div>';
+  if (admin) {
+    return h + '<div>' + pautan(ta.menunggu ? 'Semak ' + ta.menunggu + ' permohonan' : 'Urus tarikh akhir &amp; permohonan') + '</div></div>' +
+      '<div class="ta-bawah">KGP tidak lagi boleh menyimpan pengisian kecuali permohonan buka semula mereka diluluskan. Admin tidak terkesan.</div></div>';
+  }
+  h += '<div><button class="btn kecil" data-ta="mohon">Mohon buka semula</button></div></div>';
+  if (bukaan.length) {
+    h += '<div class="ta-bawah"><b>Dibuka untuk anda:</b><ul>' + bukaan.map(function (b) {
+      return '<li>' + e(namaUnitPapar(b.unit)) + ' — hingga ' + e(paparTarikhMasa(b.hinggaTeks)) + ' (baki <b class="kiraTeks" data-hingga="' + b.hinggaMs + '">' + e(bakiTeks(b.hinggaMs)) + '</b>)</li>';
+    }).join('') + '</ul></div>';
+  }
+  if ((ta.permohonanSaya || []).length) {
+    h += '<div class="ta-bawah"><b>Permohonan saya:</b><ul>' + ta.permohonanSaya.map(function (p) {
+      return '<li>' + e(String(p.tarikh).substring(0, 16)) + ' · ' + e(namaUnitPapar(p.unit)) + ' · ' + lencanaMohon(p.status) +
+        (p.status === 'LULUS' ? ' hingga ' + e(paparTarikhMasa(p.bukaHingga)) : '') + (p.catatan ? ' <span class="nota">— ' + e(p.catatan) + '</span>' : '') + '</li>';
+    }).join('') + '</ul></div>';
+  }
+  return h + '</div>';
+}
+function pasangKotakTarikhAkhir() {
+  Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-ta]'), function (b) {
+    b.onclick = function () { if (b.getAttribute('data-ta') === 'mohon') bukaMohonBuka(''); else pergi('tarikhakhir'); };
+  });
+}
+
+/* Detik setiap saat. Apabila tarikh akhir / tempoh bukaan tamat semasa skrin terbuka, status dimuat semula. */
+function mulaDetik() { clearInterval(detikTimer); detikTimer = setInterval(detik, 1000); }
+function detik() {
+  if (!S.token || document.hidden) return;
+  var lepas = false;
+  Array.prototype.forEach.call(document.querySelectorAll('.kiraDetik, .kiraTeks'), function (el) {
+    var ms = Number(el.getAttribute('data-hingga'));
+    if (el.classList.contains('kiraDetik')) el.innerHTML = isiDetik(ms); else el.textContent = bakiTeks(ms);
+    if (ms <= kini() && !el.getAttribute('data-lepas')) { el.setAttribute('data-lepas', '1'); lepas = true; }
+  });
+  if (!lepas) return;
+  muatTarikhAkhir().then(function () {
+    if (['dashboard', 'isiunit', 'tarikhakhir'].indexOf(S.halaman) === -1) return;
+    if (modalTerbuka()) $('bannerBaru').classList.remove('hidden'); else pergi(S.halaman);
+  });
+}
+
+/* KGP: borang permohonan buka semula. */
+function bukaMohonBuka(unitAwal) {
+  var unit = (S.user.unit || []).slice().sort();
+  var m = bukaModal('<h3>Mohon buka semula pengisian</h3>' +
+    '<p class="nota">Tarikh akhir pengisian (' + e(paparTarikhMasa(S.ta && S.ta.akhirTeks)) + ') telah tamat. Permohonan akan dihantar kepada Admin untuk kelulusan.</p>' +
+    '<div class="medan"><label>Unit</label><select id="mbUnit"><option value="SEMUA">Semua unit saya (' + unit.length + ')</option>' +
+    unit.map(function (k) { return '<option value="' + e(k) + '"' + (k === unitAwal ? ' selected' : '') + '>' + e(namaUnitPapar(k)) + '</option>'; }).join('') + '</select></div>' +
+    '<div class="medan"><label>Sebab permohonan</label><textarea id="mbSebab" rows="3" maxlength="500" placeholder="Cth. 5 murid belum diisi kerana pertandingan peringkat negeri baru selesai."></textarea></div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Hantar permohonan</button></div>', true);
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    api('apiMohonBuka', { unit: nilaiEl('mbUnit'), sebab: nilaiEl('mbSebab') }).then(function (r) {
+      setTarikhAkhir(r.tarikhAkhir); tutupModal(m);
+      toast('Permohonan dihantar kepada Admin.', 'jaya');
+      if (['dashboard', 'isiunit'].indexOf(S.halaman) !== -1) pergi(S.halaman);
+    }).catch(gagal);
+  };
+}
+
+/* Admin: tetapkan tarikh akhir + proses permohonan. */
+function halamanTarikhAkhir() {
+  var st = PG('pm', { status: '' });
+  S.segar = function () { if (S.halaman === 'tarikhakhir' && !modalTerbuka()) halamanTarikhAkhir(); };
+  return api('apiSenaraiPermohonan', { status: st.status, halaman: st.halaman, saiz: st.saiz, cari: st.cari }).then(function (r) {
+    if (S.halaman !== 'tarikhakhir') return;
+    setTarikhAkhir(r.tarikhAkhir);
+    var ta = S.ta, bhg = String(ta.akhirTeks || '').split(' ');
+    var h = '<h2 class="tajuk">Tarikh Akhir Pengisian &amp; Permohonan Buka</h2>' + kotakTarikhAkhirHtml(true) +
+      '<div class="kad"><h3>Tetapkan tarikh akhir pengisian KGP</h3>' +
+      '<p class="nota" style="margin-top:0">Selepas tarikh &amp; masa ini, Ketua Guru Penasihat <b>tidak boleh menyimpan</b> pengisian (borang dan isi pukal dikunci). Mereka boleh menghantar permohonan buka semula yang perlu diluluskan di bawah. Admin tidak dikunci.</p>' +
+      '<div class="grid-borang"><div class="medan"><label>Tarikh akhir</label><input type="date" id="taTarikh" value="' + e(bhg[0] || '') + '"></div>' +
+      '<div class="medan"><label>Masa</label><input type="time" id="taMasa" value="' + e(bhg[1] || '23:59') + '"></div></div>' +
+      '<div class="aksi-modal">' + (ta.ada ? '<button class="btn luar" id="btnTaKosong">Kosongkan (tiada had)</button>' : '') + '<button class="btn" id="btnTaSimpan">Simpan tarikh akhir</button></div></div>' +
+      '<div class="kad"><h3>Permohonan buka semula</h3><div class="baris-alat">' +
+      '<select id="pmStatus" aria-label="Status"><option value="">Semua status</option><option value="MENUNGGU">Menunggu</option><option value="LULUS">Diluluskan</option><option value="DITOLAK">Ditolak</option><option value="DITUTUP">Ditutup</option></select>' +
+      palangPg('pm') + '</div><div class="jadual-skrol"><table><thead><tr><th>Tarikh</th><th>Guru (KGP)</th><th>Unit</th><th>Sebab</th><th>Status</th><th></th></tr></thead><tbody>' +
+      (r.senarai.length ? r.senarai.map(function (p, i) {
+        var aktif = p.status === 'LULUS' && p.bukaHinggaMs > kini();
+        return '<tr><td>' + e(String(p.tarikh).substring(0, 16)) + '</td><td>' + e(p.nama) + '<div class="nota">' + e(p.nokp) + '</div></td><td>' + e(namaUnitPapar(p.unit)) + '</td>' +
+          '<td style="max-width:320px">' + e(p.sebab) + (p.catatan ? '<div class="nota">Catatan Admin: ' + e(p.catatan) + '</div>' : '') + '</td>' +
+          '<td>' + lencanaMohon(p.status) + (p.status === 'LULUS' ? '<div class="nota">' + (aktif ? 'Dibuka hingga ' : 'Tamat ') + e(paparTarikhMasa(p.bukaHingga)) + '</div>' : '') +
+          (p.diprosesOleh ? '<div class="nota">oleh ' + e(p.diprosesOleh) + '</div>' : '') + '</td>' +
+          '<td style="white-space:nowrap">' + (p.status === 'MENUNGGU' ? '<button class="btn kecil hijau" data-pm="LULUS" data-i="' + i + '">Lulus</button> <button class="btn kecil merah" data-pm="DITOLAK" data-i="' + i + '">Tolak</button>'
+            : aktif ? '<button class="btn kecil luar" data-pm="DITUTUP" data-i="' + i + '">Tutup sekarang</button>' : '') + '</td></tr>';
+      }).join('') : '<tr><td colspan="6" class="nota">Tiada permohonan.</td></tr>') +
+      '</tbody></table></div>' + pagerHtml(r) + '</div>';
+    $('kandungan').innerHTML = h;
+    $('pmStatus').value = st.status;
+    $('pmStatus').onchange = function () { st.status = this.value; st.halaman = 1; halamanTarikhAkhir(); };
+    pasangPg('pm', halamanTarikhAkhir);
+    pasangPager('pm', $('kandungan'), halamanTarikhAkhir);
+    $('btnTaSimpan').onclick = function () {
+      if (!nilaiEl('taTarikh')) { toast('Pilih tarikh akhir.', 'gagal'); return; }
+      api('apiSimpanTarikhAkhir', { tarikh: nilaiEl('taTarikh'), masa: nilaiEl('taMasa') || '23:59' }).then(function (x) {
+        setTarikhAkhir(x.tarikhAkhir); toast('Tarikh akhir disimpan: ' + paparTarikhMasa(x.tarikhAkhir.akhirTeks), 'jaya'); halamanTarikhAkhir();
+      }).catch(gagal);
+    };
+    if ($('btnTaKosong')) $('btnTaKosong').onclick = function () {
+      sahkan('Kosongkan tarikh akhir? KGP akan boleh mengisi semula tanpa had masa.', function () {
+        api('apiSimpanTarikhAkhir', { tarikh: '' }).then(function (x) { setTarikhAkhir(x.tarikhAkhir); toast('Tarikh akhir dikosongkan.', 'jaya'); halamanTarikhAkhir(); }).catch(gagal);
+      }, 'Kosongkan');
+    };
+    Array.prototype.forEach.call($('kandungan').querySelectorAll('[data-pm]'), function (b) {
+      b.onclick = function () { prosesPermohonan(r.senarai[Number(b.getAttribute('data-i'))], b.getAttribute('data-pm')); };
+    });
+  });
+}
+
+function tarikhTempatan(ms) { var d = new Date(ms); return d.getFullYear() + '-' + dua(d.getMonth() + 1) + '-' + dua(d.getDate()); }
+
+function prosesPermohonan(p, tindakan) {
+  if (!p) return;
+  var hantar = function (param, m) {
+    api('apiProsesPermohonan', Object.assign({ id: p.id, tindakan: tindakan }, param)).then(function () {
+      if (m) tutupModal(m);
+      toast({ LULUS: 'Permohonan diluluskan.', DITOLAK: 'Permohonan ditolak.', DITUTUP: 'Bukaan ditutup.' }[tindakan], 'jaya');
+      halamanTarikhAkhir();
+    }).catch(gagal);
+  };
+  if (tindakan === 'DITUTUP') { sahkan('Tutup bukaan pengisian untuk ' + p.nama + ' sekarang?', function () { hantar({}); }, 'Tutup'); return; }
+  var lulus = tindakan === 'LULUS';
+  var m = bukaModal('<h3>' + (lulus ? 'Luluskan' : 'Tolak') + ' permohonan</h3>' +
+    '<p class="nota" style="margin-top:0"><b>' + e(p.nama) + '</b> · ' + e(namaUnitPapar(p.unit)) + '<br>Sebab: ' + e(p.sebab) + '</p>' +
+    (lulus ? '<div class="grid-borang"><div class="medan"><label>Dibuka sehingga (tarikh)</label><input type="date" id="ppTarikh" value="' + tarikhTempatan(kini() + 3 * 86400000) + '"></div>' +
+      '<div class="medan"><label>Masa</label><input type="time" id="ppMasa" value="23:59"></div></div>' +
+      '<div class="baris-alat" style="margin:-4px 0 10px">' + [1, 3, 7].map(function (n) { return '<button type="button" class="btn kecil luar" data-hari="' + n + '">+' + n + ' hari</button>'; }).join('') + '</div>' : '') +
+    '<div class="medan"><label>Catatan kepada guru (pilihan)</label><input id="ppCatatan" maxlength="300"></div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn ' + (lulus ? 'hijau' : 'merah') + '" data-x="s">' + (lulus ? 'Luluskan' : 'Tolak') + '</button></div>', true);
+  Array.prototype.forEach.call(m.querySelectorAll('[data-hari]'), function (b) {
+    b.onclick = function () { $('ppTarikh').value = tarikhTempatan(kini() + Number(b.getAttribute('data-hari')) * 86400000); };
+  });
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    hantar(lulus ? { hingga: nilaiEl('ppTarikh') + ' ' + (nilaiEl('ppMasa') || '23:59'), catatan: nilaiEl('ppCatatan') } : { catatan: nilaiEl('ppCatatan') }, m);
+  };
 }
 
 /* ---------- Pentaksiran kelas ---------- */
@@ -854,7 +1091,7 @@ function renderIsiUnit() {
   }
   var pilihan = (adalahAdmin() ? '' : '<option value="">Semua unit saya (' + d.unitSaya.length + ')</option>') +
     d.unitSaya.map(function (u) { return '<option value="' + e(u.kunci) + '"' + (u.kunci === st.unit ? ' selected' : '') + '>' + e(u.aspek + ' · ' + u.unit + ' (' + u.bilMurid + ')') + '</option>'; }).join('');
-  var h = '<h2 class="tajuk">Pengisian Unit · ' + e(d.tahun) + '</h2>' +
+  var h = '<h2 class="tajuk">Pengisian Unit · ' + e(d.tahun) + '</h2>' + kotakTarikhAkhirHtml() +
     '<div class="info-kotak">Isi medan pentaksiran bagi murid unit anda. Data <b>unit</b> dan <b>kehadiran</b> ditarik automatik daripada e-Kokurikulum. Senarai disusun mengikut <b>unit → tingkatan → kelas → nama</b>. Medan wajib: <b>' + e((d.medanWajib || []).map(function (x) { return x[1]; }).join(', ')) + '</b>.</div>' +
     '<div class="baris-alat"><select id="iuUnit" aria-label="Unit">' + pilihan + '</select>' +
     '<select id="iuTapis" aria-label="Status"><option value="SEMUA">Semua status</option><option value="BELUM_SIAP">Belum lengkap</option><option value="BELUM_MULA">Belum mula</option><option value="DALAM_PROSES">Dalam proses</option><option value="LENGKAP">Lengkap</option></select>' +
@@ -869,6 +1106,7 @@ function renderIsiUnit() {
   $('iuTing').onchange = function () { st.ting = this.value; renderJadualIsiUnit(); };
   var t; $('iuCari').oninput = function () { var v = this.value; clearTimeout(t); t = setTimeout(function () { st.cari = v; renderJadualIsiUnit(); }, 250); };
   $('btnIuPukal').onclick = bukaIsiPukal;
+  pasangKotakTarikhAkhir();
   renderJadualIsiUnit();
 }
 
@@ -907,7 +1145,7 @@ function renderJadualIsiUnit() {
       '<td title="' + e([r.Capai1, r.Capai2].filter(Boolean).join(' / ')) + '">' + e(pendek(r.Capai1, 20)) + '</td>' +
       '<td class="n">' + (komit || '–') + '</td><td>' + (r.Khidmat ? '✓' : '–') + '</td><td class="n">' + e(r.Kehadiran) + '</td><td class="n">' + tanda(r.Markah) + '</td>' +
       '<td>' + lencanaSt(b.status) + (b.kurang.length && b.status !== 'BELUM_MULA' ? '<div class="nota">Belum: ' + e(b.kurang.join(', ')) + '</div>' : '') + '</td>' +
-      '<td><button class="btn kecil" data-i="' + i + '">Isi</button></td></tr>';
+      '<td>' + (dikunciUnit(b.kunciUnit) ? '<button class="btn kecil kelabu" data-i="' + i + '" title="Pengisian dikunci (tarikh akhir)">🔒 Lihat</button>' : '<button class="btn kecil" data-i="' + i + '">Isi</button>') + '</td></tr>';
   });
   if (!senarai.length) h += '<tr><td colspan="13" class="nota">Tiada murid dalam paparan ini.</td></tr>';
   h += '</tbody></table></div></div>';
@@ -928,7 +1166,7 @@ function kemasButangPukal() {
 /* Borang satu murid, satu aspek. */
 function bukaIsiAspek(indeks) {
   var b = S.iuPaparan[indeks]; if (!b) return;
-  var a = b.aspek, r = b.rec;
+  var a = b.aspek, r = b.rec, kunci = dikunciUnit(b.kunciUnit);
   var h = '<h3>' + e(b.nama) + '</h3><div class="nota" style="margin:-8px 0 10px">' + e(paparKelasJs(b.kunciKelas)) + ' · ' + e(b.nokp) + ' · <b>' + e(a + ' · ' + b.unit) + '</b> · ' + (indeks + 1) + ' / ' + S.iuPaparan.length + '</div>' +
     '<div class="grid-borang"><div class="medan penuh"><label>Tambahan aktiviti (nama, jika ada)</label><input id="ia_Aktiviti2" maxlength="120" value="' + e(r.Aktiviti2) + '"></div>' +
     FIELD_ASPEK.map(function (f) { return '<div class="medan' + (f[0] === 'Jawatan' || f[0] === 'Khidmat' ? ' penuh' : '') + '"><label>' + f[2] + '</label>' + selHtml('ia_' + f[0], f[1], r[f[0]]) + '</div>'; }).join('') +
@@ -936,9 +1174,16 @@ function bukaIsiAspek(indeks) {
     '<div class="medan"><label>Kehadiran manual (0–12, ganti auto)</label><input id="ia_KehadiranManual" type="number" min="0" max="12" step="1" value="' + e(r.KehadiranManual) + '"></div></div>' +
     '<div><button type="button" class="btn luar kecil" id="btnIaCadangan">Semak pencapaian daripada e-Kokurikulum</button><div id="iaCadangan"></div></div>' +
     '<div class="pratonton" id="iaPrev"></div>' +
-    '<div class="aksi-modal"><button type="button" class="btn luar" data-x="b">Tutup</button><button type="button" class="btn" data-x="s">Simpan</button>' +
-    (indeks < S.iuPaparan.length - 1 ? '<button type="button" class="btn hijau" data-x="n">Simpan &amp; seterusnya ›</button>' : '') + '</div>';
+    (kunci ? '<div class="amaran-kotak" style="margin-top:12px">🔒 Pengisian telah <b>dikunci</b> kerana melepasi tarikh akhir (' + e(paparTarikhMasa(S.ta.akhirTeks)) + '). Mohon buka semula daripada Admin untuk menyunting.</div>' : '') +
+    '<div class="aksi-modal"><button type="button" class="btn luar" data-x="b">Tutup</button>' +
+    (kunci ? '<button type="button" class="btn" data-x="m">Mohon buka semula</button>' : '<button type="button" class="btn" data-x="s">Simpan</button>' +
+    (indeks < S.iuPaparan.length - 1 ? '<button type="button" class="btn hijau" data-x="n">Simpan &amp; seterusnya ›</button>' : '')) + '</div>';
   var modal = bukaModal(h);
+  if (kunci) {
+    Array.prototype.forEach.call(modal.querySelectorAll('input,select'), function (x) { x.disabled = true; });
+    $('btnIaCadangan').disabled = true;
+    modal.querySelector('[data-x=m]').onclick = function () { tutupModal(modal); bukaMohonBuka(b.kunciUnit); };
+  }
   var kumpul = function () {
     var o = {};
     FIELD_ASPEK.forEach(function (f) { o[f[0]] = nilaiEl('ia_' + f[0]); });
@@ -969,7 +1214,7 @@ function bukaIsiAspek(indeks) {
       }
     }).catch(gagal);
   };
-  modal.querySelector('[data-x=s]').onclick = function () { simpan(false); };
+  if (modal.querySelector('[data-x=s]')) modal.querySelector('[data-x=s]').onclick = function () { simpan(false); };
   if (modal.querySelector('[data-x=n]')) modal.querySelector('[data-x=n]').onclick = function () { simpan(true); };
   $('btnIaCadangan').onclick = function () {
     var k = $('iaCadangan'); k.innerHTML = '<div class="nota">Memuatkan…</div>';
@@ -1000,6 +1245,7 @@ function bukaIsiPukal() {
   var senaraiUnit = Object.keys(unit);
   if (senaraiUnit.length > 1) { toast('Pilih murid daripada SATU unit sahaja untuk isi pukal.', 'gagal'); return; }
   var ku = senaraiUnit[0];
+  if (dikunciUnit(ku)) { toast('Pengisian unit ini telah dikunci (melepasi tarikh akhir). Mohon buka semula daripada Admin.', 'gagal'); return; }
   var pilihPukal = function (id, jenis) {
     return '<select id="' + id + '"><option value="">— tidak diubah —</option>' + (S.ref.pilihan[jenis] || []).map(function (x) { return '<option value="' + e(x[0]) + '">' + e(x[0]) + '  [' + fmt(x[1]) + ']</option>'; }).join('') + '</select>';
   };

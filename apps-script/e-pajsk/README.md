@@ -65,6 +65,26 @@ Syarat: akaun Gmail yang men-*deploy* e-PAJSK mesti pemilik/editor/viewer Sheet 
 
 Peraturan "lengkap" (`Config.gs`: `MEDAN_WAJIB_ASPEK`, `WAJIB_CGPA_SEBELUM`): bagi setiap aspek yang murid sertai, **Jawatan**, **Pelibatan** dan sekurang-kurangnya satu **Komitmen**; CGPA tahun sebelum wajib bagi Tingkatan 2 ke atas (paparan kelas). *Dalam proses* = sudah ada rekod disimpan oleh pengisi tetapi medan wajib masih kosong.
 
+## Tarikh akhir pengisian & permohonan buka semula
+- **Admin** menetapkan tarikh dan masa akhir pengisian KGP di menu **Tarikh Akhir & Permohonan**. Kosongkan untuk tiada had.
+- Sebelum tarikh akhir, kiraan detik (hari, jam, minit dan saat) dipaparkan di Dashboard dan Pengisian Unit. Warnanya:
+  - hijau: lebih 7 hari lagi
+  - kuning: 7 hari atau kurang
+  - merah: 24 jam terakhir
+- Selepas tarikh akhir, pengisian **dikunci** untuk KGP:
+  - borang hanya boleh dilihat (🔒)
+  - isi pukal disekat
+  - pelayan menolak sebarang simpanan
+- Skrin yang sedang terbuka dikunci sendiri sebaik sahaja kiraan detik tamat.
+- Kiraan detik menggunakan jam pelayan (zon masa skrip), bukan jam peranti.
+- Admin tidak pernah dikunci. Guru Kelas sememangnya lihat sahaja.
+- **Permohonan buka semula:**
+  - KGP menekan **Mohon buka semula**, kemudian memilih satu unit atau semua unitnya dan menulis sebab.
+  - Admin menerima permohonan dengan lencana bilangan menunggu pada menu.
+  - Admin boleh **Lulus** (tetapkan "dibuka sehingga" tarikh/masa, dengan pintasan +1/+3/+7 hari), **Tolak**, atau **Tutup sekarang** bagi bukaan yang masih aktif. Catatan pilihan dipaparkan kepada guru.
+  - Bukaan tamat sendiri pada masa "dibuka sehingga". Baki masanya dipaparkan kepada KGP.
+- Semua tindakan dicatat dalam Log Audit. Permohonan disimpan dalam Sheet `PERMOHONAN_BUKA`, yang dicipta automatik.
+
 ## Rujukan pengisian idME (PDF / cetak)
 
 Menu **Data Kelas** atau **Rumusan Kelas** → **PDF rujukan idME** (Admin & Guru Kelas bagi kelas sendiri):
@@ -137,7 +157,7 @@ Fail arkib mengandungi nama & No. KP murid — kekal peribadi dalam Drive pemili
 
 1. Cipta **Google Sheet baharu** (cth. "DATA e-PAJSK SMK ASAJAYA") menggunakan akaun Gmail anda. Ini database — **jangan** guna Sheet e-Kokurikulum.
 2. **Extensions → Apps Script**. Cipta fail Script (nama tanpa `.gs`) untuk setiap fail `.gs` dalam folder ini, salin-tampal kandungan:
-   `Code`, `Config`, `Utils`, `Scoring`, `ReferensiLalai`, `TetapanService`, `AuditService`, `AuthService`, `UserService`, `KokoService`, `MuridService`, `PentaksiranService`, `LaporanService`, `ArkibService`, `LiveService`, `PemantauanService`, `RujukanIdmeService`.
+   `Code`, `Config`, `Utils`, `Scoring`, `ReferensiLalai`, `TetapanService`, `AuditService`, `AuthService`, `UserService`, `KokoService`, `MuridService`, `PentaksiranService`, `LaporanService`, `ArkibService`, `LiveService`, `PemantauanService`, `RujukanIdmeService`, `TarikhAkhirService`.
 3. Cipta fail HTML bernama **Index**, salin-tampal `Index.html`.
 4. **Project Settings → Show "appsscript.json"**, salin-tampal `appsscript.json` (skop: `spreadsheets`, `drive`, `script.scriptapp` — yang terakhir diperlukan untuk pencetus auto-segerak; selepas menampal, buat **New version** dan benarkan skop baharu).
 5. Refresh Sheet → menu **Sistem e-PAJSK → 1. Sediakan Sistem**; benarkan kebenaran (OAuth). Isi **No. KP & nama Admin pertama** apabila diminta. (Menu *2. Tambah / Pulihkan Admin* boleh digunakan kemudian.)
@@ -151,7 +171,7 @@ Selepas mengemas kini kod, buat **Deploy → Manage deployments → Edit → New
 
 ## Struktur Sheet
 
-`PENGGUNA`, `MURID`, `PENTAKSIRAN_ASPEK` (satu baris setiap murid × aspek), `PENTAKSIRAN_EKSTRA`, `RUMUSAN`, `REFERENSI`, `TETAPAN`, `ARKIB_TAHUNAN`, `LOG_AUDIT`.
+`PENGGUNA`, `MURID`, `PENTAKSIRAN_ASPEK` (satu baris setiap murid × aspek), `PENTAKSIRAN_EKSTRA`, `RUMUSAN`, `REFERENSI`, `TETAPAN`, `ARKIB_TAHUNAN`, `LOG_AUDIT`, `PERMOHONAN_BUKA`.
 Lajur No. KP diformat teks (sistem juga melapik sifar di hadapan jika No. KP tersimpan sebagai nombor).
 
 ## Had & nota

@@ -14,6 +14,7 @@ const SHEET_REFERENSI = 'REFERENSI';
 const SHEET_TETAPAN = 'TETAPAN';
 const SHEET_ARKIB = 'ARKIB_TAHUNAN';
 const SHEET_AUDIT = 'LOG_AUDIT';
+const SHEET_PERMOHONAN = 'PERMOHONAN_BUKA';   // permohonan KGP buka semula pengisian selepas tarikh akhir
 
 /* ------------------------- PERANAN ------------------------- */
 const ROLE_ADMIN = 'ADMIN';
