@@ -39,22 +39,31 @@ function cariPengguna(nokp) {
   return bacaSheetSebagaiObjek(SHEET_USERS).find(u => normalNoKP(u.NoKP) === sasaran) || null;
 }
 
+/* Sesi tamat pada masa MUTLAK (tamatMs, 8 jam selepas log masuk) — menyegarkan
+   sesi tidak memanjangkannya. Sesi lama tanpa tamatMs diberi tempoh penuh sekali. */
 function simpanSesi(token, sesi) {
-  CacheService.getScriptCache().put('sesi_hcstpm_' + token, JSON.stringify(sesi), TEMPOH_SESI_SAAT);
+  if (!sesi.tamatMs) sesi.tamatMs = Date.now() + TEMPOH_SESI_SAAT * 1000;
+  const bakiSaat = Math.floor((sesi.tamatMs - Date.now()) / 1000);
+  if (bakiSaat < 1) { CacheService.getScriptCache().remove('sesi_hcstpm_' + token); return; }
+  CacheService.getScriptCache().put('sesi_hcstpm_' + token, JSON.stringify(sesi), Math.min(bakiSaat, TEMPOH_SESI_SAAT));
 }
 
-function ciptaSesi(pengguna, perluTukarKataLaluan) {
-  const token = Utilities.getUuid();
-  simpanSesi(token, {
+/* Medan sesi yang diterbitkan daripada baris USERS (peranan & skop). */
+function dataSesiPengguna(pengguna) {
+  return {
     nokp: pengguna.NoKP,
     nama: pengguna.NamaPenuh,
     peranan: pengguna.Peranan,
     skopSubjek: pengguna.SkopSubjek ? String(pengguna.SkopSubjek).split(',').map(s => s.trim()).filter(Boolean) : [],
     // SkopKelas: kelas yang diselia (peranan GURU_KELAS) — kekosongan huruf besar/kecil
     // diseragamkan ke huruf besar supaya padanan konsisten dengan Kelas pelajar.
-    skopKelas: pengguna.SkopKelas ? String(pengguna.SkopKelas).split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : [],
-    perluTukarKataLaluan: !!perluTukarKataLaluan
-  });
+    skopKelas: pengguna.SkopKelas ? String(pengguna.SkopKelas).split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : []
+  };
+}
+
+function ciptaSesi(pengguna, perluTukarKataLaluan) {
+  const token = Utilities.getUuid();
+  simpanSesi(token, Object.assign(dataSesiPengguna(pengguna), { perluTukarKataLaluan: !!perluTukarKataLaluan }));
   return token;
 }
 
@@ -97,12 +106,23 @@ function apiLogin(p) {
   });
 }
 
+/* Dipanggil setiap kali halaman dibuka. Peranan & skop DIBACA SEMULA daripada USERS
+   (bukan diambil daripada sesi yang disimpan semasa log masuk), supaya perubahan oleh
+   Admin — cth. tambah kod 800 dalam Skop Subjek, tukar peranan, nyahaktif akaun —
+   berkuat kuasa sebaik pengguna membuka/muat semula halaman, tanpa perlu log keluar. */
 function apiSemakSesi(p) {
   const sesi = sahkanSesi(p.token);
   if (!sesi) return ralat('Sesi tamat tempoh. Sila log masuk semula.');
+  const pengguna = cariPengguna(sesi.nokp);
+  if (!pengguna || String(pengguna.Status).toUpperCase() !== 'AKTIF') {
+    CacheService.getScriptCache().remove('sesi_hcstpm_' + p.token);
+    return ralat('Akaun ini tidak aktif. Sila hubungi admin.');
+  }
+  const segar = Object.assign(dataSesiPengguna(pengguna), { perluTukarKataLaluan: !!sesi.perluTukarKataLaluan, tamatMs: sesi.tamatMs });
+  simpanSesi(p.token, segar);
   return jaya({
-    nama: sesi.nama, peranan: sesi.peranan, skopSubjek: sesi.skopSubjek, skopKelas: sesi.skopKelas || [],
-    perluTukarKataLaluan: !!sesi.perluTukarKataLaluan
+    nama: segar.nama, peranan: segar.peranan, skopSubjek: segar.skopSubjek, skopKelas: segar.skopKelas,
+    perluTukarKataLaluan: segar.perluTukarKataLaluan
   });
 }
 
