@@ -137,6 +137,12 @@ sepenuhnya seperti diminta.
    menambah lajur `SkopKelas` pada `USERS` dan mencipta Sheet
    `TEACHING_ASSIGNMENTS` + `UNLOCK_REQUESTS`. Selamat dijalankan berulang
    kali.
+
+   **Kemaskini terkini (kata laluan lalai No. KP + paksa tukar, kotak kiraan
+   detik baharu):** **gantikan** kandungan `AuthService.gs`, `LockService.gs`,
+   `Code.gs` dan `Index` dengan versi terkini, kemudian deploy semula. Tiada
+   langkah migrasi Sheet (lajur `PIN` sedia ada digunakan semula) — rujuk
+   **"Log Masuk & Kata Laluan"** di bawah untuk kesan pada akaun sedia ada.
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json
@@ -151,10 +157,13 @@ sepenuhnya seperti diminta.
 8. **Kemaskini data sebenar sekolah** terus dalam Sheet:
    - `CONFIG`: nama sekolah, tahun STPM aktif, sasaran GPS/PNGK, threshold gap/risiko.
    - `GRADES`: senarai gred & nilai gred rasmi sekolah (boleh ubah tanpa sentuh kod).
-   - `USERS`: satu baris setiap pengguna (No. KP, PIN, Peranan, Nama, Skop Subjek
+   - `USERS`: satu baris setiap pengguna (No. KP, Peranan, Nama, Skop Subjek
      untuk Guru/Ketua Panitia — kod subjek dipisah koma, Skop Kelas untuk Guru
-     Kelas — kelas dipisah koma). Padam baris "ADMIN CONTOH" selepas tambah
-     admin sebenar.
+     Kelas — kelas dipisah koma). **Biarkan lajur PIN kosong** — pengguna log
+     masuk kali pertama dengan 6 digit akhir No. KP dan dipaksa tukar (lebih
+     mudah: tambah pengguna melalui menu Pengguna dalam sistem). Admin contoh
+     log masuk dengan No. KP `000000000000`, kata laluan `000000`. Padam baris
+     "ADMIN CONTOH" selepas tambah admin sebenar.
    - `STUDENTS`, `SUBJECTS`, `ENROLLMENTS`: data pelajar, mata pelajaran dan
      pendaftaran sebenar. Padam baris "CONTOH".
    - **`GRADE_BOUNDARIES` (BLD)**: WAJIB tetapkan julat markah->gred bagi
@@ -182,6 +191,28 @@ sepenuhnya seperti diminta.
 
 Semua semakan kebenaran dibuat di **server** (`wajibPeranan()` dalam setiap
 Service), bukan hanya disembunyikan di frontend — selaras MODUL 31.
+
+## Log Masuk & Kata Laluan
+
+- **Kata laluan lalai** = **6 digit akhir No. KP**. Pengguna baharu (dan
+  pengguna yang kata laluannya diset semula) log masuk dengan kata laluan
+  ini, kemudian **dipaksa menukarnya** sebelum boleh guna sistem — pelayan
+  menyekat SEMUA API lain (`wajibPeranan()`) selagi kata laluan belum ditukar,
+  jadi sekatan ini tidak boleh dielak dari pelayar.
+- Kata laluan baharu: sekurang-kurangnya 8 aksara, mengandungi huruf DAN
+  nombor, dan berbeza daripada yang semasa. Disimpan dalam lajur `PIN` sebagai
+  **cincang SHA-256** (`sha256:...`), bukan teks biasa.
+- Pengguna boleh tukar kata laluan sendiri bila-bila masa (butang **Tukar
+  Kata Laluan** di sidebar — perlu kata laluan semasa).
+- Admin **tidak** menetapkan kata laluan orang lain. Jika pengguna terlupa,
+  klik **Set Semula** di menu Pengguna → kata laluan kembali ke lalai (6
+  digit akhir No. KP) dan pengguna dipaksa menukarnya semula. Lajur "Kata
+  Laluan" di menu Pengguna menunjukkan status setiap akaun: *Lalai — belum
+  tukar*, *Peribadi*, atau *PIN lama — wajib tukar*.
+- **Akaun sedia ada** (dengan PIN teks biasa sebelum kemaskini ini) masih
+  boleh log masuk dengan PIN lama mereka SEKALI, kemudian dipaksa menukarnya.
+  Untuk memindahkan semua akaun terus ke kata laluan lalai No. KP, kosongkan
+  lajur `PIN` dalam Sheet `USERS` (atau klik Set Semula bagi setiap pengguna).
 
 ## Prinsip Pengiraan (MODUL 43)
 
