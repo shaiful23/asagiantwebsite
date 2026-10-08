@@ -113,6 +113,26 @@
   /* Butang "Simpan Semua" penuh lebar dalam panel roster (Isi ETR / Markah Ujian). */
   .btn-simpan-roster { margin-top: 12px; width: 100%; max-width: 260px; }
 
+  /* MUET — jadual markah 3 set (Trial 1 / Trial 2 / Keputusan Sebenar), warna ikut set.
+     Lajur Nama melekat di kiri supaya kekal kelihatan semasa skrol mendatar. */
+  .muet-jadual { max-height: none; }
+  .muet-jadual th { position: static; text-align: center; vertical-align: middle; }
+  .muet-jadual th, .muet-jadual td { padding: 6px 5px; text-align: center; }
+  .muet-jadual .muet-nama { text-align: left; position: sticky; left: 0; background: var(--kad); z-index: 1; min-width: 180px; white-space: normal; }
+  .muet-jadual .input-muet { width: 50px; margin: 0; padding: 5px 3px; text-align: center; }
+  .muet-jadual select.input-muet { width: 92px; text-align: left; }
+  .input-muet:invalid { border-color: var(--merah); background: #fef2f2; }
+  th.muet-T1 { background: #fce7f3; color: #9d174d; } td.muet-T1 { background: #fdf2f8; }
+  th.muet-T2 { background: #dcfce7; color: #166534; } td.muet-T2 { background: #f0fdf4; }
+  th.muet-A { background: #ccfbf1; color: #115e59; } td.muet-A { background: #f0fdfa; }
+  .muet-jum, .muet-band { font-weight: 700; }
+  tr.muet-baris-th td:not(:last-child) { opacity: .5; }
+  .muet-gps { background: var(--biru); color: #fff; border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; }
+  .muet-gps .nilai { font-size: 34px; font-weight: 700; line-height: 1.1; }
+  .muet-gps .label { font-size: 12px; opacity: .85; }
+  .muet-dua { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .naik { color: var(--hijau); font-weight: 600; } .turun { color: var(--merah); font-weight: 600; }
+
   @media (max-width: 820px) {
     #sidebar { position: static; width: 100%; padding: 10px 0; }
     #sidebar h2, #sidebar .logo-sekolah { display:none; }
@@ -182,6 +202,7 @@
       <div class="nav-item" data-halaman="bld">Skema Gred (BLD)</div>
       <div class="nav-item" data-halaman="headcount">Headcount</div>
       <div class="nav-item" data-halaman="ujian">Markah Ujian</div>
+      <div class="nav-item" data-halaman="muet">MUET</div>
       <div class="nav-item" data-halaman="tugassaya">Tugas Saya</div>
       <div class="nav-item" data-halaman="ulangan">Ulangan</div>
       <div class="nav-item" data-halaman="intervensi">Intervensi</div>
@@ -213,6 +234,7 @@
 /* ======================= PEMALAR (selaras Config.gs) ======================= */
 const MEDAN_HEADCOUNT = ['TOV', 'OTR1', 'AR1', 'OTR2', 'AR2', 'ETR', 'SEBENAR'];
 const SEMESTER_HEADCOUNT = ['S1', 'S2', 'S3'];
+const KOD_SUBJEK_MUET = '800';
 
 /* ======================= STATE ======================= */
 const S = {
@@ -485,6 +507,7 @@ function mulakanApp() {
   if (S.peranan !== 'ADMIN') document.querySelector('.nav-item[data-halaman="pengguna"]').style.display = 'none';
   if (S.peranan === 'GURU') document.querySelector('.nav-item[data-halaman="bld"]').style.display = 'none';
   if (!bolehUrus()) document.querySelector('.nav-item[data-halaman="arkib"]').style.display = 'none';
+  if (!bolehUrus() && S.skopSubjek.indexOf(KOD_SUBJEK_MUET) === -1) document.querySelector('.nav-item[data-halaman="muet"]').style.display = 'none';
   document.querySelectorAll('.nav-item').forEach(el => {
     el.addEventListener('click', () => tukarHalaman(el.dataset.halaman));
   });
@@ -499,13 +522,13 @@ function tukarHalaman(nama) {
   S.halaman = nama;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('aktif', el.dataset.halaman === nama));
   const tajuk = { dashboard:'Dashboard', pelajar:'Pelajar', arkib:'Arkib (Tamat Belajar)', subjek:'Mata Pelajaran', bld:'Skema Gred (BLD)', headcount:'Headcount',
-    ujian:'Markah Ujian', tugassaya:'Tugas Saya', ulangan:'Ulangan Semester', intervensi:'Intervensi', analisis:'Analisis', laporan:'Laporan',
+    ujian:'Markah Ujian', muet:'MUET', tugassaya:'Tugas Saya', ulangan:'Ulangan Semester', intervensi:'Intervensi', analisis:'Analisis', laporan:'Laporan',
     kunci:'Kunci Markah', pengguna:'Pengguna & Peranan' };
   document.getElementById('tajukHalaman').textContent = tajuk[nama] || nama;
   document.getElementById('content').innerHTML = '<div class="muatan">Memuatkan...</div>';
   document.getElementById('kawalanGlobal').innerHTML = '';
   const fn = { dashboard: muatDashboard, pelajar: muatPelajar, arkib: muatArkib, subjek: muatSubjek, bld: muatBLD, headcount: muatHeadcount,
-    ujian: muatUjian, tugassaya: muatTugasSaya, ulangan: muatUlangan, intervensi: muatIntervensi, analisis: muatAnalisis, laporan: muatLaporan,
+    ujian: muatUjian, muet: muatMuet, tugassaya: muatTugasSaya, ulangan: muatUlangan, intervensi: muatIntervensi, analisis: muatAnalisis, laporan: muatLaporan,
     kunci: muatKunciMarkah, pengguna: muatPengguna }[nama];
   if (fn) fn();
 }
@@ -1256,6 +1279,267 @@ function muatRosterUjian() {
       }).catch(err => { tunjukMesej(err, 'ralat'); btn.disabled = false; btn.textContent = 'Simpan Semua Markah'; });
     });
   }).catch(err => { document.getElementById('rosterUjian').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
+}
+
+/* ======================= MUET (800) — Kelas & Markah, Analisis GPMP & ETR, Perbandingan & Trend =======================
+   Jumlah & band dikira di pelayar HANYA sebagai pratonton semasa menaip; nilai rasmi
+   sentiasa dikira semula oleh pelayan (MuetService.gs) daripada Sheet MUET_BAND. */
+const KOMPONEN_MUET = ['L', 'S', 'R', 'W'];
+const LABEL_KOMPONEN_MUET = { L: '800/1', S: '800/2', R: '800/3', W: '800/4' };
+const LABEL_SUMBER_MUET = { A: 'Keputusan Sebenar', T1: 'MUET Trial 1', T2: 'MUET Trial 2' };
+
+function adaPerubahanMuetDibuang() {
+  return !S.muetBerubah || confirm('Ada markah MUET yang belum disimpan. Teruskan tanpa menyimpan?');
+}
+
+function muatMuet() {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
+  pasangPilihanTahun(muatMuet);
+  if (!S.subMuet) S.subMuet = 'markah';
+  S.muetBerubah = false;
+  document.getElementById('content').innerHTML = `
+    <div class="panel" style="padding-bottom:6px">
+      <span class="tab-link" data-sub="markah">Kelas &amp; Markah</span>
+      <span class="tab-link" data-sub="analisis">Analisis GPMP &amp; ETR</span>
+      <span class="tab-link" data-sub="trend">Perbandingan &amp; Trend</span>
+    </div>
+    <div id="subMuet"></div>`;
+  document.querySelectorAll('#content .tab-link[data-sub]').forEach(el => {
+    el.classList.toggle('aktif', el.dataset.sub === S.subMuet);
+    el.addEventListener('click', () => {
+      if (!adaPerubahanMuetDibuang()) return;
+      S.subMuet = el.dataset.sub;
+      muatMuet();
+    });
+  });
+  if (S.subMuet !== 'trend' && !S.tahunSTPM) {
+    document.getElementById('subMuet').innerHTML = '<div class="mesej amaran">Sila pilih Tahun STPM di bahagian atas dahulu.</div>';
+    return;
+  }
+  ({ markah: muatMuetMarkah, analisis: muatMuetAnalisis, trend: muatMuetTrend })[S.subMuet]();
+}
+
+/* ---------- Tab 1: Kelas & Markah ---------- */
+function muatMuetMarkah() {
+  const kotak = document.getElementById('subMuet');
+  kotak.innerHTML = '<div class="muatan">Memuatkan kelas...</div>';
+  panggil('apiMuetKelas', { token: S.token, tahunSTPM: S.tahunSTPM }).then(res => {
+    if (!res.senarai.length) {
+      kotak.innerHTML = '<div class="mesej amaran">Tiada kelas dengan pelajar aktif bagi Tahun STPM ' + escapeHtml(S.tahunSTPM) +
+        ' (atau tiada kelas MUET dalam tugasan anda — rujuk menu Tugas Saya).</div>';
+      return;
+    }
+    if (!res.senarai.some(k => k.kelas === S.muetKelas)) S.muetKelas = res.senarai[0].kelas;
+    kotak.innerHTML = '<div class="panel" style="padding-bottom:6px">' + res.senarai.map(k =>
+      '<span class="tab-link" data-kelas="' + escapeHtml(k.kelas) + '">' + escapeHtml(k.kelas) + ' (' + k.jumlah + ')</span>').join('') +
+      '</div><div id="muetRoster"></div>';
+    kotak.querySelectorAll('[data-kelas]').forEach(el => {
+      el.classList.toggle('aktif', el.dataset.kelas === S.muetKelas);
+      el.addEventListener('click', () => {
+        if (el.dataset.kelas === S.muetKelas || !adaPerubahanMuetDibuang()) return;
+        S.muetKelas = el.dataset.kelas;
+        kotak.querySelectorAll('[data-kelas]').forEach(x => x.classList.toggle('aktif', x === el));
+        muatMuetRoster();
+      });
+    });
+    muatMuetRoster();
+  }).catch(err => { kotak.innerHTML = '<div class="mesej ralat">' + escapeHtml(err) + '</div>'; });
+}
+
+function muatMuetRoster() {
+  const el = document.getElementById('muetRoster');
+  el.innerHTML = '<div class="muatan">Memuatkan senarai calon...</div>';
+  S.muetBerubah = false;
+  panggil('apiMuetRoster', { token: S.token, tahunSTPM: S.tahunSTPM, kelas: S.muetKelas }).then(res => {
+    S.muetBands = res.bands;
+    const r = res.ringkasan;
+    const naik = res.bands.slice().reverse(); // 1.0 -> 5+
+    const opsyenEtr = pilih => '<option value="">-</option>' +
+      naik.map(b => '<option value="' + b.band + '"' + (b.band === pilih ? ' selected' : '') + '>Band ' + b.band + '</option>').join('');
+    const selSet = (baris, sm) => KOMPONEN_MUET.map(k =>
+      '<td class="muet-' + sm + '"><input type="number" min="0" max="90" step="1" class="input-muet" data-medan="' + sm + '_' + k +
+      '" value="' + escapeHtml(baris[sm + '_' + k]) + '" aria-label="' + LABEL_SUMBER_MUET[sm] + ' ' + LABEL_KOMPONEN_MUET[k] + '"></td>').join('') +
+      '<td class="muet-' + sm + ' muet-jum" data-jum="' + sm + '"></td><td class="muet-' + sm + ' muet-band" data-band="' + sm + '"></td>';
+    const kepalaSet = sm => KOMPONEN_MUET.map(k => '<th class="muet-' + sm + '">' + LABEL_KOMPONEN_MUET[k] + '<br><span class="kecil">(90)</span></th>').join('') +
+      '<th class="muet-' + sm + '">Jumlah<br><span class="kecil">(360)</span></th><th class="muet-' + sm + '">Band</th>';
+
+    el.innerHTML = `
+      <div class="grid-kad">
+        <div class="kad"><div class="nilai">${r.jumlah}</div><div class="label">Jumlah Pelajar</div></div>
+        <div class="kad hijau"><div class="nilai">${r.hadir}</div><div class="label">Hadir</div></div>
+        <div class="kad merah"><div class="nilai">${r.tidakHadir}</div><div class="label">Tidak Hadir (TH)</div></div>
+        <div class="kad"><div class="nilai">${r.gpmp === null ? '-' : r.gpmp.toFixed(2)}</div><div class="label">GPMP Kelas (Keputusan Sebenar)</div></div>
+      </div>
+      <div class="panel">
+        <p class="kecil">Isi markah setiap komponen (0–90). Jumlah dan Band dikira automatik. Tandakan <b>TH</b> bagi calon yang tidak hadir
+        peperiksaan MUET sebenar — calon TH tidak dikira dalam GPMP. Selepas selesai, klik <b>Simpan Semua Markah MUET</b>.
+        Senarai calon diambil daripada pelajar aktif kelas ini (tambah/padam pelajar di menu Pelajar).</p>
+        <div class="tbl-scroll muet-jadual"><table>
+          <thead>
+            <tr><th rowspan="2">No</th><th rowspan="2" class="muet-nama">Nama Pelajar</th><th rowspan="2">ETR</th>
+              <th colspan="6" class="muet-T1">MUET TRIAL 1</th><th colspan="6" class="muet-T2">MUET TRIAL 2</th>
+              <th colspan="7" class="muet-A">KEPUTUSAN SEBENAR</th><th rowspan="2">TH</th></tr>
+            <tr>${kepalaSet('T1')}${kepalaSet('T2')}${kepalaSet('A')}<th class="muet-A">Status ETR</th></tr>
+          </thead>
+          <tbody>${res.senarai.map((b, i) => `<tr data-id="${escapeHtml(b.ID_Pelajar)}">
+            <td>${i + 1}</td><td class="muet-nama">${escapeHtml(b.Nama)}</td>
+            <td><select class="input-muet muet-etr" data-medan="ETR_Band" aria-label="ETR">${opsyenEtr(b.ETR_Band)}</select></td>
+            ${selSet(b, 'T1')}${selSet(b, 'T2')}${selSet(b, 'A')}<td class="muet-A muet-status"></td>
+            <td><input type="checkbox" class="muet-th" ${b.TidakHadir ? 'checked' : ''} title="Tidak hadir peperiksaan MUET sebenar" aria-label="Tidak hadir"></td>
+          </tr>`).join('') || '<tr><td colspan="23" class="kecil">Tiada pelajar aktif dalam kelas ini.</td></tr>'}</tbody>
+        </table></div>
+        ${res.senarai.length ? '<button id="btnSimpanMuet" class="btn-simpan-roster">Simpan Semua Markah MUET</button>' : ''}
+      </div>`;
+
+    el.querySelectorAll('tbody tr[data-id]').forEach(tr => {
+      kiraBarisMuet(tr);
+      const ubah = () => { S.muetBerubah = true; kiraBarisMuet(tr); };
+      tr.addEventListener('input', ubah);
+      tr.addEventListener('change', ubah);
+    });
+
+    const btn = document.getElementById('btnSimpanMuet');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      if (el.querySelector('.input-muet:invalid')) { tunjukMesej('Ada markah di luar julat 0–90 (kotak merah). Sila betulkan dahulu.', 'ralat'); return; }
+      btn.disabled = true; btn.textContent = 'Menyimpan...';
+      const senarai = Array.from(el.querySelectorAll('tbody tr[data-id]')).map(tr => {
+        const o = { idPelajar: tr.dataset.id, TidakHadir: tr.querySelector('.muet-th').checked };
+        tr.querySelectorAll('[data-medan]').forEach(i => { o[i.dataset.medan] = i.value; });
+        return o;
+      });
+      panggil('apiMuetSimpanPukal', { token: S.token, tahunSTPM: S.tahunSTPM, kelas: S.muetKelas, senarai }).then(hasil => {
+        const m = mesejHasilPukal(hasil, 'rekod MUET');
+        tunjukMesej(m.teks, m.jenis);
+        muatMuetRoster();
+      }).catch(err => { tunjukMesej(err, 'ralat'); btn.disabled = false; btn.textContent = 'Simpan Semua Markah MUET'; });
+    });
+  }).catch(err => { el.innerHTML = '<div class="mesej ralat">' + escapeHtml(err) + '</div>'; });
+}
+
+function kiraBarisMuet(tr) {
+  const th = tr.querySelector('.muet-th').checked;
+  const etr = (S.muetBands.find(b => b.band === tr.querySelector('.muet-etr').value) || {}).nilai;
+  ['T1', 'T2', 'A'].forEach(sm => {
+    const isi = KOMPONEN_MUET.map(k => tr.querySelector('[data-medan="' + sm + '_' + k + '"]').value).filter(v => v !== '');
+    const jumlah = isi.length ? isi.reduce((a, v) => a + Number(v), 0) : null;
+    const band = jumlah === null ? null : S.muetBands.find(b => jumlah >= b.min && jumlah <= b.max);
+    tr.querySelector('[data-jum="' + sm + '"]').textContent = jumlah === null ? '-' : jumlah;
+    tr.querySelector('[data-band="' + sm + '"]').textContent = band ? band.band : '-';
+    if (sm !== 'A') return;
+    const st = tr.querySelector('.muet-status');
+    if (th) st.innerHTML = '<span class="lencana TIDAK_AKTIF">TH</span>';
+    else if (!band || etr === undefined) st.textContent = '-';
+    else st.innerHTML = band.nilai >= etr ? '<span class="lencana HIJAU">Capai</span>' : '<span class="lencana MERAH">Tidak Capai</span>';
+  });
+  tr.classList.toggle('muet-baris-th', th);
+}
+
+/* ---------- Tab 2: Analisis GPMP & ETR ---------- */
+function muatMuetAnalisis() {
+  if (!S.muetSumber) S.muetSumber = 'A';
+  const kotak = document.getElementById('subMuet');
+  kotak.innerHTML = '<div class="muatan">Mengira analisis...</div>';
+  panggil('apiMuetAnalisis', { token: S.token, tahunSTPM: S.tahunSTPM, sumber: S.muetSumber }).then(res => {
+    const f2 = v => v === null ? '-' : v.toFixed(2);
+    const peratus = (c, t) => (c + t) ? Math.round(c * 100 / (c + t)) + '%' : '-';
+    const s = res.sekolah;
+    const label = LABEL_SUMBER_MUET[res.sumber];
+    const jumlahBand = b => res.kelas.reduce((j, k) => j + k.taburan[b], 0);
+    const jum = medan => res.kelas.reduce((j, k) => j + k[medan], 0);
+    const senaraiCalon = (tajuk, senarai) => `<div class="panel"><h3>${tajuk}</h3>` + (senarai.length
+      ? '<div class="tbl-scroll"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Jumlah</th><th>Band</th></tr></thead><tbody>' +
+        senarai.map(c => '<tr><td>' + escapeHtml(c.nama) + '</td><td>' + escapeHtml(c.kelas) + '</td><td>' + c.jumlah + '</td><td><b>' + escapeHtml(c.band) + '</b></td></tr>').join('') +
+        '</tbody></table></div>'
+      : '<p class="kecil">Tiada pelajar.</p>') + '</div>';
+
+    kotak.innerHTML = `
+      <div class="panel" style="padding-bottom:6px"><span class="kecil" style="margin-right:8px">Sumber markah:</span>
+        ${['A', 'T1', 'T2'].map(sm => '<span class="tab-link" data-sumber="' + sm + '">' + LABEL_SUMBER_MUET[sm] + '</span>').join('')}</div>
+      <div class="muet-gps">
+        <div class="label">GPS MUET Sekolah ${escapeHtml(S.tahunSTPM)} — ${label}</div>
+        <div class="nilai">${f2(s.gps)}</div>
+        <div class="label">Purata nilai band ${s.bilKeputusan} calon daripada ${s.jumlahPelajar} pelajar aktif` +
+        `${s.belum ? ' · ' + s.belum + ' belum ada markah' : ''}${s.tidakHadir ? ' · ' + s.tidakHadir + ' TH' : ''}</div>
+      </div>
+      <div class="grid-kad">${res.kelas.map(k => `<div class="kad"><div class="label"><b>${escapeHtml(k.kelas)}</b></div>
+        <div class="nilai">${f2(k.gpmp)}</div><div class="label">GPMP kelas · ${k.jumlahPelajar} pelajar</div></div>`).join('')}</div>
+      <div class="panel"><h3>Taburan Band — ${label}</h3>
+        <div class="tbl-scroll"><table><thead><tr><th>Kelas</th>${res.bands.map(b => '<th>Band ' + b + '</th>').join('')}
+          <th>Ada Keputusan</th><th>Belum</th>${res.sumber === 'A' ? '<th>TH</th>' : ''}</tr></thead><tbody>
+          ${res.kelas.map(k => '<tr><td>' + escapeHtml(k.kelas) + '</td>' + res.bands.map(b => '<td>' + k.taburan[b] + '</td>').join('') +
+            '<td><b>' + k.bilKeputusan + '</b></td><td>' + k.belum + '</td>' + (res.sumber === 'A' ? '<td>' + k.tidakHadir + '</td>' : '') + '</tr>').join('')}
+          <tr><td><b>Jumlah</b></td>${res.bands.map(b => '<td><b>' + jumlahBand(b) + '</b></td>').join('')}
+            <td><b>${s.bilKeputusan}</b></td><td><b>${s.belum}</b></td>${res.sumber === 'A' ? '<td><b>' + s.tidakHadir + '</b></td>' : ''}</tr>
+        </tbody></table></div></div>
+      <div class="panel"><h3>Analisis ETR (Expected Target Result) — ${label}</h3>
+        <p class="kecil">Capai = band ${label.toLowerCase()} sama atau lebih tinggi daripada band ETR. Hanya calon yang ada ETR DAN keputusan dikira dalam peratus.</p>
+        <div class="tbl-scroll"><table><thead><tr><th>Kelas</th><th>Jumlah Pelajar</th><th>Capai ETR</th><th>Tidak Capai ETR</th><th>% Pencapaian</th></tr></thead><tbody>
+          ${res.kelas.map(k => '<tr><td>' + escapeHtml(k.kelas) + '</td><td>' + k.jumlahPelajar + '</td><td class="naik">' + k.capai +
+            '</td><td class="turun">' + k.tidakCapai + '</td><td><b>' + peratus(k.capai, k.tidakCapai) + '</b></td></tr>').join('')}
+          <tr><td><b>Jumlah</b></td><td><b>${jum('jumlahPelajar')}</b></td><td class="naik">${s.capai}</td><td class="turun">${s.tidakCapai}</td>
+            <td><b>${peratus(s.capai, s.tidakCapai)}</b></td></tr>
+        </tbody></table></div></div>
+      <div class="muet-dua">
+        ${senaraiCalon('Pelajar Band Rendah (Band ' + res.ambangRendah + ' ke bawah)', res.rendah)}
+        ${senaraiCalon('Pelajar Band Tinggi (Band ' + res.ambangTinggi + ' ke atas)', res.tinggi)}
+      </div>`;
+
+    kotak.querySelectorAll('[data-sumber]').forEach(el => {
+      el.classList.toggle('aktif', el.dataset.sumber === res.sumber);
+      el.addEventListener('click', () => { S.muetSumber = el.dataset.sumber; muatMuetAnalisis(); });
+    });
+  }).catch(err => { kotak.innerHTML = '<div class="mesej ralat">' + escapeHtml(err) + '</div>'; });
+}
+
+/* ---------- Tab 3: Perbandingan & Trend ---------- */
+function muatMuetTrend() {
+  const kotak = document.getElementById('subMuet');
+  kotak.innerHTML = '<div class="muatan">Memuatkan trend...</div>';
+  panggil('apiMuetTrend', { token: S.token }).then(res => {
+    const f2 = v => v === null || v === undefined ? '-' : v.toFixed(2);
+    const ubah = v => v === null ? '-' : (v > 0 ? '<span class="naik">&uarr; ' + v.toFixed(2) + '</span>'
+      : (v < 0 ? '<span class="turun">&darr; ' + v.toFixed(2) + '</span>' : '0.00'));
+    const kad = (kelas, tajuk, r, nota) => '<div class="kad ' + kelas + '"><div class="label">' + tajuk + '</div><div class="nilai">' +
+      (r ? f2(r.gps !== undefined ? r.gps : r) : '-') + '</div><div class="label">' + nota + '</div></div>';
+
+    kotak.innerHTML = `
+      <div class="panel"><h3>Perbandingan GPS MUET Mengikut Tahun</h3>
+        <div class="tbl-scroll"><table><thead><tr><th>Tahun</th><th>GPS</th><th>Perubahan</th><th>Status</th><th>Sumber</th><th>Catatan</th>${bolehUrus() ? '<th></th>' : ''}</tr></thead><tbody>
+          ${res.senarai.map(r => `<tr${r.tahun === String(S.tahunSTPM) ? ' style="background:#eef2ff"' : ''}>
+            <td><b>${escapeHtml(r.tahun)}</b></td><td><b>${f2(r.gps)}</b></td><td>${ubah(r.perubahan)}</td>
+            <td>${r.status === 'SELESAI' ? '<span class="lencana HIJAU">Selesai</span>' : '<span class="lencana KUNING">Belum Lengkap</span>'}</td>
+            <td class="kecil">${r.sumber === 'SISTEM' ? 'Dikira sistem' : 'Diisi manual'}</td><td class="kecil">${escapeHtml(r.catatan)}</td>
+            ${bolehUrus() ? '<td>' + (r.sumber === 'MANUAL' ? '<span class="aksi-link" style="color:var(--merah)" onclick="padamGpsMuet(\'' + escapeHtml(r.tahun) + '\')">Padam</span>' : '') + '</td>' : ''}
+          </tr>`).join('') || '<tr><td colspan="7" class="kecil">Belum ada data. Isi GPS tahun-tahun lepas di bawah, atau isi Keputusan Sebenar di tab Kelas &amp; Markah.</td></tr>'}
+        </tbody></table></div></div>
+      <div class="grid-kad">
+        ${kad('hijau', 'GPS Tertinggi', res.tertinggi, res.tertinggi ? 'Tahun ' + escapeHtml(res.tertinggi.tahun) : '')}
+        ${kad('merah', 'GPS Terendah', res.terendah, res.terendah ? 'Tahun ' + escapeHtml(res.terendah.tahun) : '')}
+        ${kad('', 'Purata GPS', res.purata, res.bilTahunLengkap + ' tahun lengkap')}
+      </div>
+      ${bolehUrus() ? `<div class="panel"><h3>Isi GPS MUET Tahun Lepas</h3>
+        <p class="kecil">Untuk tahun-tahun sebelum sistem ini digunakan. Tahun yang sudah ada Keputusan Sebenar dalam sistem dikira automatik dan mengatasi nilai manual.</p>
+        <div class="borang-grid">
+          <div><label>Tahun</label><input id="mgTahun" inputmode="numeric" placeholder="cth. 2023"></div>
+          <div><label>GPS</label><input id="mgGps" type="number" min="1" max="6" step="0.01" placeholder="cth. 3.42"></div>
+          <div><label>Catatan (opsyenal)</label><input id="mgCatatan"></div>
+        </div>
+        <button id="btnSimpanGpsMuet">Simpan GPS</button></div>` : ''}`;
+
+    const btn = document.getElementById('btnSimpanGpsMuet');
+    if (btn) btn.addEventListener('click', () => {
+      panggil('apiMuetSimpanGpsSejarah', { token: S.token, tahun: document.getElementById('mgTahun').value,
+        gps: document.getElementById('mgGps').value, catatan: document.getElementById('mgCatatan').value })
+        .then(() => { tunjukMesej('GPS MUET disimpan.'); muatMuetTrend(); }).catch(err => tunjukMesej(err, 'ralat'));
+    });
+  }).catch(err => { kotak.innerHTML = '<div class="mesej ralat">' + escapeHtml(err) + '</div>'; });
+}
+
+function padamGpsMuet(tahun) {
+  if (!confirm('Padam GPS MUET manual bagi tahun ' + tahun + '?')) return;
+  panggil('apiMuetPadamGpsSejarah', { token: S.token, tahun })
+    .then(() => { tunjukMesej('GPS tahun ' + tahun + ' dipadam.'); muatMuetTrend(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
 /* ======================= TUGAS SAYA (subjek + kelas diajar bagi setiap guru) =======================

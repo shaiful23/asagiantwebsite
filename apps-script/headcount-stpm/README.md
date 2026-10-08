@@ -92,7 +92,7 @@ sepenuhnya seperti diminta.
    `HeadcountService.gs`, `AnalysisService.gs`, `RepeatService.gs`,
    `InterventionService.gs`, `DashboardService.gs`, `ReportService.gs`,
    `HighImpactService.gs`, `WhatIfService.gs`, `AssignmentService.gs`,
-   `LockService.gs`), cipta fail Script baharu dengan nama yang sama (tanpa
+   `LockService.gs`, `MuetService.gs`), cipta fail Script baharu dengan nama yang sama (tanpa
    `.gs`) dan salin-tampal kandungannya.
 
    **Jika projek Apps Script anda sudah wujud** (kemaskini daripada versi
@@ -143,6 +143,12 @@ sepenuhnya seperti diminta.
    `Code.gs` dan `Index` dengan versi terkini, kemudian deploy semula. Tiada
    langkah migrasi Sheet (lajur `PIN` sedia ada digunakan semula) — rujuk
    **"Log Masuk & Kata Laluan"** di bawah untuk kesan pada akaun sedia ada.
+
+   **Kemaskini terkini (MUET):** tambah fail Script baharu `MuetService`
+   (salin-tampal `MuetService.gs`), **gantikan** `Config.gs`, `Code.gs` dan
+   `Index`, deploy semula, kemudian klik **Sistem Headcount STPM → 4.
+   Kemaskini Struktur (MUET)** — mencipta Sheet `MUET`, `MUET_BAND` (julat
+   band lalai) dan `MUET_GPS_SEJARAH`. Rujuk **"MUET (800)"** di bawah.
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json
@@ -150,10 +156,11 @@ sepenuhnya seperti diminta.
 6. Kembali ke Sheet, refresh halaman. Menu baharu **"Sistem Headcount STPM"**
    akan muncul di bar menu.
 7. Klik **Sistem Headcount STPM → 1. Sediakan Sistem (Jalankan Sekali)**.
-   Benarkan kebenaran yang diminta. Ini mencipta semua 17 Sheet: `CONFIG`,
+   Benarkan kebenaran yang diminta. Ini mencipta semua 20 Sheet: `CONFIG`,
    `GRADES`, `GRADE_BOUNDARIES`, `USERS`, `STUDENTS`, `SUBJECTS`, `ENROLLMENTS`,
    `HEADCOUNT_S1/S2/S3`, `REPEAT_S1/S2`, `INTERVENTIONS`, `INTERVENTION_LOG`,
-   `AUDIT_LOG`, `TEACHING_ASSIGNMENTS`, `UNLOCK_REQUESTS`.
+   `AUDIT_LOG`, `TEACHING_ASSIGNMENTS`, `UNLOCK_REQUESTS`, `MUET`, `MUET_BAND`,
+   `MUET_GPS_SEJARAH`.
 8. **Kemaskini data sebenar sekolah** terus dalam Sheet:
    - `CONFIG`: nama sekolah, tahun STPM aktif, sasaran GPS/PNGK, threshold gap/risiko.
    - `GRADES`: senarai gred & nilai gred rasmi sekolah (boleh ubah tanpa sentuh kod).
@@ -425,6 +432,43 @@ tugasan ditetapkan untuk satu subjek, pilihan Kelas di Isi ETR/Markah Ujian
 **disempitkan** kepada kelas yang ditugaskan sahaja; guru yang LANGSUNG
 tiada tugasan ditetapkan kekal guna cara lama (ikut pendaftaran pelajar +
 `SkopSubjek`) — jadi sekolah yang belum guna ciri ini tidak terjejas.
+
+## MUET (800)
+
+MUET direkod berasingan daripada headcount subjek STPM lain (bukan gred A–F
+ikut BLD semester), dalam menu **MUET** dengan 3 tab:
+
+- **Kelas & Markah** — pilih kelas; isi markah 4 komponen (800/1 Mendengar,
+  800/2 Bertutur, 800/3 Membaca, 800/4 Menulis; 0–90 setiap satu, jumlah 360)
+  bagi **MUET Trial 1**, **MUET Trial 2** dan **Keputusan Sebenar**, band
+  **ETR** (sasaran) dan tanda **TH** (tidak hadir peperiksaan sebenar). Jumlah
+  & band dipapar serta-merta semasa menaip; klik **Simpan Semua Markah MUET**
+  untuk simpan seluruh kelas dalam satu panggilan (`apiMuetSimpanPukal`).
+  Senarai calon = semua pelajar AKTIF dalam kelas bagi Tahun STPM terpilih
+  (tambah/padam pelajar di menu Pelajar).
+- **Analisis GPMP & ETR** — GPS sekolah, GPMP setiap kelas, taburan band,
+  pencapaian ETR (capai = band ≥ band ETR), senarai pelajar band rendah
+  (≤ 2.5) dan tinggi (≥ 4.5). Boleh tukar sumber: Keputusan Sebenar (lalai) /
+  Trial 1 / Trial 2 — berguna untuk headcount sebelum keputusan sebenar keluar.
+- **Perbandingan & Trend** — GPS mengikut tahun dengan perubahan (↑/↓),
+  GPS tertinggi/terendah/purata (tahun lengkap sahaja). Tahun yang ada
+  Keputusan Sebenar dalam sistem dikira automatik ("Belum Lengkap" selagi ada
+  calon hadir yang belum diisi); tahun sebelum sistem diisi manual oleh Admin.
+
+**Pengiraan:** GPMP/GPS = purata **NilaiBand** calon yang ada markah bagi
+sumber itu (calon TH dan calon belum diisi tidak dikira). Band ditentukan
+daripada jumlah 360 mengikut Sheet `MUET_BAND` (lalai: format MUET 2021 —
+5+ 331–360, 5.0 294–330, 4.5 258–293, 4.0 211–257, 3.5 164–210, 3.0 123–163,
+2.5 82–122, 2.0 36–81, 1.0 0–35). Julat dan NilaiBand boleh dipinda terus
+dalam Sheet tanpa sentuh kod — **Band 5+ bernilai 5.5 secara lalai**; ubah
+jika sekolah guna nilai lain. Jumlah & band tidak disimpan, sentiasa dikira
+semula, jadi pindaan julat terus berkuat kuasa pada semua rekod.
+
+**Akses:** ADMIN/GPK/Ketua Akademik (semua kelas), dan guru yang ada kod
+`800` dalam **Skop Subjek** (menu Pengguna). Jika guru MUET ada tugasan `800`
+di menu **Tugas Saya**, dia hanya boleh mengisi kelas tugasannya (analisis &
+trend tetap memaparkan semua kelas). Kunci tarikh akhir (Kunci Markah) tidak
+dikenakan pada MUET kerana ia berasaskan Semester S1/S2/S3.
 
 ## Kunci Markah (tarikh akhir, buka semula, pemantauan, countdown)
 
