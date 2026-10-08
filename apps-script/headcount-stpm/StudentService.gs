@@ -38,16 +38,12 @@ function apiSenaraiPelajar(p) {
   } else if (!p.termasukArkib) {
     senarai = senarai.filter(s => String(s.Status).toUpperCase() !== 'TAMAT');
   }
-  if (PERANAN_AKSES_PENUH.includes(sesi.peranan)) {
-    // tiada tapisan tambahan — nampak semua
-  } else if (sesi.peranan === ROLE_GURU_KELAS) {
-    // Guru Kelas: hanya pelajar dalam kelas yang diselia (SkopKelas)
-    senarai = senarai.filter(s => sesi.skopKelas.indexOf(String(s.Kelas).toUpperCase()) !== -1);
-  } else {
-    // GURU / KETUA_PANITIA: hanya pelajar yang mengambil subjek dalam skop mereka
+  if (!aksesPenuh(sesi)) {
+    // Guru Tingkatan: pelajar dalam kelas jagaan; semua peranan: pelajar yang mengambil
+    // subjek dalam skop (subjek diajar / unit diketuai).
     const enrolments = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).filter(e => sesi.skopSubjek.includes(String(e.KodSubjek)));
     const idDibenarkan = new Set(enrolments.map(e => e.ID_Pelajar));
-    senarai = senarai.filter(s => idDibenarkan.has(s.ID_Pelajar));
+    senarai = senarai.filter(s => idDibenarkan.has(s.ID_Pelajar) || kelasJagaan(sesi, s.Kelas));
   }
   return jaya({ senarai });
 }
@@ -177,10 +173,10 @@ function apiNyahArkibPelajar(p) {
    BAHARU (anggap satu kelas = satu aliran/set subjek sama, cth. kelas Sains/Sastera).
    Rekod HEADCOUNT/INTERVENSI/ULANGAN sejarah bagi subjek lama TIDAK disentuh (kekal
    untuk rujukan), hanya ENROLLMENTS (pendaftaran semasa) yang diganti.
-   Peranan: ADMIN/GPK/Ketua Akademik (semua kelas), atau GURU_KELAS — tetapi GURU_KELAS
-   HANYA boleh urus pelajar yang KELAS SEMASA dia dalam SkopKelas guru itu. */
+   Peranan: ADMIN (semua kelas), atau GURU_TINGKATAN — tetapi HANYA bagi pelajar
+   yang KELAS SEMASA dia dalam SkopKelas (kelas jagaan) guru itu. */
 function apiTukarKelasPelajar(p) {
-  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_GURU_KELAS]));
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_GURU_TINGKATAN]));
   if (sesi.success === false) return sesi;
 
   const idPelajar = String(p.idPelajar || '').trim();
@@ -190,8 +186,8 @@ function apiTukarKelasPelajar(p) {
   const rekod = cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar);
   if (!rekod) return ralat('Pelajar tidak dijumpai.');
 
-  if (sesi.peranan === ROLE_GURU_KELAS && sesi.skopKelas.indexOf(String(rekod.Kelas).toUpperCase()) === -1) {
-    return ralat('Anda hanya boleh urus pelajar dalam kelas yang anda selia (Guru Kelas).');
+  if (!aksesPenuh(sesi) && !kelasJagaan(sesi, rekod.Kelas)) {
+    return ralat('Anda hanya boleh urus pelajar dalam kelas jagaan anda (Guru Tingkatan).');
   }
   if (String(rekod.Kelas).toUpperCase() === kelasBaharu.toUpperCase()) return ralat('Pelajar sudah berada dalam kelas ini.');
 
@@ -280,7 +276,7 @@ function apiSenaraiKelasUntukSubjek(p) {
   const kodSubjek = String(p.kodSubjek || '').trim();
   const tahunSTPM = String(p.tahunSTPM || '').trim();
   if (!kodSubjek) return ralat('Kod Subjek wajib diisi.');
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
+  if (!bolehAksesSubjek(sesi, kodSubjek)) {
     return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
   }
 
@@ -304,12 +300,16 @@ function apiSenaraiKelasUntukSubjek(p) {
      tekaan ikut pendaftaran. Guru TANPA tugasan ditetapkan terus guna senarai ikut
      pendaftaran seperti sedia ada (keserasian ke belakang). */
   let disempitkanTugasan = false;
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) {
-    const kelasTugasan = kelasTugasanGuru(sesi.nokp, kodSubjek, tahunSTPM);
+  if (!aksesPenuh(sesi) && !ketuaUnitBagi(sesi, kodSubjek)) {
+    const semuaKelas = Array.from(kelasSet);
+    let kelasAjar = sesi.skopSubjek.indexOf(kodSubjek) !== -1 ? semuaKelas : [];
+    const kelasTugasan = kelasAjar.length ? kelasTugasanGuru(sesi.nokp, kodSubjek, tahunSTPM) : null;
     if (kelasTugasan) {
       disempitkanTugasan = true;
-      kelasSet = new Set(Array.from(kelasSet).filter(k => kelasTugasan.indexOf(String(k).toUpperCase()) !== -1));
+      kelasAjar = kelasAjar.filter(k => kelasTugasan.indexOf(String(k).toUpperCase()) !== -1);
     }
+    // Guru Tingkatan: tambah kelas jagaan (semua subjek dalam kelas itu).
+    kelasSet = new Set(kelasAjar.concat(semuaKelas.filter(k => kelasJagaan(sesi, k))));
   }
 
   return jaya({

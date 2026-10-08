@@ -209,12 +209,18 @@
   .slip-analisis li { margin-bottom: .6mm; }
   .slip-ulasan { position: relative; }
   .slip-ulasan .baris { border-bottom: .25mm dotted #9ca3af; height: 5.5mm; }
+  .slip-petikan { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 10pt; color: #1f2937; line-height: 1.4;
+    padding: 1mm 0 1mm 4mm; border-left: .8mm solid var(--slip-emas); margin-top: .5mm; }
+  .slip-guru { font-size: 8.5pt; color: #4b5563; margin-top: 1mm; text-align: right; }
+  .slip-guru b { color: #111827; }
+  .jadual-ulasan td { white-space: normal; vertical-align: middle; }
+  .jadual-ulasan select { margin: 0; min-width: 260px; font-size: 13px; }
   .slip-ttd { display: grid; grid-template-columns: 1fr 1fr; gap: 16mm; margin-top: auto; padding-top: 3mm; text-align: center; font-size: 9pt; position: relative; }
-  .slip-ttd .ruang { height: 12mm; }
+  .slip-ttd .ruang { height: 10mm; }
   .slip-ttd .garis-ttd { border-top: .3mm solid #374151; margin: 0 6mm 1.5mm; }
   .slip-ttd b { display: block; font-size: 9.5pt; color: #111827; }
   .slip-ttd span { display: block; color: #4b5563; font-size: 8.5pt; }
-  .slip-kaki { margin-top: 3.5mm; padding-top: 1.5mm; border-top: .25mm solid #e5e7eb; font-size: 7pt; color: #9ca3af; text-align: center; position: relative; }
+  .slip-kaki { margin-top: 2.5mm; padding-top: 1.5mm; border-top: .25mm solid #e5e7eb; font-size: 7pt; color: #9ca3af; text-align: center; position: relative; }
   /* @page { size: A4; margin: 0 } disuntik oleh cetakSlipMuet() semasa mencetak slip
      SAHAJA, supaya cetakan halaman lain (Ctrl+P) kekal dengan margin lalai pelayar. */
   @media print {
@@ -425,9 +431,16 @@ function paparkanBerhalaman(idTbody, idKawalan, senarai, keadaan, fnRenderBaris,
   if (btnPrev) btnPrev.addEventListener('click', () => { keadaan.m--; sambung(); });
   if (btnNext) btnNext.addEventListener('click', () => { keadaan.m++; sambung(); });
 }
-function bolehUrus() { return ['ADMIN','GPK_TINGKATAN6','KETUA_AKADEMIK'].indexOf(S.peranan) !== -1; }
-function bolehUrusBLD() { return bolehUrus() || S.peranan === 'KETUA_PANITIA'; }
-function bolehTukarKelas() { return bolehUrus() || S.peranan === 'GURU_KELAS'; }
+/* 4 peranan: ADMIN, KETUA_UNIT, GURU_TINGKATAN, GURU (pelayan ialah punca kebenaran sebenar). */
+const LABEL_PERANAN = { ADMIN: 'Admin', KETUA_UNIT: 'Ketua Unit', GURU_TINGKATAN: 'Guru Tingkatan', GURU: 'Guru' };
+function bolehUrus() { return S.peranan === 'ADMIN'; }
+function bolehUrusBLD() { return bolehUrus() || S.peranan === 'KETUA_UNIT'; }
+function bolehTukarKelas() { return bolehUrus() || S.peranan === 'GURU_TINGKATAN'; }
+function bolehUrusMuet() { return bolehUrus() || (S.peranan === 'KETUA_UNIT' && (S.unitKetua || []).indexOf(KOD_SUBJEK_MUET) !== -1); }
+function senaraiDaripada(v, besar) {
+  const a = Array.isArray(v) ? v : String(v || '').split(',');
+  return a.map(x => String(x).trim()).filter(Boolean).map(x => besar ? x.toUpperCase() : x);
+}
 /* Paparan konsisten "markah (gred)" — dipakai di semua jadual/borang headcount. */
 function formatMG(markah, gred) {
   if (markah === '' || markah === undefined || markah === null) return gred ? escapeHtml(gred) : '-';
@@ -514,8 +527,9 @@ function login() {
   document.getElementById('btnLogin').disabled = true;
   panggil('apiLogin', { nokp, pin }).then(res => {
     S.token = res.token; S.nama = res.nama; S.peranan = res.peranan;
-    S.skopSubjek = res.skopSubjek ? String(res.skopSubjek).split(',').map(s=>s.trim()).filter(Boolean) : [];
-    S.skopKelas = res.skopKelas ? String(res.skopKelas).split(',').map(s=>s.trim().toUpperCase()).filter(Boolean) : [];
+    S.skopSubjek = senaraiDaripada(res.skopSubjek);
+    S.unitKetua = senaraiDaripada(res.unitKetua);
+    S.skopKelas = senaraiDaripada(res.skopKelas, true);
     localStorage.setItem('hcstpm_token', S.token);
     if (res.perluTukarKataLaluan) paparTukarKataLaluan(true); else mulakanApp();
   }).catch(err => {
@@ -528,8 +542,9 @@ function semakSesiSediaAda() {
   if (!S.token) { document.getElementById('loginBox').style.display = 'block'; return; }
   panggil('apiSemakSesi', { token: S.token }).then(res => {
     S.nama = res.nama; S.peranan = res.peranan;
-    S.skopSubjek = res.skopSubjek ? String(res.skopSubjek).split(',').map(s=>s.trim()).filter(Boolean) : [];
-    S.skopKelas = Array.isArray(res.skopKelas) ? res.skopKelas.map(s=>String(s).trim().toUpperCase()) : [];
+    S.skopSubjek = senaraiDaripada(res.skopSubjek);
+    S.unitKetua = senaraiDaripada(res.unitKetua);
+    S.skopKelas = senaraiDaripada(res.skopKelas, true);
     if (res.perluTukarKataLaluan) paparTukarKataLaluan(true); else mulakanApp();
   }).catch(() => {
     localStorage.removeItem('hcstpm_token'); S.token = '';
@@ -595,11 +610,14 @@ function mulakanApp() {
   document.getElementById('loginBox').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('infoNama').textContent = S.nama;
-  document.getElementById('infoPeranan').textContent = S.peranan.replace(/_/g,' ');
+  document.getElementById('infoPeranan').textContent = (LABEL_PERANAN[S.peranan] || S.peranan.replace(/_/g,' ')) +
+    (S.peranan === 'KETUA_UNIT' && S.unitKetua.length ? ' (' + S.unitKetua.join(', ') + ')' : '') +
+    (S.peranan === 'GURU_TINGKATAN' && S.skopKelas.length ? ' (' + S.skopKelas.join(', ') + ')' : '');
   if (S.peranan !== 'ADMIN') document.querySelector('.nav-item[data-halaman="pengguna"]').style.display = 'none';
-  if (S.peranan === 'GURU') document.querySelector('.nav-item[data-halaman="bld"]').style.display = 'none';
+  if (!bolehUrusBLD()) document.querySelector('.nav-item[data-halaman="bld"]').style.display = 'none';
   if (!bolehUrus()) document.querySelector('.nav-item[data-halaman="arkib"]').style.display = 'none';
-  if (!bolehUrus() && S.skopSubjek.indexOf(KOD_SUBJEK_MUET) === -1) document.querySelector('.nav-item[data-halaman="muet"]').style.display = 'none';
+  const aksesMuet = bolehUrus() || S.skopSubjek.indexOf(KOD_SUBJEK_MUET) !== -1 || (S.peranan === 'GURU_TINGKATAN' && S.skopKelas.length);
+  if (!aksesMuet) document.querySelector('.nav-item[data-halaman="muet"]').style.display = 'none';
   document.querySelectorAll('.nav-item').forEach(el => {
     el.addEventListener('click', () => tukarHalaman(el.dataset.halaman));
   });
@@ -782,7 +800,7 @@ function renderPelajar(senarai) {
       <h3>Tukar Kelas Pelajar</h3>
       <p class="kecil">Pendaftaran subjek pelajar akan <b>DIGANTIKAN SEPENUHNYA</b> mengikut subjek yang diambil pelajar lain dalam kelas baharu
       (anggap satu kelas = satu aliran/set subjek sama). Rekod headcount/markah sejarah bagi subjek lama TIDAK disentuh.
-      ${S.peranan==='GURU_KELAS' ? '<br>Sebagai Guru Kelas, anda hanya boleh urus pelajar yang KELAS SEMASANYA dalam seliaan anda: <b>'+escapeHtml((S.skopKelas||[]).join(', ') || '(tiada)')+'</b>.' : ''}</p>
+      ${S.peranan==='GURU_TINGKATAN' ? '<br>Sebagai Guru Tingkatan, anda hanya boleh urus pelajar yang KELAS SEMASANYA dalam kelas jagaan anda: <b>'+escapeHtml((S.skopKelas||[]).join(', ') || '(tiada)')+'</b>.' : ''}</p>
       <div class="borang-grid">
         <div><label>ID Pelajar</label><input id="tkIdPelajar" placeholder="cth. P001" list="senaraiIdPelajarTK"></div>
         <div><label>Kelas Baharu</label><input id="tkKelasBaharu" placeholder="cth. 6A ALAMANDA"></div>
@@ -1014,7 +1032,7 @@ function renderSubjek(senarai) {
         <div><label>Kod Subjek</label><input id="sKod"></div>
         <div><label>Nama Subjek</label><input id="sNama"></div>
         <div><label>Guru Mata Pelajaran</label><input id="sGuru"></div>
-        <div><label>Ketua Panitia</label><input id="sKP"></div>
+        <div><label>Catatan Ketua Unit (pilihan)</label><input id="sKP" placeholder="Ketua Unit sebenar ditetapkan di menu Pengguna"></div>
         <div><label>Status</label><select id="sStatus"><option>AKTIF</option><option>TIDAK_AKTIF</option></select></div>
       </div>
       <button id="btnSimpanSubjek">Simpan Subjek</button>
@@ -1022,8 +1040,8 @@ function renderSubjek(senarai) {
 
   document.getElementById('content').innerHTML = borang + `
     <div class="panel"><h3>Senarai Mata Pelajaran (${senarai.length})</h3>
-    <div class="tbl-scroll"><table><thead><tr><th>Kod</th><th>Nama</th><th>Guru</th><th>Ketua Panitia</th><th>Status</th>${bolehUrus()?'<th></th>':''}</tr></thead>
-    <tbody>${senarai.map(s => `<tr><td>${escapeHtml(s.KodSubjek)}</td><td>${escapeHtml(s.NamaSubjek)}</td><td>${escapeHtml(s.GuruMataPelajaran)}</td><td>${escapeHtml(s.KetuaPanitia)}</td><td>${lencana(s.StatusAktif)}</td>
+    <div class="tbl-scroll"><table><thead><tr><th>Kod</th><th>Nama</th><th>Guru</th><th>Ketua Unit</th><th>Status</th>${bolehUrus()?'<th></th>':''}</tr></thead>
+    <tbody>${senarai.map(s => `<tr><td>${escapeHtml(s.KodSubjek)}</td><td>${escapeHtml(s.NamaSubjek)}</td><td>${escapeHtml(s.GuruMataPelajaran)}</td><td>${s.ketuaUnit ? escapeHtml(s.ketuaUnit) : '<span class="kecil">' + (escapeHtml(s.KetuaPanitia) || 'Belum ditetapkan') + '</span>'}</td><td>${lencana(s.StatusAktif)}</td>
     ${bolehUrus() ? '<td><span class="aksi-link" onclick="isiFormSubjek(\''+s.KodSubjek+'\')">Edit</span>' +
       '<span class="aksi-link" style="color:var(--merah)" onclick="padamSubjek(\''+s.KodSubjek+'\')">Padam</span></td>' : ''}</tr>`).join('') || '<tr><td colspan=6 class="kecil">Tiada subjek.</td></tr>'}</tbody></table></div></div>`;
 
@@ -1277,7 +1295,7 @@ function muatAggregateHeadcount() {
 
 /* Dikumpulkan ikut Subjek/Kelas, SETIAP kumpulan dipaginasi berasingan (id
    tbody/kawalan unik ikut indeks) — elak render ratusan baris sekaligus bila
-   Admin/GPK lihat SEMUA subjek/kelas serentak. */
+   Admin lihat SEMUA subjek/kelas serentak. */
 function renderAggregateHeadcount(senarai, ikut) {
   const kontena = document.getElementById('aggregateHeadcount');
   if (!senarai.length) { kontena.innerHTML = '<p class="kecil">Tiada rekod.</p>'; return; }
@@ -1387,7 +1405,7 @@ function adaPerubahanMuetDibuang() {
 function muatMuet() {
   document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
   pasangPilihanTahun(muatMuet);
-  if (!S.subMuet || (S.subMuet === 'penetapan' && !bolehUrus())) S.subMuet = 'markah';
+  if (!S.subMuet || (S.subMuet === 'penetapan' && !bolehUrusMuet())) S.subMuet = 'markah';
   S.muetBerubah = false;
   document.getElementById('content').innerHTML = `
     <div class="panel" style="padding-bottom:6px">
@@ -1395,7 +1413,7 @@ function muatMuet() {
       <span class="tab-link" data-sub="analisis">Analisis GPMP &amp; ETR</span>
       <span class="tab-link" data-sub="trend">Perbandingan &amp; Trend</span>
       <span class="tab-link" data-sub="slip">Slip MUET</span>
-      ${bolehUrus() ? '<span class="tab-link" data-sub="penetapan">Penetapan Guru</span>' : ''}
+      ${bolehUrusMuet() ? '<span class="tab-link" data-sub="penetapan">Penetapan Guru</span>' : ''}
     </div>
     <div id="subMuet"></div>`;
   document.querySelectorAll('#content .tab-link[data-sub]').forEach(el => {
@@ -1607,12 +1625,12 @@ function muatMuetTrend() {
 
     kotak.innerHTML = `
       <div class="panel"><h3>Perbandingan GPS MUET Mengikut Tahun</h3>
-        <div class="tbl-scroll"><table><thead><tr><th>Tahun</th><th>GPS</th><th>Perubahan</th><th>Status</th><th>Sumber</th><th>Catatan</th>${bolehUrus() ? '<th></th>' : ''}</tr></thead><tbody>
+        <div class="tbl-scroll"><table><thead><tr><th>Tahun</th><th>GPS</th><th>Perubahan</th><th>Status</th><th>Sumber</th><th>Catatan</th>${bolehUrusMuet() ? '<th></th>' : ''}</tr></thead><tbody>
           ${res.senarai.map(r => `<tr${r.tahun === String(S.tahunSTPM) ? ' style="background:#eef2ff"' : ''}>
             <td><b>${escapeHtml(r.tahun)}</b></td><td><b>${f2(r.gps)}</b></td><td>${ubah(r.perubahan)}</td>
             <td>${r.status === 'SELESAI' ? '<span class="lencana HIJAU">Selesai</span>' : '<span class="lencana KUNING">Belum Lengkap</span>'}</td>
             <td class="kecil">${r.sumber === 'SISTEM' ? 'Dikira sistem' : 'Diisi manual'}</td><td class="kecil">${escapeHtml(r.catatan)}</td>
-            ${bolehUrus() ? '<td>' + (r.sumber === 'MANUAL' ? '<span class="aksi-link" style="color:var(--merah)" onclick="padamGpsMuet(\'' + escapeHtml(r.tahun) + '\')">Padam</span>' : '') + '</td>' : ''}
+            ${bolehUrusMuet() ? '<td>' + (r.sumber === 'MANUAL' ? '<span class="aksi-link" style="color:var(--merah)" onclick="padamGpsMuet(\'' + escapeHtml(r.tahun) + '\')">Padam</span>' : '') + '</td>' : ''}
           </tr>`).join('') || '<tr><td colspan="7" class="kecil">Belum ada data. Isi GPS tahun-tahun lepas di bawah, atau isi Keputusan Sebenar di tab Kelas &amp; Markah.</td></tr>'}
         </tbody></table></div></div>
       <div class="grid-kad">
@@ -1620,7 +1638,7 @@ function muatMuetTrend() {
         ${kad('merah', 'GPS Terendah', res.terendah, res.terendah ? 'Tahun ' + escapeHtml(res.terendah.tahun) : '')}
         ${kad('', 'Purata GPS', res.purata, res.bilTahunLengkap + ' tahun lengkap')}
       </div>
-      ${bolehUrus() ? `<div class="panel"><h3>Isi GPS MUET Tahun Lepas</h3>
+      ${bolehUrusMuet() ? `<div class="panel"><h3>Isi GPS MUET Tahun Lepas</h3>
         <p class="kecil">Untuk tahun-tahun sebelum sistem ini digunakan. Tahun yang sudah ada Keputusan Sebenar dalam sistem dikira automatik dan mengatasi nilai manual.</p>
         <div class="borang-grid">
           <div><label>Tahun</label><input id="mgTahun" inputmode="numeric" placeholder="cth. 2023"></div>
@@ -1644,7 +1662,7 @@ function padamGpsMuet(tahun) {
     .then(() => { tunjukMesej('GPS tahun ' + tahun + ' dipadam.'); muatMuetTrend(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
-/* ---------- Tab 4: Penetapan Guru (Admin / GPK / Ketua Akademik) ---------- */
+/* ---------- Tab 4: Penetapan Guru (Admin / Ketua Unit MUET) ---------- */
 function muatMuetPenetapan() {
   const kotak = document.getElementById('subMuet');
   kotak.innerHTML = '<div class="muatan">Memuatkan guru MUET...</div>';
@@ -1737,6 +1755,7 @@ function muatMuetSlip() {
         <b>Cetak / Simpan PDF</b> dan pilih <b>Save as PDF / Simpan sebagai PDF</b> pada dialog cetak.</p>
         <div id="slInfo"></div>
       </div>
+      <div id="ulasanSlip"></div>
       <div id="pratontonSlip"></div>
       ${t ? `<div class="panel"><h3>Tetapan Slip (Nama &amp; Tandatangan)</h3>
         <p class="kecil">Dipaparkan pada semua slip. Biarkan nama kosong jika mahu ditulis tangan.</p>
@@ -1748,8 +1767,13 @@ function muatMuetSlip() {
         </div>
         <button id="btnSimpanTetapanSlip">Simpan Tetapan Slip</button></div>` : ''}`;
 
-    document.getElementById('slSumber').addEventListener('change', e => { S.slipSumber = e.target.value; muatDataSlip(); });
-    document.getElementById('slKelas').addEventListener('change', e => { S.slipKelas = e.target.value; S.slipPelajar = ''; muatDataSlip(); });
+    const buangUlasan = el => {
+      if (!S.ulasanBerubah || confirm('Ada ulasan yang belum disimpan. Teruskan tanpa menyimpan?')) return true;
+      el.value = el.id === 'slSumber' ? S.slipSumber : S.slipKelas;
+      return false;
+    };
+    document.getElementById('slSumber').addEventListener('change', e => { if (!buangUlasan(e.target)) return; S.slipSumber = e.target.value; muatDataSlip(); });
+    document.getElementById('slKelas').addEventListener('change', e => { if (!buangUlasan(e.target)) return; S.slipKelas = e.target.value; S.slipPelajar = ''; muatDataSlip(); });
     document.getElementById('slPelajar').addEventListener('change', e => { S.slipPelajar = e.target.value; renderPratontonSlip(); });
     document.getElementById('btnCetakSlip').addEventListener('click', cetakSlipMuet);
     document.getElementById('btnMuatTurunSlip').addEventListener('click', muatTurunSlipMuet);
@@ -1768,7 +1792,9 @@ function muatDataSlip() {
   const el = document.getElementById('pratontonSlip');
   if (!el) return;
   S.slipData = null;
+  S.ulasanBerubah = false;
   ['btnCetakSlip', 'btnMuatTurunSlip'].forEach(id => { document.getElementById(id).disabled = true; });
+  document.getElementById('ulasanSlip').innerHTML = '';
   el.innerHTML = '<div class="muatan">Menjana slip...</div>';
   const diminta = { sumber: S.slipSumber, kelas: S.slipKelas };
   panggil('apiMuetSlip', { token: S.token, tahunSTPM: S.tahunSTPM, kelas: S.slipKelas, sumber: S.slipSumber }).then(res => {
@@ -1778,8 +1804,80 @@ function muatDataSlip() {
     document.getElementById('slPelajar').innerHTML = '<option value="">Semua pelajar dalam kelas (' + res.slip.length + ' slip)</option>' +
       res.calon.map(c => '<option value="' + escapeHtml(c.idPelajar) + '"' + (c.ada ? '' : ' disabled') + (c.idPelajar === S.slipPelajar ? ' selected' : '') + '>' +
         escapeHtml(c.nama) + (c.ada ? '' : ' — tiada markah') + '</option>').join('');
+    renderUlasanSlip();
     renderPratontonSlip();
   }).catch(err => { el.innerHTML = '<div class="mesej ralat">' + escapeHtml(err) + '</div>'; });
+}
+
+/* Kumpulan ulasan (5 setiap satu, ikut susunan SENARAI_ULASAN_MUET): cemerlang, baik,
+   peningkatan, sederhana, perlu usaha, motivasi. Cadangan sahaja — guru boleh ubah. */
+function cadangUlasanMuet(x, i) {
+  const n = x.nilaiBand;
+  let kumpulan;
+  if (n >= 4.5) kumpulan = 0;
+  else if (x.capaiEtr || n >= 3.5) kumpulan = 1;
+  else if (x.banding && x.banding.beza > 0) kumpulan = 2;
+  else if (n >= 3) kumpulan = 3;
+  else if (n >= 2) kumpulan = 4;
+  else kumpulan = 5;
+  return S.slipData.ulasanPilihan[kumpulan * 5 + (i % 5)];
+}
+
+/* Panel pilih ulasan (dropdown) bagi setiap calon — hanya untuk guru yang boleh
+   mengisi markah kelas ini. Pratonton slip dikemas kini serta-merta. */
+function renderUlasanSlip() {
+  const kotak = document.getElementById('ulasanSlip');
+  const d = S.slipData;
+  if (!d.bolehIsi || !d.slip.length) {
+    kotak.innerHTML = d.slip.length ? '<div class="mesej amaran">Ulasan guru hanya boleh diisi oleh guru MUET kelas ini' +
+      (d.guruMuet.length ? ' (' + d.guruMuet.map(escapeHtml).join(', ') + ')' : '') + '.</div>' : '';
+    return;
+  }
+  const pilihan = (semasa) => '<option value="">— Tiada ulasan (ruang ditulis tangan) —</option>' +
+    d.ulasanPilihan.map((u, i) => '<option value="' + escapeHtml(u) + '"' + (u === semasa ? ' selected' : '') + '>' + (i + 1) + '. ' + escapeHtml(u) + '</option>').join('') +
+    (semasa && d.ulasanPilihan.indexOf(semasa) === -1 ? '<option value="' + escapeHtml(semasa) + '" selected>(lama) ' + escapeHtml(semasa) + '</option>' : '');
+  kotak.innerHTML = `<div class="panel"><h3>Ulasan Guru — ${escapeHtml(LABEL_SUMBER_MUET[d.sumber])} (${escapeHtml(d.kelas)})</h3>
+    <p class="kecil">Pilih ulasan bagi setiap calon. Ulasan dicetak pada slip berserta nama guru MUET kelas
+    ${d.guruMuet.length ? '(<b>' + d.guruMuet.map(escapeHtml).join(', ') + '</b>)' : '(belum ditetapkan di tab Penetapan Guru — nama pengisi ulasan digunakan)'}.
+    <b>Cadang Automatik</b> mengisi calon yang masih kosong mengikut prestasi (band, ETR, peningkatan) — semak dan ubah jika perlu.</p>
+    <div class="tbl-scroll" style="max-height:420px"><table class="jadual-ulasan"><thead><tr><th>No</th><th>Nama</th><th>Jumlah</th><th>Band</th><th>ETR</th><th>Ulasan</th></tr></thead><tbody>
+    ${d.slip.map((x, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(x.nama)}</td><td>${x.jumlah}</td><td><b>${escapeHtml(x.band || '-')}</b></td>
+      <td>${x.etr === null ? '-' : x.capaiEtr ? '<span class="lencana HIJAU">Capai</span>' : '<span class="lencana MERAH">Belum</span>'}</td>
+      <td><select data-ulasan="${escapeHtml(x.idPelajar)}">${pilihan(x.ulasan)}</select></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="butang-baris" style="margin-top:12px">
+      <button id="btnSimpanUlasan">Simpan Ulasan</button>
+      <button id="btnCadangUlasan" class="sekunder">Cadang Automatik (yang kosong)</button>
+      <span id="notaUlasan" class="kecil" style="align-self:center"></span>
+    </div></div>`;
+
+  const tandaBerubah = () => {
+    S.ulasanBerubah = true;
+    document.getElementById('notaUlasan').innerHTML = '<span style="color:var(--merah)">Ada perubahan belum disimpan.</span>';
+    renderPratontonSlip();
+  };
+  kotak.querySelectorAll('select[data-ulasan]').forEach(sel => sel.addEventListener('change', () => {
+    d.slip.find(x => x.idPelajar === sel.dataset.ulasan).ulasan = sel.value;
+    tandaBerubah();
+  }));
+  document.getElementById('btnCadangUlasan').addEventListener('click', () => {
+    let bil = 0;
+    d.slip.forEach((x, i) => {
+      if (x.ulasan) return;
+      x.ulasan = cadangUlasanMuet(x, i);
+      kotak.querySelector('select[data-ulasan="' + CSS.escape(x.idPelajar) + '"]').value = x.ulasan;
+      bil++;
+    });
+    if (bil) tandaBerubah(); else tunjukMesej('Semua calon sudah ada ulasan.');
+  });
+  document.getElementById('btnSimpanUlasan').addEventListener('click', () => {
+    const btn = document.getElementById('btnSimpanUlasan');
+    btn.disabled = true; btn.textContent = 'Menyimpan...';
+    panggil('apiMuetSimpanUlasan', { token: S.token, tahunSTPM: S.tahunSTPM, kelas: d.kelas, sumber: d.sumber,
+      senarai: d.slip.map(x => ({ idPelajar: x.idPelajar, ulasan: x.ulasan })) })
+      .then(res => { const m = mesejHasilPukal(res, 'ulasan'); tunjukMesej(m.teks, m.jenis); muatDataSlip(); })
+      .catch(err => { tunjukMesej(err, 'ralat'); btn.disabled = false; btn.textContent = 'Simpan Ulasan'; });
+  });
 }
 
 function slipDipilih() {
@@ -1813,6 +1911,8 @@ function renderPratontonSlip() {
 /* Satu slip A4 (HTML). Semua teks daripada data pengguna dilalukan escapeHtml. */
 function slipMuetHtml(d, x) {
   const e = escapeHtml, sk = d.sekolah;
+  // Guru yang mengajar kelas (tab Penetapan Guru); jika tiada, guru yang mengisi ulasan.
+  const guruMuet = (d.guruMuet && d.guruMuet.length ? d.guruMuet.join(' / ') : '') || (x.ulasan ? x.ulasanOleh : '');
   const label = LABEL_SUMBER_MUET[d.sumber];
   const bar = (n, maks) => '<div class="bar-luar"><div class="bar-dalam" style="width:' + (n === null ? 0 : Math.round(n * 100 / maks)) + '%"></div></div>';
   const ada = KOMPONEN_MUET.filter(k => x.markah[k] !== null);
@@ -1883,7 +1983,9 @@ function slipMuetHtml(d, x) {
     </div>
     <div class="slip-seksyen">Analisis Ringkas</div>
     <ul class="slip-analisis">${analisis.map(a => '<li>' + a + '</li>').join('')}</ul>
-    <div class="slip-ulasan"><div class="slip-seksyen">Ulasan Guru MUET</div><div class="baris"></div><div class="baris"></div></div>
+    <div class="slip-ulasan"><div class="slip-seksyen">Ulasan Guru MUET</div>
+      ${x.ulasan ? '<div class="slip-petikan">&ldquo;' + e(x.ulasan) + '&rdquo;</div>' : '<div class="baris"></div><div class="baris"></div>'}
+      ${guruMuet ? '<div class="slip-guru">Guru MUET: <b>' + e(guruMuet.toUpperCase()) + '</b></div>' : ''}</div>
     <div class="slip-ttd">${ttd(sk.namaPKT6, 'Penolong Kanan Tingkatan 6')}${ttd(sk.namaPengetua, 'Pengetua')}</div>
     <div class="slip-kaki">Dijana oleh Sistem Headcount STPM ${e(sk.namaPenuhSekolah)} pada ${e(tarikhPanjang(d.tarikhJana))}. ` +
     (d.sumber === 'A' ? 'Keputusan rasmi adalah seperti dalam pernyataan keputusan Majlis Peperiksaan Malaysia.'
@@ -1950,7 +2052,7 @@ function muatTurunSlipMuet() {
 
 /* ======================= TUGAS SAYA (subjek + kelas diajar bagi setiap guru) =======================
    Lapisan TAMBAHAN di atas Skop Subjek (Pengguna) — penetapan lebih terperinci
-   (subjek x kelas x tahun). ADMIN/GPK/Ketua Akademik urus SEMUA tugasan; peranan
+   (subjek x kelas x tahun). ADMIN urus SEMUA tugasan; peranan
    lain hanya lihat tugasan diri sendiri (server tapis — rujuk AssignmentService.gs). */
 function muatTugasSaya() {
   document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
@@ -1958,9 +2060,7 @@ function muatTugasSaya() {
 
   const panggilan = [panggil('apiSenaraiTugasan', { token: S.token, tahunSTPM: S.tahunSTPM })];
   if (bolehUrus()) panggilan.push(panggil('apiSenaraiSubjek', { token: S.token }));
-  // apiSenaraiPengguna khas ADMIN sahaja (rujuk AuthService.gs) — GPK/Ketua Akademik
-  // (bolehUrus() tetapi bukan ADMIN) tetap boleh tetapkan tugasan, cuma taip No. KP
-  // terus tanpa cadangan senarai nama.
+  // apiSenaraiPengguna khas ADMIN sahaja (rujuk AuthService.gs) — untuk cadangan senarai nama.
   if (S.peranan === 'ADMIN') panggilan.push(panggil('apiSenaraiPengguna', { token: S.token }));
 
   Promise.all(panggilan).then(hasil => {
@@ -2252,9 +2352,9 @@ function eksportCSV(jenis, lajur, baris) {
 }
 
 /* ======================= KUNCI MARKAH (tarikh akhir, permohonan buka semula, pemantauan) =======================
-   ADMIN/GPK/Ketua Akademik: tetapkan tarikh akhir setiap semester + lulus/tolak
+   ADMIN: tetapkan tarikh akhir setiap semester + lulus/tolak
    permohonan buka semula + pemantauan peratus pengisian markah.
-   GURU/KETUA_PANITIA/GURU_KELAS: lihat countdown + hantar permohonan buka semula
+   GURU/KETUA_UNIT/GURU_TINGKATAN: lihat countdown + hantar permohonan buka semula
    + sejarah permohonan sendiri. */
 function isoKeDatetimeLocal(iso) { return iso ? String(iso).replace(' ', 'T').slice(0, 16) : ''; }
 function datetimeLocalKeIso(nilai) { return nilai ? nilai.replace('T', ' ') + ':00' : ''; }
@@ -2404,7 +2504,7 @@ function kotakKunciHtml(t, diHalamanKunci) {
       '<div class="ta-nota">Baki masa sebelum pengisian dikunci</div></div>' +
       '<div class="detik kiraDetik">' + isiDetik(t.akhirMs) + '</div></div>' +
       '<div class="ta-bawah">' + (admin
-        ? 'Selepas tarikh ini Guru/Ketua Panitia tidak boleh menyimpan markah kecuali permohonan buka semula mereka diluluskan. Admin tidak terkesan.'
+        ? 'Selepas tarikh ini Guru, Ketua Unit & Guru Tingkatan tidak boleh menyimpan markah kecuali permohonan buka semula mereka diluluskan. Admin tidak terkesan.'
         : 'Selepas tarikh ini pengisian akan <b>dikunci</b>; anda perlu memohon kepada Admin untuk membukanya semula.') + '</div></div>';
   }
   return '<div class="kotak-ta merah"><div class="ta-atas"><div>' +
@@ -2412,7 +2512,7 @@ function kotakKunciHtml(t, diHalamanKunci) {
     '<div class="ta-tarikh">Tarikh akhir: ' + escapeHtml(paparTarikhMasa(t.tarikhAkhir)) + '</div></div>' +
     (admin || diHalamanKunci ? '' : '<div><button class="sekunder" onclick="tukarHalaman(\'kunci\')">Mohon buka semula</button></div>') + '</div>' +
     '<div class="ta-bawah">' + (admin
-      ? 'Guru/Ketua Panitia tidak lagi boleh menyimpan markah semester ini kecuali permohonan buka semula mereka diluluskan.'
+      ? 'Guru, Ketua Unit & Guru Tingkatan tidak lagi boleh menyimpan markah semester ini kecuali permohonan buka semula mereka diluluskan.'
       : 'Jika permohonan buka semula anda bagi subjek berkenaan telah diluluskan, anda masih boleh menyimpan markah.') + '</div></div>';
 }
 
@@ -2476,31 +2576,67 @@ function renderPengguna(res) {
         <div><label>No. KP</label><input id="uNoKP"></div>
         <div><label>Nama Penuh</label><input id="uNama"></div>
         <div><label>Peranan</label><select id="uPeranan">
-          <option value="ADMIN">ADMIN</option><option value="GPK_TINGKATAN6">GPK TINGKATAN 6</option>
-          <option value="KETUA_AKADEMIK">KETUA AKADEMIK</option><option value="KETUA_PANITIA">KETUA PANITIA</option>
-          <option value="GURU">GURU</option><option value="GURU_KELAS">GURU KELAS</option></select></div>
-        <div><label>Skop Subjek (jika Guru/Ketua Panitia, kod dipisah koma)</label><input id="uSkop" placeholder="cth. PA,BM"></div>
-        <div><label>Skop Kelas (jika Guru Kelas, kelas dipisah koma)</label><input id="uSkopKelas" placeholder="cth. 6A AKASIA"></div>
+          ${Object.keys(LABEL_PERANAN).map(k => '<option value="' + k + '">' + LABEL_PERANAN[k] + '</option>').join('')}</select></div>
+        <div><label>Subjek Diajar (kod dipisah koma; MUET = ${KOD_SUBJEK_MUET})</label><input id="uSkop" placeholder="cth. 900,800"></div>
+        <div id="medanUnitKetua"><label>Unit Diketuai (Ketua Unit — kod dipisah koma)</label><input id="uUnitKetua" placeholder="cth. 800"></div>
+        <div id="medanSkopKelas"><label>Kelas Jagaan (Guru Tingkatan — dipisah koma)</label><input id="uSkopKelas" placeholder="cth. 6A AKASIA"></div>
         <div><label>Status</label><select id="uStatus2"><option>AKTIF</option><option>TIDAK_AKTIF</option></select></div>
       </div>
+      <p class="kecil"><b>Admin</b>: akses penuh. <b>Ketua Unit</b>: seorang bagi setiap mata pelajaran (termasuk MUET) — akses penuh
+      subjek unitnya (semua kelas, TOV/OTR/ETR, BLD; MUET: penetapan guru). <b>Guru Tingkatan</b>: semua mata pelajaran (termasuk MUET)
+      bagi pelajar dalam kelas jagaan. <b>Guru</b>: subjek diajar sahaja. Semua peranan boleh juga mengajar subjek dalam "Subjek Diajar".</p>
       <p class="kecil">Pengguna baharu log masuk kali pertama dengan <b>6 digit akhir No. KP</b> sebagai kata laluan, dan dipaksa
       menukarnya selepas itu. Admin tidak menetapkan kata laluan pengguna — guna "Set Semula" jika pengguna terlupa.</p>
       <button id="btnSimpanPengguna">Simpan Pengguna</button>
     </div>
+    ${res.adaLajurUnitKetua ? '' : '<div class="mesej amaran">Lajur UnitKetua belum wujud dalam Sheet USERS. Jalankan menu <b>Sistem Headcount STPM &rarr; 5. Kemaskini Peranan &amp; Ulasan MUET</b> di Google Sheet dahulu.</div>'}
+    <div class="panel"><h3>Ketua Unit Setiap Mata Pelajaran</h3>
+      ${(res.unit || []).some(u => u.ketua.length !== 1) ? '<div class="mesej amaran">Setiap mata pelajaran perlu ada <b>seorang</b> Ketua Unit. Lihat baris bertanda di bawah.</div>' : ''}
+      <div class="tbl-scroll"><table><thead><tr><th>Kod</th><th>Mata Pelajaran</th><th>Ketua Unit</th></tr></thead><tbody>
+      ${(res.unit || []).map(u => '<tr><td>' + escapeHtml(u.kodSubjek) + '</td><td>' + escapeHtml(u.namaSubjek) + '</td><td>' +
+        (u.ketua.length === 1 ? escapeHtml(u.ketua[0]) : u.ketua.length ? '<span class="lencana MERAH">Lebih seorang: ' + u.ketua.map(escapeHtml).join(', ') + '</span>'
+          : '<span class="lencana KUNING">Belum ditetapkan</span>') + '</td></tr>').join('')}
+      </tbody></table></div></div>
     <div class="panel"><h3>Senarai Pengguna (${res.senarai.length})</h3>
-    <div class="tbl-scroll"><table><thead><tr><th>No. KP</th><th>Nama</th><th>Peranan</th><th>Skop Subjek</th><th>Skop Kelas</th><th>Status</th><th>Kata Laluan</th><th></th></tr></thead>
+    <div class="tbl-scroll"><table><thead><tr><th>No. KP</th><th>Nama</th><th>Peranan</th><th>Subjek Diajar</th><th>Unit Diketuai</th><th>Kelas Jagaan</th><th>Status</th><th>Kata Laluan</th><th></th></tr></thead>
     <tbody>${res.senarai.map(u => {
       const nokp = String(u.nokp).replace(/\D/g, '').padStart(12, '0');
-      return `<tr><td>${escapeHtml(nokp)}</td><td>${escapeHtml(u.nama)}</td><td>${escapeHtml(u.peranan)}</td><td>${escapeHtml(u.skopSubjek)}</td><td>${escapeHtml(u.skopKelas)}</td><td>${lencana(u.status)}</td>
+      const lama = u.perananAsal && String(u.perananAsal).toUpperCase() !== u.peranan ? ' <span class="kecil">(asal: ' + escapeHtml(u.perananAsal) + ')</span>' : '';
+      return `<tr><td>${escapeHtml(nokp)}</td><td>${escapeHtml(u.nama)}</td><td>${escapeHtml(LABEL_PERANAN[u.peranan] || u.peranan)}${lama}</td><td>${escapeHtml(u.skopSubjek)}</td>
+        <td>${escapeHtml(u.unitKetua)}</td><td>${escapeHtml(u.skopKelas)}</td><td>${lencana(u.status)}</td>
         <td>${LABEL_KATA_LALUAN[u.kataLaluan] || ''}</td>
-        <td><span class="aksi-link" onclick="resetKataLaluan('${nokp}')">Set Semula</span></td></tr>`;
+        <td><span class="aksi-link" data-edit-pengguna="${escapeHtml(nokp)}">Edit</span><span class="aksi-link" onclick="resetKataLaluan('${nokp}')">Set Semula</span></td></tr>`;
     }).join('')}</tbody></table></div></div>`;
+
+  const elPeranan = document.getElementById('uPeranan');
+  const ikutPeranan = () => {
+    document.getElementById('medanUnitKetua').style.display = elPeranan.value === 'KETUA_UNIT' ? '' : 'none';
+    document.getElementById('medanSkopKelas').style.display = elPeranan.value === 'GURU_TINGKATAN' ? '' : 'none';
+  };
+  elPeranan.addEventListener('change', ikutPeranan);
+  elPeranan.value = 'GURU';
+  ikutPeranan();
+  document.querySelectorAll('[data-edit-pengguna]').forEach(el => el.addEventListener('click', () => {
+    const u = res.senarai.find(x => String(x.nokp).replace(/\D/g, '').padStart(12, '0') === el.dataset.editPengguna);
+    if (!u) return;
+    document.getElementById('uNoKP').value = el.dataset.editPengguna;
+    document.getElementById('uNama').value = u.nama || '';
+    elPeranan.value = LABEL_PERANAN[u.peranan] ? u.peranan : 'GURU';
+    document.getElementById('uSkop').value = u.skopSubjek || '';
+    document.getElementById('uUnitKetua').value = u.unitKetua || '';
+    document.getElementById('uSkopKelas').value = u.skopKelas || '';
+    document.getElementById('uStatus2').value = String(u.status || 'AKTIF').toUpperCase() === 'AKTIF' ? 'AKTIF' : 'TIDAK_AKTIF';
+    ikutPeranan();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }));
 
   document.getElementById('btnSimpanPengguna').addEventListener('click', () => {
     panggil('apiSimpanPengguna', {
       token: S.token, nokp: document.getElementById('uNoKP').value, nama: document.getElementById('uNama').value,
-      peranan: document.getElementById('uPeranan').value, skopSubjek: document.getElementById('uSkop').value,
-      skopKelas: document.getElementById('uSkopKelas').value, status: document.getElementById('uStatus2').value
+      peranan: elPeranan.value, skopSubjek: document.getElementById('uSkop').value,
+      unitKetua: elPeranan.value === 'KETUA_UNIT' ? document.getElementById('uUnitKetua').value : '',
+      skopKelas: elPeranan.value === 'GURU_TINGKATAN' ? document.getElementById('uSkopKelas').value : '',
+      status: document.getElementById('uStatus2').value
     }).then(res => {
       tunjukMesej(res.baharu ? 'Pengguna ditambah. Kata laluan pertama: 6 digit akhir No. KP.' : 'Pengguna dikemaskini.');
       muatPengguna();

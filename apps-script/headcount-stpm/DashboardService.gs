@@ -3,7 +3,7 @@
  * MODUL 17 (DASHBOARD KETUA PANITIA), MODUL 40 (DASHBOARD UTAMA)
  * ========================================================================= */
 
-/* Dashboard pengurusan (ADMIN/GPK/KETUA_AKADEMIK) — MODUL 15 & 40. */
+/* Dashboard pengurusan (ADMIN) — MODUL 15 & 40. */
 function apiDashboardGPK(p) {
   const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
   if (sesi.success === false) return sesi;
@@ -111,7 +111,7 @@ function apiPemantauanPengisianMarkah(p) {
 
 /* Dashboard Guru (MODUL 16) — hanya kelas/subjek yang diajar guru berkenaan. */
 function apiDashboardGuru(p) {
-  const sesi = wajibPeranan(p.token, [ROLE_GURU, ROLE_KETUA_PANITIA].concat(PERANAN_AKSES_PENUH));
+  const sesi = wajibPeranan(p.token, null); // semua peranan; rekod ditapis ikut subjek/kelas jagaan
   if (sesi.success === false) return sesi;
 
   const semester = String(p.semester || 'S1').trim();
@@ -121,7 +121,7 @@ function apiDashboardGuru(p) {
   bacaSheetSebagaiObjek(SHEET_STUDENTS).forEach(s => { pelajarMap[s.ID_Pelajar] = s; });
 
   let headcount = bacaSheetSebagaiObjek(sheetHeadcount(semester));
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) headcount = headcount.filter(h => sesi.skopSubjek.includes(String(h.KodSubjek)));
+  headcount = headcount.filter(penapisRekodPelajar(sesi, pelajarMap));
   if (p.kodSubjek) headcount = headcount.filter(h => String(h.KodSubjek) === String(p.kodSubjek));
   if (p.tahunSTPM) headcount = headcount.filter(h => String(h.TahunSTPM) === String(p.tahunSTPM));
 
@@ -136,15 +136,15 @@ function apiDashboardGuru(p) {
   return jaya({ senarai });
 }
 
-/* Dashboard Ketua Panitia (MODUL 17) — analisis satu mata pelajaran merentasi kelas/semester. */
+/* Dashboard Ketua Unit (MODUL 17) — analisis satu mata pelajaran merentasi kelas/semester. */
 function apiDashboardKetuaPanitia(p) {
-  const sesi = wajibPeranan(p.token, [ROLE_KETUA_PANITIA].concat(PERANAN_AKSES_PENUH));
+  const sesi = wajibPeranan(p.token, [ROLE_KETUA_UNIT].concat(PERANAN_AKSES_PENUH));
   if (sesi.success === false) return sesi;
 
   const kodSubjek = String(p.kodSubjek || '').trim();
   if (!kodSubjek) return ralat('Kod Subjek wajib dinyatakan.');
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
-    return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
+  if (!aksesPenuh(sesi) && !ketuaUnitBagi(sesi, kodSubjek)) {
+    return ralat('Hanya Ketua Unit mata pelajaran ini (atau Admin) boleh melihat dashboard subjek.');
   }
 
   const mapGred = dapatkanGred();

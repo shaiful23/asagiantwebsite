@@ -8,9 +8,11 @@ function apiSenaraiSubjek(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
   let senarai = bacaSheetSebagaiObjek(SHEET_SUBJECTS);
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) {
-    senarai = senarai.filter(s => sesi.skopSubjek.includes(String(s.KodSubjek)));
-  }
+  // Guru Tingkatan nampak semua subjek (rekod ditapis ikut kelas jagaan di service lain).
+  senarai = senarai.filter(s => bolehAksesSubjek(sesi, s.KodSubjek));
+  // Ketua Unit sebenar diambil daripada USERS (peranan KETUA_UNIT + UnitKetua).
+  const ketua = petaKetuaUnit(bacaSheetSebagaiObjek(SHEET_USERS));
+  senarai = senarai.map(s => Object.assign({}, s, { ketuaUnit: (ketua[String(s.KodSubjek)] || []).map(u => u.NamaPenuh).join(', ') }));
   return jaya({ senarai });
 }
 

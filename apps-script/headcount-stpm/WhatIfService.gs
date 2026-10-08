@@ -26,7 +26,7 @@ function apiSimulasiWhatIf(p) {
   const gredBaru = gredDaripadaMarkah(bldMap, kodSubjek, semester, markahBaru);
   if (!gredBaru) return ralat('BLD subjek "' + kodSubjek + '" pada ' + semester + ' belum lengkap, atau markah tiada dalam mana-mana julat gred yang ditetapkan.');
 
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
+  if (!penapisRekodPelajar(sesi)({ KodSubjek: kodSubjek, ID_Pelajar: idPelajar })) {
     return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
   }
 

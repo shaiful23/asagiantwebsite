@@ -3,7 +3,7 @@
  * Semula. SATU tarikh akhir GLOBAL bagi setiap Semester (disimpan dalam
  * CONFIG, kunci 'tarikhAkhirS1'/'tarikhAkhirS2'/'tarikhAkhirS3', rentetan
  * ISO/"yyyy-MM-dd HH:mm:ss" — kosong = tiada kunci/tiada had). Selepas tarikh
- * akhir, peranan BUKAN PERANAN_AKSES_PENUH (GURU/KETUA_PANITIA/GURU_KELAS)
+ * akhir, peranan BUKAN PERANAN_AKSES_PENUH (GURU/KETUA_UNIT/GURU_TINGKATAN)
  * disekat drpd isi ETR/Markah Ujian (rujuk semakKunciMarkah(), dipanggil oleh
  * HeadcountService.gs sebelum sebarang simpan) — melainkan ada permohonan
  * buka semula yang DILULUSKAN khusus untuk guru+subjek+semester+tahun itu.
@@ -63,7 +63,7 @@ function apiSimpanTetapanKunci(p) {
   return jaya({});
 }
 
-/* Semak sama ada GURU/KETUA_PANITIA/GURU_KELAS masih dibenarkan isi/kemaskini
+/* Semak sama ada GURU/KETUA_UNIT/GURU_TINGKATAN masih dibenarkan isi/kemaskini
    markah bagi (kodSubjek, semester, tahunSTPM). PERANAN_AKSES_PENUH tidak
    pernah dikunci (mereka perlu boleh betulkan data pada bila-bila masa).
    Pulangkan null jika dibenarkan, atau mesej ralat (String) jika disekat. */
@@ -100,7 +100,7 @@ function apiMohonBukaKunci(p) {
   if (!kodSubjek || SEMESTER_HEADCOUNT.indexOf(semester) === -1 || !tahunSTPM || !sebab) {
     return ralat('Kod Subjek, Semester, Tahun STPM dan Sebab wajib diisi.');
   }
-  if (sesi.skopSubjek.indexOf(kodSubjek) === -1) return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
+  if (!bolehAksesSubjek(sesi, kodSubjek)) return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
 
   const sediaMenunggu = bacaSheetSebagaiObjek(SHEET_UNLOCK_REQUESTS).some(r =>
     String(r.NoKP) === String(sesi.nokp) && String(r.KodSubjek) === kodSubjek &&
