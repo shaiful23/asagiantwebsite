@@ -41,7 +41,7 @@ function sediakanSistemHeadcountSTPM() {
   pastikanSheet(SHEET_GRADES, ['Gred', 'NilaiGred', 'Lulus'], nilaiLalaiGrades());
   pastikanSheet(SHEET_GRADE_BOUNDARIES, HEADER_GRADE_BOUNDARIES, nilaiLalaiBLD());
   pastikanSheet(SHEET_USERS, HEADER_USERS,
-    [['000000000000', '123456', ROLE_ADMIN, 'ADMIN CONTOH', '', 'AKTIF', '']]);
+    [['000000000000', '', ROLE_ADMIN, 'ADMIN CONTOH', '', 'AKTIF', '']]); // kata laluan lalai: 000000 (wajib tukar)
   pastikanSheet(SHEET_STUDENTS, HEADER_STUDENTS,
     [['P001', '070101130001', 'PELAJAR CONTOH', 'LELAKI', '6A AKASIA', String(new Date().getFullYear()), 'AKTIF', '']]);
   pastikanSheet(SHEET_SUBJECTS, HEADER_SUBJECTS,

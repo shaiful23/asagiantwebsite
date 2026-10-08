@@ -21,15 +21,32 @@ function simpanNilaiKonfig(key, value) {
   }
 }
 
-/* Tetapan tarikh akhir SEMUA semester + masa pelayan semasa (client guna masa
-   pelayan, bukan jam peranti sendiri, supaya countdown tepat tanpa kira jam
-   peranti guru betul/salah). Boleh dipanggil mana-mana peranan log masuk. */
+/* Teks tarikh akhir ('yyyy-MM-dd HH:mm:ss' / 'yyyy-MM-dd HH:mm' / 'yyyy-MM-dd')
+   -> milisaat, ditafsir dalam zon waktu SKRIP (bukan zon waktu peranti/pelayan
+   V8), supaya kunci di pelayan & kiraan detik di pelayar merujuk saat yang sama. */
+function msTarikhAkhir(teks) {
+  const t = String(teks || '').trim();
+  if (!t) return null;
+  const format = t.length > 16 ? 'yyyy-MM-dd HH:mm:ss' : (t.length > 10 ? 'yyyy-MM-dd HH:mm' : 'yyyy-MM-dd');
+  try {
+    return Utilities.parseDate(t, Session.getScriptTimeZone() || 'Asia/Kuching', format).getTime();
+  } catch (e) {
+    return null;
+  }
+}
+
+/* Tetapan tarikh akhir SEMUA semester + masa pelayan semasa (sekarangMs) — pelayar
+   kira ofset jam pelayan supaya kiraan detik tepat walaupun jam peranti guru salah.
+   Boleh dipanggil mana-mana peranan log masuk. */
 function apiDapatkanTetapanKunci(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
   const konfig = dapatkanKonfig();
-  const tetapan = SEMESTER_HEADCOUNT.map(sem => ({ semester: sem, tarikhAkhir: konfig['tarikhAkhir' + sem] || '' }));
-  return jaya({ tetapan, masaSekarang: formatTarikhMasa(new Date()) });
+  const tetapan = SEMESTER_HEADCOUNT.map(sem => {
+    const tarikhAkhir = String(konfig['tarikhAkhir' + sem] || '').trim();
+    return { semester: sem, tarikhAkhir, akhirMs: msTarikhAkhir(tarikhAkhir) };
+  });
+  return jaya({ tetapan, sekarangMs: Date.now() });
 }
 
 function apiSimpanTetapanKunci(p) {
@@ -57,9 +74,8 @@ function semakKunciMarkah(sesi, kodSubjek, semester, tahunSTPM) {
   const tarikhAkhir = konfig['tarikhAkhir' + semester];
   if (!tarikhAkhir) return null; // tiada had ditetapkan
 
-  const skrgMs = Date.now();
-  const akhirMs = new Date(String(tarikhAkhir).replace(' ', 'T')).getTime();
-  if (isNaN(akhirMs) || skrgMs <= akhirMs) return null; // belum lepas tarikh akhir
+  const akhirMs = msTarikhAkhir(tarikhAkhir);
+  if (akhirMs === null || Date.now() <= akhirMs) return null; // belum lepas tarikh akhir
 
   const diluluskan = bacaSheetSebagaiObjek(SHEET_UNLOCK_REQUESTS).some(r =>
     String(r.NoKP) === String(sesi.nokp) && String(r.KodSubjek) === String(kodSubjek) &&

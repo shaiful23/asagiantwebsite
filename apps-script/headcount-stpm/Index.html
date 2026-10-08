@@ -21,7 +21,10 @@
   button.sekunder { background: #fff; color: var(--biru-terang); border: 1px solid var(--biru-terang); }
   button.bahaya { background: var(--merah); }
   button:disabled { opacity: .5; cursor: not-allowed; }
-  #mesejLogin { color: var(--merah); font-size: 13px; margin-top: -4px; margin-bottom: 10px; min-height: 16px; }
+  #mesejLogin, #mesejTukarKL { color: var(--merah); font-size: 13px; margin-top: -4px; margin-bottom: 10px; min-height: 16px; }
+  #tukarKataLaluanBox { display: none; max-width: 420px; margin: 10vh auto; background: var(--kad); border-radius: 12px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+  #tukarKataLaluanBox h1 { font-size: 18px; color: var(--biru); margin-top: 0; }
+  .nota-login { font-size: 12px; color: var(--abu); margin: -6px 0 14px; }
 
   #app { display: none; min-height: 100vh; }
   #sidebar { position: fixed; top:0; left:0; bottom:0; width: 220px; background: var(--biru); color: #fff; padding: 20px 0; overflow-y: auto; }
@@ -82,6 +85,25 @@
   .paginasi { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
   .paginasi button { padding: 6px 12px; font-size: 12px; }
 
+  /* Kotak tarikh akhir + kiraan detik (reka bentuk sama dengan e-PAJSK) — warna ikut
+     baki masa: hijau > 7 hari, kuning <= 7 hari, merah <= 1 hari / sudah dikunci. */
+  .kotak-ta { border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; border: 1px solid #bfdbfe; background: #eff6ff; color: #1e3a8a; }
+  .kotak-ta.kuning { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+  .kotak-ta.merah { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+  .kotak-ta.hijau { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+  .kotak-ta .ta-atas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+  .kotak-ta .ta-tajuk { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; opacity: .85; }
+  .kotak-ta .ta-tarikh { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .kotak-ta .ta-nota { font-size: 12px; opacity: .85; margin-top: 2px; }
+  .kotak-ta .ta-bawah { margin-top: 10px; font-size: 13px; }
+  .detik { display: flex; gap: 8px; flex-wrap: wrap; }
+  .detik .unit-detik { min-width: 62px; text-align: center; background: rgba(255,255,255,.75); border: 1px solid rgba(0,0,0,.06); border-radius: 10px; padding: 6px 8px; }
+  .detik .unit-detik b { display: block; font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .detik .unit-detik span { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
+  @media (max-width: 480px) {
+    .detik { gap: 6px; width: 100%; } .detik .unit-detik { min-width: 0; flex: 1; padding: 5px 4px; } .detik .unit-detik b { font-size: 20px; }
+  }
+
   /* Butang "Simpan Semua" penuh lebar dalam panel roster (Isi ETR / Markah Ujian). */
   .btn-simpan-roster { margin-top: 12px; width: 100%; max-width: 260px; }
 
@@ -91,7 +113,9 @@
     #sidebar .nav-container { display:flex; overflow-x:auto; }
     #sidebar .nav-item { border-left:none; border-bottom: 3px solid transparent; white-space:nowrap; }
     #sidebar .nav-item.aktif { border-bottom-color: #fff; }
-    #sidebar .pengguna-info { display:none; }
+    #sidebar .pengguna-info { display:flex; gap:8px; margin-top:6px; padding:8px 12px; border-top:none; opacity:1; }
+    #sidebar .pengguna-info #infoNama, #sidebar .pengguna-info #infoPeranan { display:none; }
+    #sidebar .pengguna-info button { width:auto; flex:1; margin-top:0; padding:7px 10px; font-size:12px; }
     #main { margin-left: 0; padding: 16px; }
   }
 
@@ -113,10 +137,28 @@
   <p class="sub">SMK Asajaya</p>
   <div id="mesejLogin"></div>
   <label>No. Kad Pengenalan</label>
-  <input id="inNoKP" placeholder="cth. 900101011234">
-  <label>PIN</label>
-  <input id="inPIN" type="password" placeholder="PIN anda">
+  <input id="inNoKP" placeholder="cth. 900101011234" inputmode="numeric" autocomplete="username">
+  <label>Kata Laluan</label>
+  <input id="inPIN" type="password" placeholder="Kata laluan anda" autocomplete="current-password">
+  <p class="nota-login">Log masuk kali pertama: kata laluan ialah <b>6 digit akhir No. KP</b> anda. Anda akan diminta menukarnya selepas itu.</p>
   <button id="btnLogin" style="width:100%">Log Masuk</button>
+</div>
+
+<!-- ======================= TUKAR KATA LALUAN ======================= -->
+<div id="tukarKataLaluanBox">
+  <h1>Tukar Kata Laluan</h1>
+  <p class="kecil" id="notaTukarKL"></p>
+  <div id="mesejTukarKL"></div>
+  <div id="medanKLSemasa">
+    <label>Kata Laluan Semasa</label>
+    <input id="inKLSemasa" type="password" autocomplete="current-password">
+  </div>
+  <label>Kata Laluan Baharu</label>
+  <input id="inKLBaru" type="password" autocomplete="new-password" placeholder="Sekurang-kurangnya 8 aksara, huruf + nombor">
+  <label>Sahkan Kata Laluan Baharu</label>
+  <input id="inKLSahkan" type="password" autocomplete="new-password">
+  <button id="btnTukarKL" style="width:100%">Simpan Kata Laluan Baharu</button>
+  <button id="btnBatalTukarKL" class="sekunder" style="width:100%;margin-top:8px">Batal</button>
 </div>
 
 <!-- ======================= APP ======================= -->
@@ -142,6 +184,7 @@
     <div class="pengguna-info">
       <div id="infoNama"></div>
       <div id="infoPeranan" class="kecil"></div>
+      <button class="sekunder" id="btnBukaTukarKL">Tukar Kata Laluan</button>
       <button class="sekunder" id="btnLogout">Log Keluar</button>
     </div>
   </div>
@@ -343,7 +386,7 @@ function login() {
   const pin = document.getElementById('inPIN').value.trim();
   const mesej = document.getElementById('mesejLogin');
   mesej.textContent = '';
-  if (!nokp || !pin) { mesej.textContent = 'Sila isi No. KP dan PIN.'; return; }
+  if (!nokp || !pin) { mesej.textContent = 'Sila isi No. KP dan Kata Laluan.'; return; }
 
   document.getElementById('btnLogin').disabled = true;
   panggil('apiLogin', { nokp, pin }).then(res => {
@@ -351,7 +394,7 @@ function login() {
     S.skopSubjek = res.skopSubjek ? String(res.skopSubjek).split(',').map(s=>s.trim()).filter(Boolean) : [];
     S.skopKelas = res.skopKelas ? String(res.skopKelas).split(',').map(s=>s.trim().toUpperCase()).filter(Boolean) : [];
     localStorage.setItem('hcstpm_token', S.token);
-    mulakanApp();
+    if (res.perluTukarKataLaluan) paparTukarKataLaluan(true); else mulakanApp();
   }).catch(err => {
     mesej.textContent = err;
     document.getElementById('btnLogin').disabled = false;
@@ -364,21 +407,68 @@ function semakSesiSediaAda() {
     S.nama = res.nama; S.peranan = res.peranan;
     S.skopSubjek = res.skopSubjek ? String(res.skopSubjek).split(',').map(s=>s.trim()).filter(Boolean) : [];
     S.skopKelas = Array.isArray(res.skopKelas) ? res.skopKelas.map(s=>String(s).trim().toUpperCase()) : [];
-    mulakanApp();
+    if (res.perluTukarKataLaluan) paparTukarKataLaluan(true); else mulakanApp();
   }).catch(() => {
     localStorage.removeItem('hcstpm_token'); S.token = '';
     document.getElementById('loginBox').style.display = 'block';
   });
 }
 
-document.getElementById('btnLogout').addEventListener('click', () => {
+function logKeluar() {
   panggil('apiLogout', { token: S.token }).finally(() => {
     localStorage.removeItem('hcstpm_token');
     location.reload();
   });
+}
+document.getElementById('btnLogout').addEventListener('click', logKeluar);
+
+/* Paksa (wajib=true: log masuk pertama / kata laluan lama — pelayan menyekat semua
+   API lain sehingga ditukar) atau sukarela (wajib=false: dari butang di sidebar). */
+function paparTukarKataLaluan(wajib) {
+  S.wajibTukarKL = wajib;
+  ['inKLSemasa', 'inKLBaru', 'inKLSahkan'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('mesejTukarKL').textContent = '';
+  document.getElementById('medanKLSemasa').style.display = wajib ? 'none' : 'block';
+  document.getElementById('btnBatalTukarKL').textContent = wajib ? 'Log Keluar' : 'Batal';
+  document.getElementById('notaTukarKL').innerHTML = wajib
+    ? 'Selamat datang, <b>' + escapeHtml(S.nama) + '</b>. Anda log masuk dengan kata laluan lalai (6 digit akhir No. KP). ' +
+      'Demi keselamatan, sila tetapkan kata laluan baharu sebelum meneruskan.'
+    : 'Kata laluan baharu mesti sekurang-kurangnya 8 aksara dan mengandungi huruf serta nombor.';
+  document.getElementById('loginBox').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('tukarKataLaluanBox').style.display = 'block';
+  document.getElementById(wajib ? 'inKLBaru' : 'inKLSemasa').focus();
+}
+
+function simpanKataLaluanBaru() {
+  const baru = document.getElementById('inKLBaru').value;
+  const sahkan = document.getElementById('inKLSahkan').value;
+  const mesej = document.getElementById('mesejTukarKL');
+  mesej.textContent = '';
+  if (baru !== sahkan) { mesej.textContent = 'Pengesahan kata laluan tidak sepadan.'; return; }
+
+  const btn = document.getElementById('btnTukarKL');
+  btn.disabled = true;
+  panggil('apiTukarKataLaluan', {
+    token: S.token, kataLaluanBaru: baru, kataLaluanSemasa: document.getElementById('inKLSemasa').value
+  }).then(() => {
+    document.getElementById('tukarKataLaluanBox').style.display = 'none';
+    tunjukMesej('Kata laluan berjaya ditukar.');
+    if (S.appDimulakan) document.getElementById('app').style.display = 'block'; else mulakanApp();
+  }).catch(err => { mesej.textContent = err; }).finally(() => { btn.disabled = false; });
+}
+
+document.getElementById('btnTukarKL').addEventListener('click', simpanKataLaluanBaru);
+document.getElementById('inKLSahkan').addEventListener('keydown', e => { if (e.key === 'Enter') simpanKataLaluanBaru(); });
+document.getElementById('btnBukaTukarKL').addEventListener('click', () => paparTukarKataLaluan(false));
+document.getElementById('btnBatalTukarKL').addEventListener('click', () => {
+  if (S.wajibTukarKL) { logKeluar(); return; }
+  document.getElementById('tukarKataLaluanBox').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
 });
 
 function mulakanApp() {
+  S.appDimulakan = true;
   document.getElementById('loginBox').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('infoNama').textContent = S.nama;
@@ -946,7 +1036,7 @@ function renderHeadcountShell() {
   document.getElementById('content').innerHTML = `
     <div class="panel">
       <h3>Isi ETR — Semester ${S.semester.slice(1)}</h3>
-      <div id="countdownETR" style="margin-bottom:10px"></div>
+      <div id="countdownETR"></div>
       <p class="kecil">Pilih Subjek dan Kelas yang anda ajar, isi MARKAH ETR bagi setiap pelajar, kemudian klik <b>"Simpan Semua ETR"</b>
       di bawah jadual (satu klik simpan seluruh kelas sekali gus — lebih pantas).
       TOV, OTR1 dan OTR2 dikira <b>AUTOMATIK</b> daripada ETR (TOV = 3 gred bawah ETR; OTR1 = 2 gred bawah ETR; OTR2 = 1 gred bawah ETR),
@@ -979,7 +1069,7 @@ function renderHeadcountShell() {
     muatAggregateHeadcount();
   }));
 
-  renderCountdownRingkas('countdownETR', S.semester);
+  muatKotakKunci('countdownETR', S.semester);
   muatAggregateHeadcount();
 }
 
@@ -1105,7 +1195,7 @@ function muatUjian() {
     document.getElementById('content').innerHTML = `
       <div class="panel">
         <h3>Markah Ujian — AR1, AR2 & Sebenar (Semester ${S.semester.slice(1)})</h3>
-        <div id="countdownUjian" style="margin-bottom:10px"></div>
+        <div id="countdownUjian"></div>
         <p class="kecil">Pilih Subjek dan Kelas yang diajar, isi MARKAH AR1 (Ujian 1) dan AR2 (Ujian 2) — Gred
         diterbitkan automatik ikut BLD Semester ${S.semester.slice(1)} subjek berkenaan. SEBENAR (keputusan rasmi) pula
         dipilih terus sebagai <b>GRED</b> (bukan markah), sebab slip keputusan STPM sebenar hanya nyatakan gred.
@@ -1120,7 +1210,7 @@ function muatUjian() {
         <div id="rosterUjian"></div>
       </div>`;
     document.getElementById('jKodSubjek').addEventListener('change', muatKelasUntukUjian);
-    renderCountdownRingkas('countdownUjian', S.semester);
+    muatKotakKunci('countdownUjian', S.semester);
   }).catch(renderRalat);
 }
 
@@ -1480,6 +1570,7 @@ function muatKunciMarkah() {
     : panggil('apiSenaraiSubjek', { token: S.token }));
 
   Promise.all(panggilan).then(([tetapanRes, permohonanRes, ketigaRes]) => {
+    S.ofsetMasa = tetapanRes.sekarangMs - Date.now();
     if (bolehUrus()) renderKunciMarkahAdmin(tetapanRes.tetapan, permohonanRes.senarai, ketigaRes.senarai);
     else { S.cacheSubjek = ketigaRes.senarai; renderKunciMarkahGuru(tetapanRes.tetapan, permohonanRes.senarai); }
   }).catch(renderRalat);
@@ -1488,6 +1579,7 @@ function muatKunciMarkah() {
 function renderKunciMarkahAdmin(tetapan, permohonan, pemantauan) {
   const peratusSel = p => '<span class="lencana ' + (p>=100?'HIJAU':(p>=50?'KUNING':'MERAH')) + '">' + p + '%</span>';
   document.getElementById('content').innerHTML = `
+    <div id="countdownKunci"></div>
     <div class="panel">
       <h3>Tetapan Tarikh Akhir Pengisian Markah</h3>
       <p class="kecil">Kosongkan medan untuk BUKA (tiada had) bagi semester berkenaan. Selepas tarikh akhir lepas, GURU/KETUA PANITIA/GURU
@@ -1520,6 +1612,7 @@ function renderKunciMarkahAdmin(tetapan, permohonan, pemantauan) {
         '<tr><td colspan=7 class="kecil">Tiada data pendaftaran bagi Semester/Tahun semasa.</td></tr>'}</tbody></table></div>
     </div>`;
 
+  pasangKotakKunci('countdownKunci', tetapan, SEMESTER_HEADCOUNT, true);
   document.getElementById('btnSimpanTetapanKunci').addEventListener('click', () => {
     const btn = document.getElementById('btnSimpanTetapanKunci');
     btn.disabled = true;
@@ -1559,7 +1652,7 @@ function renderKunciMarkahGuru(tetapan, permohonan) {
       <tbody>${permohonan.map(p => `<tr><td>${escapeHtml(p.KodSubjek)}</td><td>${escapeHtml(p.Semester)}</td><td>${escapeHtml(p.TahunSTPM)}</td><td>${escapeHtml(p.Sebab)}</td><td>${lencana(p.Status)}</td><td>${escapeHtml(p.CatatanAdmin)}</td></tr>`).join('') || '<tr><td colspan=6 class="kecil">Tiada permohonan.</td></tr>'}</tbody></table></div>
     </div>`;
 
-  renderCountdownKunci('countdownKunci', tetapan);
+  pasangKotakKunci('countdownKunci', tetapan, SEMESTER_HEADCOUNT, true);
   document.getElementById('btnMohonBuka').addEventListener('click', () => {
     const btn = document.getElementById('btnMohonBuka');
     btn.disabled = true;
@@ -1570,51 +1663,104 @@ function renderKunciMarkahGuru(tetapan, permohonan) {
   });
 }
 
-/* Countdown LENGKAP (grid kad, semua semester) — dipakai di halaman "Kunci Markah".
-   Mengemaskini setiap saat; berhenti sendiri (clearInterval) bila elemen sasaran
-   sudah tiada dalam DOM (pengguna sudah tukar halaman). */
-function renderCountdownKunci(idElemen, tetapan) {
-  if (S.intervalCountdown) clearInterval(S.intervalCountdown);
-  const kemaskini = () => {
-    const el = document.getElementById(idElemen);
-    if (!el) { clearInterval(S.intervalCountdown); return; }
-    el.innerHTML = '<div class="grid-kad">' + tetapan.map(t => {
-      if (!t.tarikhAkhir) return '<div class="kad"><div class="nilai">Terbuka</div><div class="label">Semester ' + t.semester.slice(1) + ' (tiada had)</div></div>';
-      const baki = new Date(String(t.tarikhAkhir).replace(' ', 'T')).getTime() - Date.now();
-      if (baki <= 0) return '<div class="kad merah"><div class="nilai">TAMAT</div><div class="label">Semester ' + t.semester.slice(1) + ' — ' + escapeHtml(t.tarikhAkhir) + '</div></div>';
-      const hari = Math.floor(baki/86400000), jam = Math.floor((baki%86400000)/3600000), minit = Math.floor((baki%3600000)/60000), saat = Math.floor((baki%60000)/1000);
-      return '<div class="kad ' + (hari<1?'kuning':'') + '"><div class="nilai">' + hari+'h '+jam+'j '+minit+'m '+saat+'s</div><div class="label">Semester ' + t.semester.slice(1) + ' — tarikh akhir ' + escapeHtml(t.tarikhAkhir) + '</div></div>';
-    }).join('') + '</div>';
-  };
-  kemaskini();
-  S.intervalCountdown = setInterval(kemaskini, 1000);
+/* ---------- Kotak tarikh akhir + kiraan detik (reka bentuk sama dengan e-PAJSK) ----------
+   Kiraan guna JAM PELAYAN (S.ofsetMasa = sekarangMs pelayan - jam peranti), supaya baki
+   masa tepat walaupun jam telefon/komputer guru salah. Pelayan tetap penentu muktamad
+   kunci (semakKunciMarkah) — kotak ini paparan sahaja. */
+const NAMA_BULAN = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+const NAMA_HARI = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
+
+function kini() { return Date.now() + (S.ofsetMasa || 0); }
+function dua(n) { return n < 10 ? '0' + n : String(n); }
+function paparTarikhMasa(teks) {
+  const m = String(teks || '').match(/^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}))?/);
+  if (!m) return teks || '';
+  const hari = NAMA_HARI[new Date(Date.UTC(+m[1], m[2] - 1, +m[3])).getUTCDay()];
+  return hari + ', ' + (+m[3]) + ' ' + NAMA_BULAN[m[2] - 1] + ' ' + m[1] + (m[4] ? ', ' + m[4] + ':' + m[5] : '');
+}
+function isiDetik(akhirMs) {
+  const s = Math.floor(Math.max(0, akhirMs - kini()) / 1000);
+  return [[Math.floor(s / 86400), 'hari'], [dua(Math.floor(s % 86400 / 3600)), 'jam'], [dua(Math.floor(s % 3600 / 60)), 'minit'], [dua(s % 60), 'saat']]
+    .map(x => '<div class="unit-detik"><b>' + x[0] + '</b><span>' + x[1] + '</span></div>').join('');
+}
+/* hijau > 7 hari, kuning <= 7 hari, merah <= 1 hari, 'kunci' = sudah lepas, '' = tiada tarikh akhir. */
+function keadaanKunci(t) {
+  if (!t.akhirMs) return '';
+  const baki = t.akhirMs - kini();
+  return baki <= 0 ? 'kunci' : (baki <= 86400000 ? 'merah' : (baki <= 7 * 86400000 ? 'kuning' : 'hijau'));
 }
 
-/* Countdown RINGKAS (satu baris mesej) bagi SATU semester sahaja — dipakai terus
-   dalam panel Isi ETR (Headcount) & tab Markah Ujian, supaya guru nampak baki
-   masa semasa dia sedang isi markah (bukan perlu pergi halaman lain). */
-function renderCountdownRingkas(idElemen, semester) {
+function kotakKunciHtml(t, diHalamanKunci) {
+  const sem = t.semester.slice(1), admin = bolehUrus(), keadaan = keadaanKunci(t);
+  if (!keadaan) {
+    if (!admin && !diHalamanKunci) return '';
+    return '<div class="kotak-ta"><div class="ta-tajuk">Tarikh akhir pengisian markah — Semester ' + sem + '</div>' +
+      '<div class="ta-bawah">Belum ditetapkan — pengisian markah tiada had masa.' +
+      (admin && !diHalamanKunci ? ' Tetapkan di menu <b>Kunci Markah</b>.' : '') + '</div></div>';
+  }
+  if (keadaan !== 'kunci') {
+    return '<div class="kotak-ta ' + keadaan + '"><div class="ta-atas"><div>' +
+      '<div class="ta-tajuk">Tarikh akhir pengisian markah — Semester ' + sem + '</div>' +
+      '<div class="ta-tarikh">' + escapeHtml(paparTarikhMasa(t.tarikhAkhir)) + '</div>' +
+      '<div class="ta-nota">Baki masa sebelum pengisian dikunci</div></div>' +
+      '<div class="detik kiraDetik">' + isiDetik(t.akhirMs) + '</div></div>' +
+      '<div class="ta-bawah">' + (admin
+        ? 'Selepas tarikh ini Guru/Ketua Panitia tidak boleh menyimpan markah kecuali permohonan buka semula mereka diluluskan. Admin tidak terkesan.'
+        : 'Selepas tarikh ini pengisian akan <b>dikunci</b>; anda perlu memohon kepada Admin untuk membukanya semula.') + '</div></div>';
+  }
+  return '<div class="kotak-ta merah"><div class="ta-atas"><div>' +
+    '<div class="ta-tajuk">🔒 Pengisian markah Semester ' + sem + ' telah dikunci</div>' +
+    '<div class="ta-tarikh">Tarikh akhir: ' + escapeHtml(paparTarikhMasa(t.tarikhAkhir)) + '</div></div>' +
+    (admin || diHalamanKunci ? '' : '<div><button class="sekunder" onclick="tukarHalaman(\'kunci\')">Mohon buka semula</button></div>') + '</div>' +
+    '<div class="ta-bawah">' + (admin
+      ? 'Guru/Ketua Panitia tidak lagi boleh menyimpan markah semester ini kecuali permohonan buka semula mereka diluluskan.'
+      : 'Jika permohonan buka semula anda bagi subjek berkenaan telah diluluskan, anda masih boleh menyimpan markah.') + '</div></div>';
+}
+
+/* Pasang kotak bagi semester-semester dalam `semesterSenarai` ke dalam #idElemen. */
+function pasangKotakKunci(idElemen, tetapan, semesterSenarai, diHalamanKunci) {
+  const el = document.getElementById(idElemen);
+  if (!el) return;
+  S.tetapanKunci = tetapan;
+  el.innerHTML = semesterSenarai.map(sem => {
+    const t = tetapan.find(x => x.semester === sem);
+    return t ? '<div class="kotak-kunci" data-sem="' + sem + '" data-halaman-kunci="' + (diHalamanKunci ? '1' : '') +
+      '" data-keadaan="' + keadaanKunci(t) + '">' + kotakKunciHtml(t, diHalamanKunci) + '</div>' : '';
+  }).join('');
+  mulaDetik();
+}
+
+/* Untuk panel Isi ETR & Markah Ujian — ambil tetapan terkini dahulu. */
+function muatKotakKunci(idElemen, semester) {
   panggil('apiDapatkanTetapanKunci', { token: S.token }).then(res => {
-    const t = res.tetapan.find(x => x.semester === semester);
-    if (!t) return;
-    if (S.intervalCountdownRingkas) clearInterval(S.intervalCountdownRingkas);
-    const kemaskini = () => {
-      const el = document.getElementById(idElemen);
-      if (!el) { clearInterval(S.intervalCountdownRingkas); return; }
-      if (!t.tarikhAkhir) { el.innerHTML = ''; return; }
-      const baki = new Date(String(t.tarikhAkhir).replace(' ', 'T')).getTime() - Date.now();
-      if (baki <= 0) {
-        el.innerHTML = '<div class="mesej ralat">Tarikh akhir pengisian markah Semester ' + semester.slice(1) + ' (' + escapeHtml(t.tarikhAkhir) +
-          ') telah LEPAS — sistem dikunci. Mohon buka semula di menu "Kunci Markah".</div>';
-        return;
-      }
-      const hari = Math.floor(baki/86400000), jam = Math.floor((baki%86400000)/3600000), minit = Math.floor((baki%3600000)/60000), saat = Math.floor((baki%60000)/1000);
-      const jenis = hari < 1 ? 'ralat' : (hari < 3 ? 'amaran' : 'jaya');
-      el.innerHTML = '<div class="mesej ' + jenis + '">Baki masa pengisian markah Semester ' + semester.slice(1) + ': <b>' + hari+'h '+jam+'j '+minit+'m '+saat+'s</b> (tarikh akhir: ' + escapeHtml(t.tarikhAkhir) + ')</div>';
-    };
-    kemaskini();
-    S.intervalCountdownRingkas = setInterval(kemaskini, 1000);
+    S.ofsetMasa = res.sekarangMs - Date.now();
+    pasangKotakKunci(idElemen, res.tetapan, [semester], false);
   }).catch(() => {});
+}
+
+/* Satu pemasa global. Kotak yang sedang mengira hanya dikemas kini unit detiknya;
+   kotak dilukis semula sepenuhnya HANYA apabila keadaannya berubah (cth. hijau ->
+   kuning, atau tamat -> dikunci) — supaya butang dalam kotak tidak dicipta semula
+   setiap saat, dan input markah lain dalam halaman tidak terjejas. */
+function mulaDetik() {
+  clearInterval(S.detikTimer);
+  S.detikTimer = setInterval(() => {
+    const kotak = document.querySelectorAll('.kotak-kunci');
+    if (!kotak.length) { clearInterval(S.detikTimer); return; }
+    if (document.hidden) return;
+    kotak.forEach(el => {
+      const t = (S.tetapanKunci || []).find(x => x.semester === el.dataset.sem);
+      if (!t) return;
+      const keadaan = keadaanKunci(t);
+      if (keadaan !== el.dataset.keadaan) {
+        el.dataset.keadaan = keadaan;
+        el.innerHTML = kotakKunciHtml(t, el.dataset.halamanKunci === '1');
+      } else if (keadaan && keadaan !== 'kunci') {
+        const detik = el.querySelector('.kiraDetik');
+        if (detik) detik.innerHTML = isiDetik(t.akhirMs);
+      }
+    });
+  }, 1000);
 }
 
 /* ======================= PENGGUNA (MODUL 1, ADMIN sahaja) ======================= */
@@ -1636,23 +1782,44 @@ function renderPengguna(res) {
           <option value="GURU">GURU</option><option value="GURU_KELAS">GURU KELAS</option></select></div>
         <div><label>Skop Subjek (jika Guru/Ketua Panitia, kod dipisah koma)</label><input id="uSkop" placeholder="cth. PA,BM"></div>
         <div><label>Skop Kelas (jika Guru Kelas, kelas dipisah koma)</label><input id="uSkopKelas" placeholder="cth. 6A AKASIA"></div>
-        <div><label>PIN (kosong jika kekal)</label><input id="uPIN"></div>
         <div><label>Status</label><select id="uStatus2"><option>AKTIF</option><option>TIDAK_AKTIF</option></select></div>
       </div>
+      <p class="kecil">Pengguna baharu log masuk kali pertama dengan <b>6 digit akhir No. KP</b> sebagai kata laluan, dan dipaksa
+      menukarnya selepas itu. Admin tidak menetapkan kata laluan pengguna — guna "Set Semula" jika pengguna terlupa.</p>
       <button id="btnSimpanPengguna">Simpan Pengguna</button>
     </div>
     <div class="panel"><h3>Senarai Pengguna (${res.senarai.length})</h3>
-    <div class="tbl-scroll"><table><thead><tr><th>No. KP</th><th>Nama</th><th>Peranan</th><th>Skop Subjek</th><th>Skop Kelas</th><th>Status</th></tr></thead>
-    <tbody>${res.senarai.map(u => `<tr><td>${escapeHtml(u.nokp)}</td><td>${escapeHtml(u.nama)}</td><td>${escapeHtml(u.peranan)}</td><td>${escapeHtml(u.skopSubjek)}</td><td>${escapeHtml(u.skopKelas)}</td><td>${lencana(u.status)}</td></tr>`).join('')}</tbody></table></div></div>`;
+    <div class="tbl-scroll"><table><thead><tr><th>No. KP</th><th>Nama</th><th>Peranan</th><th>Skop Subjek</th><th>Skop Kelas</th><th>Status</th><th>Kata Laluan</th><th></th></tr></thead>
+    <tbody>${res.senarai.map(u => {
+      const nokp = String(u.nokp).replace(/\D/g, '').padStart(12, '0');
+      return `<tr><td>${escapeHtml(nokp)}</td><td>${escapeHtml(u.nama)}</td><td>${escapeHtml(u.peranan)}</td><td>${escapeHtml(u.skopSubjek)}</td><td>${escapeHtml(u.skopKelas)}</td><td>${lencana(u.status)}</td>
+        <td>${LABEL_KATA_LALUAN[u.kataLaluan] || ''}</td>
+        <td><span class="aksi-link" onclick="resetKataLaluan('${nokp}')">Set Semula</span></td></tr>`;
+    }).join('')}</tbody></table></div></div>`;
 
   document.getElementById('btnSimpanPengguna').addEventListener('click', () => {
     panggil('apiSimpanPengguna', {
       token: S.token, nokp: document.getElementById('uNoKP').value, nama: document.getElementById('uNama').value,
       peranan: document.getElementById('uPeranan').value, skopSubjek: document.getElementById('uSkop').value,
-      skopKelas: document.getElementById('uSkopKelas').value,
-      pin: document.getElementById('uPIN').value, status: document.getElementById('uStatus2').value
-    }).then(() => { tunjukMesej('Pengguna disimpan.'); muatPengguna(); }).catch(err => tunjukMesej(err, 'ralat'));
+      skopKelas: document.getElementById('uSkopKelas').value, status: document.getElementById('uStatus2').value
+    }).then(res => {
+      tunjukMesej(res.baharu ? 'Pengguna ditambah. Kata laluan pertama: 6 digit akhir No. KP.' : 'Pengguna dikemaskini.');
+      muatPengguna();
+    }).catch(err => tunjukMesej(err, 'ralat'));
   });
+}
+
+const LABEL_KATA_LALUAN = {
+  LALAI: '<span class="lencana KUNING">Lalai — belum tukar</span>',
+  PERIBADI: '<span class="lencana HIJAU">Peribadi</span>',
+  LAMA: '<span class="lencana MERAH">PIN lama — wajib tukar</span>'
+};
+
+function resetKataLaluan(nokp) {
+  if (!confirm('Set semula kata laluan pengguna ' + nokp + ' kepada lalai (6 digit akhir No. KP: ' + nokp.slice(-6) + ')?\n\n' +
+    'Pengguna akan dipaksa menukar kata laluan selepas log masuk seterusnya.')) return;
+  panggil('apiResetKataLaluan', { token: S.token, nokp })
+    .then(() => { tunjukMesej('Kata laluan diset semula ke lalai.'); muatPengguna(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
 /* ======================= MULA ======================= */
