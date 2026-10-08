@@ -35,9 +35,7 @@ function apiDapatkanHeadcount(p) {
   if (p.kodSubjek) senarai = senarai.filter(r => String(r.KodSubjek) === String(p.kodSubjek));
   if (p.tahunSTPM) senarai = senarai.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
   if (p.kelas) senarai = senarai.filter(r => pelajarMap[r.ID_Pelajar] && String(pelajarMap[r.ID_Pelajar].Kelas).toUpperCase() === String(p.kelas).toUpperCase());
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) {
-    senarai = senarai.filter(r => sesi.skopSubjek.includes(String(r.KodSubjek)));
-  }
+  senarai = senarai.filter(penapisRekodPelajar(sesi, pelajarMap));
 
   const hasil = senarai.map(r => {
     const analisis = analisisRekodHeadcount(mapGred, konfig, r);
@@ -63,8 +61,8 @@ function apiRosterHeadcount(p) {
   const tahunSTPM = String(p.tahunSTPM || '').trim();
   if (!semester || !kodSubjek || !kelas || !tahunSTPM) return ralat('Semester, Kod Subjek, Kelas dan Tahun STPM wajib diisi.');
   if (SEMESTER_HEADCOUNT.indexOf(semester) === -1) return ralat('Semester tidak sah.');
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
-    return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
+  if (!bolehAksesRekod(sesi, kodSubjek, kelas)) {
+    return ralat('Anda tiada kebenaran untuk mata pelajaran / kelas ini.');
   }
 
   const idBerdaftar = new Set(bacaSheetSebagaiObjek(SHEET_ENROLLMENTS)
@@ -153,12 +151,14 @@ function apiSimpanETR(p) {
 
   if (!idPelajar || !kodSubjek || !tahunSTPM || !semester) return ralat('Data tidak lengkap.');
   if (SEMESTER_HEADCOUNT.indexOf(semester) === -1) return ralat('Semester tidak sah.');
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
+  if (!bolehAksesSubjek(sesi, kodSubjek)) {
     return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
   }
   const mesejKunci = semakKunciMarkah(sesi, kodSubjek, semester, tahunSTPM);
   if (mesejKunci) return ralat(mesejKunci);
-  if (!cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar)) return ralat('Pelajar tidak dijumpai.');
+  const pelajarETR = cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar);
+  if (!pelajarETR) return ralat('Pelajar tidak dijumpai.');
+  if (!bolehAksesRekod(sesi, kodSubjek, pelajarETR.Kelas)) return ralat('Pelajar ini bukan dalam skop anda.');
   const enrol = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).find(e => e.ID_Pelajar === idPelajar && String(e.KodSubjek) === kodSubjek);
   if (!enrol) return ralat('Pelajar tidak berdaftar untuk mata pelajaran ini (MODUL 26: validasi).');
 
@@ -214,7 +214,7 @@ function apiSimpanETRPukal(p) {
 
   if (!kodSubjek || !tahunSTPM || !semester) return ralat('Data tidak lengkap.');
   if (SEMESTER_HEADCOUNT.indexOf(semester) === -1) return ralat('Semester tidak sah.');
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
+  if (!bolehAksesSubjek(sesi, kodSubjek)) {
     return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
   }
   const mesejKunciPukal = semakKunciMarkah(sesi, kodSubjek, semester, tahunSTPM);
@@ -234,11 +234,13 @@ function apiSimpanETRPukal(p) {
   let disimpan = 0;
   const ralatSenarai = [];
   const masaKemaskini = formatTarikhMasa(new Date());
+  const bolehRekod = penapisRekodPelajar(sesi);
 
   senarai.forEach(item => {
     const idPelajar = String(item.idPelajar || '').trim();
     if (!idPelajar) return;
     if (!enrolSet.has(idPelajar)) { ralatSenarai.push(idPelajar + ': tidak berdaftar untuk subjek ini'); return; }
+    if (!bolehRekod({ KodSubjek: kodSubjek, ID_Pelajar: idPelajar })) { ralatSenarai.push(idPelajar + ': bukan dalam skop anda'); return; }
 
     const markahETRMentah = item.markahETR === undefined || item.markahETR === null ? '' : String(item.markahETR).trim();
     const hasil = kiraETRDaripadaMarkah(mapGred, bldMap, kodSubjek, semester, markahETRMentah);
@@ -290,12 +292,14 @@ function apiSimpanHeadcount(p) {
   if (!idPelajar || !kodSubjek || !tahunSTPM || !medan) return ralat('Data tidak lengkap.');
   if (MEDAN_HEADCOUNT.indexOf(medan) === -1) return ralat('Medan tidak sah: ' + medan);
   if (medan === 'ETR') return ralat('Sila guna fungsi "Isi ETR" (Headcount) supaya TOV & OTR turut dikira automatik.');
-  if (sesi.peranan === ROLE_GURU && MEDAN_BOLEH_GURU.indexOf(medan) === -1) {
+  if (hadMedanGuru(sesi, kodSubjek) && MEDAN_BOLEH_GURU.indexOf(medan) === -1) {
     return ralat('Guru hanya dibenarkan memasukkan AR1, AR2 dan SEBENAR (di tab Markah Ujian).');
   }
   const mesejKunciSatu = semakKunciMarkah(sesi, kodSubjek, String(p.semester || '').trim(), tahunSTPM);
   if (mesejKunciSatu) return ralat(mesejKunciSatu);
-  if (!cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar)) return ralat('Pelajar tidak dijumpai.');
+  const pelajarSatu = cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar);
+  if (!pelajarSatu) return ralat('Pelajar tidak dijumpai.');
+  if (!bolehAksesRekod(sesi, kodSubjek, pelajarSatu.Kelas)) return ralat('Anda tiada kebenaran untuk pelajar / mata pelajaran ini.');
 
   const enrol = bacaSheetSebagaiObjek(SHEET_ENROLLMENTS).find(e => e.ID_Pelajar === idPelajar && String(e.KodSubjek) === kodSubjek);
   if (!enrol) return ralat('Pelajar tidak berdaftar untuk mata pelajaran ini (MODUL 26: validasi).');
@@ -374,7 +378,7 @@ function apiSimpanHeadcountPukal(p) {
 
   if (!kodSubjek || !tahunSTPM || !semester) return ralat('Data tidak lengkap.');
   if (SEMESTER_HEADCOUNT.indexOf(semester) === -1) return ralat('Semester tidak sah.');
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
+  if (!bolehAksesSubjek(sesi, kodSubjek)) {
     return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
   }
   const mesejKunciPukal = semakKunciMarkah(sesi, kodSubjek, semester, tahunSTPM);
@@ -394,11 +398,13 @@ function apiSimpanHeadcountPukal(p) {
   let disimpan = 0;
   const ralatSenarai = [];
   const masaKemaskini = formatTarikhMasa(new Date());
+  const bolehRekod = penapisRekodPelajar(sesi);
 
   senarai.forEach(item => {
     const idPelajar = String(item.idPelajar || '').trim();
     if (!idPelajar) return;
     if (!enrolSet.has(idPelajar)) { ralatSenarai.push(idPelajar + ': tidak berdaftar untuk subjek ini'); return; }
+    if (!bolehRekod({ KodSubjek: kodSubjek, ID_Pelajar: idPelajar })) { ralatSenarai.push(idPelajar + ': bukan dalam skop anda'); return; }
 
     const kunci = kunciRekod(idPelajar, kodSubjek, tahunSTPM);
     const sediaAda = indeks[kunci];

@@ -18,6 +18,7 @@ function onOpen() {
     .addItem('2. Kemaskini Struktur (Markah & Gred BLD)', 'kemaskiniStrukturMarkahGred')
     .addItem('3. Kemaskini Struktur (Guru Kelas, Tugas Saya, Kunci Markah)', 'kemaskiniStrukturFasa3')
     .addItem('4. Kemaskini Struktur (MUET)', 'kemaskiniStrukturMuet')
+    .addItem('5. Kemaskini Peranan & Ulasan MUET', 'kemaskiniPerananDanUlasan')
     .addToUi();
 }
 
@@ -42,7 +43,7 @@ function sediakanSistemHeadcountSTPM() {
   pastikanSheet(SHEET_GRADES, ['Gred', 'NilaiGred', 'Lulus'], nilaiLalaiGrades());
   pastikanSheet(SHEET_GRADE_BOUNDARIES, HEADER_GRADE_BOUNDARIES, nilaiLalaiBLD());
   pastikanSheet(SHEET_USERS, HEADER_USERS,
-    [['000000000000', '', ROLE_ADMIN, 'ADMIN CONTOH', '', 'AKTIF', '']]); // kata laluan lalai: 000000 (wajib tukar)
+    [['000000000000', '', ROLE_ADMIN, 'ADMIN CONTOH', '', 'AKTIF', '', '']]); // kata laluan lalai: 000000 (wajib tukar)
   pastikanSheet(SHEET_STUDENTS, HEADER_STUDENTS,
     [['P001', '070101130001', 'PELAJAR CONTOH', 'LELAKI', '6A AKASIA', String(new Date().getFullYear()), 'AKTIF', '']]);
   pastikanSheet(SHEET_SUBJECTS, HEADER_SUBJECTS,
@@ -170,7 +171,7 @@ function kemaskiniStrukturMarkahGred() {
 
 /* Migrasi Fasa 3 — selamat dijalankan berulang kali (bahagian sudah terkini dilangkau):
    1) USERS: tambah lajur "SkopKelas" (di HUJUNG — kekal padan dgn HEADER_USERS,
-      rujuk AuthService.gs) untuk peranan baharu GURU_KELAS.
+      rujuk AuthService.gs) untuk peranan Guru Kelas (kini GURU_TINGKATAN).
    2) TEACHING_ASSIGNMENTS ("Tugas Saya" — subjek+kelas diajar setiap guru).
    3) UNLOCK_REQUESTS (Permohonan Buka Semula kunci tarikh akhir markah). */
 function kemaskiniStrukturFasa3() {
@@ -183,7 +184,7 @@ function kemaskiniStrukturFasa3() {
     const headerUsers = shUsers.getRange(1, 1, 1, shUsers.getLastColumn()).getValues()[0];
     if (headerUsers.indexOf('SkopKelas') === -1) {
       shUsers.getRange(1, headerUsers.length + 1).setValue('SkopKelas').setFontWeight('bold');
-      mesej.push('Lajur "SkopKelas" ditambah pada USERS (untuk peranan GURU_KELAS — isi kelas yang diselia, dipisah koma).');
+      mesej.push('Lajur "SkopKelas" ditambah pada USERS (untuk peranan GURU_TINGKATAN — isi kelas jagaan, dipisah koma).');
     }
   }
 
@@ -200,7 +201,7 @@ function kemaskiniStrukturFasa3() {
 
   ui.alert(mesej.length
     ? ('Migrasi Fasa 3 selesai:\n\n- ' + mesej.join('\n- ') +
-       '\n\nSeterusnya: tetapkan peranan GURU_KELAS + SkopKelas di menu Pengguna, dan tetapkan tugasan ' +
+       '\n\nSeterusnya: tetapkan peranan GURU_TINGKATAN + Kelas Jagaan di menu Pengguna, dan tetapkan tugasan ' +
        'guru di tab "Tugas Saya" jika mahu guna penapisan kelas yang lebih tepat.')
     : 'Tiada migrasi diperlukan — struktur sudah terkini.');
 }
@@ -235,4 +236,58 @@ function kemaskiniStrukturMuet() {
        '(lalai: format MUET 2021; Band 5+ bernilai 5.5 untuk GPMP), dan pastikan guru MUET ada kod ' + KOD_SUBJEK_MUET +
        ' dalam Skop Subjek mereka.')
     : 'Tiada migrasi diperlukan — Sheet MUET sudah wujud.');
+}
+
+/* Migrasi rombakan 4 peranan + ulasan slip MUET — selamat dijalankan berulang kali:
+   1) USERS: tambah lajur "UnitKetua" (mata pelajaran yang diketuai Ketua Unit).
+   2) Tukar peranan lama: GPK_TINGKATAN6 & KETUA_AKADEMIK -> ADMIN,
+      KETUA_PANITIA -> KETUA_UNIT (UnitKetua = SkopSubjek jika kosong),
+      GURU_KELAS -> GURU_TINGKATAN.
+   3) MUET: tambah lajur ulasan slip (T1/T2/A _Ulasan & _UlasanOleh). */
+function kemaskiniPerananDanUlasan() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const mesej = [];
+  const tambahLajur = (sh, nama) => {
+    const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    if (header.indexOf(nama) !== -1) return false;
+    sh.getRange(1, header.length + 1).setValue(nama).setFontWeight('bold');
+    return true;
+  };
+
+  const shUsers = ss.getSheetByName(SHEET_USERS);
+  if (shUsers) {
+    if (tambahLajur(shUsers, 'UnitKetua')) mesej.push('Lajur "UnitKetua" ditambah pada USERS.');
+    const header = shUsers.getRange(1, 1, 1, shUsers.getLastColumn()).getValues()[0];
+    const iPeranan = header.indexOf('Peranan'), iSkop = header.indexOf('SkopSubjek'), iUnit = header.indexOf('UnitKetua');
+    const baris = shUsers.getLastRow() > 1 ? shUsers.getRange(2, 1, shUsers.getLastRow() - 1, header.length).getValues() : [];
+    const ditukar = {};
+    baris.forEach(r => {
+      const lama = String(r[iPeranan] || '').trim().toUpperCase();
+      const baru = normalPeranan(lama);
+      if (baru !== lama) { r[iPeranan] = baru; ditukar[lama + ' -> ' + baru] = (ditukar[lama + ' -> ' + baru] || 0) + 1; }
+      if (baru === ROLE_KETUA_UNIT && !String(r[iUnit] || '').trim()) r[iUnit] = String(r[iSkop] || '').trim();
+    });
+    if (baris.length) shUsers.getRange(2, 1, baris.length, header.length).setValues(baris);
+    Object.keys(ditukar).forEach(k => mesej.push('Peranan ' + k + ': ' + ditukar[k] + ' pengguna.'));
+
+    // Semak mata pelajaran yang ada lebih daripada seorang Ketua Unit.
+    const ketua = petaKetuaUnit(bacaSheetSebagaiObjek(SHEET_USERS));
+    const bertindih = Object.keys(ketua).filter(k => ketua[k].length > 1)
+      .map(k => k + ' (' + ketua[k].map(u => u.NamaPenuh).join(', ') + ')');
+    if (bertindih.length) mesej.push('PERHATIAN — mata pelajaran dengan lebih daripada seorang Ketua Unit (betulkan lajur UnitKetua): ' + bertindih.join('; '));
+  }
+
+  const shMuet = ss.getSheetByName(SHEET_MUET);
+  if (shMuet) {
+    const ditambah = HEADER_MUET.filter(h => tambahLajur(shMuet, h));
+    if (ditambah.length) mesej.push('Lajur ulasan slip ditambah pada MUET: ' + ditambah.join(', ') + '.');
+  } else {
+    mesej.push('Sheet MUET belum wujud — jalankan menu "4. Kemaskini Struktur (MUET)" dahulu, kemudian menu ini sekali lagi.');
+  }
+
+  SpreadsheetApp.getUi().alert(mesej.length
+    ? ('Kemaskini peranan & ulasan MUET:\n\n- ' + mesej.join('\n- ') +
+       '\n\nSeterusnya (menu Pengguna dalam sistem): pastikan setiap mata pelajaran (termasuk MUET ' + KOD_SUBJEK_MUET +
+       ') ada SEORANG Ketua Unit, dan setiap Guru Tingkatan ada Kelas Jagaan.')
+    : 'Tiada migrasi diperlukan — struktur sudah terkini.');
 }

@@ -20,7 +20,7 @@ function apiSenaraiTugasan(p) {
   if (sesi.success === false) return sesi;
 
   let senarai = bacaSheetSebagaiObjek(SHEET_TEACHING_ASSIGNMENTS);
-  if (PERANAN_AKSES_PENUH.includes(sesi.peranan)) {
+  if (aksesPenuh(sesi)) {
     if (p.nokp) senarai = senarai.filter(t => String(t.NoKP) === String(p.nokp));
   } else {
     senarai = senarai.filter(t => normalNoKP(t.NoKP) === normalNoKP(sesi.nokp));

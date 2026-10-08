@@ -13,7 +13,7 @@ function apiSenaraiUlangan(p) {
   let senarai = bacaSheetSebagaiObjek(sheetRepeat(p.semester));
   if (p.idPelajar) senarai = senarai.filter(r => r.ID_Pelajar === p.idPelajar);
   if (p.tahunSTPM) senarai = senarai.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) senarai = senarai.filter(r => sesi.skopSubjek.includes(String(r.KodSubjek)));
+  senarai = senarai.filter(penapisRekodPelajar(sesi));
 
   const hasil = senarai.map(r => {
     const asal = nilaiGred(mapGred, r.KeputusanAsal);
@@ -34,14 +34,16 @@ function apiSenaraiUlangan(p) {
 }
 
 function apiSimpanUlangan(p) {
-  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_GURU]));
+  const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
 
   const idPelajar = String(p.idPelajar || '').trim();
   const kodSubjek = String(p.kodSubjek || '').trim();
   const tahunSTPM = String(p.tahunSTPM || '').trim();
   if (!idPelajar || !kodSubjek || !tahunSTPM) return ralat('ID Pelajar, Kod Subjek dan Tahun STPM wajib diisi.');
-  if (!cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar)) return ralat('Pelajar tidak dijumpai.');
+  const pelajar = cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar);
+  if (!pelajar) return ralat('Pelajar tidak dijumpai.');
+  if (!bolehAksesRekod(sesi, kodSubjek, pelajar.Kelas)) return ralat('Anda tiada kebenaran untuk pelajar / mata pelajaran ini.');
 
   const namaSheet = sheetRepeat(p.semester);
   const sediaAda = bacaSheetSebagaiObjek(namaSheet).find(r => r.ID_Pelajar === idPelajar && String(r.KodSubjek) === kodSubjek && String(r.TahunSTPM) === tahunSTPM);

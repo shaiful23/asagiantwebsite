@@ -26,7 +26,7 @@ function apiSenaraiBLD(p) {
   let senarai = bacaSheetSebagaiObjek(SHEET_GRADE_BOUNDARIES);
   if (p.kodSubjek) senarai = senarai.filter(b => String(b.KodSubjek) === String(p.kodSubjek));
   if (p.semester) senarai = senarai.filter(b => b.Semester === p.semester);
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) senarai = senarai.filter(b => sesi.skopSubjek.includes(String(b.KodSubjek)));
+  senarai = senarai.filter(b => bolehAksesSubjek(sesi, b.KodSubjek));
 
   senarai.sort((a, b) => String(a.KodSubjek).localeCompare(String(b.KodSubjek)) ||
     String(a.Semester).localeCompare(String(b.Semester)) || (Number(b.MarkahMin) - Number(a.MarkahMin)));
@@ -34,7 +34,7 @@ function apiSenaraiBLD(p) {
 }
 
 function apiSimpanBLD(p) {
-  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_KETUA_PANITIA]));
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_KETUA_UNIT]));
   if (sesi.success === false) return sesi;
 
   const kodSubjek = String(p.kodSubjek || '').trim();
@@ -48,8 +48,8 @@ function apiSimpanBLD(p) {
   if (isNaN(markahMin) || isNaN(markahMax) || markahMin < 0 || markahMax > 100 || markahMin > markahMax) {
     return ralat('Julat markah tidak sah — mesti antara 0-100 dan Markah Min <= Markah Max.');
   }
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
-    return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
+  if (!aksesPenuh(sesi) && !ketuaUnitBagi(sesi, kodSubjek)) {
+    return ralat('Hanya Ketua Unit mata pelajaran ini (atau Admin) boleh mengubah BLD.');
   }
   if (!cariBarisMengikutId(SHEET_SUBJECTS, 'KodSubjek', kodSubjek)) return ralat('Mata pelajaran tidak dijumpai.');
   const mapGred = dapatkanGred();
@@ -74,14 +74,14 @@ function apiSimpanBLD(p) {
 }
 
 function apiPadamBLD(p) {
-  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_KETUA_PANITIA]));
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_KETUA_UNIT]));
   if (sesi.success === false) return sesi;
 
   const kodSubjek = String(p.kodSubjek || '').trim();
   const semester = String(p.semester || '').trim();
   const gred = String(p.gred || '').trim().toUpperCase();
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(kodSubjek) === -1) {
-    return ralat('Anda tiada kebenaran untuk mata pelajaran ini.');
+  if (!aksesPenuh(sesi) && !ketuaUnitBagi(sesi, kodSubjek)) {
+    return ralat('Hanya Ketua Unit mata pelajaran ini (atau Admin) boleh mengubah BLD.');
   }
 
   const sh = dapatkanSheet(SHEET_GRADE_BOUNDARIES);
@@ -96,7 +96,7 @@ function apiPadamBLD(p) {
    subjek sama semester berbeza (cth. S1 -> S2), subjek berbeza semester sama, atau
    kedua-duanya berbeza. Memudahkan subjek/semester berkongsi julat markah yang sama. */
 function apiSalinBLD(p) {
-  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_KETUA_PANITIA]));
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_KETUA_UNIT]));
   if (sesi.success === false) return sesi;
 
   const kodSumber = String(p.kodSubjekSumber || '').trim();
@@ -109,8 +109,7 @@ function apiSalinBLD(p) {
   if (SEMESTER_HEADCOUNT.indexOf(semSumber) === -1 || SEMESTER_HEADCOUNT.indexOf(semDestinasi) === -1) {
     return ralat('Semester tidak sah.');
   }
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) &&
-    (sesi.skopSubjek.indexOf(kodSumber) === -1 || sesi.skopSubjek.indexOf(kodDestinasi) === -1)) {
+  if (!aksesPenuh(sesi) && !ketuaUnitBagi(sesi, kodDestinasi)) {
     return ralat('Anda tiada kebenaran untuk salah satu mata pelajaran ini.');
   }
 

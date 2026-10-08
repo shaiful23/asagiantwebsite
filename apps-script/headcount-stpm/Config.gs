@@ -30,6 +30,43 @@ const SHEET_MUET_GPS = 'MUET_GPS_SEJARAH';
    Selaraskan dengan pemalar KOD_SUBJEK_MUET dalam Index.html jika diubah. */
 const KOD_SUBJEK_MUET = '800';
 
+/* Pilihan ulasan guru pada slip MUET (dropdown). Teks disimpan penuh dalam Sheet MUET
+   (lajur T1_Ulasan/T2_Ulasan/A_Ulasan) — jika teks di sini diubah, ulasan lama yang
+   tiada lagi dalam senarai perlu dipilih semula. Kumpulan 5-5: cemerlang (1–5), baik
+   (6–10), peningkatan (11–15), sederhana (16–20), perlu usaha (21–25), motivasi (26–30). */
+const SENARAI_ULASAN_MUET = [
+  'Excellent performance! Keep up the outstanding work and continue striving for greater success.',
+  'Congratulations on your excellent achievement. Your hard work and dedication have truly paid off.',
+  'Outstanding performance! Continue to maintain this high standard and aim even higher.',
+  'You have shown great commitment and determination. Keep up the excellent work!',
+  'A remarkable achievement. Well done, and continue to shine!',
+  'Well done! You have shown good progress and a positive attitude towards your studies.',
+  'Good performance. Continue working hard to achieve even better results in the future.',
+  'You have made good progress. Keep working consistently and believe in your abilities.',
+  'A good effort and achievement. Stay focused and continue to improve.',
+  'Well done on your results. With continued effort, you can achieve even greater success.',
+  'Good improvement! Keep up the effort and continue working towards your goals.',
+  'You have shown encouraging progress. Keep working hard and do not give up.',
+  'Your improvement is commendable. Stay focused and continue to put in your best effort.',
+  'Keep moving forward! With greater consistency and determination, you can achieve better results.',
+  'A positive improvement. Continue building on your strengths and work on areas that need improvement.',
+  'A satisfactory performance. More consistent effort and focus are needed to achieve better results.',
+  'You have the potential to do better. Stay focused and put more effort into your studies.',
+  'Keep trying and do not be discouraged. Greater effort and commitment will lead to better results.',
+  'A fair performance. Continue working hard and seek guidance whenever necessary.',
+  'You can achieve more. Be more consistent in your studies and believe in yourself.',
+  'More effort is needed. Stay focused, work consistently, and do not give up.',
+  'You need to put more effort into your studies. With determination and commitment, you can improve.',
+  'There is room for improvement. Set clear goals and work consistently towards achieving them.',
+  'Do not be discouraged by these results. Use them as motivation to work harder and improve.',
+  'You have the potential to do better. Greater focus, discipline, and consistent effort are needed.',
+  'Every result is a step towards improvement. Keep learning, keep trying, and never give up.',
+  'Believe in yourself and keep working hard. Your effort today will shape your success tomorrow.',
+  'Success comes with patience, effort, and perseverance. Keep doing your best!',
+  'Keep challenging yourself and never stop improving. You are capable of achieving more.',
+  'Your journey does not end with this result. Learn from it, grow from it, and keep moving forward.'
+];
+
 /* Medan headcount (MODUL 5) — setiap satu kini menyimpan Markah + Gred terbitan (BLD). */
 const MEDAN_HEADCOUNT = ['TOV', 'OTR1', 'AR1', 'OTR2', 'AR2', 'ETR', 'SEBENAR'];
 const MEDAN_BOLEH_GURU = ['AR1', 'AR2', 'SEBENAR'];
@@ -48,18 +85,33 @@ function sheetRepeat(semester) {
   throw new Error('Semester ulangan tidak sah (hanya S1/S2): ' + semester);
 }
 
-/* ------------------------- PERANAN (ROLES) ------------------------- */
+/* ------------------------- PERANAN (ROLES) -------------------------
+   Hanya 4 peranan:
+   - ADMIN          : akses penuh semua modul & semua pelajar.
+   - KETUA_UNIT     : ketua bagi mata pelajaran dalam lajur UnitKetua (USERS) —
+                      SATU ketua unit bagi setiap mata pelajaran (termasuk MUET 800).
+                      Akses penuh mata pelajaran unitnya (semua medan headcount,
+                      BLD, dashboard subjek; MUET: penetapan guru & GPS sejarah).
+   - GURU_TINGKATAN : guru tingkatan bagi kelas dalam SkopKelas — akses SEMUA mata
+                      pelajaran (termasuk MUET) bagi pelajar dalam kelas tersebut.
+   - GURU           : mata pelajaran dalam SkopSubjek sahaja.
+   Semua peranan bukan ADMIN juga boleh mengajar subjek dalam SkopSubjek. */
 const ROLE_ADMIN = 'ADMIN';
-const ROLE_GPK_T6 = 'GPK_TINGKATAN6';
-const ROLE_KETUA_AKADEMIK = 'KETUA_AKADEMIK';
-const ROLE_KETUA_PANITIA = 'KETUA_PANITIA';
+const ROLE_KETUA_UNIT = 'KETUA_UNIT';
+const ROLE_GURU_TINGKATAN = 'GURU_TINGKATAN';
 const ROLE_GURU = 'GURU';
-const ROLE_GURU_KELAS = 'GURU_KELAS'; // guru selia SATU/beberapa kelas (SkopKelas di USERS) — boleh tukar kelas pelajar
 
-const SEMUA_PERANAN = [ROLE_ADMIN, ROLE_GPK_T6, ROLE_KETUA_AKADEMIK, ROLE_KETUA_PANITIA, ROLE_GURU, ROLE_GURU_KELAS];
+const SEMUA_PERANAN = [ROLE_ADMIN, ROLE_KETUA_UNIT, ROLE_GURU_TINGKATAN, ROLE_GURU];
 
-// Peranan yang boleh melihat/menguruskan SEMUA pelajar (bukan hanya subjek sendiri)
-const PERANAN_AKSES_PENUH = [ROLE_ADMIN, ROLE_GPK_T6, ROLE_KETUA_AKADEMIK];
+// Peranan yang boleh melihat/menguruskan SEMUA pelajar & modul pentadbiran
+const PERANAN_AKSES_PENUH = [ROLE_ADMIN];
+
+/* Peranan lama (sebelum rombakan 4 peranan) dipetakan secara automatik — akaun
+   lama terus berfungsi walaupun menu "5. Kemaskini Peranan" belum dijalankan. */
+const PETA_PERANAN_LAMA = {
+  GPK_TINGKATAN6: ROLE_ADMIN, KETUA_AKADEMIK: ROLE_ADMIN,
+  KETUA_PANITIA: ROLE_KETUA_UNIT, GURU_KELAS: ROLE_GURU_TINGKATAN
+};
 
 /* ------------------------- STATUS GAP & RISIKO ------------------------- */
 const STATUS_HIJAU = 'HIJAU';

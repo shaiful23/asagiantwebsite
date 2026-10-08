@@ -18,7 +18,7 @@ dalam versi ini:
   gap, status Hijau/Kuning/Merah, trend, risiko — dikira automatik backend)
 - ✅ Fasa 7 — Ulangan S1 / S2 (ASAL → INTERVENSI → ULANGAN)
 - ✅ Fasa 8 — Intervensi + Impak Intervensi (AR1 → AR2)
-- ✅ Fasa 9 — Dashboard (GPK, Guru, Ketua Panitia)
+- ✅ Fasa 9 — Dashboard (Admin, Guru, Ketua Unit)
 - ✅ Fasa 10 — Laporan (senarai + eksport CSV untuk 9 jenis laporan)
 - ✅ Modul 20 — "High Impact Students" (pelajar hampir capai ETR, diutamakan
   yang hanya ada satu subjek kritikal, dengan cadangan tindakan)
@@ -150,7 +150,16 @@ sepenuhnya seperti diminta.
    Kemaskini Struktur (MUET)** — mencipta Sheet `MUET`, `MUET_BAND` (julat
    band lalai) dan `MUET_GPS_SEJARAH`. Rujuk **"MUET (800)"** di bawah.
 
-   **Kemaskini terkini (Penetapan Guru MUET & Slip MUET):** **gantikan**
+   **Kemaskini terkini (Rombakan 4 Peranan & Ulasan Slip MUET):** **gantikan**
+   SEMUA fail `.gs` dan `Index` dengan versi terkini, deploy semula (Deploy → New
+   version), kemudian klik **Sistem Headcount STPM → 5. Kemaskini Peranan &
+   Ulasan MUET** — menambah lajur `UnitKetua` (USERS) dan lajur ulasan slip
+   (MUET), serta menukar peranan lama kepada 4 peranan baharu. Selepas itu
+   semak jadual **Ketua Unit Setiap Mata Pelajaran** di menu Pengguna dan
+   pastikan setiap subjek (termasuk MUET 800) ada seorang Ketua Unit. Rujuk
+   **"Peranan & Kebenaran"** di bawah.
+
+   **Kemaskini (Penetapan Guru MUET & Slip MUET):** **gantikan**
    kandungan `MuetService.gs`, `AssignmentService.gs` dan `Index` dengan versi
    terkini, kemudian deploy semula (Deploy → New version). Tiada langkah migrasi
    Sheet. Selepas itu Admin perlu menetapkan kelas setiap guru MUET di tab
@@ -171,7 +180,7 @@ sepenuhnya seperti diminta.
    - `CONFIG`: nama sekolah, tahun STPM aktif, sasaran GPS/PNGK, threshold gap/risiko.
    - `GRADES`: senarai gred & nilai gred rasmi sekolah (boleh ubah tanpa sentuh kod).
    - `USERS`: satu baris setiap pengguna (No. KP, Peranan, Nama, Skop Subjek
-     untuk Guru/Ketua Panitia — kod subjek dipisah koma, Skop Kelas untuk Guru
+     untuk Guru/Ketua Unit — kod subjek dipisah koma, Skop Kelas untuk Guru
      Kelas — kelas dipisah koma). **Biarkan lajur PIN kosong** — pengguna log
      masuk kali pertama dengan 6 digit akhir No. KP dan dipaksa tukar (lebih
      mudah: tambah pengguna melalui menu Pengguna dalam sistem). Admin contoh
@@ -193,14 +202,23 @@ sepenuhnya seperti diminta.
 
 ## Peranan & Kebenaran (MODUL 1, 31)
 
+Sistem kini ada **4 peranan sahaja**:
+
 | Peranan | Akses |
 | --- | --- |
-| `ADMIN` | Penuh, termasuk urus pengguna & lihat audit log |
-| `GPK_TINGKATAN6` | Urus penuh pelajar/subjek/headcount, dashboard GPK |
-| `KETUA_AKADEMIK` | Sama seperti GPK (akses analisis akademik penuh) |
-| `KETUA_PANITIA` | Terhad kepada subjek dalam `SkopSubjek`, dashboard panitia |
-| `GURU` | Terhad kepada subjek dalam `SkopSubjek`. Isi **ETR** (Headcount) dan **AR1/AR2/SEBENAR** (Markah Ujian) sahaja — TOV/OTR1/OTR2 diterbitkan automatik, tidak boleh ditaip terus oleh sesiapa |
-| `GURU_KELAS` | Terhad kepada kelas dalam `SkopKelas` (lajur baharu di USERS). Boleh **Tukar Kelas** pelajar yang kelas semasanya dalam seliaan (menu Pelajar); tiada akses isi markah |
+| `ADMIN` | Penuh — semua pelajar, subjek, headcount, MUET, pengguna, audit log, kunci markah, tetapan slip |
+| `KETUA_UNIT` | Ketua bagi mata pelajaran dalam lajur **UnitKetua** (menu Pengguna: "Unit Diketuai"). **Seorang Ketua Unit bagi setiap mata pelajaran, termasuk MUET (800)** — sistem menolak Ketua Unit kedua bagi subjek yang sama. Akses penuh subjek unitnya: semua kelas, BLD, dashboard subjek; Ketua Unit MUET turut mengurus **Penetapan Guru** & GPS sejarah MUET serta boleh mengisi markah MUET semua kelas |
+| `GURU_TINGKATAN` | Menggantikan Guru Kelas. Akses **semua mata pelajaran (termasuk MUET)** bagi pelajar dalam **Kelas Jagaan** (lajur `SkopKelas`): headcount, markah ujian, intervensi, ulangan, dan **Tukar Kelas** pelajar kelas jagaan |
+| `GURU` | Subjek dalam **Subjek Diajar** (`SkopSubjek`) sahaja. Isi **ETR** (Headcount) dan **AR1/AR2/SEBENAR** (Markah Ujian) |
+
+Semua peranan bukan Admin juga boleh mengajar subjek dalam **Subjek Diajar**
+(cth. Guru Tingkatan yang juga mengajar MUET). Guru, Guru Tingkatan dan Ketua
+Unit (bagi subjek bukan unitnya) hanya boleh menaip AR1/AR2/SEBENAR terus.
+
+**Peranan lama dipetakan automatik:** `GPK_TINGKATAN6` & `KETUA_AKADEMIK` →
+`ADMIN`, `KETUA_PANITIA` → `KETUA_UNIT` (unit = Skop Subjek lama), `GURU_KELAS`
+→ `GURU_TINGKATAN`. Jalankan menu **5. Kemaskini Peranan & Ulasan MUET** untuk
+menukar nilai dalam Sheet USERS secara kekal.
 
 Semua semakan kebenaran dibuat di **server** (`wajibPeranan()` dalam setiap
 Service), bukan hanya disembunyikan di frontend — selaras MODUL 31.
@@ -247,11 +265,11 @@ boleh berbeza mengikut semester** (S1, S2, S3) bagi subjek yang sama — cth.
 skema markah Pengajian Am Semester 1 tak semestinya sama dengan Semester 3.
 Aliran kerja:
 
-1. **Admin / GPK / Ketua Akademik / Ketua Panitia** tetapkan BLD di menu
+1. **Admin / Ketua Unit** tetapkan BLD di menu
    **"Skema Gred (BLD)"** — pilih **Semester** (S1/S2/S3) di bahagian atas
    dahulu, kemudian untuk setiap Gred masukkan Markah Min & Markah Max
    (0-100) bagi subjek itu **pada semester tersebut sahaja**. Sistem menolak
-   julat yang bertindih dalam subjek+semester yang sama. Ketua Panitia hanya
+   julat yang bertindih dalam subjek+semester yang sama. Ketua Unit hanya
    boleh urus subjek dalam `SkopSubjek` mereka sendiri.
    - Guna **"Salin BLD"** untuk salin julat sedia ada ke subjek lain, ke
      semester lain bagi subjek yang sama (cth. jadikan BLD S1 sebagai titik
@@ -313,7 +331,7 @@ Headcount **tidak lagi rolling** — TOV, OTR1, OTR2 dan ETR bagi setiap
 semester (S1, S2, S3) adalah **berdiri sendiri sepenuhnya**, tidak diwarisi
 daripada semester sebelumnya. Aliran kerja diringkaskan kepada:
 
-1. **Guru** (atau Admin/GPK/Ketua Akademik/Ketua Panitia) pergi ke
+1. **Guru** (atau Admin/Ketua Unit) pergi ke
    **Headcount → panel "Isi ETR"** — pilih Subjek, kemudian Kelas (senarai
    kelas diambil terus daripada pendaftaran sebenar bagi subjek itu, jadi
    guru hanya nampak kelas yang benar-benar dia ajar). Jadual senarai
@@ -392,7 +410,7 @@ jika berkenaan):
 
 | Halaman | Ditapis ikut Tahun STPM? |
 | --- | --- |
-| Dashboard (GPK & Guru) | ✅ |
+| Dashboard (Admin & Guru) | ✅ |
 | Pelajar | ✅ |
 | Headcount | ✅ |
 | Ulangan | ✅ |
@@ -409,7 +427,7 @@ tetapi masih boleh diubah secara manual jika perlu masukkan data batch lain.
 
 ## Tukar Kelas, Arkib & Import Pukal (menu Pelajar)
 
-- **Tukar Kelas** — ADMIN/GPK/Ketua Akademik atau `GURU_KELAS` (hanya bagi
+- **Tukar Kelas** — ADMIN atau `GURU_TINGKATAN` (hanya bagi
   pelajar yang kelas semasanya dalam `SkopKelas` sendiri) boleh tukar kelas
   seorang pelajar. Pendaftaran subjek sedia ada pelajar itu **DIGANTIKAN
   SEPENUHNYA** dengan subjek yang diambil pelajar LAIN dalam kelas baharu
@@ -430,8 +448,7 @@ tetapi masih boleh diubah secara manual jika perlu masukkan data batch lain.
 
 ## Tugas Saya (subjek + kelas diajar setiap guru)
 
-Lapisan TAMBAHAN di atas `SkopSubjek` (peringkat subjek sahaja) — ADMIN/GPK/
-Ketua Akademik boleh tetapkan KELAS SPESIFIK yang diajar seorang guru bagi
+Lapisan TAMBAHAN di atas `SkopSubjek` (peringkat subjek sahaja) — ADMIN boleh tetapkan KELAS SPESIFIK yang diajar seorang guru bagi
 sesuatu subjek (menu "Tugas Saya", `TEACHING_ASSIGNMENTS`). Setiap guru
 melihat tugasan sendiri sahaja di menu yang sama. Jika seorang guru ada
 tugasan ditetapkan untuk satu subjek, pilihan Kelas di Isi ETR/Markah Ujian
@@ -473,11 +490,21 @@ ikut BLD semester), dalam menu **MUET** dengan tab berikut:
     html2pdf.js dimuat dari cdnjs hanya bila diklik; perlukan internet).
   - Calon tanpa markah bagi peperiksaan itu (atau TH bagi Keputusan Sebenar)
     tidak dijana slip dan disenaraikan di atas pratonton.
-  - **Tetapan Slip** (Admin/GPK/Ketua Akademik, di bawah pratonton): nama
+  - **Ulasan Guru** — guru MUET kelas itu (atau Guru Tingkatan / Ketua Unit
+    MUET / Admin) memilih ulasan bagi setiap calon daripada senarai 30 ulasan
+    (dropdown) di panel **Ulasan Guru** dan klik **Simpan Ulasan**. Ulasan
+    disimpan berasingan bagi Trial 1, Trial 2 dan Keputusan Sebenar (lajur
+    `T1_Ulasan`, `T2_Ulasan`, `A_Ulasan` dalam Sheet MUET) dan dicetak pada slip
+    bersama **nama guru MUET kelas** (daripada Penetapan Guru). **Cadang
+    Automatik** mengisi calon yang masih kosong mengikut prestasi (cemerlang /
+    baik / peningkatan / sederhana / perlu usaha / motivasi) — guru boleh ubah.
+    Senarai ulasan boleh dipinda dalam `SENARAI_ULASAN_MUET` (Config.gs).
+    Calon tanpa ulasan mendapat ruang bertitik untuk ditulis tangan.
+  - **Tetapan Slip** (Admin, di bawah pratonton): nama
     penuh sekolah, alamat, nama PK Tingkatan 6 dan nama Pengetua — disimpan
     dalam Sheet `CONFIG` (`namaPenuhSekolah`, `alamatSekolah`, `namaPKT6`,
     `namaPengetua`). Nama kosong = ruang titik untuk ditulis tangan.
-- **Penetapan Guru** (Admin/GPK/Ketua Akademik sahaja) — tandakan kelas yang
+- **Penetapan Guru** (Admin sahaja) — tandakan kelas yang
   diajar oleh setiap guru MUET (pengguna aktif dengan `800` dalam Skop Subjek)
   bagi Tahun STPM terpilih, kemudian klik **Simpan** pada baris guru itu.
   Kelas yang belum ada guru MUET dipaparkan sebagai amaran. Penetapan disimpan
@@ -493,34 +520,34 @@ dalam Sheet tanpa sentuh kod — **Band 5+ bernilai 5.5 secara lalai**; ubah
 jika sekolah guna nilai lain. Jumlah & band tidak disimpan, sentiasa dikira
 semula, jadi pindaan julat terus berkuat kuasa pada semua rekod.
 
-**Akses:** ADMIN/GPK/Ketua Akademik boleh mengisi semua kelas. Guru yang ada
-kod `800` dalam **Skop Subjek** (menu Pengguna) boleh **melihat** markah,
-analisis dan menjana slip bagi **semua** kelas, tetapi hanya boleh **mengisi**
-markah bagi kelas yang ditetapkan kepadanya di tab **Penetapan Guru** (kelas
-sendiri bertanda titik hijau; kelas lain dipaparkan tanpa butang simpan dan
-pelayan menolak sebarang simpanan). Guru MUET tanpa penetapan hanya boleh
-melihat. Kunci tarikh akhir (Kunci Markah) tidak dikenakan pada MUET kerana ia
-berasaskan Semester S1/S2/S3.
+**Akses:** Admin dan **Ketua Unit MUET** boleh mengisi semua kelas serta
+mengurus tab **Penetapan Guru**. Guru yang ada kod `800` dalam **Subjek Diajar**
+boleh **melihat** markah, analisis dan menjana slip bagi **semua** kelas, tetapi
+hanya boleh **mengisi** markah & ulasan bagi kelas yang ditetapkan kepadanya
+(kelas sendiri bertanda titik hijau; pelayan menolak simpanan kelas lain). Guru
+MUET tanpa penetapan hanya boleh melihat. **Guru Tingkatan** boleh melihat dan
+mengisi MUET bagi kelas jagaannya sahaja. Kunci tarikh akhir (Kunci Markah)
+tidak dikenakan pada MUET kerana ia berasaskan Semester S1/S2/S3.
 
 ## Kunci Markah (tarikh akhir, buka semula, pemantauan, countdown)
 
 - **Tarikh akhir** — SATU tarikh akhir global setiap Semester (menu "Kunci
-  Markah", ADMIN/GPK/Ketua Akademik, `apiSimpanTetapanKunci` → `CONFIG`
+  Markah", ADMIN, `apiSimpanTetapanKunci` → `CONFIG`
   kunci `tarikhAkhirS1`/`S2`/`S3`). Kosongkan untuk buka (tiada had).
-- **Kunci automatik** — selepas tarikh akhir lepas, `GURU`/`KETUA_PANITIA`/
-  `GURU_KELAS` disekat drpd simpan ETR/AR1/AR2/SEBENAR bagi semester itu
+- **Kunci automatik** — selepas tarikh akhir lepas, `GURU`/`KETUA_UNIT`/
+  `GURU_TINGKATAN` disekat drpd simpan ETR/AR1/AR2/SEBENAR bagi semester itu
   (disemak di SETIAP titik simpan — individu & pukal — rujuk
-  `semakKunciMarkah()` dalam `LockService.gs`); ADMIN/GPK/Ketua Akademik
+  `semakKunciMarkah()` dalam `LockService.gs`); ADMIN
   tidak pernah dikunci (perlu boleh betulkan data bila-bila masa).
 - **Permohonan buka semula** — guru yang terkunci hantar permohonan (sebab
-  + subjek/semester/tahun) di menu "Kunci Markah"; ADMIN/GPK/Ketua Akademik
+  + subjek/semester/tahun) di menu "Kunci Markah"; ADMIN
   lulus/tolak SATU-SATU (bukan buka terus untuk semua) — lulus hanya buka
   kunci untuk guru + subjek + semester + tahun itu sahaja.
   (`apiMohonBukaKunci`, `apiSenaraiPermohonanKunci`, `apiLuluskanPermohonanKunci`)
 - **Countdown** — baki masa sehingga tarikh akhir dipaparkan terus dalam
   panel Isi ETR & tab Markah Ujian (kemas kini setiap saat), dan sebagai
   kad penuh bagi semua semester di menu "Kunci Markah".
-- **Pemantauan pengisian markah** (ADMIN/GPK/Ketua Akademik, menu "Kunci
+- **Pemantauan pengisian markah** (ADMIN, menu "Kunci
   Markah") — peratus pelajar yang sudah ada ETR/AR1/AR2/SEBENAR diisi, ikut
   Subjek x Kelas, supaya admin boleh kenal pasti kelas/subjek mana yang
   belum selesai sebelum tarikh akhir. (`apiPemantauanPengisianMarkah`)

@@ -11,9 +11,11 @@
  * Senarai calon = SEMUA pelajar AKTIF dalam kelas bagi Tahun STPM itu
  * (semua calon STPM menduduki MUET) — tiada pendaftaran subjek berasingan.
  *
- * Kebenaran: semua guru MUET (SkopSubjek 800) boleh MELIHAT markah semua kelas,
- * tetapi hanya boleh MENGISI markah kelas yang ditetapkan kepada mereka (tab
- * "Penetapan Guru", disimpan dalam TEACHING_ASSIGNMENTS dengan KodSubjek 800).
+ * Kebenaran:
+ *  - Admin & Ketua Unit MUET: isi semua kelas, penetapan guru, GPS sejarah.
+ *  - Guru MUET (SkopSubjek 800): LIHAT semua kelas, ISI kelas yang ditetapkan
+ *    (tab "Penetapan Guru", TEACHING_ASSIGNMENTS KodSubjek 800).
+ *  - Guru Tingkatan: lihat & isi kelas jagaan sendiri (SkopKelas).
  * ========================================================================= */
 
 const KOMPONEN_MUET = ['L', 'S', 'R', 'W'];
@@ -24,7 +26,8 @@ const NILAI_BAND_TINGGI_MUET = 4.5;   // senarai "Band tinggi": nilai band >= in
 
 const HEADER_MUET = ['ID_Pelajar', 'TahunSTPM', 'ETR_Band',
   'T1_L', 'T1_S', 'T1_R', 'T1_W', 'T2_L', 'T2_S', 'T2_R', 'T2_W', 'A_L', 'A_S', 'A_R', 'A_W',
-  'TidakHadir', 'KemaskiniOleh', 'KemaskiniPada'];
+  'TidakHadir', 'KemaskiniOleh', 'KemaskiniPada',
+  'T1_Ulasan', 'T1_UlasanOleh', 'T2_Ulasan', 'T2_UlasanOleh', 'A_Ulasan', 'A_UlasanOleh'];
 const HEADER_MUET_BAND = ['Band', 'MarkahMin', 'MarkahMax', 'NilaiBand'];
 const HEADER_MUET_GPS = ['Tahun', 'GPS', 'Catatan'];
 
@@ -57,16 +60,31 @@ function bandMuet(bands, jumlah) {
   return bands.find(b => jumlah >= b.min && jumlah <= b.max) || null;
 }
 
+function guruMuetSesi(sesi) { return sesi.skopSubjek.indexOf(KOD_SUBJEK_MUET) !== -1; }
+
 function bolehAksesMuet(sesi) {
-  return PERANAN_AKSES_PENUH.includes(sesi.peranan) || sesi.skopSubjek.indexOf(KOD_SUBJEK_MUET) !== -1;
+  return aksesPenuh(sesi) || guruMuetSesi(sesi) || guruTingkatan(sesi);
 }
 
-/* Kelas yang boleh DIISI oleh pengguna ini: null = semua kelas (peranan akses penuh).
-   Guru MUET hanya boleh mengisi kelas yang ditetapkan kepadanya — tiada penetapan
-   bermakna senarai kosong (paparan sahaja), BUKAN semua kelas. */
+/* Admin & Ketua Unit MUET: urus penetapan guru, GPS sejarah, isi semua kelas. */
+function bolehUrusMuet(sesi) {
+  return aksesPenuh(sesi) || ketuaUnitBagi(sesi, KOD_SUBJEK_MUET);
+}
+
+/* Kelas yang boleh DILIHAT: guru MUET nampak semua; Guru Tingkatan (bukan guru
+   MUET) hanya kelas jagaannya. */
+function bolehLihatKelasMuet(sesi, kelas) {
+  return aksesPenuh(sesi) || guruMuetSesi(sesi) || kelasJagaan(sesi, kelas);
+}
+
+/* Kelas yang boleh DIISI oleh pengguna ini: null = semua kelas (Admin / Ketua Unit
+   MUET). Guru MUET: kelas yang ditetapkan kepadanya; Guru Tingkatan: kelas jagaan.
+   Tiada penetapan bermakna senarai kosong (paparan sahaja), BUKAN semua kelas. */
 function kelasMuetDibenarkan(sesi, tahunSTPM) {
-  if (PERANAN_AKSES_PENUH.includes(sesi.peranan)) return null;
-  return kelasTugasanGuru(sesi.nokp, KOD_SUBJEK_MUET, tahunSTPM) || [];
+  if (bolehUrusMuet(sesi)) return null;
+  const ditetapkan = guruMuetSesi(sesi) ? (kelasTugasanGuru(sesi.nokp, KOD_SUBJEK_MUET, tahunSTPM) || []) : [];
+  const jagaan = guruTingkatan(sesi) ? sesi.skopKelas : [];
+  return Array.from(new Set(ditetapkan.concat(jagaan)));
 }
 
 function bolehIsiKelasMuet(dibenarkan, kelas) {
@@ -133,7 +151,8 @@ function apiMuetKelas(p) {
   const kiraan = {};
   pelajarMuet(tahunSTPM).forEach(s => { const k = String(s.Kelas); kiraan[k] = (kiraan[k] || 0) + 1; });
   // Semua kelas dipulangkan (semua guru MUET boleh lihat); bolehIsi menandakan kelas sendiri.
-  const senarai = Object.keys(kiraan).sort().map(k => ({ kelas: k, jumlah: kiraan[k], bolehIsi: bolehIsiKelasMuet(dibenarkan, k) }));
+  const senarai = Object.keys(kiraan).filter(k => bolehLihatKelasMuet(sesi, k)).sort()
+    .map(k => ({ kelas: k, jumlah: kiraan[k], bolehIsi: bolehIsiKelasMuet(dibenarkan, k) }));
   return jaya({ senarai, aksesPenuh: !dibenarkan, kelasSaya: dibenarkan || [] });
 }
 
@@ -144,6 +163,7 @@ function apiMuetRoster(p) {
   const tahunSTPM = String(p.tahunSTPM || '').trim();
   const kelas = String(p.kelas || '').trim();
   if (!tahunSTPM || !kelas) return ralat('Tahun STPM dan Kelas wajib dipilih.');
+  if (!bolehLihatKelasMuet(sesi, kelas)) return ralat('Kelas ini bukan kelas jagaan anda.');
   const bolehIsi = bolehIsiKelasMuet(kelasMuetDibenarkan(sesi, tahunSTPM), kelas);
 
   const bands = dapatkanBandMUET();
@@ -311,8 +331,9 @@ function apiMuetTrend(p) {
 }
 
 function apiMuetSimpanGpsSejarah(p) {
-  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
+  if (!bolehUrusMuet(sesi)) return ralat('Hanya Admin atau Ketua Unit MUET boleh melakukan tindakan ini.');
   const tahun = String(p.tahun || '').trim();
   const gps = Number(p.gps);
   if (!/^\d{4}$/.test(tahun)) return ralat('Tahun mesti 4 digit (cth. 2023).');
@@ -327,8 +348,9 @@ function apiMuetSimpanGpsSejarah(p) {
 }
 
 function apiMuetPadamGpsSejarah(p) {
-  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
+  if (!bolehUrusMuet(sesi)) return ralat('Hanya Admin atau Ketua Unit MUET boleh melakukan tindakan ini.');
   const tahun = String(p.tahun || '').trim();
   const rekod = bacaSheetSebagaiObjek(SHEET_MUET_GPS).find(r => String(r.Tahun).trim() === tahun);
   if (!rekod) return ralat('Rekod GPS tahun ' + tahun + ' tidak dijumpai.');
@@ -359,8 +381,9 @@ function petaKelasMuet(tahunSTPM) {
 }
 
 function apiMuetPenetapanGuru(p) {
-  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
+  if (!bolehUrusMuet(sesi)) return ralat('Hanya Admin atau Ketua Unit MUET boleh melakukan tindakan ini.');
   const tahunSTPM = String(p.tahunSTPM || '').trim();
   if (!tahunSTPM) return ralat('Sila pilih Tahun STPM dahulu.');
 
@@ -380,8 +403,9 @@ function apiMuetPenetapanGuru(p) {
 
 /* Ganti SEMUA kelas MUET seorang guru bagi satu Tahun STPM dengan senarai baharu. */
 function apiMuetSimpanPenetapanGuru(p) {
-  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
+  if (!bolehUrusMuet(sesi)) return ralat('Hanya Admin atau Ketua Unit MUET boleh melakukan tindakan ini.');
   const tahunSTPM = String(p.tahunSTPM || '').trim();
   const nokp = normalNoKP(p.nokp);
   const diminta = Array.isArray(p.kelas) ? p.kelas.map(k => String(k).trim().toUpperCase()).filter(Boolean) : [];
@@ -483,6 +507,7 @@ function apiMuetSlip(p) {
   const idPelajar = String(p.idPelajar || '').trim();
   if (!tahunSTPM || !kelas) return ralat('Tahun STPM dan Kelas wajib dipilih.');
   if (SUMBER_MUET.indexOf(sumber) === -1) return ralat('Sila pilih MUET Trial 1, Trial 2 atau Keputusan Sebenar.');
+  if (!bolehLihatKelasMuet(sesi, kelas)) return ralat('Kelas ini bukan kelas jagaan anda.');
 
   const bands = dapatkanBandMUET();
   const petaRekod = petaRekodMuet(tahunSTPM);
@@ -532,13 +557,74 @@ function apiMuetSlip(p) {
       markahKeEtr: (etr && b && b.nilai < etr.nilai) ? etr.min - x.jumlah : null,
       kedudukanKelas: rankKelas[x.id], bilKelas: adaKelas.length,
       kedudukanTingkatan: rankTingkatan[x.id], bilTingkatan: ada.length,
-      banding
+      banding,
+      ulasan: String(x.rekod[sumber + '_Ulasan'] || ''), ulasanOleh: String(x.rekod[sumber + '_UlasanOleh'] || '')
     });
   });
 
   return jaya({
     sekolah: tetapanSlipMuet(), sumber, tahunSTPM, kelas, tarikhJana: formatTarikh(new Date()),
+    guruMuet: namaGuruMuetKelas(tahunSTPM, kelas), ulasanPilihan: SENARAI_ULASAN_MUET,
+    bolehIsi: bolehIsiKelasMuet(kelasMuetDibenarkan(sesi, tahunSTPM), kelas),
     bands: bands.map(b => b.band).reverse(), slip, dilangkau,
     calon: dalamKelas.map(x => ({ idPelajar: x.id, nama: x.pelajar.Nama, ada: x.jumlah !== null }))
   });
+}
+
+/* ----------------------------- Ulasan guru MUET (slip) ----------------------------- */
+
+/* Nama guru MUET yang ditetapkan mengajar kelas ini (tab Penetapan Guru). */
+function namaGuruMuetKelas(tahunSTPM, kelas) {
+  const nama = {};
+  bacaSheetSebagaiObjek(SHEET_USERS).forEach(u => { nama[normalNoKP(u.NoKP)] = u.NamaPenuh; });
+  return Array.from(new Set(tugasanMuet(tahunSTPM)
+    .filter(t => String(t.StatusAktif).toUpperCase() === 'AKTIF' && String(t.Kelas).toUpperCase() === String(kelas).toUpperCase())
+    .map(t => nama[normalNoKP(t.NoKP)]).filter(Boolean)));
+}
+
+/* Simpan ulasan (pilihan daripada SENARAI_ULASAN_MUET) bagi satu kelas & satu sumber.
+   Kebenaran sama seperti mengisi markah (guru MUET kelas itu / Guru Tingkatan /
+   Ketua Unit MUET / Admin). Teks disimpan penuh supaya Sheet mudah dibaca. */
+function apiMuetSimpanUlasan(p) {
+  const sesi = wajibPeranan(p.token, null);
+  if (sesi.success === false) return sesi;
+  if (!bolehAksesMuet(sesi)) return ralat('Anda tiada kebenaran untuk MUET.');
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+  const kelas = String(p.kelas || '').trim();
+  const sumber = String(p.sumber || '');
+  const senarai = Array.isArray(p.senarai) ? p.senarai : [];
+  if (!tahunSTPM || !kelas) return ralat('Tahun STPM dan Kelas wajib dipilih.');
+  if (SUMBER_MUET.indexOf(sumber) === -1) return ralat('Sumber peperiksaan tidak sah.');
+  if (!bolehIsiKelasMuet(kelasMuetDibenarkan(sesi, tahunSTPM), kelas)) {
+    return ralat('Hanya guru MUET kelas ini boleh mengisi ulasan. Kelas ' + kelas + ' adalah paparan sahaja.');
+  }
+  const header = dapatkanSheet(SHEET_MUET).getRange(1, 1, 1, dapatkanSheet(SHEET_MUET).getLastColumn()).getValues()[0];
+  if (header.indexOf(sumber + '_Ulasan') === -1) {
+    return ralat('Lajur ulasan belum wujud dalam Sheet MUET. Jalankan menu "5. Kemaskini Peranan & Ulasan MUET" di Sheet dahulu.');
+  }
+
+  const pelajarKelas = {};
+  pelajarMuet(tahunSTPM).filter(s => String(s.Kelas).toUpperCase() === kelas.toUpperCase())
+    .forEach(s => { pelajarKelas[String(s.ID_Pelajar)] = s; });
+  const petaRekod = petaRekodMuet(tahunSTPM);
+  const ralatSenarai = [];
+  let disimpan = 0;
+  senarai.forEach(item => {
+    const id = String(item.idPelajar || '').trim();
+    if (!pelajarKelas[id]) { ralatSenarai.push(id + ': bukan pelajar aktif kelas ini'); return; }
+    const ulasan = String(item.ulasan || '').trim();
+    if (ulasan && SENARAI_ULASAN_MUET.indexOf(ulasan) === -1) { ralatSenarai.push(pelajarKelas[id].Nama + ': ulasan bukan daripada senarai'); return; }
+    const sediaAda = petaRekod[id];
+    if (!sediaAda && !ulasan) return;
+    if (sediaAda && String(sediaAda[sumber + '_Ulasan'] || '') === ulasan) return; // tiada perubahan
+    const objek = sediaAda ? Object.assign({}, sediaAda) : { ID_Pelajar: id, TahunSTPM: tahunSTPM };
+    objek[sumber + '_Ulasan'] = ulasan;
+    objek[sumber + '_UlasanOleh'] = ulasan ? sesi.nama : '';
+    if (sediaAda) kemaskiniBaris(SHEET_MUET, sediaAda.__row, objek, HEADER_MUET);
+    else tambahBaris(SHEET_MUET, objek, HEADER_MUET);
+    disimpan++;
+  });
+  catatAudit(sesi, 'PUKAL', 'MUET_ULASAN', kelas + ' ' + tahunSTPM + ' ' + sumber, '', disimpan + ' ulasan',
+    'Simpan ulasan slip MUET (' + disimpan + ' calon)');
+  return jaya({ disimpan, ralat: ralatSenarai });
 }

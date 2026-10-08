@@ -19,7 +19,7 @@ function apiSenaraiIntervensi(p) {
   let senarai = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS);
   if (p.idPelajar) senarai = senarai.filter(i => i.ID_Pelajar === p.idPelajar);
   if (p.semester) senarai = senarai.filter(i => i.Semester === p.semester);
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan)) senarai = senarai.filter(i => sesi.skopSubjek.includes(String(i.KodSubjek)));
+  senarai = senarai.filter(penapisRekodPelajar(sesi));
   if (p.tahunSTPM) {
     const petaTahun = petaTahunSTPMPelajar();
     senarai = senarai.filter(i => petaTahun[i.ID_Pelajar] === String(p.tahunSTPM));
@@ -29,14 +29,16 @@ function apiSenaraiIntervensi(p) {
 }
 
 function apiSimpanIntervensi(p) {
-  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_GURU, ROLE_KETUA_PANITIA]));
+  const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
 
   const idPelajar = String(p.idPelajar || '').trim();
   const kodSubjek = String(p.kodSubjek || '').trim();
   const semester = String(p.semester || '').trim();
   if (!idPelajar || !kodSubjek || !semester) return ralat('ID Pelajar, Kod Subjek dan Semester wajib diisi.');
-  if (!cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar)) return ralat('Pelajar tidak dijumpai.');
+  const pelajar = cariBarisMengikutId(SHEET_STUDENTS, 'ID_Pelajar', idPelajar);
+  if (!pelajar) return ralat('Pelajar tidak dijumpai.');
+  if (!bolehAksesRekod(sesi, kodSubjek, pelajar.Kelas)) return ralat('Anda tiada kebenaran untuk pelajar / mata pelajaran ini.');
 
   let idIntervensi = String(p.idIntervensi || '').trim();
   const sediaAda = idIntervensi ? cariBarisMengikutId(SHEET_INTERVENTIONS, 'ID_Intervensi', idIntervensi) : null;
@@ -71,15 +73,15 @@ function apiSimpanIntervensi(p) {
 /* Padam SATU rekod intervensi. Tiada jadual lain rujuk ID_Intervensi (bukan
    seperti Pelajar/Subjek yang berisiko tinggalkan rekod "anak yatim"), jadi
    padam terus dibenarkan tanpa semakan rekod berkaitan — sama peranan
-   dengan apiSimpanIntervensi (skop subjek turut disemak untuk GURU/KETUA_PANITIA). */
+   dengan apiSimpanIntervensi (skop subjek / kelas jagaan turut disemak). */
 function apiPadamIntervensi(p) {
-  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_GURU, ROLE_KETUA_PANITIA]));
+  const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
 
   const idIntervensi = String(p.idIntervensi || '').trim();
   const rekod = cariBarisMengikutId(SHEET_INTERVENTIONS, 'ID_Intervensi', idIntervensi);
   if (!rekod) return ralat('Rekod intervensi tidak dijumpai.');
-  if (!PERANAN_AKSES_PENUH.includes(sesi.peranan) && sesi.skopSubjek.indexOf(String(rekod.KodSubjek)) === -1) {
+  if (!penapisRekodPelajar(sesi)(rekod)) {
     return ralat('Anda tiada kebenaran untuk rekod intervensi ini.');
   }
 
@@ -92,12 +94,12 @@ function apiPadamIntervensi(p) {
 /* MODUL 11 — Impak intervensi: bandingkan AR1 -> AR2 (headcount semester berkaitan)
    bagi semua pelajar yang menerima intervensi pada semester tersebut. */
 function apiImpakIntervensi(p) {
-  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH.concat([ROLE_KETUA_PANITIA, ROLE_GURU]));
+  const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
 
   const semester = String(p.semester || 'S1').trim();
   const mapGred = dapatkanGred();
-  let intervensiSenarai = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS).filter(i => i.Semester === semester);
+  let intervensiSenarai = bacaSheetSebagaiObjek(SHEET_INTERVENTIONS).filter(i => i.Semester === semester).filter(penapisRekodPelajar(sesi));
   if (p.tahunSTPM) {
     const petaTahun = petaTahunSTPMPelajar();
     intervensiSenarai = intervensiSenarai.filter(i => petaTahun[i.ID_Pelajar] === String(p.tahunSTPM));
