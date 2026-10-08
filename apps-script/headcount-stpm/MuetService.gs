@@ -10,6 +10,10 @@
  * pindaan julat band terus berkuat kuasa pada semua rekod (MODUL 43).
  * Senarai calon = SEMUA pelajar AKTIF dalam kelas bagi Tahun STPM itu
  * (semua calon STPM menduduki MUET) — tiada pendaftaran subjek berasingan.
+ *
+ * Kebenaran: semua guru MUET (SkopSubjek 800) boleh MELIHAT markah semua kelas,
+ * tetapi hanya boleh MENGISI markah kelas yang ditetapkan kepada mereka (tab
+ * "Penetapan Guru", disimpan dalam TEACHING_ASSIGNMENTS dengan KodSubjek 800).
  * ========================================================================= */
 
 const KOMPONEN_MUET = ['L', 'S', 'R', 'W'];
@@ -57,11 +61,16 @@ function bolehAksesMuet(sesi) {
   return PERANAN_AKSES_PENUH.includes(sesi.peranan) || sesi.skopSubjek.indexOf(KOD_SUBJEK_MUET) !== -1;
 }
 
-/* Kelas yang boleh DIISI oleh pengguna ini: null = semua kelas; guru dengan
-   tugasan MUET (Tab "Tugas Saya") dihadkan kepada kelas tugasannya sahaja. */
+/* Kelas yang boleh DIISI oleh pengguna ini: null = semua kelas (peranan akses penuh).
+   Guru MUET hanya boleh mengisi kelas yang ditetapkan kepadanya — tiada penetapan
+   bermakna senarai kosong (paparan sahaja), BUKAN semua kelas. */
 function kelasMuetDibenarkan(sesi, tahunSTPM) {
   if (PERANAN_AKSES_PENUH.includes(sesi.peranan)) return null;
-  return kelasTugasanGuru(sesi.nokp, KOD_SUBJEK_MUET, tahunSTPM);
+  return kelasTugasanGuru(sesi.nokp, KOD_SUBJEK_MUET, tahunSTPM) || [];
+}
+
+function bolehIsiKelasMuet(dibenarkan, kelas) {
+  return !dibenarkan || dibenarkan.indexOf(String(kelas).toUpperCase()) !== -1;
 }
 
 function pelajarMuet(tahunSTPM) {
@@ -123,9 +132,9 @@ function apiMuetKelas(p) {
   const dibenarkan = kelasMuetDibenarkan(sesi, tahunSTPM);
   const kiraan = {};
   pelajarMuet(tahunSTPM).forEach(s => { const k = String(s.Kelas); kiraan[k] = (kiraan[k] || 0) + 1; });
-  const senarai = Object.keys(kiraan).filter(k => !dibenarkan || dibenarkan.indexOf(k.toUpperCase()) !== -1)
-    .sort().map(k => ({ kelas: k, jumlah: kiraan[k] }));
-  return jaya({ senarai });
+  // Semua kelas dipulangkan (semua guru MUET boleh lihat); bolehIsi menandakan kelas sendiri.
+  const senarai = Object.keys(kiraan).sort().map(k => ({ kelas: k, jumlah: kiraan[k], bolehIsi: bolehIsiKelasMuet(dibenarkan, k) }));
+  return jaya({ senarai, aksesPenuh: !dibenarkan, kelasSaya: dibenarkan || [] });
 }
 
 function apiMuetRoster(p) {
@@ -135,8 +144,7 @@ function apiMuetRoster(p) {
   const tahunSTPM = String(p.tahunSTPM || '').trim();
   const kelas = String(p.kelas || '').trim();
   if (!tahunSTPM || !kelas) return ralat('Tahun STPM dan Kelas wajib dipilih.');
-  const dibenarkan = kelasMuetDibenarkan(sesi, tahunSTPM);
-  if (dibenarkan && dibenarkan.indexOf(kelas.toUpperCase()) === -1) return ralat('Kelas ini bukan dalam tugasan MUET anda.');
+  const bolehIsi = bolehIsiKelasMuet(kelasMuetDibenarkan(sesi, tahunSTPM), kelas);
 
   const bands = dapatkanBandMUET();
   const petaRekod = petaRekodMuet(tahunSTPM);
@@ -156,7 +164,7 @@ function apiMuetRoster(p) {
 
   const a = analisisMuetKumpulan(kumpulan, bands, 'A');
   return jaya({
-    bands, senarai,
+    bands, senarai, bolehIsi,
     ringkasan: { jumlah: kumpulan.length, hadir: kumpulan.length - a.tidakHadir, tidakHadir: a.tidakHadir, gpmp: a.gpmp }
   });
 }
@@ -172,8 +180,9 @@ function apiMuetSimpanPukal(p) {
   const senarai = Array.isArray(p.senarai) ? p.senarai : [];
   if (!tahunSTPM || !kelas) return ralat('Tahun STPM dan Kelas wajib dipilih.');
   if (!senarai.length) return ralat('Tiada data untuk disimpan.');
-  const dibenarkan = kelasMuetDibenarkan(sesi, tahunSTPM);
-  if (dibenarkan && dibenarkan.indexOf(kelas.toUpperCase()) === -1) return ralat('Kelas ini bukan dalam tugasan MUET anda.');
+  if (!bolehIsiKelasMuet(kelasMuetDibenarkan(sesi, tahunSTPM), kelas)) {
+    return ralat('Anda hanya boleh mengisi markah MUET bagi kelas yang ditetapkan kepada anda. Kelas ' + kelas + ' adalah paparan sahaja.');
+  }
 
   const pelajarKelas = {};
   pelajarMuet(tahunSTPM).filter(s => String(s.Kelas).toUpperCase() === kelas.toUpperCase())
@@ -326,4 +335,210 @@ function apiMuetPadamGpsSejarah(p) {
   dapatkanSheet(SHEET_MUET_GPS).deleteRow(rekod.__row);
   catatAudit(sesi, 'PADAM', 'MUET_GPS', tahun, String(rekod.GPS), '', 'Padam GPS MUET sejarah ' + tahun);
   return jaya({});
+}
+
+/* ------------------- Penetapan guru MUET (kelas yang diajar) -------------------
+   Disimpan dalam TEACHING_ASSIGNMENTS (KodSubjek 800) supaya turut kelihatan di menu
+   "Tugas Saya". Tidak melalui apiSimpanTugasan kerana MUET tiada dalam Sheet SUBJECTS. */
+
+function guruMuet() {
+  return bacaSheetSebagaiObjek(SHEET_USERS).filter(u => String(u.Status).toUpperCase() === 'AKTIF' &&
+    String(u.SkopSubjek || '').split(',').map(x => x.trim()).indexOf(KOD_SUBJEK_MUET) !== -1);
+}
+
+function tugasanMuet(tahunSTPM) {
+  return bacaSheetSebagaiObjek(SHEET_TEACHING_ASSIGNMENTS).filter(t =>
+    String(t.KodSubjek) === KOD_SUBJEK_MUET && String(t.TahunSTPM) === String(tahunSTPM));
+}
+
+/* Nama kelas asal (ikut STUDENTS), dikunci huruf besar untuk padanan. */
+function petaKelasMuet(tahunSTPM) {
+  const peta = {};
+  pelajarMuet(tahunSTPM).forEach(s => { peta[String(s.Kelas).toUpperCase()] = String(s.Kelas); });
+  return peta;
+}
+
+function apiMuetPenetapanGuru(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  if (sesi.success === false) return sesi;
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+  if (!tahunSTPM) return ralat('Sila pilih Tahun STPM dahulu.');
+
+  const petaKelas = petaKelasMuet(tahunSTPM);
+  const tugasan = tugasanMuet(tahunSTPM).filter(t => String(t.StatusAktif).toUpperCase() === 'AKTIF');
+  const guru = guruMuet().map(u => {
+    const nokp = normalNoKP(u.NoKP);
+    const kelas = Array.from(new Set(tugasan.filter(t => normalNoKP(t.NoKP) === nokp).map(t => String(t.Kelas).toUpperCase())));
+    return { nokp, nama: u.NamaPenuh, peranan: u.Peranan, kelas };
+  }).sort((a, b) => String(a.nama).localeCompare(String(b.nama)));
+
+  const ditetapkan = new Set();
+  guru.forEach(g => g.kelas.forEach(k => ditetapkan.add(k)));
+  const kelas = Object.keys(petaKelas).sort().map(k => ({ kunci: k, nama: petaKelas[k] }));
+  return jaya({ guru, kelas, tanpaGuru: kelas.filter(k => !ditetapkan.has(k.kunci)).map(k => k.nama) });
+}
+
+/* Ganti SEMUA kelas MUET seorang guru bagi satu Tahun STPM dengan senarai baharu. */
+function apiMuetSimpanPenetapanGuru(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  if (sesi.success === false) return sesi;
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+  const nokp = normalNoKP(p.nokp);
+  const diminta = Array.isArray(p.kelas) ? p.kelas.map(k => String(k).trim().toUpperCase()).filter(Boolean) : [];
+  if (!tahunSTPM) return ralat('Sila pilih Tahun STPM dahulu.');
+
+  const guru = guruMuet().find(u => normalNoKP(u.NoKP) === nokp);
+  if (!guru) return ralat('Guru ini tidak aktif atau tiada kod ' + KOD_SUBJEK_MUET + ' dalam Skop Subjek (menu Pengguna).');
+  const petaKelas = petaKelasMuet(tahunSTPM);
+  const tidakSah = diminta.filter(k => !petaKelas[k]);
+  if (tidakSah.length) return ralat('Kelas tidak dijumpai bagi Tahun STPM ' + tahunSTPM + ': ' + tidakSah.join(', '));
+  const baru = new Set(diminta);
+
+  const sediaAda = tugasanMuet(tahunSTPM).filter(t => normalNoKP(t.NoKP) === nokp);
+  const dikekal = {}; // kelas -> baris sedia ada yang dikekalkan (satu sahaja; pendua dipadam)
+  // Kemas kini dahulu (nombor baris masih sah), kemudian padam dari bawah ke atas, kemudian tambah.
+  sediaAda.forEach(t => {
+    const k = String(t.Kelas).toUpperCase();
+    if (!baru.has(k) || dikekal[k]) return;
+    dikekal[k] = t;
+    if (String(t.StatusAktif).toUpperCase() !== 'AKTIF') {
+      kemaskiniBaris(SHEET_TEACHING_ASSIGNMENTS, t.__row, Object.assign({}, t, { StatusAktif: 'AKTIF' }), HEADER_TEACHING_ASSIGNMENTS);
+    }
+  });
+  const dipadam = sediaAda.filter(t => dikekal[String(t.Kelas).toUpperCase()] !== t).sort((a, b) => b.__row - a.__row);
+  if (dipadam.length) {
+    const sh = dapatkanSheet(SHEET_TEACHING_ASSIGNMENTS);
+    dipadam.forEach(t => sh.deleteRow(t.__row));
+  }
+  Array.from(baru).filter(k => !dikekal[k]).forEach(k => tambahBaris(SHEET_TEACHING_ASSIGNMENTS, {
+    ID_Tugasan: janaId('TGS'), NoKP: nokp, KodSubjek: KOD_SUBJEK_MUET, Kelas: petaKelas[k], TahunSTPM: tahunSTPM, StatusAktif: 'AKTIF'
+  }, HEADER_TEACHING_ASSIGNMENTS));
+
+  const sebelum = sediaAda.map(t => t.Kelas).join(', ');
+  const selepas = Array.from(baru).map(k => petaKelas[k]).join(', ');
+  catatAudit(sesi, 'KEMASKINI', 'TUGASAN', nokp, sebelum, selepas,
+    'Penetapan kelas MUET ' + guru.NamaPenuh + ' (' + tahunSTPM + '): ' + (selepas || 'tiada kelas'));
+  return jaya({ kelas: Array.from(baru) });
+}
+
+/* ----------------------------- Slip keputusan MUET ----------------------------- */
+
+/* Padanan band MUET (format 2021) dengan tahap CEFR — dipaparkan pada slip sahaja.
+   Band yang tiada dalam senarai ini (jika MUET_BAND diubah) dipaparkan tanpa CEFR. */
+const CEFR_BAND_MUET = {
+  '5+': ['C1+', 'Proficient User'], '5.0': ['C1', 'Proficient User'],
+  '4.5': ['B2', 'Independent User'], '4.0': ['B2', 'Independent User'],
+  '3.5': ['B1', 'Independent User'], '3.0': ['B1', 'Independent User'],
+  '2.5': ['A2', 'Basic User'], '2.0': ['A2', 'Basic User'], '1.0': ['A1', 'Basic User']
+};
+const KUNCI_TETAPAN_SLIP_MUET = ['namaPenuhSekolah', 'alamatSekolah', 'namaPengetua', 'namaPKT6'];
+
+function tetapanSlipMuet() {
+  const k = dapatkanKonfig();
+  const ringkas = String(k.schoolName || 'SMK ASAJAYA').trim();
+  return {
+    namaPenuhSekolah: String(k.namaPenuhSekolah || '').trim() || ringkas.replace(/^SMK\s+/i, 'SEKOLAH MENENGAH KEBANGSAAN '),
+    alamatSekolah: String(k.alamatSekolah || '').trim(),
+    namaPengetua: String(k.namaPengetua || '').trim(),
+    namaPKT6: String(k.namaPKT6 || '').trim()
+  };
+}
+
+/* Kedudukan bersaing (1, 2, 2, 4): calon dengan jumlah sama berkongsi kedudukan. */
+function petaKedudukan(senarai) {
+  const peta = {};
+  senarai.forEach(x => { peta[x.id] = 1 + senarai.filter(y => y.jumlah > x.jumlah).length; });
+  return peta;
+}
+
+function apiMuetTetapanSlip(p) {
+  const sesi = wajibPeranan(p.token, null);
+  if (sesi.success === false) return sesi;
+  if (!bolehAksesMuet(sesi)) return ralat('Anda tiada kebenaran untuk MUET.');
+  return jaya({ tetapan: tetapanSlipMuet() });
+}
+
+function apiMuetSimpanTetapanSlip(p) {
+  const sesi = wajibPeranan(p.token, PERANAN_AKSES_PENUH);
+  if (sesi.success === false) return sesi;
+  const lama = tetapanSlipMuet();
+  for (const kunci of KUNCI_TETAPAN_SLIP_MUET) {
+    if (String(p[kunci] || '').trim().length > 200) return ralat('Teks terlalu panjang (maksimum 200 aksara).');
+  }
+  KUNCI_TETAPAN_SLIP_MUET.forEach(kunci => simpanNilaiKonfig(kunci, String(p[kunci] || '').trim()));
+  catatAudit(sesi, 'KEMASKINI', 'CONFIG', 'SLIP_MUET', JSON.stringify(lama), JSON.stringify(tetapanSlipMuet()), 'Tetapan slip MUET');
+  return jaya({ tetapan: tetapanSlipMuet() });
+}
+
+/* Data slip MUET bagi satu sumber (T1/T2/A) — satu kelas, atau seorang calon jika
+   idPelajar diisi. Semua guru MUET boleh menjana slip bagi mana-mana kelas (paparan).
+   Calon tanpa markah (atau TH bagi Keputusan Sebenar) dilangkau & disenaraikan. */
+function apiMuetSlip(p) {
+  const sesi = wajibPeranan(p.token, null);
+  if (sesi.success === false) return sesi;
+  if (!bolehAksesMuet(sesi)) return ralat('Anda tiada kebenaran untuk MUET.');
+  const tahunSTPM = String(p.tahunSTPM || '').trim();
+  const kelas = String(p.kelas || '').trim();
+  const sumber = String(p.sumber || '');
+  const idPelajar = String(p.idPelajar || '').trim();
+  if (!tahunSTPM || !kelas) return ralat('Tahun STPM dan Kelas wajib dipilih.');
+  if (SUMBER_MUET.indexOf(sumber) === -1) return ralat('Sila pilih MUET Trial 1, Trial 2 atau Keputusan Sebenar.');
+
+  const bands = dapatkanBandMUET();
+  const petaRekod = petaRekodMuet(tahunSTPM);
+  const sumberBanding = { T2: 'T1', A: 'T2' }[sumber] || null;
+  const ada = []; // calon ada keputusan bagi sumber ini (seluruh tingkatan)
+  const semua = pelajarMuet(tahunSTPM).map(s => {
+    const rekod = petaRekod[String(s.ID_Pelajar)] || {};
+    const th = sumber === 'A' && rekod.TidakHadir === 'YA';
+    const jumlah = th ? null : jumlahMuet(rekod, sumber);
+    const x = { pelajar: s, rekod, th, jumlah, id: String(s.ID_Pelajar) };
+    if (jumlah !== null) ada.push(x);
+    return x;
+  });
+  const dalamKelas = semua.filter(x => String(x.pelajar.Kelas).toUpperCase() === kelas.toUpperCase());
+  const adaKelas = dalamKelas.filter(x => x.jumlah !== null);
+  const rankTingkatan = petaKedudukan(ada);
+  const rankKelas = petaKedudukan(adaKelas);
+  const nilaiEtr = {};
+  bands.forEach(b => { nilaiEtr[b.band] = b; });
+
+  let dipilih = dalamKelas.sort((a, b) => String(a.pelajar.Nama).localeCompare(String(b.pelajar.Nama)));
+  if (idPelajar) {
+    dipilih = dipilih.filter(x => x.id === idPelajar);
+    if (!dipilih.length) return ralat('Pelajar tidak dijumpai dalam kelas ' + kelas + '.');
+  }
+
+  const slip = [], dilangkau = [];
+  dipilih.forEach(x => {
+    if (x.th) { dilangkau.push(x.pelajar.Nama + ' (Tidak Hadir)'); return; }
+    if (x.jumlah === null) { dilangkau.push(x.pelajar.Nama + ' (tiada markah)'); return; }
+    const b = bandMuet(bands, x.jumlah);
+    const etr = nilaiEtr[normalBandMUET(x.rekod.ETR_Band)] || null;
+    const markah = {};
+    KOMPONEN_MUET.forEach(k => { const v = x.rekod[sumber + '_' + k]; markah[k] = (v === '' || v === null || v === undefined) ? null : Number(v); });
+    let banding = null;
+    if (sumberBanding) {
+      const j = jumlahMuet(x.rekod, sumberBanding);
+      const bb = bandMuet(bands, j);
+      if (j !== null) banding = { sumber: sumberBanding, jumlah: j, band: bb ? bb.band : null, beza: x.jumlah - j };
+    }
+    const cefr = b ? CEFR_BAND_MUET[b.band] : null;
+    slip.push({
+      idPelajar: x.id, nama: x.pelajar.Nama, nokp: x.pelajar.NoKP ? normalNoKP(x.pelajar.NoKP) : '', kelas: x.pelajar.Kelas,
+      markah, jumlah: x.jumlah, band: b ? b.band : null, nilaiBand: b ? b.nilai : null,
+      cefr: cefr ? cefr[0] : null, tahapCefr: cefr ? cefr[1] : null,
+      etr: etr ? etr.band : null, capaiEtr: (etr && b) ? b.nilai >= etr.nilai : null,
+      markahKeEtr: (etr && b && b.nilai < etr.nilai) ? etr.min - x.jumlah : null,
+      kedudukanKelas: rankKelas[x.id], bilKelas: adaKelas.length,
+      kedudukanTingkatan: rankTingkatan[x.id], bilTingkatan: ada.length,
+      banding
+    });
+  });
+
+  return jaya({
+    sekolah: tetapanSlipMuet(), sumber, tahunSTPM, kelas, tarikhJana: formatTarikh(new Date()),
+    bands: bands.map(b => b.band).reverse(), slip, dilangkau,
+    calon: dalamKelas.map(x => ({ idPelajar: x.id, nama: x.pelajar.Nama, ada: x.jumlah !== null }))
+  });
 }

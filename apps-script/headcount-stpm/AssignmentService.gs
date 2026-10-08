@@ -23,7 +23,7 @@ function apiSenaraiTugasan(p) {
   if (PERANAN_AKSES_PENUH.includes(sesi.peranan)) {
     if (p.nokp) senarai = senarai.filter(t => String(t.NoKP) === String(p.nokp));
   } else {
-    senarai = senarai.filter(t => String(t.NoKP) === String(sesi.nokp));
+    senarai = senarai.filter(t => normalNoKP(t.NoKP) === normalNoKP(sesi.nokp));
   }
   if (p.kodSubjek) senarai = senarai.filter(t => String(t.KodSubjek) === String(p.kodSubjek));
   if (p.tahunSTPM) senarai = senarai.filter(t => String(t.TahunSTPM) === String(p.tahunSTPM));
@@ -80,7 +80,8 @@ function apiPadamTugasan(p) {
    supaya guru yang belum ada tugasan eksplisit tidak tersekat drpd kerja. */
 function kelasTugasanGuru(nokp, kodSubjek, tahunSTPM) {
   const tugasan = bacaSheetSebagaiObjek(SHEET_TEACHING_ASSIGNMENTS)
-    .filter(t => String(t.NoKP) === String(nokp) && String(t.KodSubjek) === String(kodSubjek) &&
+    // normalNoKP: Sheets membuang sifar di depan No. KP (cth. 050101...) jika lajur tidak berformat teks.
+    .filter(t => normalNoKP(t.NoKP) === normalNoKP(nokp) && String(t.KodSubjek) === String(kodSubjek) &&
       String(t.StatusAktif).toUpperCase() === 'AKTIF' && (!tahunSTPM || String(t.TahunSTPM) === String(tahunSTPM)));
   if (!tugasan.length) return null;
   return Array.from(new Set(tugasan.map(t => String(t.Kelas).toUpperCase())));

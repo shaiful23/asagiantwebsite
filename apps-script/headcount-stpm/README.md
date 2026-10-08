@@ -149,6 +149,12 @@ sepenuhnya seperti diminta.
    `Index`, deploy semula, kemudian klik **Sistem Headcount STPM → 4.
    Kemaskini Struktur (MUET)** — mencipta Sheet `MUET`, `MUET_BAND` (julat
    band lalai) dan `MUET_GPS_SEJARAH`. Rujuk **"MUET (800)"** di bawah.
+
+   **Kemaskini terkini (Penetapan Guru MUET & Slip MUET):** **gantikan**
+   kandungan `MuetService.gs`, `AssignmentService.gs` dan `Index` dengan versi
+   terkini, kemudian deploy semula (Deploy → New version). Tiada langkah migrasi
+   Sheet. Selepas itu Admin perlu menetapkan kelas setiap guru MUET di tab
+   **MUET → Penetapan Guru** — guru MUET tanpa penetapan hanya boleh melihat.
 4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
    salin-tampal kandungan `Index.html`.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json
@@ -436,7 +442,7 @@ tiada tugasan ditetapkan kekal guna cara lama (ikut pendaftaran pelajar +
 ## MUET (800)
 
 MUET direkod berasingan daripada headcount subjek STPM lain (bukan gred A–F
-ikut BLD semester), dalam menu **MUET** dengan 3 tab:
+ikut BLD semester), dalam menu **MUET** dengan tab berikut:
 
 - **Kelas & Markah** — pilih kelas; isi markah 4 komponen (800/1 Mendengar,
   800/2 Bertutur, 800/3 Membaca, 800/4 Menulis; 0–90 setiap satu, jumlah 360)
@@ -454,6 +460,29 @@ ikut BLD semester), dalam menu **MUET** dengan 3 tab:
   GPS tertinggi/terendah/purata (tahun lengkap sahaja). Tahun yang ada
   Keputusan Sebenar dalam sistem dikira automatik ("Belum Lengkap" selagi ada
   calon hadir yang belum diisi); tahun sebelum sistem diisi manual oleh Admin.
+- **Slip MUET** — jana slip keputusan **MUET Trial 1**, **Trial 2** atau
+  **Keputusan Sebenar** bagi **seorang pelajar** atau **satu kelas** (satu slip
+  A4 setiap calon). Slip mengandungi logo sekolah, markah 4 komponen, jumlah,
+  band, tahap CEFR, band sasaran (ETR) & status capai, skala band, kedudukan
+  dalam kelas & tingkatan, perbandingan dengan trial sebelumnya (Trial 2 ↔
+  Trial 1, Sebenar ↔ Trial 2), analisis ringkas automatik, ruang ulasan guru
+  dan ruang tandatangan **PK Tingkatan 6** & **Pengetua**.
+  - **Cetak / Simpan PDF** — buka dialog cetak pelayar; pilih *Save as PDF*
+    untuk fail PDF yang tajam dan kecil, atau terus cetak.
+  - **Muat Turun PDF** — jana fail PDF terus dalam pelayar (pustaka
+    html2pdf.js dimuat dari cdnjs hanya bila diklik; perlukan internet).
+  - Calon tanpa markah bagi peperiksaan itu (atau TH bagi Keputusan Sebenar)
+    tidak dijana slip dan disenaraikan di atas pratonton.
+  - **Tetapan Slip** (Admin/GPK/Ketua Akademik, di bawah pratonton): nama
+    penuh sekolah, alamat, nama PK Tingkatan 6 dan nama Pengetua — disimpan
+    dalam Sheet `CONFIG` (`namaPenuhSekolah`, `alamatSekolah`, `namaPKT6`,
+    `namaPengetua`). Nama kosong = ruang titik untuk ditulis tangan.
+- **Penetapan Guru** (Admin/GPK/Ketua Akademik sahaja) — tandakan kelas yang
+  diajar oleh setiap guru MUET (pengguna aktif dengan `800` dalam Skop Subjek)
+  bagi Tahun STPM terpilih, kemudian klik **Simpan** pada baris guru itu.
+  Kelas yang belum ada guru MUET dipaparkan sebagai amaran. Penetapan disimpan
+  dalam `TEACHING_ASSIGNMENTS` (KodSubjek `800`) dan turut kelihatan di menu
+  **Tugas Saya**.
 
 **Pengiraan:** GPMP/GPS = purata **NilaiBand** calon yang ada markah bagi
 sumber itu (calon TH dan calon belum diisi tidak dikira). Band ditentukan
@@ -464,11 +493,14 @@ dalam Sheet tanpa sentuh kod — **Band 5+ bernilai 5.5 secara lalai**; ubah
 jika sekolah guna nilai lain. Jumlah & band tidak disimpan, sentiasa dikira
 semula, jadi pindaan julat terus berkuat kuasa pada semua rekod.
 
-**Akses:** ADMIN/GPK/Ketua Akademik (semua kelas), dan guru yang ada kod
-`800` dalam **Skop Subjek** (menu Pengguna). Jika guru MUET ada tugasan `800`
-di menu **Tugas Saya**, dia hanya boleh mengisi kelas tugasannya (analisis &
-trend tetap memaparkan semua kelas). Kunci tarikh akhir (Kunci Markah) tidak
-dikenakan pada MUET kerana ia berasaskan Semester S1/S2/S3.
+**Akses:** ADMIN/GPK/Ketua Akademik boleh mengisi semua kelas. Guru yang ada
+kod `800` dalam **Skop Subjek** (menu Pengguna) boleh **melihat** markah,
+analisis dan menjana slip bagi **semua** kelas, tetapi hanya boleh **mengisi**
+markah bagi kelas yang ditetapkan kepadanya di tab **Penetapan Guru** (kelas
+sendiri bertanda titik hijau; kelas lain dipaparkan tanpa butang simpan dan
+pelayan menolak sebarang simpanan). Guru MUET tanpa penetapan hanya boleh
+melihat. Kunci tarikh akhir (Kunci Markah) tidak dikenakan pada MUET kerana ia
+berasaskan Semester S1/S2/S3.
 
 ## Kunci Markah (tarikh akhir, buka semula, pemantauan, countdown)
 

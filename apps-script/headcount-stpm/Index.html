@@ -131,6 +131,97 @@
   .muet-gps .nilai { font-size: 34px; font-weight: 700; line-height: 1.1; }
   .muet-gps .label { font-size: 12px; opacity: .85; }
   .muet-dua { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  /* Kelas MUET: kelas sendiri (boleh isi) bertitik hijau; kelas lain paparan sahaja. */
+  .tab-link.kelas-saya::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--hijau); margin-right: 6px; vertical-align: 1px; }
+  .muet-jadual .input-muet:disabled { background: transparent; border-color: transparent; color: #111827; -webkit-text-fill-color: #111827; opacity: 1; cursor: default; appearance: none; -webkit-appearance: none; }
+  .cip-kelas { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; margin: 0 6px 6px 0; border: 1px solid var(--garis); border-radius: 20px; font-size: 12.5px; color: #111827; font-weight: 500; cursor: pointer; }
+  .cip-kelas input { width: auto; margin: 0; }
+  .cip-kelas:has(input:checked) { background: #eef2ff; border-color: var(--biru-terang); color: var(--biru); }
+  .butang-baris { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+
+  /* ===== Slip Keputusan MUET (A4) — unit mm supaya cetakan & PDF tepat saiz ===== */
+  #kawasanCetak { display: none; }
+  .pratonton-slip { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 18px 0; background: #e5e7eb; border-radius: 10px; overflow: hidden; }
+  .pratonton-slip .slip { box-shadow: 0 6px 24px rgba(0,0,0,.15); zoom: var(--zum, 1); }
+  .slip { --slip-biru: #1e3a5f; --slip-emas: #b08d3c; width: 210mm; height: 296mm; padding: 8mm; background: #fff; color: #1f2937; position: relative; overflow: hidden;
+    font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.35; break-after: page; page-break-after: always;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .slip:last-child { break-after: auto; page-break-after: auto; }
+  .slip * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .slip-bingkai { height: 100%; border: .7mm solid var(--slip-biru); padding: 1.3mm; }
+  .slip-dalam { height: 100%; border: .3mm solid var(--slip-emas); padding: 6mm 10mm 4mm; display: flex; flex-direction: column; position: relative; }
+  .slip-tera { position: absolute; width: 115mm; height: 115mm; left: 50%; top: 52%; transform: translate(-50%, -50%); opacity: .045; margin: 0; pointer-events: none; }
+  .slip-kepala { display: flex; align-items: center; gap: 5mm; position: relative; }
+  .slip-kepala .logo-sekolah { width: 19mm; height: 19mm; margin: 0; flex: none; }
+  .slip-sekolah { flex: 1; text-align: center; padding-right: 19mm; }
+  .slip-nama-sekolah { font-family: Georgia, "Times New Roman", serif; font-size: 13.5pt; font-weight: 700; color: var(--slip-biru); white-space: nowrap; }
+  .slip-alamat { font-size: 8.5pt; color: #4b5563; margin-top: .5mm; }
+  .slip-unit { font-size: 8.5pt; color: var(--slip-emas); font-weight: 700; letter-spacing: .18em; text-transform: uppercase; margin-top: .8mm; }
+  .slip-garis { border-top: .6mm solid var(--slip-emas); border-bottom: .2mm solid var(--slip-emas); height: 1mm; margin: 3mm 0 3mm; }
+  .slip-tajuk { text-align: center; position: relative; }
+  .slip-tajuk .kecil-atas { font-size: 8.5pt; letter-spacing: .3em; color: #6b7280; font-weight: 700; }
+  .slip-tajuk h1 { font-family: Georgia, "Times New Roman", serif; font-size: 18pt; color: var(--slip-biru); margin: .5mm 0 0; letter-spacing: .04em; }
+  .slip-tajuk .sub { font-size: 9pt; color: #4b5563; font-style: italic; }
+  .slip-maklumat { display: grid; grid-template-columns: 37mm 1fr 25mm 1fr; gap: 1.3mm 3mm; background: #f8f5ee; border-left: 1.2mm solid var(--slip-emas);
+    padding: 2.6mm 5mm; margin: 4mm 0 3.5mm; font-size: 9.5pt; position: relative; }
+  .slip-maklumat dt { color: #6b7280; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .04em; padding-top: .4mm; }
+  .slip-maklumat dd { margin: 0; font-weight: 700; color: #111827; }
+  .slip-maklumat .penuh { grid-column: 2 / span 3; font-size: 11pt; }
+  .slip-seksyen { font-size: 8.5pt; font-weight: 700; color: var(--slip-biru); text-transform: uppercase; letter-spacing: .12em; margin: 0 0 1.8mm; display: flex; align-items: center; gap: 3mm; }
+  .slip-seksyen::after { content: ''; flex: 1; border-top: .25mm solid #d6c7a1; }
+  .slip table { width: 100%; border-collapse: collapse; font-size: 9.5pt; position: relative; }
+  .slip th { position: static; background: var(--slip-biru); color: #fff; font-size: 8pt; text-transform: uppercase; letter-spacing: .06em; padding: 1.6mm 3mm; text-align: left; white-space: nowrap; }
+  .slip td { padding: 1.3mm 3mm; border-bottom: .25mm solid #e5e7eb; white-space: nowrap; }
+  .slip tbody tr:hover { background: transparent; }
+  .slip td.kod { color: var(--slip-biru); font-weight: 700; width: 17mm; }
+  .slip td.komp small { color: #6b7280; font-style: italic; }
+  .slip td.mk { text-align: right; width: 22mm; font-variant-numeric: tabular-nums; }
+  .slip td.mk b { font-size: 11pt; }
+  .slip td.bar { width: 52mm; }
+  .slip .bar-luar { height: 2.6mm; background: #eef1f6; border-radius: 2mm; overflow: hidden; }
+  .slip .bar-dalam { height: 100%; background: linear-gradient(90deg, #3b5b85, var(--slip-biru)); border-radius: 2mm; }
+  .slip tr.jumlah td { border-bottom: none; border-top: .5mm solid var(--slip-biru); background: #f8f5ee; font-weight: 700; color: var(--slip-biru); }
+  .slip tr.jumlah .bar-dalam { background: linear-gradient(90deg, #d4b26a, var(--slip-emas)); }
+  .slip-hasil { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 4mm; margin: 3.5mm 0 2.5mm; position: relative; }
+  .slip-pingat { border: .3mm solid #e2d6b8; border-radius: 3mm; padding: 2.2mm 2mm; text-align: center; background: #fff; }
+  .slip-pingat .lbl { font-size: 7.5pt; text-transform: uppercase; letter-spacing: .14em; color: #6b7280; font-weight: 700; }
+  .slip-pingat .besar { font-family: Georgia, "Times New Roman", serif; font-size: 22pt; font-weight: 700; color: var(--slip-biru); line-height: 1.15; }
+  .slip-pingat .ket { font-size: 8.5pt; color: #4b5563; }
+  .slip-pingat.utama { background: var(--slip-biru); border-color: var(--slip-biru); }
+  .slip-pingat.utama .lbl, .slip-pingat.utama .ket { color: #e9dcb8; }
+  .slip-pingat.utama .besar { color: #fff; font-size: 25pt; }
+  .slip-cop { display: inline-block; margin-top: .8mm; padding: .5mm 3mm; border-radius: 3mm; font-size: 8pt; font-weight: 700; }
+  .slip-cop.capai { background: #dcfce7; color: #166534; } .slip-cop.belum { background: #fee2e2; color: #991b1b; } .slip-cop.tiada { background: #f3f4f6; color: #6b7280; }
+  .slip-skala { display: flex; gap: 1.2mm; margin-bottom: 1.2mm; position: relative; }
+  .slip-skala span { flex: 1; text-align: center; padding: 1mm 0; font-size: 8.5pt; font-weight: 700; color: #9ca3af; background: #f3f4f6; border: .35mm solid transparent; border-radius: 1.5mm; }
+  .slip-skala span.dicapai { background: var(--slip-biru); color: #fff; }
+  .slip-skala span.sasaran { border-color: var(--slip-emas); color: var(--slip-emas); }
+  .slip-skala span.dicapai.sasaran { color: #fff; box-shadow: inset 0 0 0 .4mm #e9dcb8; }
+  .slip-petunjuk { font-size: 7.5pt; color: #6b7280; margin-bottom: 3mm; }
+  .slip-petunjuk i { display: inline-block; width: 3mm; height: 2.2mm; border-radius: .6mm; vertical-align: -.2mm; margin: 0 1mm 0 3mm; }
+  .slip-prestasi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; margin-bottom: 3mm; position: relative; }
+  .slip-prestasi > div { border-top: .25mm solid #d6c7a1; padding-top: 1.2mm; }
+  .slip-prestasi .nota { font-size: 7.5pt; color: #6b7280; }
+  .slip-prestasi .lbl { font-size: 7.5pt; color: #6b7280; text-transform: uppercase; letter-spacing: .06em; }
+  .slip-prestasi b { font-size: 11pt; color: var(--slip-biru); }
+  .slip-prestasi .naik { color: #15803d; } .slip-prestasi .turun { color: #b91c1c; }
+  .slip-analisis { margin: 0 0 2.5mm; padding-left: 5mm; font-size: 9pt; position: relative; }
+  .slip-analisis li { margin-bottom: .6mm; }
+  .slip-ulasan { position: relative; }
+  .slip-ulasan .baris { border-bottom: .25mm dotted #9ca3af; height: 5.5mm; }
+  .slip-ttd { display: grid; grid-template-columns: 1fr 1fr; gap: 16mm; margin-top: auto; padding-top: 3mm; text-align: center; font-size: 9pt; position: relative; }
+  .slip-ttd .ruang { height: 12mm; }
+  .slip-ttd .garis-ttd { border-top: .3mm solid #374151; margin: 0 6mm 1.5mm; }
+  .slip-ttd b { display: block; font-size: 9.5pt; color: #111827; }
+  .slip-ttd span { display: block; color: #4b5563; font-size: 8.5pt; }
+  .slip-kaki { margin-top: 3.5mm; padding-top: 1.5mm; border-top: .25mm solid #e5e7eb; font-size: 7pt; color: #9ca3af; text-align: center; position: relative; }
+  /* @page { size: A4; margin: 0 } disuntik oleh cetakSlipMuet() semasa mencetak slip
+     SAHAJA, supaya cetakan halaman lain (Ctrl+P) kekal dengan margin lalai pelayar. */
+  @media print {
+    body.mod-cetak { background: #fff; }
+    body.mod-cetak > *:not(#kawasanCetak) { display: none !important; }
+    body.mod-cetak #kawasanCetak { display: block; }
+  }
   .naik { color: var(--hijau); font-weight: 600; } .turun { color: var(--merah); font-weight: 600; }
 
   @media (max-width: 820px) {
@@ -229,6 +320,7 @@
 </div>
 
 <div id="toastKontena"></div>
+<div id="kawasanCetak"></div>
 
 <script>
 /* ======================= PEMALAR (selaras Config.gs) ======================= */
@@ -1295,13 +1387,15 @@ function adaPerubahanMuetDibuang() {
 function muatMuet() {
   document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
   pasangPilihanTahun(muatMuet);
-  if (!S.subMuet) S.subMuet = 'markah';
+  if (!S.subMuet || (S.subMuet === 'penetapan' && !bolehUrus())) S.subMuet = 'markah';
   S.muetBerubah = false;
   document.getElementById('content').innerHTML = `
     <div class="panel" style="padding-bottom:6px">
       <span class="tab-link" data-sub="markah">Kelas &amp; Markah</span>
       <span class="tab-link" data-sub="analisis">Analisis GPMP &amp; ETR</span>
       <span class="tab-link" data-sub="trend">Perbandingan &amp; Trend</span>
+      <span class="tab-link" data-sub="slip">Slip MUET</span>
+      ${bolehUrus() ? '<span class="tab-link" data-sub="penetapan">Penetapan Guru</span>' : ''}
     </div>
     <div id="subMuet"></div>`;
   document.querySelectorAll('#content .tab-link[data-sub]').forEach(el => {
@@ -1316,7 +1410,7 @@ function muatMuet() {
     document.getElementById('subMuet').innerHTML = '<div class="mesej amaran">Sila pilih Tahun STPM di bahagian atas dahulu.</div>';
     return;
   }
-  ({ markah: muatMuetMarkah, analisis: muatMuetAnalisis, trend: muatMuetTrend })[S.subMuet]();
+  ({ markah: muatMuetMarkah, analisis: muatMuetAnalisis, trend: muatMuetTrend, slip: muatMuetSlip, penetapan: muatMuetPenetapan })[S.subMuet]();
 }
 
 /* ---------- Tab 1: Kelas & Markah ---------- */
@@ -1325,13 +1419,19 @@ function muatMuetMarkah() {
   kotak.innerHTML = '<div class="muatan">Memuatkan kelas...</div>';
   panggil('apiMuetKelas', { token: S.token, tahunSTPM: S.tahunSTPM }).then(res => {
     if (!res.senarai.length) {
-      kotak.innerHTML = '<div class="mesej amaran">Tiada kelas dengan pelajar aktif bagi Tahun STPM ' + escapeHtml(S.tahunSTPM) +
-        ' (atau tiada kelas MUET dalam tugasan anda — rujuk menu Tugas Saya).</div>';
+      kotak.innerHTML = '<div class="mesej amaran">Tiada kelas dengan pelajar aktif bagi Tahun STPM ' + escapeHtml(S.tahunSTPM) + '.</div>';
       return;
     }
-    if (!res.senarai.some(k => k.kelas === S.muetKelas)) S.muetKelas = res.senarai[0].kelas;
-    kotak.innerHTML = '<div class="panel" style="padding-bottom:6px">' + res.senarai.map(k =>
-      '<span class="tab-link" data-kelas="' + escapeHtml(k.kelas) + '">' + escapeHtml(k.kelas) + ' (' + k.jumlah + ')</span>').join('') +
+    if (!res.senarai.some(k => k.kelas === S.muetKelas)) S.muetKelas = (res.senarai.find(k => k.bolehIsi) || res.senarai[0]).kelas;
+    const kelasSaya = res.senarai.filter(k => k.bolehIsi).map(k => k.kelas);
+    const nota = res.aksesPenuh ? '' : (kelasSaya.length
+      ? '<div class="mesej jaya">Anda boleh mengisi markah bagi kelas bertanda &#9679;: <b>' + kelasSaya.map(escapeHtml).join(', ') +
+        '</b>. Kelas lain dipaparkan untuk rujukan sahaja.</div>'
+      : '<div class="mesej amaran">Anda belum ditetapkan mana-mana kelas MUET bagi Tahun STPM ' + escapeHtml(S.tahunSTPM) +
+        '. Semua kelas dipaparkan untuk rujukan sahaja — hubungi Admin / PK Tingkatan 6 untuk penetapan kelas.</div>');
+    kotak.innerHTML = nota + '<div class="panel" style="padding-bottom:6px">' + res.senarai.map(k =>
+      '<span class="tab-link' + (k.bolehIsi && !res.aksesPenuh ? ' kelas-saya' : '') + '" data-kelas="' + escapeHtml(k.kelas) + '"' +
+      (k.bolehIsi ? '' : ' title="Paparan sahaja"') + '>' + escapeHtml(k.kelas) + ' (' + k.jumlah + ')</span>').join('') +
       '</div><div id="muetRoster"></div>';
     kotak.querySelectorAll('[data-kelas]').forEach(el => {
       el.classList.toggle('aktif', el.dataset.kelas === S.muetKelas);
@@ -1371,9 +1471,10 @@ function muatMuetRoster() {
         <div class="kad"><div class="nilai">${r.gpmp === null ? '-' : r.gpmp.toFixed(2)}</div><div class="label">GPMP Kelas (Keputusan Sebenar)</div></div>
       </div>
       <div class="panel">
-        <p class="kecil">Isi markah setiap komponen (0–90). Jumlah dan Band dikira automatik. Tandakan <b>TH</b> bagi calon yang tidak hadir
+        ${res.bolehIsi ? `<p class="kecil">Isi markah setiap komponen (0–90). Jumlah dan Band dikira automatik. Tandakan <b>TH</b> bagi calon yang tidak hadir
         peperiksaan MUET sebenar — calon TH tidak dikira dalam GPMP. Selepas selesai, klik <b>Simpan Semua Markah MUET</b>.
-        Senarai calon diambil daripada pelajar aktif kelas ini (tambah/padam pelajar di menu Pelajar).</p>
+        Senarai calon diambil daripada pelajar aktif kelas ini (tambah/padam pelajar di menu Pelajar).</p>`
+        : '<div class="mesej amaran">Paparan sahaja — kelas ini tidak ditetapkan kepada anda. Markah hanya boleh diisi oleh guru MUET kelas ini.</div>'}
         <div class="tbl-scroll muet-jadual"><table>
           <thead>
             <tr><th rowspan="2">No</th><th rowspan="2" class="muet-nama">Nama Pelajar</th><th rowspan="2">ETR</th>
@@ -1388,8 +1489,9 @@ function muatMuetRoster() {
             <td><input type="checkbox" class="muet-th" ${b.TidakHadir ? 'checked' : ''} title="Tidak hadir peperiksaan MUET sebenar" aria-label="Tidak hadir"></td>
           </tr>`).join('') || '<tr><td colspan="23" class="kecil">Tiada pelajar aktif dalam kelas ini.</td></tr>'}</tbody>
         </table></div>
-        ${res.senarai.length ? '<button id="btnSimpanMuet" class="btn-simpan-roster">Simpan Semua Markah MUET</button>' : ''}
+        ${res.senarai.length && res.bolehIsi ? '<button id="btnSimpanMuet" class="btn-simpan-roster">Simpan Semua Markah MUET</button>' : ''}
       </div>`;
+    if (!res.bolehIsi) el.querySelectorAll('tbody input, tbody select').forEach(i => { i.disabled = true; });
 
     el.querySelectorAll('tbody tr[data-id]').forEach(tr => {
       kiraBarisMuet(tr);
@@ -1540,6 +1642,310 @@ function padamGpsMuet(tahun) {
   if (!confirm('Padam GPS MUET manual bagi tahun ' + tahun + '?')) return;
   panggil('apiMuetPadamGpsSejarah', { token: S.token, tahun })
     .then(() => { tunjukMesej('GPS tahun ' + tahun + ' dipadam.'); muatMuetTrend(); }).catch(err => tunjukMesej(err, 'ralat'));
+}
+
+/* ---------- Tab 4: Penetapan Guru (Admin / GPK / Ketua Akademik) ---------- */
+function muatMuetPenetapan() {
+  const kotak = document.getElementById('subMuet');
+  kotak.innerHTML = '<div class="muatan">Memuatkan guru MUET...</div>';
+  panggil('apiMuetPenetapanGuru', { token: S.token, tahunSTPM: S.tahunSTPM }).then(res => {
+    if (!res.guru.length) {
+      kotak.innerHTML = '<div class="mesej amaran">Tiada guru MUET aktif. Masukkan kod <b>' + KOD_SUBJEK_MUET +
+        '</b> dalam Skop Subjek guru di menu Pengguna dahulu.</div>';
+      return;
+    }
+    if (!res.kelas.length) {
+      kotak.innerHTML = '<div class="mesej amaran">Tiada kelas dengan pelajar aktif bagi Tahun STPM ' + escapeHtml(S.tahunSTPM) + '.</div>';
+      return;
+    }
+    kotak.innerHTML = `
+      <div class="panel"><h3>Penetapan Kelas Guru MUET — Tahun STPM ${escapeHtml(S.tahunSTPM)}</h3>
+        <p class="kecil">Tandakan kelas yang diajar oleh setiap guru MUET, kemudian klik <b>Simpan</b> pada baris guru itu. Guru hanya boleh
+        <b>mengisi</b> markah bagi kelas yang ditandakan; semua guru MUET masih boleh <b>melihat</b> markah dan menjana slip bagi semua kelas.
+        Guru tanpa sebarang kelas ditandakan hanya boleh melihat. Senarai guru = pengguna aktif dengan kod ${KOD_SUBJEK_MUET} dalam Skop Subjek.</p>
+        ${res.tanpaGuru.length ? '<div class="mesej amaran">Kelas belum ada guru MUET: <b>' + res.tanpaGuru.map(escapeHtml).join(', ') + '</b></div>'
+          : '<div class="mesej jaya">Semua kelas sudah ada guru MUET.</div>'}
+        <div class="tbl-scroll" style="max-height:none"><table>
+          <thead><tr><th>Guru</th><th>Kelas Diajar</th><th></th></tr></thead>
+          <tbody>${res.guru.map(g => `<tr data-nokp="${escapeHtml(g.nokp)}">
+            <td style="white-space:normal;min-width:160px"><b>${escapeHtml(g.nama)}</b><br><span class="kecil">${escapeHtml(g.nokp)} · ${escapeHtml(g.peranan)}</span></td>
+            <td style="white-space:normal">${res.kelas.map(k => '<label class="cip-kelas"><input type="checkbox" value="' + escapeHtml(k.kunci) + '"' +
+              (g.kelas.indexOf(k.kunci) !== -1 ? ' checked' : '') + '>' + escapeHtml(k.nama) + '</label>').join('')}</td>
+            <td><button class="btn-simpan-penetapan">Simpan</button></td>
+          </tr>`).join('')}</tbody>
+        </table></div>
+      </div>`;
+    kotak.querySelectorAll('.btn-simpan-penetapan').forEach(btn => btn.addEventListener('click', () => {
+      const tr = btn.closest('tr');
+      const kelas = Array.from(tr.querySelectorAll('input:checked')).map(i => i.value);
+      btn.disabled = true; btn.textContent = 'Menyimpan...';
+      panggil('apiMuetSimpanPenetapanGuru', { token: S.token, tahunSTPM: S.tahunSTPM, nokp: tr.dataset.nokp, kelas })
+        .then(() => { tunjukMesej('Penetapan kelas MUET disimpan.'); muatMuetPenetapan(); })
+        .catch(err => { tunjukMesej(err, 'ralat'); btn.disabled = false; btn.textContent = 'Simpan'; });
+    }));
+  }).catch(err => { kotak.innerHTML = '<div class="mesej ralat">' + escapeHtml(err) + '</div>'; });
+}
+
+/* ---------- Tab 5: Slip MUET (individu / satu kelas) — Cetak / Simpan PDF ----------
+   Slip dirender sebagai HTML bersaiz A4 (unit mm). "Cetak / Simpan PDF" guna dialog
+   cetak pelayar (pilih "Save as PDF" untuk fail PDF vektor yang tajam); "Muat Turun PDF"
+   menjana fail PDF terus dalam pelayar (pustaka html2pdf.js, dimuat hanya bila diklik). */
+const URL_HTML2PDF = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+const NAMA_KOMPONEN_MUET = { L: ['Listening', 'Mendengar'], S: ['Speaking', 'Bertutur'], R: ['Reading', 'Membaca'], W: ['Writing', 'Menulis'] };
+const BULAN_MELAYU = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+
+function tarikhPanjang(teks) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(teks || ''));
+  return m ? Number(m[3]) + ' ' + BULAN_MELAYU[Number(m[2]) - 1] + ' ' + m[1] : String(teks || '');
+}
+
+function formatNoKP(nokp) {
+  const d = String(nokp || '').replace(/\D/g, '');
+  return d.length === 12 ? d.slice(0, 6) + '-' + d.slice(6, 8) + '-' + d.slice(8) : d;
+}
+
+function muatMuetSlip() {
+  if (!S.slipSumber) S.slipSumber = 'T1';
+  const kotak = document.getElementById('subMuet');
+  kotak.innerHTML = '<div class="muatan">Memuatkan kelas...</div>';
+  const panggilan = [panggil('apiMuetKelas', { token: S.token, tahunSTPM: S.tahunSTPM })];
+  if (bolehUrus()) panggilan.push(panggil('apiMuetTetapanSlip', { token: S.token }));
+  Promise.all(panggilan).then(([resKelas, resTetapan]) => {
+    if (!resKelas.senarai.length) {
+      kotak.innerHTML = '<div class="mesej amaran">Tiada kelas dengan pelajar aktif bagi Tahun STPM ' + escapeHtml(S.tahunSTPM) + '.</div>';
+      return;
+    }
+    if (!resKelas.senarai.some(k => k.kelas === S.slipKelas)) {
+      S.slipKelas = (resKelas.senarai.find(k => k.kelas === S.muetKelas) || resKelas.senarai.find(k => k.bolehIsi) || resKelas.senarai[0]).kelas;
+      S.slipPelajar = '';
+    }
+    const t = resTetapan ? resTetapan.tetapan : null;
+    kotak.innerHTML = `
+      <div class="panel"><h3>Jana Slip Keputusan MUET</h3>
+        <div class="borang-grid">
+          <div><label>Peperiksaan</label><select id="slSumber">${['T1', 'T2', 'A'].map(sm =>
+            '<option value="' + sm + '"' + (sm === S.slipSumber ? ' selected' : '') + '>' + LABEL_SUMBER_MUET[sm] + '</option>').join('')}</select></div>
+          <div><label>Kelas</label><select id="slKelas">${resKelas.senarai.map(k =>
+            '<option value="' + escapeHtml(k.kelas) + '"' + (k.kelas === S.slipKelas ? ' selected' : '') + '>' + escapeHtml(k.kelas) + ' (' + k.jumlah + ')</option>').join('')}</select></div>
+          <div><label>Pelajar</label><select id="slPelajar"><option value="">Semua pelajar dalam kelas</option></select></div>
+        </div>
+        <div class="butang-baris">
+          <button id="btnCetakSlip" disabled>Cetak / Simpan PDF</button>
+          <button id="btnMuatTurunSlip" class="sekunder" disabled>Muat Turun PDF</button>
+        </div>
+        <p class="kecil" style="margin-bottom:0">Satu slip bagi setiap calon (kertas A4). Untuk fail PDF yang paling tajam dan kecil, klik
+        <b>Cetak / Simpan PDF</b> dan pilih <b>Save as PDF / Simpan sebagai PDF</b> pada dialog cetak.</p>
+        <div id="slInfo"></div>
+      </div>
+      <div id="pratontonSlip"></div>
+      ${t ? `<div class="panel"><h3>Tetapan Slip (Nama &amp; Tandatangan)</h3>
+        <p class="kecil">Dipaparkan pada semua slip. Biarkan nama kosong jika mahu ditulis tangan.</p>
+        <div class="borang-grid">
+          <div><label>Nama Penuh Sekolah</label><input id="tsSekolah" value="${escapeHtml(t.namaPenuhSekolah)}"></div>
+          <div><label>Alamat Sekolah (opsyenal)</label><input id="tsAlamat" value="${escapeHtml(t.alamatSekolah)}"></div>
+          <div><label>Nama PK Tingkatan 6</label><input id="tsPKT6" value="${escapeHtml(t.namaPKT6)}"></div>
+          <div><label>Nama Pengetua</label><input id="tsPengetua" value="${escapeHtml(t.namaPengetua)}"></div>
+        </div>
+        <button id="btnSimpanTetapanSlip">Simpan Tetapan Slip</button></div>` : ''}`;
+
+    document.getElementById('slSumber').addEventListener('change', e => { S.slipSumber = e.target.value; muatDataSlip(); });
+    document.getElementById('slKelas').addEventListener('change', e => { S.slipKelas = e.target.value; S.slipPelajar = ''; muatDataSlip(); });
+    document.getElementById('slPelajar').addEventListener('change', e => { S.slipPelajar = e.target.value; renderPratontonSlip(); });
+    document.getElementById('btnCetakSlip').addEventListener('click', cetakSlipMuet);
+    document.getElementById('btnMuatTurunSlip').addEventListener('click', muatTurunSlipMuet);
+    const btnTetapan = document.getElementById('btnSimpanTetapanSlip');
+    if (btnTetapan) btnTetapan.addEventListener('click', () => {
+      panggil('apiMuetSimpanTetapanSlip', { token: S.token, namaPenuhSekolah: document.getElementById('tsSekolah').value,
+        alamatSekolah: document.getElementById('tsAlamat').value, namaPKT6: document.getElementById('tsPKT6').value,
+        namaPengetua: document.getElementById('tsPengetua').value })
+        .then(() => { tunjukMesej('Tetapan slip disimpan.'); muatDataSlip(); }).catch(err => tunjukMesej(err, 'ralat'));
+    });
+    muatDataSlip();
+  }).catch(err => { kotak.innerHTML = '<div class="mesej ralat">' + escapeHtml(err) + '</div>'; });
+}
+
+function muatDataSlip() {
+  const el = document.getElementById('pratontonSlip');
+  if (!el) return;
+  S.slipData = null;
+  ['btnCetakSlip', 'btnMuatTurunSlip'].forEach(id => { document.getElementById(id).disabled = true; });
+  el.innerHTML = '<div class="muatan">Menjana slip...</div>';
+  const diminta = { sumber: S.slipSumber, kelas: S.slipKelas };
+  panggil('apiMuetSlip', { token: S.token, tahunSTPM: S.tahunSTPM, kelas: S.slipKelas, sumber: S.slipSumber }).then(res => {
+    if (diminta.sumber !== S.slipSumber || diminta.kelas !== S.slipKelas) return; // pilihan sudah berubah
+    S.slipData = res;
+    if (!res.calon.some(c => c.idPelajar === S.slipPelajar && c.ada)) S.slipPelajar = '';
+    document.getElementById('slPelajar').innerHTML = '<option value="">Semua pelajar dalam kelas (' + res.slip.length + ' slip)</option>' +
+      res.calon.map(c => '<option value="' + escapeHtml(c.idPelajar) + '"' + (c.ada ? '' : ' disabled') + (c.idPelajar === S.slipPelajar ? ' selected' : '') + '>' +
+        escapeHtml(c.nama) + (c.ada ? '' : ' — tiada markah') + '</option>').join('');
+    renderPratontonSlip();
+  }).catch(err => { el.innerHTML = '<div class="mesej ralat">' + escapeHtml(err) + '</div>'; });
+}
+
+function slipDipilih() {
+  const d = S.slipData;
+  if (!d) return [];
+  return S.slipPelajar ? d.slip.filter(x => x.idPelajar === S.slipPelajar) : d.slip;
+}
+
+function renderPratontonSlip() {
+  const el = document.getElementById('pratontonSlip');
+  const d = S.slipData;
+  const senarai = slipDipilih();
+  ['btnCetakSlip', 'btnMuatTurunSlip'].forEach(id => { document.getElementById(id).disabled = !senarai.length; });
+  document.getElementById('slInfo').innerHTML = d.dilangkau.length && !S.slipPelajar
+    ? '<div class="mesej amaran" style="margin:10px 0 0">' + d.dilangkau.length + ' calon tiada slip ' + LABEL_SUMBER_MUET[d.sumber] + ': ' +
+      d.dilangkau.map(escapeHtml).join(', ') + '</div>' : '';
+  if (!senarai.length) {
+    el.innerHTML = '<div class="mesej amaran">Belum ada markah ' + LABEL_SUMBER_MUET[d.sumber] + ' bagi kelas ' + escapeHtml(d.kelas) +
+      '. Isi markah di tab Kelas &amp; Markah dahulu.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="pratonton-slip">' + senarai.map(x => slipMuetHtml(d, x)).join('') + '</div>';
+  const zum = () => {
+    const kontena = el.querySelector('.pratonton-slip');
+    if (kontena) kontena.style.setProperty('--zum', Math.min(1, (kontena.clientWidth - 24) / 794).toFixed(3));
+  };
+  zum();
+  if (!S.pasangZumSlip) { S.pasangZumSlip = true; window.addEventListener('resize', () => { if (document.querySelector('.pratonton-slip')) zum(); }); }
+}
+
+/* Satu slip A4 (HTML). Semua teks daripada data pengguna dilalukan escapeHtml. */
+function slipMuetHtml(d, x) {
+  const e = escapeHtml, sk = d.sekolah;
+  const label = LABEL_SUMBER_MUET[d.sumber];
+  const bar = (n, maks) => '<div class="bar-luar"><div class="bar-dalam" style="width:' + (n === null ? 0 : Math.round(n * 100 / maks)) + '%"></div></div>';
+  const ada = KOMPONEN_MUET.filter(k => x.markah[k] !== null);
+  const analisis = [];
+  if (x.etr === null) analisis.push('Band sasaran (ETR) belum ditetapkan.');
+  else if (x.capaiEtr) analisis.push('Tahniah! Anda telah mencapai band sasaran (ETR) <b>Band ' + e(x.etr) + '</b>.');
+  else analisis.push('Anda memerlukan sekurang-kurangnya <b>' + x.markahKeEtr + ' markah lagi</b> untuk mencapai band sasaran (ETR) <b>Band ' + e(x.etr) + '</b>.');
+  if (ada.length >= 2) {
+    const kuat = ada.reduce((m, k) => x.markah[k] > x.markah[m] ? k : m);
+    const lemah = ada.reduce((m, k) => x.markah[k] < x.markah[m] ? k : m);
+    if (x.markah[kuat] !== x.markah[lemah]) {
+      analisis.push('Komponen terbaik: <b>' + NAMA_KOMPONEN_MUET[kuat][0] + '</b> (' + x.markah[kuat] + '/90). Komponen yang perlu diberi tumpuan: <b>' +
+        NAMA_KOMPONEN_MUET[lemah][0] + '</b> (' + x.markah[lemah] + '/90).');
+    }
+  }
+  const tiada = KOMPONEN_MUET.filter(k => x.markah[k] === null);
+  if (tiada.length) analisis.push('Tiada markah bagi komponen: ' + tiada.map(k => NAMA_KOMPONEN_MUET[k][0]).join(', ') + ' (dikira 0).');
+  const banding = x.banding ? '<div><div class="lbl">Berbanding ' + LABEL_SUMBER_MUET[x.banding.sumber].replace('MUET ', '') + '</div><b class="' +
+    (x.banding.beza > 0 ? 'naik">&#9650; +' : x.banding.beza < 0 ? 'turun">&#9660; ' : '">') + x.banding.beza + ' markah</b>' +
+    '<div class="nota">' + x.banding.jumlah + ' (Band ' + e(x.banding.band || '-') + ') &rarr; ' + x.jumlah + ' (Band ' + e(x.band || '-') + ')</div></div>'
+    : '<div><div class="lbl">Perbandingan</div><b>-</b><div class="nota">Tiada peperiksaan terdahulu untuk dibandingkan</div></div>';
+  const ttd = (nama, jawatan) => '<div><div class="ruang"></div><div class="garis-ttd"></div><b>' +
+    (nama ? '(' + e(nama.toUpperCase()) + ')' : '(&nbsp;' + '.'.repeat(48) + '&nbsp;)') + '</b><span>' + jawatan + '</span><span>' + e(sk.namaPenuhSekolah) + '</span></div>';
+
+  return `<section class="slip"><div class="slip-bingkai"><div class="slip-dalam">
+    <div class="logo-sekolah slip-tera"></div>
+    <header class="slip-kepala">
+      <div class="logo-sekolah" role="img" aria-label="Logo sekolah"></div>
+      <div class="slip-sekolah">
+        <div class="slip-nama-sekolah">${e(sk.namaPenuhSekolah)}</div>
+        ${sk.alamatSekolah ? '<div class="slip-alamat">' + e(sk.alamatSekolah) + '</div>' : ''}
+        <div class="slip-unit">Unit Tingkatan Enam</div>
+      </div>
+    </header>
+    <div class="slip-garis"></div>
+    <div class="slip-tajuk">
+      <div class="kecil-atas">SLIP KEPUTUSAN</div>
+      <h1>${e(label.toUpperCase())}</h1>
+      <div class="sub">Malaysian University English Test (800) · Tahun STPM ${e(d.tahunSTPM)}</div>
+    </div>
+    <dl class="slip-maklumat">
+      <dt>Nama Calon</dt><dd class="penuh">${e(x.nama)}</dd>
+      <dt>No. Kad Pengenalan</dt><dd>${e(formatNoKP(x.nokp)) || '-'}</dd>
+      <dt>Kelas</dt><dd>${e(x.kelas)}</dd>
+    </dl>
+    <div class="slip-seksyen">Markah Komponen</div>
+    <table>
+      <thead><tr><th>Kod Kertas</th><th>Komponen</th><th style="text-align:right">Markah</th><th>Pencapaian</th></tr></thead>
+      <tbody>
+        ${KOMPONEN_MUET.map(k => `<tr><td class="kod">${LABEL_KOMPONEN_MUET[k]}</td>
+          <td class="komp">${NAMA_KOMPONEN_MUET[k][0]} <small>(${NAMA_KOMPONEN_MUET[k][1]})</small></td>
+          <td class="mk"><b>${x.markah[k] === null ? '-' : x.markah[k]}</b> / 90</td><td class="bar">${bar(x.markah[k], 90)}</td></tr>`).join('')}
+        <tr class="jumlah"><td colspan="2">JUMLAH KESELURUHAN</td><td class="mk"><b>${x.jumlah}</b> / 360</td><td class="bar">${bar(x.jumlah, 360)}</td></tr>
+      </tbody>
+    </table>
+    <div class="slip-hasil">
+      <div class="slip-pingat utama"><div class="lbl">Band Dicapai</div><div class="besar">${e(x.band || '-')}</div><div class="ket">${x.tahapCefr ? e(x.tahapCefr) : '&nbsp;'}</div></div>
+      <div class="slip-pingat"><div class="lbl">Tahap CEFR</div><div class="besar">${e(x.cefr || '-')}</div><div class="ket">Common European Framework</div></div>
+      <div class="slip-pingat"><div class="lbl">Band Sasaran (ETR)</div><div class="besar">${e(x.etr || '-')}</div>
+        <div>${x.etr === null ? '<span class="slip-cop tiada">Belum ditetapkan</span>' : x.capaiEtr ? '<span class="slip-cop capai">&#10004; Capai Sasaran</span>' : '<span class="slip-cop belum">Belum Capai</span>'}</div></div>
+    </div>
+    <div class="slip-skala">${d.bands.map(b => '<span class="' + (b === x.band ? 'dicapai ' : '') + (b === x.etr ? 'sasaran' : '') + '">' + e(b) + '</span>').join('')}</div>
+    <div class="slip-petunjuk">Skala Band MUET:<i style="background:#1e3a5f"></i>Band dicapai<i style="border:.35mm solid #b08d3c"></i>Band sasaran (ETR)</div>
+    <div class="slip-prestasi">
+      <div><div class="lbl">Kedudukan dalam Kelas</div><b>${x.kedudukanKelas}</b> / ${x.bilKelas}</div>
+      <div><div class="lbl">Kedudukan dalam Tingkatan</div><b>${x.kedudukanTingkatan}</b> / ${x.bilTingkatan}</div>
+      ${banding}
+    </div>
+    <div class="slip-seksyen">Analisis Ringkas</div>
+    <ul class="slip-analisis">${analisis.map(a => '<li>' + a + '</li>').join('')}</ul>
+    <div class="slip-ulasan"><div class="slip-seksyen">Ulasan Guru MUET</div><div class="baris"></div><div class="baris"></div></div>
+    <div class="slip-ttd">${ttd(sk.namaPKT6, 'Penolong Kanan Tingkatan 6')}${ttd(sk.namaPengetua, 'Pengetua')}</div>
+    <div class="slip-kaki">Dijana oleh Sistem Headcount STPM ${e(sk.namaPenuhSekolah)} pada ${e(tarikhPanjang(d.tarikhJana))}. ` +
+    (d.sumber === 'A' ? 'Keputusan rasmi adalah seperti dalam pernyataan keputusan Majlis Peperiksaan Malaysia.'
+      : 'Keputusan percubaan ini untuk pemantauan dalaman sekolah dan bukan keputusan rasmi Majlis Peperiksaan Malaysia.') + `</div>
+  </div></div></section>`;
+}
+
+function namaFailSlip() {
+  const d = S.slipData, senarai = slipDipilih();
+  const siapa = S.slipPelajar && senarai[0] ? senarai[0].nama : d.kelas;
+  return ('Slip ' + LABEL_SUMBER_MUET[d.sumber] + ' ' + d.tahunSTPM + ' - ' + siapa).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function cetakSlipMuet() {
+  const senarai = slipDipilih();
+  if (!senarai.length) return;
+  const kawasan = document.getElementById('kawasanCetak');
+  kawasan.innerHTML = senarai.map(x => slipMuetHtml(S.slipData, x)).join('');
+  const tajukAsal = document.title;
+  document.title = namaFailSlip(); // nama fail lalai bagi "Save as PDF"
+  const gayaHalaman = document.createElement('style');
+  gayaHalaman.textContent = '@page { size: A4 portrait; margin: 0; }';
+  document.head.appendChild(gayaHalaman);
+  document.body.classList.add('mod-cetak');
+  const kemas = () => { document.body.classList.remove('mod-cetak'); gayaHalaman.remove(); kawasan.innerHTML = ''; document.title = tajukAsal; };
+  window.addEventListener('afterprint', kemas, { once: true });
+  window.print(); // terus dalam klik pengguna (sesetengah pelayar sekat cetak di luar tindakan pengguna)
+}
+
+function muatHtml2pdf() {
+  if (window.html2pdf) return Promise.resolve(window.html2pdf);
+  if (!S.janjiHtml2pdf) {
+    S.janjiHtml2pdf = new Promise((ok, gagal) => {
+      const sc = document.createElement('script');
+      sc.src = URL_HTML2PDF;
+      sc.onload = () => (window.html2pdf ? ok(window.html2pdf) : gagal('Pustaka PDF tidak dapat dimulakan.'));
+      sc.onerror = () => { S.janjiHtml2pdf = null; sc.remove(); gagal('Pustaka PDF gagal dimuatkan (semak sambungan internet). Gunakan butang Cetak / Simpan PDF.'); };
+      document.head.appendChild(sc);
+    });
+  }
+  return S.janjiHtml2pdf;
+}
+
+function muatTurunSlipMuet() {
+  const senarai = slipDipilih();
+  if (!senarai.length) return;
+  const d = S.slipData;
+  const btn = document.getElementById('btnMuatTurunSlip');
+  btn.disabled = true;
+  btn.textContent = 'Menjana PDF (' + senarai.length + ' slip)...';
+  muatHtml2pdf().then(h2p => {
+    const opsyen = { margin: 0, filename: namaFailSlip() + '.pdf', image: { type: 'jpeg', quality: 0.92 },
+      html2canvas: { scale: 2, backgroundColor: '#ffffff', logging: false }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+    // Satu halaman bagi setiap slip: render slip pertama, kemudian tambah halaman bagi slip seterusnya.
+    let kerja = h2p().set(opsyen).from(slipMuetHtml(d, senarai[0])).toPdf();
+    senarai.slice(1).forEach(x => {
+      kerja = kerja.get('pdf').then(pdf => { pdf.addPage(); }).from(slipMuetHtml(d, x)).toContainer().toCanvas().toPdf();
+    });
+    return kerja.save();
+  }).then(() => tunjukMesej('PDF slip dimuat turun.'))
+    .catch(err => tunjukMesej(String(err && err.message || err), 'ralat'))
+    .then(() => { btn.disabled = false; btn.textContent = 'Muat Turun PDF'; });
 }
 
 /* ======================= TUGAS SAYA (subjek + kelas diajar bagi setiap guru) =======================
