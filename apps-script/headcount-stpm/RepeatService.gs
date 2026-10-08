@@ -15,20 +15,7 @@ function apiSenaraiUlangan(p) {
   if (p.tahunSTPM) senarai = senarai.filter(r => String(r.TahunSTPM) === String(p.tahunSTPM));
   senarai = senarai.filter(penapisRekodPelajar(sesi));
 
-  const hasil = senarai.map(r => {
-    const asal = nilaiGred(mapGred, r.KeputusanAsal);
-    const ulangan = nilaiGred(mapGred, r.KeputusanUlangan);
-    let statusPerubahan = '';
-    if (asal !== null && ulangan !== null) {
-      if (ulangan > asal) statusPerubahan = 'BERJAYA_MENINGKAT';
-      else if (ulangan === asal) statusPerubahan = 'KEKAL';
-      else statusPerubahan = 'MENURUN';
-      if (ulangan !== null && mapGred[String(r.KeputusanUlangan).toUpperCase()] && !mapGred[String(r.KeputusanUlangan).toUpperCase()].lulus) {
-        statusPerubahan = 'MASIH_GAGAL';
-      }
-    }
-    return Object.assign({}, r, { statusPerubahan });
-  });
+  const hasil = senarai.map(r => Object.assign({}, r, { statusPerubahan: statusPerubahanUlangan(mapGred, r) }));
 
   return jaya({ senarai: hasil });
 }
@@ -70,4 +57,14 @@ function apiSimpanUlangan(p) {
     catatAudit(sesi, 'TAMBAH', 'ULANGAN_' + p.semester, idPelajar + '-' + kodSubjek, '', JSON.stringify(objek), '');
   }
   return jaya({});
+}
+
+/* Status perubahan ASAL -> ULANGAN (dikongsi dengan ReportService.gs). '' jika belum lengkap. */
+function statusPerubahanUlangan(mapGred, r) {
+  const asal = nilaiGred(mapGred, r.KeputusanAsal);
+  const ulangan = nilaiGred(mapGred, r.KeputusanUlangan);
+  if (asal === null || ulangan === null) return '';
+  const g = mapGred[String(r.KeputusanUlangan).toUpperCase()];
+  if (g && !g.lulus) return 'MASIH_GAGAL';
+  return ulangan > asal ? 'BERJAYA_MENINGKAT' : (ulangan === asal ? 'KEKAL' : 'MENURUN');
 }

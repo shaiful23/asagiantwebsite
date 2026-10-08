@@ -139,6 +139,86 @@
   .cip-kelas:has(input:checked) { background: #eef2ff; border-color: var(--biru-terang); color: var(--biru); }
   .butang-baris { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 
+  /* ===== LAPORAN (persembahan): jubin pilihan, banner, KPI, carta SVG, jadual =====
+     Warna carta: siri tunggal = biru (#2a78d6); dua siri = biru + oren (#eb6834);
+     status = hijau/kuning/oren/merah (sentiasa dengan ikon + label). */
+  .lp-jubin { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .lp-jubin button { display: flex; gap: 10px; align-items: flex-start; text-align: left; background: var(--kad); color: #111827; border: 1px solid var(--garis);
+    border-radius: 12px; padding: 12px; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,.04); transition: border-color .15s, box-shadow .15s, transform .15s; }
+  .lp-jubin button:hover { border-color: #93c5fd; box-shadow: 0 4px 14px rgba(37,99,235,.12); transform: translateY(-1px); }
+  .lp-jubin button.aktif { border-color: var(--biru-terang); background: #eff6ff; box-shadow: 0 0 0 2px rgba(37,99,235,.18); }
+  .lp-jubin .ikon { flex: none; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: #eef2ff; color: var(--biru-terang); }
+  .lp-jubin b { display: block; font-size: 13px; } .lp-jubin small { display: block; font-size: 11.5px; color: var(--abu); margin-top: 2px; font-weight: 400; }
+  .ikon svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .lp-hero { background: linear-gradient(120deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%); color: #fff; border-radius: 14px; padding: 20px 22px; margin-bottom: 16px;
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap; position: relative; overflow: hidden; }
+  .lp-hero::after { content: ''; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,.08); }
+  .lp-hero .ikon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.16); display: grid; place-items: center; flex: none; }
+  .lp-hero .ikon svg { width: 28px; height: 28px; }
+  .lp-hero h2 { margin: 0; font-size: 20px; } .lp-hero p { margin: 4px 0 0; font-size: 12.5px; opacity: .85; }
+  .lp-hero .tindakan { margin-left: auto; display: flex; gap: 8px; position: relative; z-index: 1; }
+  .lp-hero .tindakan button { background: rgba(255,255,255,.95); color: #1e3a8a; display: inline-flex; gap: 6px; align-items: center; }
+  .lp-hero .tindakan button svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .lp-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .lp-kpi .kad { display: flex; gap: 12px; align-items: center; border: 1px solid var(--garis); box-shadow: none; }
+  .lp-kpi .ikon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; flex: none; background: #eef2ff; color: #2563eb; }
+  .lp-kpi .ikon.hijau { background: #dcfce7; color: #15803d; } .lp-kpi .ikon.merah { background: #fee2e2; color: #b91c1c; }
+  .lp-kpi .ikon.kuning { background: #fef3c7; color: #b45309; } .lp-kpi .ikon.ungu { background: #ede9fe; color: #6d28d9; }
+  .lp-kpi .nilai { font-size: 24px; line-height: 1.1; color: #0b0b0b; font-variant-numeric: tabular-nums; }
+  .lp-kpi .label { margin-top: 2px; }
+  .lp-kpi .sub { font-size: 11.5px; color: var(--abu); }
+  .lp-carta { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .lp-carta .panel { margin-bottom: 0; border: 1px solid var(--garis); box-shadow: none; }
+  .lp-carta h4 { margin: 0 0 2px; font-size: 14px; color: #0b0b0b; } .lp-carta .nota { font-size: 12px; color: #52514e; margin: 0 0 12px; }
+  .donut { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  .donut svg { width: 150px; height: 150px; flex: none; }
+  .donut .tengah-nilai { font-size: 22px; font-weight: 700; fill: #0b0b0b; } .donut .tengah-label { font-size: 10px; fill: #52514e; }
+  .legenda { list-style: none; margin: 0; padding: 0; font-size: 12.5px; flex: 1; min-width: 150px; }
+  .legenda li { display: flex; align-items: center; gap: 8px; padding: 4px 0; color: #0b0b0b; }
+  .legenda i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .legenda .bil { margin-left: auto; font-variant-numeric: tabular-nums; color: #52514e; }
+  .legenda .simbol { width: 14px; text-align: center; font-size: 11px; font-weight: 700; color: #52514e; }
+  .bar-baris { display: grid; grid-template-columns: minmax(70px, 120px) 1fr 52px; gap: 10px; align-items: center; font-size: 12.5px; padding: 3px 0; }
+  .bar-baris.ada-etr { padding: 4px 0 9px; }
+  .bar-baris .nm { color: #0b0b0b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-baris .trek { position: relative; height: 14px; background: #f1f1ef; border-radius: 4px; }
+  .bar-baris .isi { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; background: #2a78d6; min-width: 2px; }
+  .bar-baris .isi.etr { top: auto; height: 4px; bottom: -6px; background: #eb6834; border-radius: 0 2px 2px 0; }
+  .bar-baris .sasaran { position: absolute; top: -3px; bottom: -3px; border-left: 2px dashed #52514e; }
+  .bar-baris .v { text-align: right; font-variant-numeric: tabular-nums; color: #0b0b0b; font-weight: 600; }
+  .bar-paksi { display: grid; grid-template-columns: minmax(70px, 120px) 1fr 52px; gap: 10px; font-size: 11px; color: #898781; margin-top: 4px; }
+  .bar-paksi div { display: flex; justify-content: space-between; }
+  .lajur-carta { display: flex; align-items: flex-end; gap: 6px; height: 170px; padding-top: 18px; border-bottom: 1px solid #c3c2b7; }
+  .lajur-carta .kump { flex: 1; display: flex; align-items: flex-end; justify-content: center; gap: 2px; height: 100%; position: relative; }
+  .lajur-carta .tiang { width: 100%; max-width: 22px; background: #2a78d6; border-radius: 4px 4px 0 0; min-height: 0; position: relative; }
+  .lajur-carta .tiang.kedua { background: #eb6834; }
+  .lajur-carta .tiang span { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 10.5px; color: #52514e; font-variant-numeric: tabular-nums; }
+  .lajur-label { display: flex; gap: 6px; font-size: 11px; color: #52514e; margin-top: 4px; } .lajur-label div { flex: 1; text-align: center; }
+  .legenda-mendatar { display: flex; gap: 14px; font-size: 12px; color: #0b0b0b; margin-bottom: 8px; flex-wrap: wrap; }
+  .legenda-mendatar span { display: inline-flex; align-items: center; gap: 6px; } .legenda-mendatar i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  #tipCarta { position: fixed; z-index: 10000; pointer-events: none; background: #0b0b0b; color: #fff; font-size: 12px; padding: 6px 9px; border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.2); opacity: 0; transition: opacity .1s; max-width: 260px; }
+  [data-tip] { cursor: default; }
+  .lp-jadual .penapis { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .lp-jadual .penapis input, .lp-jadual .penapis select { width: auto; min-width: 160px; margin: 0; }
+  .lp-jadual table tbody tr:nth-child(even) { background: #fafafa; }
+  .lp-jadual td.nom, .lp-jadual th.nom { text-align: right; font-variant-numeric: tabular-nums; }
+  .lp-jadual td.teks { white-space: normal; min-width: 160px; }
+  .mg { font-variant-numeric: tabular-nums; } .mg small { display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: 4px; background: #eef2ff; color: #1e3a8a; font-size: 10.5px; font-weight: 700; }
+  .lencana.TIADA_DATA, .lencana.BELUM_DINILAI { background: #9ca3af; } .lencana.SELESAI, .lencana.YA { background: var(--hijau); }
+  .lencana.DIJALANKAN, .lencana.DALAM_TINDAKAN { background: var(--biru-terang); } .lencana.TIDAK { background: var(--merah); }
+  @media (max-width: 480px) {
+    .lp-jubin { grid-template-columns: 1fr 1fr; } .lp-jubin small { display: none; } .lp-jubin .ikon { width: 28px; height: 28px; }
+    .lp-hero .tindakan { margin-left: 0; } .lp-carta { grid-template-columns: 1fr; }
+  }
+  @media print {
+    body.mod-cetak-laporan #sidebar, body.mod-cetak-laporan #topbar, body.mod-cetak-laporan .lp-jubin, body.mod-cetak-laporan .tindakan,
+    body.mod-cetak-laporan .penapis, body.mod-cetak-laporan #paginasiLaporan, body.mod-cetak-laporan #toastKontena { display: none !important; }
+    body.mod-cetak-laporan #main { margin: 0; padding: 0; }
+    body.mod-cetak-laporan { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body.mod-cetak-laporan .tbl-scroll { max-height: none; overflow: visible; }
+    body.mod-cetak-laporan .lp-carta .panel, body.mod-cetak-laporan .lp-kpi .kad { break-inside: avoid; }
+  }
   /* ===== Slip Keputusan MUET (A4) — unit mm supaya cetakan & PDF tepat saiz ===== */
   #kawasanCetak { display: none; }
   .pratonton-slip { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 18px 0; background: #e5e7eb; border-radius: 10px; overflow: hidden; }
@@ -326,6 +406,7 @@
 </div>
 
 <div id="toastKontena"></div>
+<div id="tipCarta" role="tooltip"></div>
 <div id="kawasanCetak"></div>
 
 <script>
@@ -2293,59 +2374,270 @@ function muatWhatIf() {
   });
 }
 
-/* ======================= LAPORAN (MODUL 22) ======================= */
-const JENIS_LAPORAN_LABEL = {
-  HEADCOUNT_S1: 'Headcount Semester 1', HEADCOUNT_S2: 'Headcount Semester 2', HEADCOUNT_S3: 'Headcount Semester 3',
-  PELAJAR_BERISIKO: 'Pelajar Berisiko', INTERVENSI: 'Intervensi', ULANGAN_S1: 'Ulangan S1', ULANGAN_S2: 'Ulangan S2',
-  PRESTASI_SUBJEK: 'Prestasi Subjek', GPS: 'Analisis GPS'
+/* ======================= LAPORAN (MODUL 22) — paparan persembahan =======================
+   Pelayan (ReportService.gs) memulangkan lajur (susunan tetap), baris, ringkasan & carta.
+   Carta dilukis sebagai SVG/HTML tulen (tiada pustaka luaran) — tooltip pada hover,
+   legenda + label nilai supaya identiti tidak bergantung pada warna sahaja. */
+const IKON = {
+  kumpulan: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  buku: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/><path d="M8 7h8M8 11h6"/>',
+  amaran: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+  naik: '<path d="m23 6-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/>',
+  sasaran: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  anugerah: '<circle cx="12" cy="8" r="6"/><path d="M15.48 12.89 17 22l-5-3-5 3 1.52-9.11"/>',
+  papan: '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="m9 14 2 2 4-4"/>',
+  ulang: '<path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>',
+  carta: '<path d="M3 3v18h18"/><path d="M7 16V11M12 16V7M17 16v-3"/>',
+  lapisan: '<path d="m12 2 10 5-10 5L2 7l10-5z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/>',
+  semak: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/>',
+  jam: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  cetak: '<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+  muatTurun: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>'
+};
+function ikon(nama) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + IKON[nama] + '</svg>'; }
+
+const JENIS_LAPORAN = {
+  HEADCOUNT_S1: { label: 'Headcount Semester 1', ikon: 'papan', ket: 'TOV → OTR → AR → ETR, gap & risiko' },
+  HEADCOUNT_S2: { label: 'Headcount Semester 2', ikon: 'papan', ket: 'TOV → OTR → AR → ETR, gap & risiko' },
+  HEADCOUNT_S3: { label: 'Headcount Semester 3', ikon: 'papan', ket: 'TOV → OTR → AR → ETR, gap & risiko' },
+  PELAJAR_BERISIKO: { label: 'Pelajar Berisiko', ikon: 'amaran', ket: 'Senarai kes berisiko semua semester' },
+  INTERVENSI: { label: 'Intervensi', ikon: 'sasaran', ket: 'Program, status & jenis intervensi' },
+  ULANGAN_S1: { label: 'Ulangan S1', ikon: 'ulang', ket: 'Asal → Ulangan, kesan perubahan' },
+  ULANGAN_S2: { label: 'Ulangan S2', ikon: 'ulang', ket: 'Asal → Ulangan, kesan perubahan' },
+  PRESTASI_SUBJEK: { label: 'Prestasi Subjek', ikon: 'buku', ket: '% lulus & taburan gred ikut subjek' },
+  GPS: { label: 'Analisis GPS', ikon: 'carta', ket: 'GPS sekolah, subjek & kelas vs sasaran' }
 };
 
-function muatLaporan() {
-  document.getElementById('kawalanGlobal').innerHTML = pilihanTahunHtml();
-  pasangPilihanTahun(() => { if (S.laporanAktif) janaLaporan(S.laporanAktif, document.querySelector('.tab-link[data-jenis="'+S.laporanAktif+'"]')); });
+/* Warna status (tetap) — sentiasa dipaparkan bersama simbol + label. */
+const WARNA_STATUS = {
+  SELAMAT: ['#0ca30c', '✓'], PERLU_PEMANTAUAN: ['#fab219', '!'], BERISIKO: ['#d03b3b', '✕'], TIADA_DATA: ['#c3c2b7', '–'],
+  MENINGKAT: ['#0ca30c', '↑'], KONSISTEN: ['#2a78d6', '='], TIDAK_STABIL: ['#ec835a', '~'], MENURUN: ['#d03b3b', '↓'], TIDAK_CUKUP_DATA: ['#c3c2b7', '–'],
+  SELESAI: ['#0ca30c', '✓'], DIJALANKAN: ['#2a78d6', '…'],
+  BERJAYA_MENINGKAT: ['#0ca30c', '↑'], KEKAL: ['#2a78d6', '='], MASIH_GAGAL: ['#d03b3b', '✕'], BELUM_DINILAI: ['#c3c2b7', '–']
+};
+function labelStatus(k) { return String(k || '').toLowerCase().replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()); }
+const f2 = v => v === null || v === undefined || v === '' ? '-' : Number(v).toFixed(2);
 
-  document.getElementById('content').innerHTML = `
-    <div class="panel">
-      <h3>Jana Laporan</h3>
-      ${Object.keys(JENIS_LAPORAN_LABEL).map(j => '<span class="tab-link" data-jenis="'+j+'">'+JENIS_LAPORAN_LABEL[j]+'</span>').join('')}
-    </div>
-    <div id="hasilLaporan"></div>`;
-  S.laporanAktif = '';
-  document.querySelectorAll('#content .tab-link').forEach(el => el.addEventListener('click', () => janaLaporan(el.dataset.jenis, el)));
+/* Tooltip tunggal untuk semua elemen [data-tip]. */
+function pasangTooltipCarta() {
+  if (S.tipCartaDipasang) return;
+  S.tipCartaDipasang = true;
+  const tip = document.getElementById('tipCarta');
+  document.addEventListener('mousemove', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (!el) { tip.style.opacity = 0; return; }
+    tip.textContent = el.dataset.tip;
+    const x = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+    tip.style.left = x + 'px'; tip.style.top = (e.clientY + 14) + 'px'; tip.style.opacity = 1;
+  });
 }
 
-function janaLaporan(jenis, elKlik) {
+/* Donut bahagian-keseluruhan. segmen: [{kunci, nilai}] ikut WARNA_STATUS. */
+function cartaDonut(peta, susunan, labelTengah) {
+  const segmen = susunan.filter(k => peta[k]).map(k => ({ k, nilai: peta[k] }));
+  const jumlah = segmen.reduce((j, s) => j + s.nilai, 0);
+  if (!jumlah) return '<p class="kecil">Tiada data.</p>';
+  const r = 60, c = 2 * Math.PI * r, jurang = segmen.length > 1 ? 3 : 0;
+  let ofset = 0;
+  const lengkok = segmen.map(s => {
+    const panjang = s.nilai / jumlah * c;
+    const lukis = Math.max(panjang - jurang, 0.5);
+    const html = '<circle r="' + r + '" cx="75" cy="75" fill="none" stroke="' + WARNA_STATUS[s.k][0] + '" stroke-width="20" stroke-dasharray="' +
+      lukis.toFixed(2) + ' ' + (c - lukis).toFixed(2) + '" stroke-dashoffset="' + (-ofset).toFixed(2) + '" transform="rotate(-90 75 75)" data-tip="' +
+      labelStatus(s.k) + ': ' + s.nilai + ' (' + Math.round(s.nilai * 100 / jumlah) + '%)"></circle>';
+    ofset += panjang;
+    return html;
+  }).join('');
+  return '<div class="donut"><svg viewBox="0 0 150 150" role="img" aria-label="' + escapeHtml(labelTengah) + '">' + lengkok +
+    '<text x="75" y="76" text-anchor="middle" class="tengah-nilai">' + jumlah + '</text><text x="75" y="92" text-anchor="middle" class="tengah-label">' +
+    escapeHtml(labelTengah) + '</text></svg><ul class="legenda">' + segmen.map(s => '<li><i style="background:' + WARNA_STATUS[s.k][0] +
+    '"></i><span class="simbol">' + WARNA_STATUS[s.k][1] + '</span>' + labelStatus(s.k) + '<span class="bil">' + s.nilai + ' · ' +
+    Math.round(s.nilai * 100 / jumlah) + '%</span></li>').join('') + '</ul></div>';
+}
+
+/* Bar mendatar siri tunggal (pilihan: penanda sasaran, siri kedua ETR sebagai garis nipis). */
+function cartaBar(item, o) {
+  o = o || {};
+  if (!item.length) return '<p class="kecil">Tiada data.</p>';
+  const nilaiSah = item.map(x => x.nilai).concat(item.map(x => x.etr)).filter(v => v !== null && v !== undefined);
+  const maks = o.maks || Math.max(1, ...nilaiSah, o.sasaran || 0);
+  const fmt = o.format || (v => v);
+  const pc = v => Math.max(0, Math.min(100, v / maks * 100)).toFixed(1) + '%';
+  const adaEtr = item.some(x => x.etr !== undefined && x.etr !== null);
+  return item.map(x => '<div class="bar-baris' + (adaEtr ? ' ada-etr' : '') + '"><div class="nm" title="' + escapeHtml(x.nama || x.label) + '">' + escapeHtml(x.label) + '</div>' +
+    '<div class="trek" data-tip="' + escapeHtml((x.nama ? x.label + ' — ' + x.nama : x.label) + ': ' + (x.nilai === null ? 'tiada data' : fmt(x.nilai)) +
+      (x.etr !== undefined && x.etr !== null ? ' · ETR ' + fmt(x.etr) : '')) + '">' +
+      (x.nilai === null ? '' : '<div class="isi" style="width:' + pc(x.nilai) + '"></div>') +
+      (x.etr !== undefined && x.etr !== null ? '<div class="isi etr" style="width:' + pc(x.etr) + '"></div>' : '') +
+      (o.sasaran ? '<div class="sasaran" style="left:' + pc(o.sasaran) + '"></div>' : '') + '</div>' +
+    '<div class="v">' + (x.nilai === null ? '-' : fmt(x.nilai)) + '</div></div>').join('') +
+    '<div class="bar-paksi"><span></span><div><span>0</span><span>' + fmt(maks) + '</span></div><span></span></div>';
+}
+
+/* Lajur menegak (taburan gred). siri: [{nama, data:[{label,nilai}], kedua?}] — 1 atau 2 siri. */
+function cartaLajur(siri) {
+  const label = siri[0].data.map(d => d.label);
+  const maks = Math.max(1, ...siri.flatMap(s => s.data.map(d => d.nilai)));
+  const legenda = siri.length > 1 ? '<div class="legenda-mendatar">' + siri.map((s, i) => '<span><i style="background:' + (i ? '#eb6834' : '#2a78d6') +
+    '"></i>' + escapeHtml(s.nama) + '</span>').join('') + '</div>' : '';
+  return legenda + '<div class="lajur-carta">' + label.map((l, i) => '<div class="kump">' + siri.map((s, j) => {
+    const v = s.data[i].nilai;
+    return '<div class="tiang' + (j ? ' kedua' : '') + '" style="height:' + (v / maks * 100).toFixed(1) + '%" data-tip="' + escapeHtml(s.nama + ' · Gred ' + l + ': ' + v) + '">' +
+      (v && siri.length === 1 ? '<span>' + v + '</span>' : '') + '</div>';
+  }).join('') + '</div>').join('') + '</div><div class="lajur-label">' + label.map(l => '<div>' + escapeHtml(l) + '</div>').join('') + '</div>';
+}
+
+function kadKPI(ikonNama, warna, nilai, label, sub) {
+  return '<div class="kad"><div class="ikon ' + (warna || '') + '">' + ikon(ikonNama) + '</div><div><div class="nilai">' + nilai + '</div><div class="label">' +
+    label + '</div>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div></div>';
+}
+function panelCarta(tajuk, nota, isi) {
+  return '<div class="panel"><h4>' + tajuk + '</h4>' + (nota ? '<p class="nota">' + nota + '</p>' : '') + isi + '</div>';
+}
+
+/* KPI & carta bagi setiap jenis laporan. */
+function persembahanLaporan(res) {
+  const r = res.ringkasan, c = res.carta;
+  const susunRisiko = ['SELAMAT', 'PERLU_PEMANTAUAN', 'BERISIKO', 'TIADA_DATA'];
+  const susunTrend = ['MENINGKAT', 'KONSISTEN', 'TIDAK_STABIL', 'MENURUN', 'TIDAK_CUKUP_DATA'];
+  const pc = v => v === null || v === undefined ? '-' : v + '%';
+  if (res.jenis.indexOf('HEADCOUNT_') === 0) {
+    const capai = r.sasaranGPS && r.gpsTerkini !== null ? (r.gpsTerkini >= r.sasaranGPS ? 'hijau' : 'merah') : '';
+    return {
+      kpi: kadKPI('kumpulan', '', r.bilPelajar, 'Pelajar', r.jumlahRekod + ' rekod subjek') +
+        kadKPI('buku', 'ungu', r.bilSubjek, 'Mata Pelajaran') +
+        kadKPI('carta', capai, f2(r.gpsTerkini), 'GPS Semasa', r.sasaranGPS ? 'Sasaran ' + f2(r.sasaranGPS) : '') +
+        kadKPI('sasaran', '', f2(r.gpsETR), 'GPS ETR', 'Berdasarkan gred ETR') +
+        kadKPI('amaran', 'merah', r.bilBerisiko, 'Rekod Berisiko', r.jumlahRekod ? Math.round(r.bilBerisiko * 100 / r.jumlahRekod) + '% daripada rekod' : ''),
+      carta: panelCarta('Taburan Risiko', 'Berdasarkan gap ETR dan trend. "Tiada data" = ETR atau keputusan belum diisi.', cartaDonut(c.risiko, susunRisiko, 'rekod')) +
+        panelCarta('Trend Prestasi', 'TOV → AR1 → AR2 → Sebenar.', cartaDonut(c.trend, susunTrend, 'rekod')) +
+        panelCarta('Taburan Gred: ETR vs Semasa', 'Bilangan rekod bagi setiap gred.', cartaLajur([{ nama: 'Gred semasa', data: c.taburanTerkini }, { nama: 'Gred ETR', data: c.taburanETR }])) +
+        panelCarta('Rekod Berisiko Mengikut Subjek', '', c.berisikoIkutSubjek.length ? cartaBar(c.berisikoIkutSubjek) : '<p class="kecil">Tiada rekod berisiko.</p>')
+    };
+  }
+  if (res.jenis === 'PELAJAR_BERISIKO') {
+    return {
+      kpi: kadKPI('amaran', 'merah', r.jumlahKes, 'Kes Berisiko', 'Semua semester') + kadKPI('kumpulan', '', r.bilPelajar, 'Pelajar Terlibat') +
+        kadKPI('lapisan', 'kuning', r.bilBerbilangSubjek, 'Berisiko > 1 Subjek') + kadKPI('buku', 'ungu', escapeHtml(r.subjekUtama), 'Subjek Paling Banyak Kes'),
+      carta: panelCarta('Kes Mengikut Semester', '', cartaBar(c.ikutSemester)) + panelCarta('Kes Mengikut Subjek', '', cartaBar(c.ikutSubjek)) +
+        panelCarta('Kes Mengikut Kelas', '', cartaBar(c.ikutKelas)) + panelCarta('Trend Kes Berisiko', '', cartaDonut(c.trend, susunTrend, 'kes'))
+    };
+  }
+  if (res.jenis === 'INTERVENSI') {
+    return {
+      kpi: kadKPI('sasaran', '', r.jumlah, 'Intervensi') + kadKPI('kumpulan', 'ungu', r.bilPelajar, 'Pelajar Terlibat') +
+        kadKPI('semak', 'hijau', r.selesai, 'Selesai') + kadKPI('jam', 'kuning', r.dijalankan, 'Sedang Dijalankan'),
+      carta: panelCarta('Status Intervensi', '', cartaDonut(c.status, ['SELESAI', 'DIJALANKAN'], 'intervensi')) +
+        panelCarta('Jenis Intervensi', '', cartaBar(c.ikutJenis)) + panelCarta('Intervensi Mengikut Subjek', '', cartaBar(c.ikutSubjek))
+    };
+  }
+  if (res.jenis.indexOf('ULANGAN_') === 0) {
+    return {
+      kpi: kadKPI('ulang', '', r.jumlah, 'Rekod Ulangan', r.dinilai + ' sudah dinilai') + kadKPI('naik', 'hijau', r.meningkat, 'Berjaya Meningkat') +
+        kadKPI('amaran', 'merah', r.masihGagal, 'Masih Gagal') + kadKPI('anugerah', 'ungu', pc(r.peratusMeningkat), 'Kadar Kejayaan', 'Meningkat / dinilai'),
+      carta: panelCarta('Kesan Ulangan', 'Keputusan Asal berbanding Keputusan Ulangan.', cartaDonut(c.perubahan, ['BERJAYA_MENINGKAT', 'KEKAL', 'MENURUN', 'MASIH_GAGAL', 'BELUM_DINILAI'], 'rekod')) +
+        panelCarta('Ulangan Mengikut Subjek', '', cartaBar(c.ikutSubjek))
+    };
+  }
+  const capai = r.sasaranGPS && r.gpsSekolah !== null ? (r.gpsSekolah >= r.sasaranGPS ? 'hijau' : 'merah') : '';
+  const kpi = kadKPI('carta', capai, f2(r.gpsSekolah), 'GPS Sekolah', 'Semester ' + r.semester.slice(1) + (r.sasaranGPS ? ' · sasaran ' + f2(r.sasaranGPS) : '')) +
+    kadKPI('sasaran', '', f2(r.gpsETR), 'GPS ETR') + kadKPI('semak', 'hijau', pc(r.peratusLulus), 'Peratus Lulus') +
+    kadKPI('kumpulan', 'ungu', r.calon, 'Keputusan Dinilai', r.bilSubjek + ' mata pelajaran');
+  if (res.jenis === 'PRESTASI_SUBJEK') {
+    return { kpi, carta: panelCarta('Peratus Lulus Mengikut Subjek', 'Semester ' + r.semester.slice(1) + ' · gred semasa terkini.', cartaBar(c.lulusIkutSubjek, { maks: 100, format: v => v + '%' })) +
+      panelCarta('Taburan Gred Keseluruhan', '', cartaLajur([{ nama: 'Bilangan calon', data: c.taburan }])) };
+  }
+  const notaGPS = '<span style="color:#2a78d6">■</span> GPS semasa · <span style="color:#eb6834">▬</span> GPS ETR' + (r.sasaranGPS ? ' · ┆ sasaran ' + f2(r.sasaranGPS) : '') + ' (skala 0–4.00)';
+  return { kpi, carta: panelCarta('GPS Mengikut Subjek', notaGPS, cartaBar(c.gpsIkutSubjek, { maks: 4, format: f2, sasaran: r.sasaranGPS })) +
+    panelCarta('GPS Mengikut Kelas', notaGPS, cartaBar(c.gpsIkutKelas, { maks: 4, format: f2, sasaran: r.sasaranGPS })) };
+}
+
+const LAJUR_LENCANA = ['StatusGapETR', 'Trend', 'Risiko', 'Status', 'Perubahan', 'CapaiSasaran'];
+const LAJUR_TEKS = ['Punca', 'Objektif', 'Catatan', 'Keputusan', 'Nama'];
+const LAJUR_NOMBOR = ['Calon', 'GPS', 'GPSETR', 'Gap', 'PeratusLulus'];
+function selLaporan(l, v) {
+  if (LAJUR_LENCANA.indexOf(l) !== -1) return '<td>' + (v ? '<span class="lencana ' + escapeHtml(v) + '">' + escapeHtml(labelStatus(v)) + '</span>' : '') + '</td>';
+  if (LAJUR_NOMBOR.indexOf(l) !== -1 || /^G_/.test(l)) return '<td class="nom">' + (v === null || v === undefined || v === '' ? '-' : escapeHtml(l === 'PeratusLulus' ? v + '%' : (/GPS|Gap/.test(l) ? f2(v) : v))) + '</td>';
+  const m = /^(\d+(?:\.\d+)?) \(([^)]+)\)$/.exec(String(v === undefined || v === null ? '' : v));
+  if (m) return '<td class="mg">' + m[1] + '<small>' + escapeHtml(m[2]) + '</small></td>';
+  return '<td' + (LAJUR_TEKS.indexOf(l) !== -1 ? ' class="teks"' : '') + '>' + escapeHtml(v) + '</td>';
+}
+
+function muatLaporan() {
+  document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml() + pilihanTahunHtml();
+  const janaSemula = () => { if (S.laporanAktif) janaLaporan(S.laporanAktif); };
+  pasangPilihanSemester(janaSemula);
+  pasangPilihanTahun(janaSemula);
+  pasangTooltipCarta();
+  document.getElementById('content').innerHTML = `
+    <div class="lp-jubin">${Object.keys(JENIS_LAPORAN).map(j => '<button type="button" data-jenis="' + j + '"><span class="ikon">' + ikon(JENIS_LAPORAN[j].ikon) +
+      '</span><span><b>' + JENIS_LAPORAN[j].label + '</b><small>' + JENIS_LAPORAN[j].ket + '</small></span></button>').join('')}</div>
+    <div id="hasilLaporan"><div class="mesej amaran">Pilih jenis laporan di atas. Prestasi Subjek & Analisis GPS mengikut Semester yang dipilih di bahagian atas.</div></div>`;
+  document.querySelectorAll('.lp-jubin button').forEach(el => el.addEventListener('click', () => janaLaporan(el.dataset.jenis)));
+  if (S.laporanAktif) janaLaporan(S.laporanAktif);
+}
+
+function janaLaporan(jenis) {
   S.laporanAktif = jenis;
-  document.querySelectorAll('#content .tab-link').forEach(el => el.classList.toggle('aktif', el === elKlik));
-  document.getElementById('hasilLaporan').innerHTML = '<div class="muatan">Menjana laporan...</div>';
+  document.querySelectorAll('.lp-jubin button').forEach(el => el.classList.toggle('aktif', el.dataset.jenis === jenis));
+  const kotak = document.getElementById('hasilLaporan');
+  kotak.innerHTML = '<div class="muatan">Menjana laporan...</div>';
+  const meta = JENIS_LAPORAN[jenis];
   panggil('apiJanaLaporan', { token: S.token, jenis, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(res => {
-    if (!res.baris.length) { document.getElementById('hasilLaporan').innerHTML = '<div class="panel kecil">Tiada data untuk laporan ini.</div>'; return; }
-    const lajur = Object.keys(res.baris[0]);
-    document.getElementById('hasilLaporan').innerHTML = `
-      <div class="panel">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-          <h3 style="margin:0">${JENIS_LAPORAN_LABEL[jenis]} (${res.baris.length} baris)</h3>
-          <button id="btnEksportCSV">Eksport CSV</button>
-        </div>
-        <div class="tbl-scroll"><table><thead><tr>${lajur.map(l=>'<th>'+l+'</th>').join('')}</tr></thead>
-        <tbody id="tbodyLaporan"></tbody></table></div>
-        <div id="paginasiLaporan"></div>
-      </div>`;
-    /* Paginasi PAPARAN sahaja — Eksport CSV guna res.baris PENUH (semua baris),
-       bukan setakat muka yang sedang dipaparkan. */
-    paparkanBerhalaman('tbodyLaporan', 'paginasiLaporan', res.baris, { m: 1 }, baris =>
-      baris.map(b => '<tr>'+lajur.map(l=>'<td>'+escapeHtml(b[l])+'</td>').join('')+'</tr>').join(''));
-    document.getElementById('btnEksportCSV').addEventListener('click', () => eksportCSV(jenis, lajur, res.baris));
-  }).catch(err => { document.getElementById('hasilLaporan').innerHTML = '<div class="mesej ralat">'+escapeHtml(err)+'</div>'; });
+    if (S.laporanAktif !== jenis) return;
+    const semesterTeks = /PRESTASI|GPS/.test(jenis) ? ' · Semester ' + res.ringkasan.semester.slice(1) : '';
+    const hero = `<div class="lp-hero"><div class="ikon">${ikon(meta.ikon)}</div><div><h2>${meta.label}</h2>
+      <p>Tahun STPM ${escapeHtml(res.tahunSTPM || 'Semua')}${semesterTeks} · ${res.baris.length} baris · Dijana ${escapeHtml(res.dijanaPada)}</p></div>
+      <div class="tindakan">${res.baris.length ? '<button id="btnCetakLaporan">' + ikon('cetak') + 'Cetak</button><button id="btnEksportCSV">' + ikon('muatTurun') + 'CSV</button>' : ''}</div></div>`;
+    if (!res.baris.length) { kotak.innerHTML = hero + '<div class="mesej amaran">Tiada data untuk laporan ini dalam skop anda.</div>'; return; }
+    const p = persembahanLaporan(res);
+    const kelasUnik = Array.from(new Set(res.baris.map(b => b.Kelas).filter(Boolean))).sort();
+    const subjekUnik = Array.from(new Set(res.baris.map(b => b.Subjek).filter(Boolean))).sort();
+    kotak.innerHTML = hero + '<div class="lp-kpi">' + p.kpi + '</div><div class="lp-carta">' + p.carta + '</div>' +
+      `<div class="panel lp-jadual"><h3>Butiran (${res.baris.length})</h3>
+        <div class="penapis"><input id="lpCari" placeholder="Cari nama / ID...">
+          ${kelasUnik.length > 1 ? '<select id="lpKelas"><option value="">Semua kelas</option>' + kelasUnik.map(k => '<option>' + escapeHtml(k) + '</option>').join('') + '</select>' : ''}
+          ${subjekUnik.length > 1 && res.lajur.some(l => l.k === 'Subjek') && res.lajur.some(l => l.k === 'Nama' && l.label === 'Nama Pelajar') ? '<select id="lpSubjek"><option value="">Semua subjek</option>' + subjekUnik.map(k => '<option>' + escapeHtml(k) + '</option>').join('') + '</select>' : ''}
+          <span class="kecil" id="lpBil" style="align-self:center"></span></div>
+        <div class="tbl-scroll"><table><thead><tr><th>Bil</th>${res.lajur.map(l => '<th' + (LAJUR_NOMBOR.indexOf(l.k) !== -1 || /^G_/.test(l.k) ? ' class="nom"' : '') + '>' + escapeHtml(l.label) + '</th>').join('')}</tr></thead>
+        <tbody id="tbodyLaporan"></tbody></table></div><div id="paginasiLaporan"></div></div>`;
+
+    let ditapis = res.baris;
+    const keadaan = { m: 1 };
+    const renderBaris = (senarai, mula) => senarai.map((b, i) => '<tr><td class="nom">' + (mula + i + 1) + '</td>' + res.lajur.map(l => selLaporan(l.k, b[l.k])).join('') + '</tr>').join('');
+    const paparJadual = () => {
+      paparkanBerhalaman('tbodyLaporan', 'paginasiLaporan', ditapis, keadaan, senarai => renderBaris(senarai, (keadaan.m - 1) * SAIZ_MUKA_LALAI));
+      document.getElementById('lpBil').textContent = ditapis.length === res.baris.length ? '' : ditapis.length + ' daripada ' + res.baris.length + ' baris';
+    };
+    const tapis = () => {
+      const cari = document.getElementById('lpCari').value.trim().toLowerCase();
+      const kelas = (document.getElementById('lpKelas') || {}).value || '';
+      const subjek = (document.getElementById('lpSubjek') || {}).value || '';
+      ditapis = res.baris.filter(b => (!cari || String(b.Nama || '').toLowerCase().includes(cari) || String(b.IDPelajar || b.Kod || '').toLowerCase().includes(cari)) &&
+        (!kelas || b.Kelas === kelas) && (!subjek || b.Subjek === subjek));
+      keadaan.m = 1;
+      paparJadual();
+    };
+    ['lpCari', 'lpKelas', 'lpSubjek'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', tapis); });
+    paparJadual();
+    document.getElementById('btnEksportCSV').addEventListener('click', () => eksportCSV(jenis, res.lajur, ditapis));
+    document.getElementById('btnCetakLaporan').addEventListener('click', () => {
+      // Cetak SEMUA baris (bukan satu muka paginasi sahaja), kemudian pulihkan.
+      document.getElementById('tbodyLaporan').innerHTML = renderBaris(ditapis, 0);
+      document.body.classList.add('mod-cetak-laporan');
+      window.addEventListener('afterprint', () => { document.body.classList.remove('mod-cetak-laporan'); paparJadual(); }, { once: true });
+      window.print();
+    });
+  }).catch(err => { kotak.innerHTML = '<div class="mesej ralat">' + escapeHtml(err) + '</div>'; });
 }
 
 function eksportCSV(jenis, lajur, baris) {
   const escapeCsv = v => { const s = String(v===undefined||v===null?'':v); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
-  const isiCsv = [lajur.join(',')].concat(baris.map(b => lajur.map(l => escapeCsv(b[l])).join(','))).join('\n');
+  const isiCsv = '﻿' + [lajur.map(l => escapeCsv(l.label)).join(',')].concat(baris.map(b => lajur.map(l => escapeCsv(b[l.k])).join(','))).join('\n');
   const blob = new Blob([isiCsv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = jenis + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.href = url; a.download = jenis + '_' + (S.tahunSTPM || 'semua') + '_' + new Date().toISOString().slice(0,10) + '.csv';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
   tunjukMesej('Fail CSV dimuat turun.');

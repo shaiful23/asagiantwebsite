@@ -150,7 +150,19 @@ sepenuhnya seperti diminta.
    Kemaskini Struktur (MUET)** — mencipta Sheet `MUET`, `MUET_BAND` (julat
    band lalai) dan `MUET_GPS_SEJARAH`. Rujuk **"MUET (800)"** di bawah.
 
-   **Kemaskini terkini (Rombakan 4 Peranan & Ulasan Slip MUET):** **gantikan**
+   **Kemaskini terkini (Laporan Persembahan):** **gantikan** `ReportService.gs`,
+   `RepeatService.gs` dan `Index`, kemudian deploy semula. Tiada migrasi Sheet.
+   Menu **Laporan** kini memaparkan setiap laporan sebagai persembahan — jubin
+   pilihan berikon, banner, kad KPI, carta (donut risiko/trend/status, bar
+   mengikut subjek/kelas/semester, taburan gred ETR vs semasa, GPS vs sasaran)
+   dan jadual dengan susunan lajur yang tetap (ID → Nama → Kelas → Subjek →
+   TOV → OTR1 → AR1 → OTR2 → AR2 → ETR → Sebenar → Gap → Trend → Risiko),
+   disusun ikut Kelas → Nama → Subjek, dengan carian & penapis kelas/subjek,
+   Cetak (semua baris) dan Eksport CSV (ikut penapis). Laporan kini ditapis ikut
+   peranan: Guru hanya subjeknya, Guru Tingkatan kelas jagaannya, Ketua Unit
+   subjek unitnya. Prestasi Subjek & Analisis GPS ikut Semester yang dipilih.
+
+   **Kemaskini (Rombakan 4 Peranan & Ulasan Slip MUET):** **gantikan**
    SEMUA fail `.gs` dan `Index` dengan versi terkini, deploy semula (Deploy → New
    version), kemudian klik **Sistem Headcount STPM → 5. Kemaskini Peranan &
    Ulasan MUET** — menambah lajur `UnitKetua` (USERS) dan lajur ulasan slip
