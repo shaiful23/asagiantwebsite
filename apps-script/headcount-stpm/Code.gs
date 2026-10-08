@@ -17,6 +17,7 @@ function onOpen() {
     .addItem('1. Sediakan Sistem (Jalankan Sekali)', 'sediakanSistemHeadcountSTPM')
     .addItem('2. Kemaskini Struktur (Markah & Gred BLD)', 'kemaskiniStrukturMarkahGred')
     .addItem('3. Kemaskini Struktur (Guru Kelas, Tugas Saya, Kunci Markah)', 'kemaskiniStrukturFasa3')
+    .addItem('4. Kemaskini Struktur (MUET)', 'kemaskiniStrukturMuet')
     .addToUi();
 }
 
@@ -57,11 +58,14 @@ function sediakanSistemHeadcountSTPM() {
   pastikanSheet(SHEET_AUDIT_LOG, HEADER_AUDIT_LOG, []);
   pastikanSheet(SHEET_TEACHING_ASSIGNMENTS, HEADER_TEACHING_ASSIGNMENTS, []);
   pastikanSheet(SHEET_UNLOCK_REQUESTS, HEADER_UNLOCK_REQUESTS, []);
+  pastikanSheet(SHEET_MUET, HEADER_MUET, []);
+  pastikanSheet(SHEET_MUET_BAND, HEADER_MUET_BAND, nilaiLalaiBandMUET());
+  pastikanSheet(SHEET_MUET_GPS, HEADER_MUET_GPS, []);
 
   SpreadsheetApp.getUi().alert(
-    'Sistem sedia. Semua 17 Sheet (CONFIG, GRADES, GRADE_BOUNDARIES, USERS, STUDENTS, SUBJECTS, ' +
+    'Sistem sedia. Semua 20 Sheet (CONFIG, GRADES, GRADE_BOUNDARIES, USERS, STUDENTS, SUBJECTS, ' +
     'ENROLLMENTS, HEADCOUNT_S1/S2/S3, REPEAT_S1/S2, INTERVENTIONS, INTERVENTION_LOG, AUDIT_LOG, ' +
-    'TEACHING_ASSIGNMENTS, UNLOCK_REQUESTS) telah dicipta.\n\n' +
+    'TEACHING_ASSIGNMENTS, UNLOCK_REQUESTS, MUET, MUET_BAND, MUET_GPS_SEJARAH) telah dicipta.\n\n' +
     'Sila kemaskini CONFIG/GRADES ikut keperluan sekolah, tetapkan BLD (julat markah->gred) SETIAP ' +
     'subjek sebenar di menu "Skema Gred (BLD)" dalam sistem (GRADE_BOUNDARIES baru ada contoh untuk ' +
     'subjek PA sahaja — WAJIB tetapkan untuk subjek lain sebelum guru mula key-in markah), tambah ' +
@@ -208,4 +212,27 @@ function doGet(e) {
     .setTitle('Sistem Headcount STPM - SMK Asajaya')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/* Migrasi MUET — selamat dijalankan berulang kali (Sheet sedia ada dilangkau):
+   MUET (markah calon), MUET_BAND (julat band lalai format 2021 — boleh dipinda
+   terus dalam Sheet), MUET_GPS_SEJARAH (GPS tahun-tahun sebelum sistem). */
+function kemaskiniStrukturMuet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const dicipta = [];
+  [[SHEET_MUET, HEADER_MUET, []], [SHEET_MUET_BAND, HEADER_MUET_BAND, nilaiLalaiBandMUET()], [SHEET_MUET_GPS, HEADER_MUET_GPS, []]]
+    .forEach(([nama, header, contoh]) => {
+      if (ss.getSheetByName(nama)) return;
+      const sh = ss.insertSheet(nama);
+      sh.appendRow(header);
+      sh.setFrozenRows(1);
+      sh.getRange(1, 1, 1, header.length).setFontWeight('bold');
+      if (contoh.length) sh.getRange(2, 1, contoh.length, header.length).setValues(contoh);
+      dicipta.push(nama);
+    });
+  SpreadsheetApp.getUi().alert(dicipta.length
+    ? ('Migrasi MUET selesai — Sheet dicipta: ' + dicipta.join(', ') + '.\n\nSemak julat band & NilaiBand dalam MUET_BAND ' +
+       '(lalai: format MUET 2021; Band 5+ bernilai 5.5 untuk GPMP), dan pastikan guru MUET ada kod ' + KOD_SUBJEK_MUET +
+       ' dalam Skop Subjek mereka.')
+    : 'Tiada migrasi diperlukan — Sheet MUET sudah wujud.');
 }

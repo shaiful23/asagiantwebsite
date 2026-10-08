@@ -22,6 +22,13 @@ const SHEET_AUDIT_LOG = 'AUDIT_LOG';
 const SHEET_GRADE_BOUNDARIES = 'GRADE_BOUNDARIES';
 const SHEET_TEACHING_ASSIGNMENTS = 'TEACHING_ASSIGNMENTS';
 const SHEET_UNLOCK_REQUESTS = 'UNLOCK_REQUESTS';
+const SHEET_MUET = 'MUET';
+const SHEET_MUET_BAND = 'MUET_BAND';
+const SHEET_MUET_GPS = 'MUET_GPS_SEJARAH';
+
+/* MUET (800) — guru dengan kod ini dalam SkopSubjek boleh isi markah MUET.
+   Selaraskan dengan pemalar KOD_SUBJEK_MUET dalam Index.html jika diubah. */
+const KOD_SUBJEK_MUET = '800';
 
 /* Medan headcount (MODUL 5) — setiap satu kini menyimpan Markah + Gred terbitan (BLD). */
 const MEDAN_HEADCOUNT = ['TOV', 'OTR1', 'AR1', 'OTR2', 'AR2', 'ETR', 'SEBENAR'];
@@ -113,6 +120,17 @@ function nilaiLalaiBLD() {
     ['PA', 'S1', 'B', '65', '69'], ['PA', 'S1', 'B-', '60', '64'], ['PA', 'S1', 'C+', '55', '59'],
     ['PA', 'S1', 'C', '50', '54'], ['PA', 'S1', 'C-', '45', '49'], ['PA', 'S1', 'D+', '40', '44'],
     ['PA', 'S1', 'D', '35', '39'], ['PA', 'S1', 'F', '0', '34']
+  ];
+}
+
+/* Band MUET (format 2021, jumlah 360) — Band, MarkahMin, MarkahMax, NilaiBand.
+   NilaiBand dipakai untuk GPMP/GPS MUET (purata nilai band; lebih tinggi lebih baik).
+   Boleh diubah terus dalam Sheet MUET_BAND tanpa sentuh kod (MODUL 43). */
+function nilaiLalaiBandMUET() {
+  return [
+    ['5+', '331', '360', '5.5'], ['5.0', '294', '330', '5'], ['4.5', '258', '293', '4.5'],
+    ['4.0', '211', '257', '4'], ['3.5', '164', '210', '3.5'], ['3.0', '123', '163', '3'],
+    ['2.5', '82', '122', '2.5'], ['2.0', '36', '81', '2'], ['1.0', '0', '35', '1']
   ];
 }
 
