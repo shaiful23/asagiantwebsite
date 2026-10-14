@@ -12,5 +12,16 @@
 <body>
     <!-- Ganti URL di bawah dengan URL Web App (/exec) e-PAJSK selepas deploy. Rujuk apps-script/e-pajsk/README.md -->
     <iframe src="https://script.google.com/macros/s/AKfycby67BKLKQkDfTTpvmHCxwWpFKKXrDjY0gpsSVjtsg7HNbx6rNL085wIkMNMOjXfPN6Faw/exec"></iframe>
+    <script>
+        // Butang "Tutup Portal" dalam e-PAJSK menghantar isyarat closePortal; cuba tutup tab ini.
+        // Jika pelayar tidak membenarkan, e-PAJSK sendiri memaparkan skrin "Portal Telah Ditutup".
+        window.addEventListener('message', function (ev) {
+            var d = ev.data || {};
+            if (!/(^|\.)(googleusercontent\.com|script\.google\.com)$/.test(String(ev.origin).replace(/^https:\/\//, ''))) return;
+            if (d === 'closePortal' || d.type === 'closePortal' || d.action === 'closePortal') {
+                try { window.close(); } catch (e) { /* abaikan */ }
+            }
+        });
+    </script>
 </body>
 </html>
