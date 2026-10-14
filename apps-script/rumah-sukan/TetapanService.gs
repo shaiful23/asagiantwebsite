@@ -8,7 +8,6 @@ function tetapanLalai() {
   return [
     [TET_TAHUN, String(new Date().getFullYear()), 'Tahun kejohanan olahraga (umur kategori dikira daripada tahun ini)'],
     [TET_NAMA_KEJOHANAN, 'Kejohanan Olahraga Tahunan SMK Asajaya', 'Nama kejohanan'],
-    [TET_MOTTO_SEKOLAH, 'Berazam, Berusaha, Berjaya', 'Motto sekolah (skrin "Portal Telah Ditutup")'],
     [TET_MOD_KATEGORI, 'UMUR', 'UMUR = ikut tahun lahir (No. KP); TINGKATAN = ikut tingkatan'],
     [TET_KATEGORI, JSON.stringify(KATEGORI_LALAI), 'Senarai kategori (JSON) — ubah melalui UI'],
     [TET_KRITERIA, JSON.stringify(KRITERIA_LALAI), 'Kriteria agihan murid (JSON) — ubah melalui UI'],
@@ -105,7 +104,7 @@ function apiTetapan(p) {
   if (sesi.success === false) return sesi;
   const tet = bacaTetapan();
   return jaya({
-    tahun: tahunKejohanan(tet), namaKejohanan: tet[TET_NAMA_KEJOHANAN], motto: tet[TET_MOTTO_SEKOLAH] || '',
+    tahun: tahunKejohanan(tet), namaKejohanan: tet[TET_NAMA_KEJOHANAN],
     kategori: konfigKategori(tet), kriteria: kriteriaAgihan(tet), rumah: senaraiRumah(),
     perananRumah: NAMA_PERANAN_RUMAH, perananAjk: NAMA_PERANAN_AJK, hadRumah: HAD_RUMAH
   });
@@ -133,7 +132,6 @@ function apiSimpanTetapan(p) {
     const peta = {};
     peta[TET_TAHUN] = String(tahun);
     peta[TET_NAMA_KEJOHANAN] = teksBersih(p.namaKejohanan) || tetapanLalai()[1][1];
-    peta[TET_MOTTO_SEKOLAH] = teksBersih(p.motto).slice(0, 120);
     peta[TET_MOD_KATEGORI] = mod;
     peta[TET_KATEGORI] = JSON.stringify(kategori);
     simpanTetapan(peta);
