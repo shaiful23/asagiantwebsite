@@ -50,7 +50,6 @@ function apiTetapan(p) {
     tahun: Number(t[TET_TAHUN]) || new Date().getFullYear(),
     kodSekolah: t[TET_KOD_SEKOLAH] || '',
     namaSekolah: t[TET_NAMA_SEKOLAH] || '',
-    motto: t[TET_MOTTO_SEKOLAH] || '',
     idKoko: sesi.peranan === ROLE_ADMIN ? (t[TET_ID_KOKO] || '') : '',
     autoSegerak: maklumatAutoSegerak(t, sesi.peranan !== ROLE_ADMIN)
   });
@@ -71,7 +70,6 @@ function apiSimpanTetapan(p) {
     tulisTetapan(TET_TAHUN, String(tahun));
     tulisTetapan(TET_KOD_SEKOLAH, String(p.kodSekolah || '').trim());
     tulisTetapan(TET_NAMA_SEKOLAH, String(p.namaSekolah || '').trim());
-    if (p.motto !== undefined) tulisTetapan(TET_MOTTO_SEKOLAH, String(p.motto || '').trim().substring(0, 120));
     if (idKoko) tulisTetapan(TET_ID_KOKO, idKoko);
     catatAudit(sesi, 'KEMASKINI', 'TETAPAN', '', 'Tahun ' + tahun);
     return jaya({});
