@@ -60,6 +60,7 @@ const NAMA_PERANAN_AJK = { KETUA_AJK: 'Ketua AJK', AHLI_AJK: 'Ahli AJK' };
 /* ------------------------- TETAPAN (kunci Sheet TETAPAN) ------------------------- */
 const TET_TAHUN = 'TAHUN_KEJOHANAN';
 const TET_NAMA_KEJOHANAN = 'NAMA_KEJOHANAN';
+const TET_MOTTO_SEKOLAH = 'MOTTO_SEKOLAH';           // dipaparkan pada skrin "Portal Telah Ditutup"
 const TET_MOD_KATEGORI = 'MOD_KATEGORI';         // UMUR | TINGKATAN
 const TET_KATEGORI = 'KATEGORI';                 // JSON senarai kategori
 const TET_KRITERIA = 'KRITERIA_AGIHAN';          // JSON kriteria agihan murid

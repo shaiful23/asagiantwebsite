@@ -104,12 +104,21 @@ function onEdit(e) {
   try { tandaKotor(e.range.getSheet().getName()); } catch (x) { /* abaikan */ }
 }
 
+/* Nama & motto sekolah untuk skrin "Portal Telah Ditutup" (boleh dipaparkan sebelum log masuk).
+   '<' dilepaskan supaya teks tetapan tidak boleh menutup tag <script>. */
+function infoSekolahKlien() {
+  let info = { namaSekolah: 'SMK Asajaya', motto: '' };
+  try { info.motto = bacaTetapan()[TET_MOTTO_SEKOLAH] || ''; } catch (e) { /* Sheet belum disediakan */ }
+  return 'var INFO_SEKOLAH = ' + JSON.stringify(info).replace(/</g, '\\u003c') + ';';
+}
+
 /* ============================== doGet ================================ */
 /* ?portal=murid membuka terus tab Portal Murid pada skrin log masuk. */
 function doGet(e) {
   const tpl = HtmlService.createTemplateFromFile('Index');
   tpl.portalAwal = e && e.parameter && String(e.parameter.portal || '').toLowerCase() === 'murid' ? 'MURID' : 'STAF';
   tpl.logoSrc = 'data:image/png;base64,' + includeFile('Logo').replace(/\s+/g, '');
+  tpl.infoSekolah = infoSekolahKlien();
   return tpl.evaluate()
     .setTitle('Sistem Rumah Sukan - SMK Asajaya')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
