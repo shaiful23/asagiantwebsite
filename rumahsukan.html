@@ -12,16 +12,5 @@
 <body>
     <!-- Portal Guru & Staf. Ganti URL di bawah dengan URL Web App (/exec) selepas deploy. Rujuk apps-script/rumah-sukan/README.md -->
     <iframe src="https://script.google.com/macros/s/AKfycbwllAeCnGWsp4LB03BsmWXf75kyT_h-4mj05c88g0Lk4MmA4kg4WfoFxYZ4WpkAabP9/exec"></iframe>
-    <script>
-        // Butang "Tutup Portal" dalam Sistem Rumah Sukan menghantar isyarat closePortal; cuba tutup tab ini.
-        // Jika pelayar tidak membenarkan, sistem sendiri memaparkan skrin "Portal Telah Ditutup".
-        window.addEventListener('message', function (ev) {
-            var d = ev.data || {};
-            if (!/(^|\.)(googleusercontent\.com|script\.google\.com)$/.test(String(ev.origin).replace(/^https:\/\//, ''))) return;
-            if (d === 'closePortal' || d.type === 'closePortal' || d.action === 'closePortal') {
-                try { window.close(); } catch (e) { /* abaikan */ }
-            }
-        });
-    </script>
 </body>
 </html>
