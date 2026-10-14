@@ -59,7 +59,6 @@ const PERATUS_CGPA_DALAM_ARKIB = 10; // markah akhir dibahagi 10 => "10%" pada s
 const TET_TAHUN = 'TAHUN_PENTAKSIRAN';
 const TET_KOD_SEKOLAH = 'KOD_SEKOLAH';
 const TET_NAMA_SEKOLAH = 'NAMA_SEKOLAH';
-const TET_MOTTO_SEKOLAH = 'MOTTO_SEKOLAH';   // dipaparkan pada skrin "Portal Telah Ditutup"
 const TET_ID_KOKO = 'ID_EKOKURIKULUM';
 const TET_ID_FOLDER_ARKIB = 'ID_FOLDER_ARKIB';
 

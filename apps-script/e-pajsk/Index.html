@@ -140,18 +140,6 @@
     img, svg { max-width: 100%; }
 
     /* Tablet landskap / komputer riba kecil */
-    /* Tutup portal */
-    #skrinTutup .kad-login { text-align: center; }
-    #skrinTutup .ikon-tutup { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--kelabu); margin: 0 0 6px; }
-    #skrinTutup .motto { font-style: italic; color: var(--biru-gelap); font-weight: 600; margin: 4px 0 14px; font-size: 14px; }
-    #skrinTutup p.mesej { font-size: 13px; color: #334155; margin: 0 0 18px; line-height: 1.5; }
-    .latar-modal.tutup-portal .kad-modal { max-width: 380px; text-align: center; }
-    .latar-modal.tutup-portal .aksi-modal { justify-content: center; }
-    #btnTutupPortal { background: var(--merah); color: #fff; border: none; }
-    #btnTutupPortal:hover { background: #7f1d1d; }
-    .ikon-kuasa { flex-shrink: 0; display: inline-block; vertical-align: -2px; }
-    #skrinTutup .ikon-tutup { display: flex; align-items: center; justify-content: center; gap: 6px; }
-
     /* Tarikh akhir & kiraan detik */
     .kotak-ta { border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; border: 1px solid #bfdbfe; background: #eff6ff; color: #1e3a8a; }
     .kotak-ta.kuning { background: #fffbeb; border-color: #fde68a; color: #92400e; }
@@ -198,7 +186,7 @@
       #barAtas .info { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       #barAtas .info .peranan-info { display: none; }
       #barAtas .butang-atas .btn { padding: 6px 9px; font-size: 12px; }
-      #btnTukarKW .teks-panjang, #btnTutupPortal .teks-panjang { display: none; }
+      #btnTukarKW .teks-panjang { display: none; }
       .grid-kad { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
       .stat { padding: 10px 12px; } .stat .nilai { font-size: 21px; }
       .baris-alat { gap: 8px; }
@@ -253,7 +241,7 @@
     }
     @media print {
       body { background: #fff; }
-      #aplikasi, #skrinLogin, #skrinTukar, #skrinTutup, #modalRoot, #kontainerToast, #selimutSibuk { display: none !important; }
+      #aplikasi, #skrinLogin, #skrinTukar, #modalRoot, #kontainerToast, #selimutSibuk { display: none !important; }
       #kawasanCetak { display: block !important; }
       .slip { border: none; margin: 0 auto; padding: 4mm 0 0; }
       .rujukan-idme .putus { page-break-after: always; break-after: page; }
@@ -274,7 +262,6 @@
       <div class="nota">Kali pertama: 6 digit terakhir No. KP anda.</div></div>
     <button class="btn" style="width:100%;justify-content:center" type="submit" id="btnLogin">Log Masuk</button>
     <div class="ralat-login" id="ralatLogin" role="alert"></div>
-    <button class="btn luar" style="width:100%;justify-content:center;margin-top:4px;color:var(--merah)" type="button" id="btnTutupPortalLogin"><svg class="ikon-kuasa" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M12 3v9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>Tutup Portal</button>
   </form>
 </div>
 
@@ -292,19 +279,6 @@
   </form>
 </div>
 
-<!-- ======================= PORTAL DITUTUP ======================= -->
-<div id="skrinTutup" class="skrin-tengah hidden">
-  <div class="kad-login" role="status" aria-live="polite">
-    <img class="logo" alt="Logo SMK Asajaya" id="logoTutup">
-    <p class="ikon-tutup"><svg class="ikon-kuasa" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M12 3v9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg> e-PAJSK</p>
-    <h1>Portal Telah Ditutup</h1>
-    <p class="sub" id="tutupSekolah" style="margin-bottom:4px">SMK Asajaya</p>
-    <p class="motto" id="tutupMotto"></p>
-    <p class="mesej">Sesi anda telah dilog keluar dengan selamat. Anda boleh menutup tab ini sekarang.</p>
-    <button class="btn" style="width:100%;justify-content:center" type="button" id="btnBukaPortal">Buka Semula Portal</button>
-  </div>
-</div>
-
 <!-- ======================= APLIKASI ======================= -->
 <div id="aplikasi" class="hidden">
   <nav id="bilahSisi" aria-label="Menu utama">
@@ -318,7 +292,6 @@
       <div class="butang-atas" style="display:flex;gap:8px">
         <button class="btn luar kecil" id="btnTukarKW"><span class="teks-panjang">Tukar&nbsp;</span>Kata Laluan</button>
         <button class="btn kelabu kecil" id="btnLogout">Log Keluar</button>
-        <button class="btn kecil" id="btnTutupPortal" title="Log keluar dan tutup portal" aria-label="Tutup Portal"><svg class="ikon-kuasa" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M12 3v9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg><span class="teks-panjang">Tutup Portal</span></button>
       </div>
     </header>
     <main id="kandungan"></main>
@@ -431,7 +404,7 @@ $('borangLogin').addEventListener('submit', function (ev) {
 });
 
 function paparSkrin(id) {
-  ['skrinLogin', 'skrinTukar', 'skrinTutup', 'aplikasi'].forEach(function (x) { $(x).classList.toggle('hidden', x !== id); });
+  ['skrinLogin', 'skrinTukar', 'aplikasi'].forEach(function (x) { $(x).classList.toggle('hidden', x !== id); });
 }
 
 $('borangTukar').addEventListener('submit', function (ev) {
@@ -444,47 +417,15 @@ $('borangTukar').addEventListener('submit', function (ev) {
     mulaAplikasi();
   }).catch(function (er) { $('ralatTukar').textContent = er.message; });
 });
-$('btnTukarKeluar').onclick = function () { keluar(); };
-$('btnLogout').onclick = function () { api('apiLogout').catch(function () {}).then(keluar); };
-
-/* ---------- Tutup Portal (seperti e-Kokurikulum) ----------
-   1. Kotak pengesahan "Tutup Portal?" (Batal / Ya, Tutup; Esc atau klik di luar = batal).
-   2. Sesi dilog keluar (penting untuk komputer yang dikongsi).
-   3. Isyarat closePortal dihantar kepada laman induk (cth. smkasajaya.my yang membenamkan portal).
-   4. Cuba tutup tab; jika pelayar tidak membenarkan, papar skrin "Portal Telah Ditutup". */
-function sahkanTutupPortal() {
-  var m = bukaModal('<h3>Tutup Portal?</h3><p>' + (S.token ? 'Anda akan dilog keluar daripada e-PAJSK dan portal akan ditutup.' : 'Portal e-PAJSK akan ditutup.') + '</p>' +
-    '<div class="aksi-modal"><button type="button" class="btn luar" data-x="batal">Batal</button><button type="button" class="btn merah" data-x="ok">Ya, Tutup</button></div>', true);
-  m.classList.add('tutup-portal');
-  var batal = function () { document.removeEventListener('keydown', kekunci, true); tutupModal(m); };
-  var kekunci = function (ev) { if (ev.key === 'Escape' || ev.key === 'Esc') { ev.preventDefault(); batal(); } };
-  document.addEventListener('keydown', kekunci, true);
-  m.addEventListener('click', function (ev) { if (ev.target === m) batal(); });   // klik di luar kotak
-  m.querySelector('[data-x=batal]').onclick = batal;
-  m.querySelector('[data-x=ok]').onclick = function () { batal(); tutupPortal(); };
-  m.querySelector('[data-x=batal]').focus();
-}
-
-function tutupPortal() {
-  var awal = typeof INFO_SEKOLAH !== 'undefined' && INFO_SEKOLAH ? INFO_SEKOLAH : {};
-  var t = S.tetapan || awal, token = S.token;
-  $('tutupSekolah').textContent = t.namaSekolah || 'SMK Asajaya';
-  $('tutupMotto').textContent = t.motto || '';
-  $('tutupMotto').classList.toggle('hidden', !t.motto);
-  if (token) api('apiLogout', { token: token }, true).catch(function () {});
+/* Log keluar: terus ke halaman log masuk (tanpa menunggu pelayan); sesi dipadam di pelayan di latar belakang. */
+function logKeluar() {
+  var token = S.token;
   keluar();
-  var isyarat = { type: 'closePortal', action: 'closePortal', sumber: 'e-PAJSK' };
-  [window.parent, window.top].forEach(function (w, i, arr) {
-    if (w && w !== window && arr.indexOf(w) === i) { try { w.postMessage(isyarat, '*'); } catch (x) { /* abaikan */ } }
-  });
-  try { window.close(); } catch (x) { /* abaikan */ }
-  try { if (window.top && window.top !== window) window.top.close(); } catch (x) { /* abaikan */ }
-  paparSkrin('skrinTutup');   // kekal dipaparkan jika tab tidak dapat ditutup
+  if (token) api('apiLogout', { token: token }, true).catch(function () { /* sesi tamat sendiri */ });
 }
-$('btnTutupPortal').onclick = sahkanTutupPortal;
-$('btnTutupPortalLogin').onclick = sahkanTutupPortal;
-$('btnBukaPortal').onclick = function () { paparSkrin('skrinLogin'); $('lgKP').focus(); };
-$('logoTutup').src = $('logoLogin').src;
+$('btnTukarKeluar').onclick = logKeluar;
+$('btnLogout').onclick = logKeluar;
+
 $('btnTukarKW').onclick = function () {
   var m = bukaModal('<h3>Tukar Kata Laluan</h3><div class="medan"><label>Kata laluan semasa</label><input id="mLama" type="password"></div><div class="medan"><label>Kata laluan baharu (min. 6 aksara)</label><input id="mBaru" type="password"></div><div class="medan"><label>Sahkan</label><input id="mSah" type="password"></div><div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>', true);
   m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
@@ -499,7 +440,15 @@ function keluar() {
   S.token = null; S.user = null; S.data = null; S.cacheKelas = {}; S.versi = null; S.segar = null; S.pg = {}; S.ta = null; simpanToken(null);
   clearInterval(pollTimer); clearInterval(detikTimer); $('bannerBaru').classList.add('hidden');
   semuaModalTutup();
+  tutupMenu();
+  bilSibuk = 0; $('selimutSibuk').classList.add('hidden');
+  S.halaman = 'dashboard';
+  $('kandungan').innerHTML = '';
+  ['lgKW', 'tkLama', 'tkBaru', 'tkSah'].forEach(function (i) { $(i).value = ''; });
+  $('ralatLogin').textContent = ''; $('ralatTukar').textContent = '';
   paparSkrin('skrinLogin');
+  window.scrollTo(0, 0);
+  try { $('lgKP').focus(); } catch (x) { /* abaikan */ }
 }
 
 /* ---------- Mula aplikasi (SATU panggilan: pengguna + rujukan skor + tetapan + kelas) ---------- */
@@ -1836,7 +1785,6 @@ function halamanTetapan() {
       '<div class="medan"><label>Tahun pentaksiran</label><input id="teTahun" type="number" value="' + e(t.tahun) + '"><div class="nota">Berubah automatik selepas Naik Tingkatan.</div></div>' +
       '<div class="medan"><label>Kod sekolah</label><input id="teKod" value="' + e(t.kodSekolah) + '"></div>' +
       '<div class="medan"><label>Nama sekolah</label><input id="teNama" value="' + e(t.namaSekolah) + '"></div>' +
-      '<div class="medan"><label>Motto sekolah</label><input id="teMotto" maxlength="120" value="' + e(t.motto) + '"><div class="nota">Dipaparkan pada skrin "Portal Telah Ditutup".</div></div>' +
       '<div class="medan"><label>ID Google Sheet e-Kokurikulum</label><input id="teKoko" value="' + e(t.idKoko) + '"><div class="nota">Akaun yang men-deploy e-PAJSK mesti mempunyai akses kepada Sheet ini.</div></div></div>' +
       '<div class="aksi-modal"><button class="btn" id="btnSimpanTet">Simpan Tetapan</button></div></div>' +
       '<div class="kad"><h3>Segerak automatik dengan e-Kokurikulum</h3>' +
@@ -1851,7 +1799,7 @@ function halamanTetapan() {
       '<p class="nota">Sunting jadual skor terus dalam Sheet <b>REFERENSI</b> (lajur JENIS / KOD / NILAI). Perubahan dikesan serta-merta (atau guna menu <i>Sistem e-PAJSK → Kosongkan Semua Cache</i> jika disunting melalui cara lain). Kemudian tekan butang di bawah untuk mengira semula semua markah.</p>' +
       '<button class="btn luar" id="btnKiraSemula">Kira semula semua markah</button></div>';
     $('btnSimpanTet').onclick = function () {
-      api('apiSimpanTetapan', { tahun: nilaiEl('teTahun'), kodSekolah: nilaiEl('teKod'), namaSekolah: nilaiEl('teNama'), motto: nilaiEl('teMotto'), idKoko: nilaiEl('teKoko') })
+      api('apiSimpanTetapan', { tahun: nilaiEl('teTahun'), kodSekolah: nilaiEl('teKod'), namaSekolah: nilaiEl('teNama'), idKoko: nilaiEl('teKoko') })
         .then(function () { toast('Tetapan disimpan.', 'jaya'); return api('apiTetapan'); }).then(function (r) { S.tetapan = r; }).catch(gagal);
     };
     $('btnSimpanAuto').onclick = function () {
