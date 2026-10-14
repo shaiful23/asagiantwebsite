@@ -1,34 +1,122 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Website SMK Asajaya</title>
-    <style>
-        /* Memastikan tiada ruang kosong langsung di sekeliling halaman */
-        html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            overflow: hidden !important;
-            background-color: #ffffff;
-        }
-        
-        /* Memaksa iframe memenuhi 100% lebar dan tinggi skrin peranti */
-        iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100% !important;
-            height: 100% !important;
-            border: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>SMK Asajaya</title>
+  <meta name="description" content="Laman Web Rasmi & Portal Digital SMK Asajaya">
+
+  <!-- Aplikasi boleh dipasang (PWA) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a2a7a">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="icon" href="icons/favicon.ico">
+
+  <!-- iPhone / iPad -->
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SMK Asajaya">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <style>
+    html, body { margin: 0; height: 100%; background: #ffffff; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    #app { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+
+    /* Skrin pembuka (splash) semasa website dimuat */
+    #splash { position: fixed; inset: 0; z-index: 10; background: #ffffff;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+      transition: opacity .4s ease; }
+    #splash.hide { opacity: 0; pointer-events: none; }
+    #splash img { width: 120px; height: 120px; object-fit: contain; animation: pulse 1.6s ease-in-out infinite; }
+    #splash p { margin: 0; color: #0a2a7a; font-weight: 700; letter-spacing: .02em; }
+    #splash small { color: #94a3b8; }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+    /* Butang / panduan pasang */
+    #install-bar { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom));
+      z-index: 20; max-width: 460px; margin: 0 auto; background: #0a2a7a; color: #fff; border-radius: 16px;
+      padding: 12px 14px; display: none; align-items: center; gap: 12px; box-shadow: 0 10px 30px rgba(10,42,122,.35); }
+    #install-bar.show { display: flex; }
+    #install-bar img { width: 40px; height: 40px; background: #fff; border-radius: 10px; padding: 3px; }
+    #install-bar .txt { flex: 1; font-size: 13px; line-height: 1.35; }
+    #install-bar .txt b { display: block; font-size: 14px; }
+    #install-bar button { border: 0; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; }
+    #btn-install { background: #f2b705; color: #0a2a7a; padding: 9px 14px; }
+    #btn-close { background: transparent; color: #cbd5e1; font-size: 20px; padding: 0 4px; }
+  </style>
 </head>
 <body>
-    <iframe src="https://script.google.com/macros/s/AKfycbwO-JzwiLaV2flSQzKxMXbzdHdhHrjaGK_ls8LO0pzcR2pWBiSWxzhZklbICirjjJce/exec"></iframe>
+  <div id="splash">
+    <img src="icons/icon-192.png" alt="Logo SMK Asajaya">
+    <p>SMK Asajaya</p>
+    <small>Sedang memuatkan…</small>
+  </div>
+
+  <!-- ===== TETAPAN: URL Web App Google Apps Script anda ===== -->
+  <iframe id="app" title="SMK Asajaya"
+    allow="clipboard-write; fullscreen"
+    src="https://script.google.com/macros/s/AKfycbwO-JzwiLaV2flSQzKxMXbzdHdhHrjaGK_ls8LO0pzcR2pWBiSWxzhZklbICirjjJce/exec"></iframe>
+
+  <div id="install-bar" role="dialog" aria-label="Pasang aplikasi">
+    <img src="icons/icon-192.png" alt="">
+    <div class="txt" id="install-text"><b>Pasang aplikasi SMK Asajaya</b>Akses pantas terus dari skrin utama.</div>
+    <button id="btn-install">Pasang</button>
+    <button id="btn-close" aria-label="Tutup">&times;</button>
+  </div>
+
+  <script>
+    // Jika tiada internet, terus ke halaman luar talian
+    if (!navigator.onLine) location.replace('offline.html');
+
+    // Sembunyikan splash bila website siap dimuat (atau selepas 12 saat sebagai sandaran)
+    const splash = document.getElementById('splash');
+    const hideSplash = () => splash.classList.add('hide');
+    document.getElementById('app').addEventListener('load', hideSplash);
+    setTimeout(hideSplash, 12000);
+
+    // Daftar service worker (diperlukan untuk boleh dipasang)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(console.error));
+    }
+
+    // ---------- Butang / panduan pasang ----------
+    const bar = document.getElementById('install-bar');
+    const btnInstall = document.getElementById('btn-install');
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const dismissed = (() => { try { return localStorage.getItem('smka-install-dismissed') === '1'; } catch (e) { return false; } })();
+    let deferredPrompt = null;
+
+    document.getElementById('btn-close').onclick = () => {
+      bar.classList.remove('show');
+      try { localStorage.setItem('smka-install-dismissed', '1'); } catch (e) {}
+    };
+
+    // Android / Chrome / Edge desktop: guna prompt pemasangan asli
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (!isStandalone && !dismissed) bar.classList.add('show');
+    });
+    btnInstall.onclick = async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      bar.classList.remove('show');
+    };
+    window.addEventListener('appinstalled', () => bar.classList.remove('show'));
+
+    // iPhone / iPad (Safari tiada prompt automatik): papar panduan manual
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isIOS && !isStandalone && !dismissed) {
+      document.getElementById('install-text').innerHTML =
+        '<b>Pasang di iPhone/iPad</b>Tekan ikon <b style="display:inline">Kongsi ⬆️</b> di Safari, kemudian pilih <b style="display:inline">“Add to Home Screen”</b>.';
+      btnInstall.style.display = 'none';
+      setTimeout(() => bar.classList.add('show'), 2500);
+    }
+  </script>
 </body>
 </html>

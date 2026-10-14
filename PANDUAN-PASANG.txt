@@ -1,0 +1,20 @@
+APLIKASI SMK ASAJAYA (PWA) - PANDUAN PEMASANGAN
+================================================
+1. Muat naik SEMUA kandungan folder ini ke ROOT domain smkasajaya.my
+   (biasanya folder public_html di cPanel hosting), kekalkan struktur:
+     public_html/index.html
+     public_html/manifest.json
+     public_html/sw.js
+     public_html/offline.html
+     public_html/icons/...
+   (Jika index.html lama sudah ada di situ, gantikan dengan fail ini.)
+2. Pastikan laman dibuka melalui https://smkasajaya.my (WAJIB https).
+3. Semak URL Web App dalam index.html (tag <iframe src=...>) sama dengan
+   URL "/exec" deployment Apps Script anda.
+4. Gantikan Code.gs di Apps Script > Deploy > Manage deployments > New version.
+
+CARA PENGGUNA PASANG:
+- Android (Chrome): buka smkasajaya.my > tekan "Pasang" pada bar bawah,
+  atau menu ⋮ > "Install app" / "Add to Home screen".
+- iPhone/iPad (Safari): butang Kongsi ⬆️ > "Add to Home Screen".
+- Komputer (Chrome/Edge): ikon pasang (⊕) di hujung kanan bar alamat.
