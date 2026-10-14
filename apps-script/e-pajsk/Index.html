@@ -149,6 +149,8 @@
     .latar-modal.tutup-portal .aksi-modal { justify-content: center; }
     #btnTutupPortal { background: var(--merah); color: #fff; border: none; }
     #btnTutupPortal:hover { background: #7f1d1d; }
+    .ikon-kuasa { flex-shrink: 0; display: inline-block; vertical-align: -2px; }
+    #skrinTutup .ikon-tutup { display: flex; align-items: center; justify-content: center; gap: 6px; }
 
     /* Tarikh akhir & kiraan detik */
     .kotak-ta { border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; border: 1px solid #bfdbfe; background: #eff6ff; color: #1e3a8a; }
@@ -293,7 +295,7 @@
 <div id="skrinTutup" class="skrin-tengah hidden">
   <div class="kad-login" role="status" aria-live="polite">
     <img class="logo" alt="Logo SMK Asajaya" id="logoTutup">
-    <p class="ikon-tutup">&#9211; e-PAJSK</p>
+    <p class="ikon-tutup"><svg class="ikon-kuasa" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M12 3v9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg> e-PAJSK</p>
     <h1>Portal Telah Ditutup</h1>
     <p class="sub" id="tutupSekolah" style="margin-bottom:4px">SMK Asajaya</p>
     <p class="motto" id="tutupMotto"></p>
@@ -315,7 +317,7 @@
       <div class="butang-atas" style="display:flex;gap:8px">
         <button class="btn luar kecil" id="btnTukarKW"><span class="teks-panjang">Tukar&nbsp;</span>Kata Laluan</button>
         <button class="btn kelabu kecil" id="btnLogout">Log Keluar</button>
-        <button class="btn kecil" id="btnTutupPortal" title="Log keluar dan tutup portal" aria-label="Tutup Portal">&#9211;<span class="teks-panjang">&nbsp;Tutup Portal</span></button>
+        <button class="btn kecil" id="btnTutupPortal" title="Log keluar dan tutup portal" aria-label="Tutup Portal"><svg class="ikon-kuasa" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M12 3v9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg><span class="teks-panjang">Tutup Portal</span></button>
       </div>
     </header>
     <main id="kandungan"></main>
