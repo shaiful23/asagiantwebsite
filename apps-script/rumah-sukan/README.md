@@ -80,6 +80,19 @@ Seri dipecahkan secara rawak berbiji (*seed*), jadi **Pratonton** dan **Sahkan &
 agihan yang sama. Pratonton memaparkan taburan setiap rumah (jumlah, L/P, atlet, kategori×jantina) dan
 setiap kelas (L/P bagi setiap rumah + beza maksimum) sebelum apa-apa disimpan.
 
+## Tutup Portal
+
+Sama seperti e-PAJSK / e-Kokurikulum. Butang **Tutup Portal** (ikon kuasa) ada di bar atas selepas log masuk
+(kedua-dua portal) dan di bawah butang Log Masuk pada halaman log masuk.
+1. Kotak pengesahan **"Tutup Portal?"** — **Batal** atau **Ya, Tutup** (kekunci **Esc** / klik di luar kotak = batal).
+2. Sesi dilog keluar dan dipadam di pelayan (penting untuk komputer yang dikongsi).
+3. Isyarat `closePortal` dihantar kepada laman induk melalui `postMessage`; `rumahsukan.html` dan
+   `rumahsukanmurid.html` mendengar isyarat ini dan cuba menutup tab.
+4. Jika pelayar tidak membenarkan tab ditutup, skrin **"Portal Telah Ditutup"** dipaparkan (logo, nama sekolah,
+   motto) dengan butang **Buka Semula Portal**.
+
+Motto sekolah ditetapkan di **Tetapan Rumah Sukan → Tetapan Kejohanan & Kategori** (lalai: *Berazam, Berusaha, Berjaya*).
+
 ## Struktur Sheet (database)
 
 | Sheet | Kandungan |
