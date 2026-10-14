@@ -274,6 +274,7 @@
       <div class="nota">Kali pertama: 6 digit terakhir No. KP anda.</div></div>
     <button class="btn" style="width:100%;justify-content:center" type="submit" id="btnLogin">Log Masuk</button>
     <div class="ralat-login" id="ralatLogin" role="alert"></div>
+    <button class="btn luar" style="width:100%;justify-content:center;margin-top:4px;color:var(--merah)" type="button" id="btnTutupPortalLogin"><svg class="ikon-kuasa" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M12 3v9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>Tutup Portal</button>
   </form>
 </div>
 
@@ -452,7 +453,7 @@ $('btnLogout').onclick = function () { api('apiLogout').catch(function () {}).th
    3. Isyarat closePortal dihantar kepada laman induk (cth. smkasajaya.my yang membenamkan portal).
    4. Cuba tutup tab; jika pelayar tidak membenarkan, papar skrin "Portal Telah Ditutup". */
 function sahkanTutupPortal() {
-  var m = bukaModal('<h3>Tutup Portal?</h3><p>Anda akan dilog keluar daripada e-PAJSK dan portal akan ditutup.</p>' +
+  var m = bukaModal('<h3>Tutup Portal?</h3><p>' + (S.token ? 'Anda akan dilog keluar daripada e-PAJSK dan portal akan ditutup.' : 'Portal e-PAJSK akan ditutup.') + '</p>' +
     '<div class="aksi-modal"><button type="button" class="btn luar" data-x="batal">Batal</button><button type="button" class="btn merah" data-x="ok">Ya, Tutup</button></div>', true);
   m.classList.add('tutup-portal');
   var batal = function () { document.removeEventListener('keydown', kekunci, true); tutupModal(m); };
@@ -465,7 +466,8 @@ function sahkanTutupPortal() {
 }
 
 function tutupPortal() {
-  var t = S.tetapan || {}, token = S.token;
+  var awal = typeof INFO_SEKOLAH !== 'undefined' && INFO_SEKOLAH ? INFO_SEKOLAH : {};
+  var t = S.tetapan || awal, token = S.token;
   $('tutupSekolah').textContent = t.namaSekolah || 'SMK Asajaya';
   $('tutupMotto').textContent = t.motto || '';
   $('tutupMotto').classList.toggle('hidden', !t.motto);
@@ -480,6 +482,7 @@ function tutupPortal() {
   paparSkrin('skrinTutup');   // kekal dipaparkan jika tab tidak dapat ditutup
 }
 $('btnTutupPortal').onclick = sahkanTutupPortal;
+$('btnTutupPortalLogin').onclick = sahkanTutupPortal;
 $('btnBukaPortal').onclick = function () { paparSkrin('skrinLogin'); $('lgKP').focus(); };
 $('logoTutup').src = $('logoLogin').src;
 $('btnTukarKW').onclick = function () {

@@ -86,7 +86,7 @@ Peraturan "lengkap" (`Config.gs`: `MEDAN_WAJIB_ASPEK`, `WAJIB_CGPA_SEBELUM`): ba
 - Semua tindakan dicatat dalam Log Audit. Permohonan disimpan dalam Sheet `PERMOHONAN_BUKA`, yang dicipta automatik.
 
 ## Tutup Portal
-Semua pengguna boleh menekan butang merah **Tutup Portal** (ikon kuasa) di bar atas. Ia berfungsi sama seperti dalam e-Kokurikulum:
+Butang **Tutup Portal** (ikon kuasa) ada di dua tempat: di bar atas selepas log masuk, dan di bawah butang Log Masuk pada halaman log masuk. Dari halaman log masuk, tiada sesi yang perlu dilog keluar; langkah lain adalah sama. Ia berfungsi sama seperti dalam e-Kokurikulum:
 1. Kotak pengesahan **"Tutup Portal?"** dipaparkan dengan pilihan **Batal** atau **Ya, Tutup**. Kekunci **Esc** atau klik di luar kotak juga membatalkannya.
 2. Selepas disahkan, sesi dilog keluar dan dipadam di pelayan. Ini penting kerana komputer sering dikongsi.
 3. Jika portal dibenamkan dalam laman smkasajaya.my (`epajsk.html`), isyarat `closePortal` dihantar kepada laman itu melalui `postMessage({type:'closePortal'})`. `epajsk.html` mendengar isyarat ini dan cuba menutup tab.
