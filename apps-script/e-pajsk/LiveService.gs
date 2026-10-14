@@ -177,7 +177,7 @@ function apiMula(p) {
     nama: sesi.nama, peranan: sesi.peranan, kelas: sesi.kelas, unit: sesi.unit, mestiTukarPassword: false,
     rujukan: muatRujukan(),
     tetapan: {
-      tahun: Number(t[TET_TAHUN]) || new Date().getFullYear(), kodSekolah: t[TET_KOD_SEKOLAH] || '', namaSekolah: t[TET_NAMA_SEKOLAH] || '',
+      tahun: Number(t[TET_TAHUN]) || new Date().getFullYear(), kodSekolah: t[TET_KOD_SEKOLAH] || '', namaSekolah: t[TET_NAMA_SEKOLAH] || '', motto: t[TET_MOTTO_SEKOLAH] || '',
       idKoko: sesi.peranan === ROLE_ADMIN ? (t[TET_ID_KOKO] || '') : '',
       autoSegerak: maklumatAutoSegerak(t, true)
     },
