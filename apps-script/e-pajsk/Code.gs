@@ -109,11 +109,19 @@ function onEdit(e) {
   try { tandaKotor(e.range.getSheet().getName()); } catch (x) { /* abaikan */ }
 }
 
+/* Nama & motto sekolah untuk skrin sebelum log masuk (cth. "Portal Telah Ditutup" dari halaman log masuk).
+   '<' dilepaskan supaya teks tetapan tidak boleh menutup tag <script>. */
+function infoSekolahKlien() {
+  let info = { namaSekolah: '', motto: '' };
+  try { const t = bacaTetapan(); info = { namaSekolah: t[TET_NAMA_SEKOLAH] || '', motto: t[TET_MOTTO_SEKOLAH] || '' }; } catch (e) { /* Sheet belum disediakan */ }
+  return 'var INFO_SEKOLAH = ' + JSON.stringify(info).replace(/</g, '\\u003c') + ';';
+}
+
 /* ============================== doGet ================================ */
 function doGet(e) {
   if (e && e.parameter && e.parameter.aksi === 'ping') return balasPing(e.parameter);
   const tpl = HtmlService.createTemplateFromFile('Index');
-  tpl.kodKiraan = kodKiraanUntukKlien();
+  tpl.kodKiraan = kodKiraanUntukKlien() + '\n' + infoSekolahKlien();
   return tpl.evaluate()
     .setTitle('e-PAJSK - SMK Asajaya')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
