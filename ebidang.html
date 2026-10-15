@@ -11,5 +11,12 @@
 </head>
 <body>
     <iframe src="GANTI_DENGAN_EXEC_URL_ANDA"></iframe>
+    <script>
+        window.addEventListener('message', function (ev) {
+            if (ev.data && ev.data.action === 'closePortal') {
+                window.location.href = '/';
+            }
+        });
+    </script>
 </body>
 </html>

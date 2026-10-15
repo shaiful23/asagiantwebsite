@@ -190,6 +190,7 @@
       </div>
       <button class="btn" type="submit" style="width:100%">Log Masuk</button>
       <div class="ralat-login" id="ralatLogin"></div>
+      <button type="button" class="btn luar" id="btnKeluarPortal" style="width:100%;margin-top:10px"></button>
     </form>
   </div>
 
@@ -332,6 +333,7 @@ document.querySelectorAll('.item-nav .nav-ikon').forEach(span => {
 });
 document.getElementById('btnTukarPasswordSendiri').innerHTML = ikon('kunci') + 'Tukar Kata Laluan';
 document.getElementById('btnLogout').innerHTML = ikon('keluar') + 'Log Keluar';
+document.getElementById('btnKeluarPortal').innerHTML = ikon('keluar') + 'Keluar Portal';
 
 function panggil(namaFungsi, param) {
   return new Promise((selesai, gagal) => {
@@ -409,11 +411,36 @@ document.getElementById('btnTukarPasswordSendiri').addEventListener('click', () 
   });
 });
 
+function keluar() {
+  const token = TOKEN;
+  TOKEN = null;
+  SESI = null;
+  KATA_LALUAN_SEMENTARA = '';
+  PANITIA_AKTIF = null;
+  sessionStorage.removeItem('ebidang_token');
+  document.getElementById('latarModal').classList.add('hidden');
+  document.getElementById('aplikasi').classList.add('hidden');
+  document.getElementById('borangLogin').reset();
+  document.getElementById('borangTukarPassword').reset();
+  document.getElementById('ralatLogin').textContent = '';
+  document.getElementById('ralatTukarPassword').textContent = '';
+  const latarUmum = document.getElementById('latarModalUmum');
+  if (latarUmum) latarUmum.classList.add('hidden');
+  document.querySelectorAll('.item-nav').forEach(a => a.classList.remove('aktif'));
+  document.getElementById('kandungan').innerHTML = '';
+  document.getElementById('skrinLogin').classList.remove('hidden');
+  document.getElementById('inputNoKP').focus();
+  if (token) panggilApi('apiLogout').catch(() => {});
+}
+
 document.getElementById('btnLogout').addEventListener('click', () => {
-  panggilApi('apiLogout').finally(() => {
-    sessionStorage.removeItem('ebidang_token');
-    location.reload();
-  });
+  keluar();
+});
+
+document.getElementById('btnKeluarPortal').addEventListener('click', () => {
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ action: 'closePortal' }, '*');
+  }
 });
 
 /* ------------------------- MULAKAN APP SELEPAS LOG MASUK ------------------------- */
