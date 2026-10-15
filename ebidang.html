@@ -14,13 +14,8 @@
     <script>
         window.addEventListener('message', function (ev) {
             if (ev.data && ev.data.action === 'closePortal') {
-                // Jika ebidang.html berada dalam iframe induk, hantar ke induk
-                if (window.parent && window.parent !== window) {
-                    window.parent.postMessage({ action: 'closePortal' }, '*');
-                } else {
-                    // Jika ebidang.html adalah halaman utama, navigate keluar
-                    window.location.href = '/';
-                }
+                // Navigate ke portal bidang main page
+                window.top.location.href = '/portalbidang';
             }
         });
     </script>
