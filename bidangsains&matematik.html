@@ -11,6 +11,13 @@
 </head>
 <body>
     <iframe src="https://script.google.com/macros/s/AKfycbwAZTXdbGiGjuWzFitn4KoJ2zCWMV1eRfzcYke9cq3qWgnZurJ0DCbAUT0JFdo7mQVR/exec"></iframe>
+    <script>
+        window.addEventListener('message', function (ev) {
+            if (ev.data && ev.data.action === 'closePortal') {
+                // Navigate ke portal bidang main page
+                window.top.location.href = '/portalbidang';
+            }
+        });
     </script>
 </body>
 </html>
