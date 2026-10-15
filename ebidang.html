@@ -14,7 +14,8 @@
     <script>
         window.addEventListener('message', function (ev) {
             if (ev.data && ev.data.action === 'closePortal') {
-                window.location.href = '/';
+                // Navigate ke portal bidang main page
+                window.top.location.href = '/portalbidang';
             }
         });
     </script>
