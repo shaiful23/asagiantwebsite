@@ -14,7 +14,13 @@
     <script>
         window.addEventListener('message', function (ev) {
             if (ev.data && ev.data.action === 'closePortal') {
-                window.location.href = '/';
+                // Jika ebidang.html berada dalam iframe induk, hantar ke induk
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ action: 'closePortal' }, '*');
+                } else {
+                    // Jika ebidang.html adalah halaman utama, navigate keluar
+                    window.location.href = '/';
+                }
             }
         });
     </script>
