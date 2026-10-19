@@ -25,7 +25,7 @@ function profilRingkas(u) {
   };
 }
 
-/* Carta Organisasi — kepimpinan bidang (Admin/Ketua Bidang), satu nod bagi
+/* Carta Organisasi — Ketua Bidang di atas (Admin tidak dipaparkan), satu nod bagi
    setiap Panitia (Ketua Panitia + ahli). Hanya pengguna berstatus AKTIF
    dipaparkan. */
 function apiCartaOrganisasi(p) {
@@ -35,7 +35,7 @@ function apiCartaOrganisasi(p) {
   const pengguna = bacaSheetSebagaiObjek(SHEET_USERS).filter(u => String(u.Status).toUpperCase() === 'AKTIF');
 
   const pentadbir = pengguna
-    .filter(u => PERANAN_AKSES_PENUH.indexOf(u.Peranan) !== -1)
+    .filter(u => u.Peranan === ROLE_KETUA_BIDANG)
     .map(profilRingkas);
 
   const panitia = barisPanitiaSemasa().map(pn => {
