@@ -74,7 +74,7 @@ Panitia dan kemaskini Panitia setiap guru di menu Pengguna jika perlu.
   tindakan tertunggak bagi setiap panitia (dalam skop akses peranan semasa),
   serta senarai tindakan susulan peribadi.
 - **Carta Organisasi & Profil Guru** — menu **Carta Organisasi** (boleh
-  diakses semua peranan) memaparkan carta bidang (Admin/Ketua Bidang di atas,
+  diakses semua peranan) memaparkan carta bidang (Ketua Bidang di atas — Admin tidak dipaparkan,
   Ketua Panitia setiap panitia di bawahnya) serta satu panel berasingan bagi
   **setiap Panitia** (Ketua Panitia + ahli).
   Klik mana-mana nama untuk buka **profil lengkap**: gambar, jawatan/gelaran,
