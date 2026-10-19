@@ -392,7 +392,7 @@ function apiMuetPenetapanGuru(p) {
   const guru = guruMuet().map(u => {
     const nokp = normalNoKP(u.NoKP);
     const kelas = Array.from(new Set(tugasan.filter(t => normalNoKP(t.NoKP) === nokp).map(t => String(t.Kelas).toUpperCase())));
-    return { nokp, nama: u.NamaPenuh, peranan: u.Peranan, kelas };
+    return { nokp, nama: u.NamaPenuh, peranan: senaraiPeranan(u.Peranan).join(' + '), kelas };
   }).sort((a, b) => String(a.nama).localeCompare(String(b.nama)));
 
   const ditetapkan = new Set();

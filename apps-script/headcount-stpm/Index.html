@@ -514,10 +514,14 @@ function paparkanBerhalaman(idTbody, idKawalan, senarai, keadaan, fnRenderBaris,
 }
 /* 4 peranan: ADMIN, KETUA_UNIT, GURU_TINGKATAN, GURU (pelayan ialah punca kebenaran sebenar). */
 const LABEL_PERANAN = { ADMIN: 'Admin', KETUA_UNIT: 'Ketua Unit', GURU_TINGKATAN: 'Guru Tingkatan', GURU: 'Guru' };
-function bolehUrus() { return S.peranan === 'ADMIN'; }
-function bolehUrusBLD() { return bolehUrus() || S.peranan === 'KETUA_UNIT'; }
-function bolehTukarKelas() { return bolehUrus() || S.peranan === 'GURU_TINGKATAN'; }
-function bolehUrusMuet() { return bolehUrus() || (S.peranan === 'KETUA_UNIT' && (S.unitKetua || []).indexOf(KOD_SUBJEK_MUET) !== -1); }
+/* Dwi-peranan: S.perananSemua boleh mengandungi KETUA_UNIT + GURU_TINGKATAN serentak. */
+const GABUNGAN_PERANAN = { 'KETUA_UNIT,GURU_TINGKATAN': 'Ketua Unit + Guru Tingkatan' };
+function adaPeranan(r) { return (S.perananSemua && S.perananSemua.length ? S.perananSemua : [S.peranan]).indexOf(r) !== -1; }
+function labelPeranan(senarai) { return String(senarai || '').split(',').filter(Boolean).map(r => LABEL_PERANAN[r] || r.replace(/_/g, ' ')).join(' + '); }
+function bolehUrus() { return adaPeranan('ADMIN'); }
+function bolehUrusBLD() { return bolehUrus() || adaPeranan('KETUA_UNIT'); }
+function bolehTukarKelas() { return bolehUrus() || adaPeranan('GURU_TINGKATAN'); }
+function bolehUrusMuet() { return bolehUrus() || (adaPeranan('KETUA_UNIT') && (S.unitKetua || []).indexOf(KOD_SUBJEK_MUET) !== -1); }
 function senaraiDaripada(v, besar) {
   const a = Array.isArray(v) ? v : String(v || '').split(',');
   return a.map(x => String(x).trim()).filter(Boolean).map(x => besar ? x.toUpperCase() : x);
@@ -608,6 +612,7 @@ function login() {
   document.getElementById('btnLogin').disabled = true;
   panggil('apiLogin', { nokp, pin }).then(res => {
     S.token = res.token; S.nama = res.nama; S.peranan = res.peranan;
+    S.perananSemua = senaraiDaripada(res.perananSemua || res.peranan);
     S.skopSubjek = senaraiDaripada(res.skopSubjek);
     S.unitKetua = senaraiDaripada(res.unitKetua);
     S.skopKelas = senaraiDaripada(res.skopKelas, true);
@@ -623,6 +628,7 @@ function semakSesiSediaAda() {
   if (!S.token) { document.getElementById('loginBox').style.display = 'block'; return; }
   panggil('apiSemakSesi', { token: S.token }).then(res => {
     S.nama = res.nama; S.peranan = res.peranan;
+    S.perananSemua = senaraiDaripada(res.perananSemua || res.peranan);
     S.skopSubjek = senaraiDaripada(res.skopSubjek);
     S.unitKetua = senaraiDaripada(res.unitKetua);
     S.skopKelas = senaraiDaripada(res.skopKelas, true);
@@ -691,13 +697,14 @@ function mulakanApp() {
   document.getElementById('loginBox').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('infoNama').textContent = S.nama;
-  document.getElementById('infoPeranan').textContent = (LABEL_PERANAN[S.peranan] || S.peranan.replace(/_/g,' ')) +
-    (S.peranan === 'KETUA_UNIT' && S.unitKetua.length ? ' (' + S.unitKetua.join(', ') + ')' : '') +
-    (S.peranan === 'GURU_TINGKATAN' && S.skopKelas.length ? ' (' + S.skopKelas.join(', ') + ')' : '');
-  if (S.peranan !== 'ADMIN') document.querySelector('.nav-item[data-halaman="pengguna"]').style.display = 'none';
+  document.getElementById('infoPeranan').textContent = (S.perananSemua.length ? S.perananSemua : [S.peranan]).map(r =>
+    (LABEL_PERANAN[r] || r.replace(/_/g, ' ')) +
+    (r === 'KETUA_UNIT' && S.unitKetua.length ? ' (' + S.unitKetua.join(', ') + ')' : '') +
+    (r === 'GURU_TINGKATAN' && S.skopKelas.length ? ' (' + S.skopKelas.join(', ') + ')' : '')).join(' + ');
+  if (!bolehUrus()) document.querySelector('.nav-item[data-halaman="pengguna"]').style.display = 'none';
   if (!bolehUrusBLD()) document.querySelector('.nav-item[data-halaman="bld"]').style.display = 'none';
   if (!bolehUrus()) document.querySelector('.nav-item[data-halaman="arkib"]').style.display = 'none';
-  const aksesMuet = bolehUrus() || S.skopSubjek.indexOf(KOD_SUBJEK_MUET) !== -1 || (S.peranan === 'GURU_TINGKATAN' && S.skopKelas.length);
+  const aksesMuet = bolehUrus() || S.skopSubjek.indexOf(KOD_SUBJEK_MUET) !== -1 || (adaPeranan('GURU_TINGKATAN') && S.skopKelas.length);
   if (!aksesMuet) document.querySelector('.nav-item[data-halaman="muet"]').style.display = 'none';
   document.querySelectorAll('.nav-item').forEach(el => {
     el.addEventListener('click', () => tukarHalaman(el.dataset.halaman));
@@ -881,7 +888,7 @@ function renderPelajar(senarai) {
       <h3>Tukar Kelas Pelajar</h3>
       <p class="kecil">Pendaftaran subjek pelajar akan <b>DIGANTIKAN SEPENUHNYA</b> mengikut subjek yang diambil pelajar lain dalam kelas baharu
       (anggap satu kelas = satu aliran/set subjek sama). Rekod headcount/markah sejarah bagi subjek lama TIDAK disentuh.
-      ${S.peranan==='GURU_TINGKATAN' ? '<br>Sebagai Guru Tingkatan, anda hanya boleh urus pelajar yang KELAS SEMASANYA dalam kelas jagaan anda: <b>'+escapeHtml((S.skopKelas||[]).join(', ') || '(tiada)')+'</b>.' : ''}</p>
+      ${adaPeranan('GURU_TINGKATAN') ? '<br>Sebagai Guru Tingkatan, anda hanya boleh urus pelajar yang KELAS SEMASANYA dalam kelas jagaan anda: <b>'+escapeHtml((S.skopKelas||[]).join(', ') || '(tiada)')+'</b>.' : ''}</p>
       <div class="borang-grid">
         <div><label>ID Pelajar</label><input id="tkIdPelajar" placeholder="cth. P001" list="senaraiIdPelajarTK"></div>
         <div><label>Kelas Baharu</label><input id="tkKelasBaharu" placeholder="cth. 6A ALAMANDA"></div>
@@ -2142,11 +2149,11 @@ function muatTugasSaya() {
   const panggilan = [panggil('apiSenaraiTugasan', { token: S.token, tahunSTPM: S.tahunSTPM })];
   if (bolehUrus()) panggilan.push(panggil('apiSenaraiSubjek', { token: S.token }));
   // apiSenaraiPengguna khas ADMIN sahaja (rujuk AuthService.gs) — untuk cadangan senarai nama.
-  if (S.peranan === 'ADMIN') panggilan.push(panggil('apiSenaraiPengguna', { token: S.token }));
+  if (bolehUrus()) panggilan.push(panggil('apiSenaraiPengguna', { token: S.token }));
 
   Promise.all(panggilan).then(hasil => {
     if (bolehUrus()) S.cacheSubjek = hasil[1].senarai;
-    S.cachePenggunaTugasan = (S.peranan === 'ADMIN' && hasil[2]) ? hasil[2].senarai : [];
+    S.cachePenggunaTugasan = (bolehUrus() && hasil[2]) ? hasil[2].senarai : [];
     renderTugasSaya(hasil[0].senarai);
   }).catch(renderRalat);
 }
@@ -2856,7 +2863,7 @@ function mulaDetik() {
 
 /* ======================= PENGGUNA (MODUL 1, ADMIN sahaja) ======================= */
 function muatPengguna() {
-  if (S.peranan !== 'ADMIN') { renderRalat('Hanya ADMIN boleh mengurus pengguna.'); return; }
+  if (!bolehUrus()) { renderRalat('Hanya ADMIN boleh mengurus pengguna.'); return; }
   panggil('apiSenaraiPengguna', { token: S.token }).then(renderPengguna).catch(renderRalat);
 }
 
@@ -2868,7 +2875,8 @@ function renderPengguna(res) {
         <div><label>No. KP</label><input id="uNoKP"></div>
         <div><label>Nama Penuh</label><input id="uNama"></div>
         <div><label>Peranan</label><select id="uPeranan">
-          ${Object.keys(LABEL_PERANAN).map(k => '<option value="' + k + '">' + LABEL_PERANAN[k] + '</option>').join('')}</select></div>
+          ${Object.keys(LABEL_PERANAN).map(k => '<option value="' + k + '">' + LABEL_PERANAN[k] + '</option>').join('')}
+          ${Object.keys(GABUNGAN_PERANAN).map(k => '<option value="' + k + '">' + GABUNGAN_PERANAN[k] + ' (dwi-peranan)</option>').join('')}</select></div>
         <div><label>Subjek Diajar (kod dipisah koma; MUET = ${KOD_SUBJEK_MUET})</label><input id="uSkop" placeholder="cth. 900,800"></div>
         <div id="medanUnitKetua"><label>Unit Diketuai (Ketua Unit — kod dipisah koma)</label><input id="uUnitKetua" placeholder="cth. 800"></div>
         <div id="medanSkopKelas"><label>Kelas Jagaan (Guru Tingkatan — dipisah koma)</label><input id="uSkopKelas" placeholder="cth. 6A AKASIA"></div>
@@ -2876,7 +2884,8 @@ function renderPengguna(res) {
       </div>
       <p class="kecil"><b>Admin</b>: akses penuh. <b>Ketua Unit</b>: seorang bagi setiap mata pelajaran (termasuk MUET) — akses penuh
       subjek unitnya (semua kelas, TOV/OTR/ETR, BLD; MUET: penetapan guru). <b>Guru Tingkatan</b>: semua mata pelajaran (termasuk MUET)
-      bagi pelajar dalam kelas jagaan. <b>Guru</b>: subjek diajar sahaja. Semua peranan boleh juga mengajar subjek dalam "Subjek Diajar".</p>
+      bagi pelajar dalam kelas jagaan. <b>Ketua Unit + Guru Tingkatan</b>: dwi-peranan — guru yang memegang kedua-dua tugas
+      mendapat gabungan akses kedua-duanya (isi Unit Diketuai DAN Kelas Jagaan). <b>Guru</b>: subjek diajar sahaja. Semua peranan boleh juga mengajar subjek dalam "Subjek Diajar".</p>
       <p class="kecil">Pengguna baharu log masuk kali pertama dengan <b>6 digit akhir No. KP</b> sebagai kata laluan, dan dipaksa
       menukarnya selepas itu. Admin tidak menetapkan kata laluan pengguna — guna "Set Semula" jika pengguna terlupa.</p>
       <button id="btnSimpanPengguna">Simpan Pengguna</button>
@@ -2893,8 +2902,8 @@ function renderPengguna(res) {
     <div class="tbl-scroll"><table><thead><tr><th>No. KP</th><th>Nama</th><th>Peranan</th><th>Subjek Diajar</th><th>Unit Diketuai</th><th>Kelas Jagaan</th><th>Status</th><th>Kata Laluan</th><th></th></tr></thead>
     <tbody>${res.senarai.map(u => {
       const nokp = String(u.nokp).replace(/\D/g, '').padStart(12, '0');
-      const lama = u.perananAsal && String(u.perananAsal).toUpperCase() !== u.peranan ? ' <span class="kecil">(asal: ' + escapeHtml(u.perananAsal) + ')</span>' : '';
-      return `<tr><td>${escapeHtml(nokp)}</td><td>${escapeHtml(u.nama)}</td><td>${escapeHtml(LABEL_PERANAN[u.peranan] || u.peranan)}${lama}</td><td>${escapeHtml(u.skopSubjek)}</td>
+      const lama = u.perananAsal && String(u.perananAsal).toUpperCase().replace(/\s/g, '') !== u.peranan ? ' <span class="kecil">(asal: ' + escapeHtml(u.perananAsal) + ')</span>' : '';
+      return `<tr><td>${escapeHtml(nokp)}</td><td>${escapeHtml(u.nama)}</td><td>${escapeHtml(labelPeranan(u.peranan))}${lama}</td><td>${escapeHtml(u.skopSubjek)}</td>
         <td>${escapeHtml(u.unitKetua)}</td><td>${escapeHtml(u.skopKelas)}</td><td>${lencana(u.status)}</td>
         <td>${LABEL_KATA_LALUAN[u.kataLaluan] || ''}</td>
         <td><span class="aksi-link" data-edit-pengguna="${escapeHtml(nokp)}">Edit</span><span class="aksi-link" onclick="resetKataLaluan('${nokp}')">Set Semula</span></td></tr>`;
@@ -2902,8 +2911,8 @@ function renderPengguna(res) {
 
   const elPeranan = document.getElementById('uPeranan');
   const ikutPeranan = () => {
-    document.getElementById('medanUnitKetua').style.display = elPeranan.value === 'KETUA_UNIT' ? '' : 'none';
-    document.getElementById('medanSkopKelas').style.display = elPeranan.value === 'GURU_TINGKATAN' ? '' : 'none';
+    document.getElementById('medanUnitKetua').style.display = elPeranan.value.split(',').indexOf('KETUA_UNIT') !== -1 ? '' : 'none';
+    document.getElementById('medanSkopKelas').style.display = elPeranan.value.split(',').indexOf('GURU_TINGKATAN') !== -1 ? '' : 'none';
   };
   elPeranan.addEventListener('change', ikutPeranan);
   elPeranan.value = 'GURU';
@@ -2913,7 +2922,7 @@ function renderPengguna(res) {
     if (!u) return;
     document.getElementById('uNoKP').value = el.dataset.editPengguna;
     document.getElementById('uNama').value = u.nama || '';
-    elPeranan.value = LABEL_PERANAN[u.peranan] ? u.peranan : 'GURU';
+    elPeranan.value = LABEL_PERANAN[u.peranan] || GABUNGAN_PERANAN[u.peranan] ? u.peranan : 'GURU';
     document.getElementById('uSkop').value = u.skopSubjek || '';
     document.getElementById('uUnitKetua').value = u.unitKetua || '';
     document.getElementById('uSkopKelas').value = u.skopKelas || '';
@@ -2926,8 +2935,8 @@ function renderPengguna(res) {
     panggil('apiSimpanPengguna', {
       token: S.token, nokp: document.getElementById('uNoKP').value, nama: document.getElementById('uNama').value,
       peranan: elPeranan.value, skopSubjek: document.getElementById('uSkop').value,
-      unitKetua: elPeranan.value === 'KETUA_UNIT' ? document.getElementById('uUnitKetua').value : '',
-      skopKelas: elPeranan.value === 'GURU_TINGKATAN' ? document.getElementById('uSkopKelas').value : '',
+      unitKetua: elPeranan.value.split(',').indexOf('KETUA_UNIT') !== -1 ? document.getElementById('uUnitKetua').value : '',
+      skopKelas: elPeranan.value.split(',').indexOf('GURU_TINGKATAN') !== -1 ? document.getElementById('uSkopKelas').value : '',
       status: document.getElementById('uStatus2').value
     }).then(res => {
       tunjukMesej(res.baharu ? 'Pengguna ditambah. Kata laluan pertama: 6 digit akhir No. KP.' : 'Pengguna dikemaskini.');

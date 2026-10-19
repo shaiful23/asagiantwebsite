@@ -53,6 +53,16 @@ function normalPeranan(peranan) {
   return PETA_PERANAN_LAMA[p] || p;
 }
 
+/* Lajur Peranan boleh memegang DUA peranan (cth. "KETUA_UNIT,GURU_TINGKATAN") bagi guru
+   yang menjadi Ketua Unit dan Guru Tingkatan serentak. Pulangkan senarai peranan yang
+   dinormalkan, unik, disusun ikut keutamaan (Admin > Ketua Unit > Guru Tingkatan > Guru). */
+function senaraiPeranan(v) {
+  const unik = Array.from(new Set(String(v || '').split(/[,+\/]/).map(normalPeranan).filter(Boolean)));
+  return unik.sort((a, b) => keutamaanPeranan(a) - keutamaanPeranan(b));
+}
+function keutamaanPeranan(r) { const i = SEMUA_PERANAN.indexOf(r); return i === -1 ? 99 : i; }
+function adaPeranan(sesi, peranan) { return (sesi.perananSemua || [sesi.peranan]).indexOf(peranan) !== -1; }
+
 function senaraiKod(v) {
   return v === undefined || v === null ? [] : String(v).split(',').map(x => x.trim()).filter(Boolean);
 }
@@ -60,7 +70,7 @@ function senaraiKod(v) {
 /* Mata pelajaran yang diketuai: lajur UnitKetua. Sebelum migrasi (lajur belum
    wajud/kosong), Ketua Panitia lama dianggap ketua bagi semua SkopSubjeknya. */
 function unitKetuaPengguna(pengguna) {
-  if (normalPeranan(pengguna.Peranan) !== ROLE_KETUA_UNIT) return [];
+  if (senaraiPeranan(pengguna.Peranan).indexOf(ROLE_KETUA_UNIT) === -1) return [];
   const unit = senaraiKod(pengguna.UnitKetua);
   return unit.length ? unit : senaraiKod(pengguna.SkopSubjek);
 }
@@ -70,10 +80,12 @@ function unitKetuaPengguna(pengguna) {
    terus meliputi unit Ketua Unit); unitKetua disimpan berasingan untuk kuasa ketua. */
 function dataSesiPengguna(pengguna) {
   const unitKetua = unitKetuaPengguna(pengguna);
+  const perananSemua = senaraiPeranan(pengguna.Peranan);
   return {
     nokp: pengguna.NoKP,
     nama: pengguna.NamaPenuh,
-    peranan: normalPeranan(pengguna.Peranan),
+    peranan: perananSemua[0] || ROLE_GURU, // peranan utama (paparan & audit)
+    perananSemua,                          // SEMUA peranan — dipakai untuk semakan kebenaran
     skopSubjek: Array.from(new Set(senaraiKod(pengguna.SkopSubjek).concat(unitKetua))),
     unitKetua,
     // SkopKelas: kelas jagaan Guru Tingkatan — huruf besar supaya padan dengan Kelas pelajar.
@@ -82,10 +94,10 @@ function dataSesiPengguna(pengguna) {
 }
 
 /* ------------------------- HELPER AKSES (dipakai semua service) ------------------------- */
-function aksesPenuh(sesi) { return PERANAN_AKSES_PENUH.includes(sesi.peranan); }
-function guruTingkatan(sesi) { return sesi.peranan === ROLE_GURU_TINGKATAN && (sesi.skopKelas || []).length > 0; }
+function aksesPenuh(sesi) { return PERANAN_AKSES_PENUH.some(r => adaPeranan(sesi, r)); }
+function guruTingkatan(sesi) { return adaPeranan(sesi, ROLE_GURU_TINGKATAN) && (sesi.skopKelas || []).length > 0; }
 function ketuaUnitBagi(sesi, kodSubjek) {
-  return sesi.peranan === ROLE_KETUA_UNIT && (sesi.unitKetua || []).indexOf(String(kodSubjek)) !== -1;
+  return adaPeranan(sesi, ROLE_KETUA_UNIT) && (sesi.unitKetua || []).indexOf(String(kodSubjek)) !== -1;
 }
 function kelasJagaan(sesi, kelas) {
   return guruTingkatan(sesi) && sesi.skopKelas.indexOf(String(kelas || '').toUpperCase()) !== -1;
@@ -135,12 +147,14 @@ function sahkanSesi(token) {
 function wajibPeranan(token, perananDibenarkan) {
   const sesi = sahkanSesi(token);
   if (!sesi) return ralat('Sesi tamat tempoh. Sila log masuk semula.');
-  // Sesi yang dicipta sebelum rombakan peranan: petakan peranan lama.
-  sesi.peranan = normalPeranan(sesi.peranan);
-  if (!sesi.unitKetua) sesi.unitKetua = sesi.peranan === ROLE_KETUA_UNIT ? (sesi.skopSubjek || []) : [];
+  // Sesi lama (sebelum rombakan / sebelum dwi-peranan): petakan peranan lama.
+  if (!Array.isArray(sesi.perananSemua) || !sesi.perananSemua.length) sesi.perananSemua = senaraiPeranan(sesi.peranan);
+  sesi.peranan = sesi.perananSemua[0] || ROLE_GURU;
+  if (!sesi.unitKetua) sesi.unitKetua = adaPeranan(sesi, ROLE_KETUA_UNIT) ? (sesi.skopSubjek || []) : [];
   if (!sesi.skopKelas) sesi.skopKelas = [];
   if (sesi.perluTukarKataLaluan) return ralat('Sila tukar kata laluan anda dahulu sebelum meneruskan.');
-  if (perananDibenarkan && perananDibenarkan.length && perananDibenarkan.indexOf(sesi.peranan) === -1) {
+  // Dwi-peranan: dibenarkan jika SALAH SATU peranan pengguna ada dalam senarai.
+  if (perananDibenarkan && perananDibenarkan.length && !perananDibenarkan.some(r => adaPeranan(sesi, r))) {
     return ralat('Anda tidak mempunyai kebenaran untuk tindakan ini.');
   }
   return sesi;
@@ -161,7 +175,7 @@ function apiLogin(p) {
   catatAudit({ nokp: pengguna.NoKP, nama: pengguna.NamaPenuh, peranan: data.peranan }, 'LOGIN', 'PENGGUNA', pengguna.NoKP, '', '',
     semakan.perluTukar ? 'Log masuk (kata laluan lalai/lama — wajib tukar)' : 'Log masuk berjaya');
   return jaya({
-    token, nama: pengguna.NamaPenuh, peranan: data.peranan, skopSubjek: data.skopSubjek, unitKetua: data.unitKetua,
+    token, nama: pengguna.NamaPenuh, peranan: data.peranan, perananSemua: data.perananSemua, skopSubjek: data.skopSubjek, unitKetua: data.unitKetua,
     skopKelas: data.skopKelas, perluTukarKataLaluan: semakan.perluTukar
   });
 }
@@ -181,7 +195,7 @@ function apiSemakSesi(p) {
   const segar = Object.assign(dataSesiPengguna(pengguna), { perluTukarKataLaluan: !!sesi.perluTukarKataLaluan, tamatMs: sesi.tamatMs });
   simpanSesi(p.token, segar);
   return jaya({
-    nama: segar.nama, peranan: segar.peranan, skopSubjek: segar.skopSubjek, unitKetua: segar.unitKetua, skopKelas: segar.skopKelas,
+    nama: segar.nama, peranan: segar.peranan, perananSemua: segar.perananSemua, skopSubjek: segar.skopSubjek, unitKetua: segar.unitKetua, skopKelas: segar.skopKelas,
     perluTukarKataLaluan: segar.perluTukarKataLaluan
   });
 }
@@ -227,7 +241,7 @@ function apiSenaraiPengguna(p) {
   };
   const pengguna = bacaSheetSebagaiObjek(SHEET_USERS);
   const senarai = pengguna.map(u => ({
-    nokp: u.NoKP, nama: u.NamaPenuh, peranan: normalPeranan(u.Peranan), perananAsal: u.Peranan,
+    nokp: u.NoKP, nama: u.NamaPenuh, peranan: senaraiPeranan(u.Peranan).join(','), perananAsal: u.Peranan,
     skopSubjek: u.SkopSubjek, skopKelas: u.SkopKelas, unitKetua: unitKetuaPengguna(u).join(', '), status: u.Status,
     kataLaluan: statusKataLaluan(u), __row: u.__row
   }));
@@ -246,14 +260,22 @@ function apiSimpanPengguna(p) {
 
   const nokp = String(p.nokp || '').trim();
   const nama = String(p.nama || '').trim();
-  const peranan = String(p.peranan || '').trim();
-  if (!nokp || !nama || SEMUA_PERANAN.indexOf(peranan) === -1) return ralat('Data pengguna tidak lengkap/sah.');
+  // Peranan: satu peranan, ATAU gabungan "KETUA_UNIT,GURU_TINGKATAN" (dwi-peranan).
+  const mentahPeranan = Array.isArray(p.peranan) ? p.peranan.join(',') : String(p.peranan || '');
+  const perananSemua = senaraiPeranan(mentahPeranan);
+  if (!nokp || !nama || !perananSemua.length || perananSemua.some(r => SEMUA_PERANAN.indexOf(r) === -1)) return ralat('Data pengguna tidak lengkap/sah.');
+  if (mentahPeranan.split(/[,+\/]/).some(r => r.trim() && SEMUA_PERANAN.indexOf(r.trim().toUpperCase()) === -1)) return ralat('Peranan tidak sah: ' + mentahPeranan);
+  if (perananSemua.length > 2 || (perananSemua.length === 2 && (perananSemua.indexOf(ROLE_ADMIN) !== -1 || perananSemua.indexOf(ROLE_GURU) !== -1))) {
+    return ralat('Gabungan peranan yang dibenarkan hanyalah Ketua Unit + Guru Tingkatan (Admin sudah akses penuh; Guru ialah peranan asas).');
+  }
+  const ada = r => perananSemua.indexOf(r) !== -1;
+  const peranan = perananSemua.join(',');
   if (nokp.replace(/\D/g, '').length !== 12) return ralat('No. KP mesti 12 digit.');
   const status = p.status ? String(p.status).trim() : 'AKTIF';
-  const unitKetua = peranan === ROLE_KETUA_UNIT ? senaraiKod(p.unitKetua).map(k => k.toUpperCase()) : [];
+  const unitKetua = ada(ROLE_KETUA_UNIT) ? senaraiKod(p.unitKetua).map(k => k.toUpperCase()) : [];
   const skopKelas = senaraiKod(p.skopKelas);
 
-  if (peranan === ROLE_KETUA_UNIT) {
+  if (ada(ROLE_KETUA_UNIT)) {
     if (!adaLajurUnitKetua()) return ralat('Lajur UnitKetua belum wujud dalam USERS. Jalankan menu "5. Kemaskini Peranan (4 Peranan)" di Sheet dahulu.');
     if (!unitKetua.length) return ralat('Ketua Unit wajib ada sekurang-kurangnya satu Kod Subjek dalam "Unit Diketuai".');
     const sah = senaraiUnitMataPelajaran().map(u => u.kod);
@@ -270,7 +292,7 @@ function apiSimpanPengguna(p) {
       }
     }
   }
-  if (peranan === ROLE_GURU_TINGKATAN && !skopKelas.length) return ralat('Guru Tingkatan wajib ada sekurang-kurangnya satu kelas dalam "Kelas Jagaan".');
+  if (ada(ROLE_GURU_TINGKATAN) && !skopKelas.length) return ralat('Guru Tingkatan wajib ada sekurang-kurangnya satu kelas dalam "Kelas Jagaan".');
 
   const sediaAda = cariPengguna(nokp);
   const objek = {
