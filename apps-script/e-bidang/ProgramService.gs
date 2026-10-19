@@ -17,7 +17,7 @@ const SEMUA_STATUS_PROGRAM = [STATUS_PROGRAM_DIRANCANG, STATUS_PROGRAM_BERJALAN,
 function apiSenaraiProgram(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
-  if (!wajibAksesPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
+  if (!bolehLihatPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
 
   const senarai = bacaSheetSebagaiObjek(SHEET_PROGRAM)
     .filter(prog => String(prog.Panitia) === String(p.panitia) && (!p.jenisProgram || prog.JenisProgram === p.jenisProgram))

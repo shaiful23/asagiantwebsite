@@ -14,7 +14,7 @@ const HEADER_TINDAKAN_SUSULAN = ['IDTindakan', 'IDMesyuarat', 'Panitia', 'Perkar
 function apiSenaraiMesyuarat(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
-  if (!wajibAksesPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
+  if (!bolehLihatPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
 
   const senarai = bacaSheetSebagaiObjek(SHEET_MESYUARAT)
     .filter(m => String(m.Panitia) === String(p.panitia))
@@ -131,7 +131,7 @@ function apiSimpanKehadiranPukal(p) {
 function apiSenaraiTindakanSusulan(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
-  if (!wajibAksesPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
+  if (!bolehLihatPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
 
   const senarai = bacaSheetSebagaiObjek(SHEET_TINDAKAN_SUSULAN)
     .filter(t => String(t.Panitia) === String(p.panitia))
@@ -196,7 +196,7 @@ function apiKemaskiniStatusTindakan(p) {
   if (!tindakan) return ralat('Tindakan tidak dijumpai.');
 
   const dibenarkan = PERANAN_URUS_PANITIA.indexOf(sesi.peranan) !== -1 || sesi.nokp === tindakan.TanggungjawabNoKP;
-  if (!dibenarkan || !wajibAksesPanitia(sesi, tindakan.Panitia)) return ralat('Anda tidak mempunyai kebenaran untuk tindakan ini.');
+  if (!dibenarkan || !bolehLihatPanitia(sesi, tindakan.Panitia)) return ralat('Anda tidak mempunyai kebenaran untuk tindakan ini.');
 
   if (SEMUA_STATUS_TINDAKAN.indexOf(p.status) === -1) return ralat('Status tidak sah.');
   tindakan.Status = p.status;

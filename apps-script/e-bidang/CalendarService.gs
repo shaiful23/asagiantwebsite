@@ -28,7 +28,7 @@ function segerakEventMesyuarat(mesyuarat) {
   if (!tarikh) return '';
 
   const kalendar = dapatkanKalendarEBidang();
-  const tajuk = '[Mesyuarat Panitia ' + mesyuarat.Panitia + '] ' + mesyuarat.Tajuk;
+  const tajuk = (mesyuarat.Panitia === SKOP_BIDANG ? '[Mesyuarat Bidang] ' : '[Mesyuarat Panitia ' + mesyuarat.Panitia + '] ') + mesyuarat.Tajuk;
   const gunaMasa = !!(mesyuarat.MasaMula && mesyuarat.MasaTamat);
   const mula = gunaMasa ? gabungTarikhMasa(tarikh, mesyuarat.MasaMula) : tarikh;
   const tamat = gunaMasa ? gabungTarikhMasa(tarikh, mesyuarat.MasaTamat) : null;
@@ -58,7 +58,7 @@ function segerakEventProgram(program) {
 
   const kalendar = dapatkanKalendarEBidang();
   const tamatMentah = keTarikhObjek(program.TarikhTamat) || mula;
-  const tajuk = '[' + (program.JenisProgram === 'PLC' ? 'PLC' : 'Program') + ' ' + program.Panitia + '] ' + program.NamaProgram;
+  const tajuk = '[' + (program.JenisProgram === 'PLC' ? 'PLC' : 'Program') + ' ' + (program.Panitia === SKOP_BIDANG ? 'Bidang' : program.Panitia) + '] ' + program.NamaProgram;
   const gunaMasa = !!(program.MasaMula && program.MasaTamat);
   const mulaEvent = gunaMasa ? gabungTarikhMasa(mula, program.MasaMula) : mula;
   // all-day createAllDayEvent(start, end) — 'end' EKSKLUSIF, +1 hari supaya hari akhir turut disertakan.
