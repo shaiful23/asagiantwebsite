@@ -416,9 +416,17 @@ const SEMESTER_HEADCOUNT = ['S1', 'S2', 'S3'];
 const KOD_SUBJEK_MUET = '800';
 
 /* ======================= STATE ======================= */
+/* Keadaan awal SATU sesi pengguna — dipakai semasa halaman dibuka dan semasa log
+   keluar (kembaliKeLogin), supaya data pengguna sebelumnya tidak terbawa. */
+function keadaanAwal() {
+  return {
+    token: '', nama: '', peranan: '', perananSemua: [], skopSubjek: [], unitKetua: [], skopKelas: [],
+    semester: 'S1', tahunSTPM: '', senaraiTahun: [], halaman: 'dashboard', cacheSubjek: [], cachePelajar: []
+  };
+}
 const S = {
   token: localStorage.getItem('hcstpm_token') || '',
-  nama: '', peranan: '', skopSubjek: [],
+  nama: '', peranan: '', perananSemua: [], skopSubjek: [], unitKetua: [], skopKelas: [],
   semester: 'S1',
   tahunSTPM: '', senaraiTahun: [],
   halaman: 'dashboard',
@@ -639,11 +647,39 @@ function semakSesiSediaAda() {
   });
 }
 
+/* Log keluar: tamatkan sesi di pelayan, kemudian kembali TERUS ke skrin log masuk.
+   TIDAK guna location.reload() — dalam iframe Apps Script (dan portal smkasajaya.my
+   yang membalut iframe itu) reload hanya memuat semula bingkai dalaman dan boleh
+   meninggalkan halaman kosong, bukan skrin log masuk. */
 function logKeluar() {
-  panggil('apiLogout', { token: S.token }).finally(() => {
-    localStorage.removeItem('hcstpm_token');
-    location.reload();
+  const btn = document.getElementById('btnLogout');
+  btn.disabled = true;
+  const token = S.token;
+  localStorage.removeItem('hcstpm_token');
+  panggil('apiLogout', { token }).catch(() => {}).finally(() => {
+    btn.disabled = false;
+    kembaliKeLogin();
+    tunjukMesej('Anda telah log keluar.');
   });
+}
+
+function kembaliKeLogin() {
+  clearInterval(S.detikTimer);
+  // Kosongkan keadaan pengguna, tetapi kekalkan bendera pendengar global (dipasang sekali sahaja).
+  const kekal = { tipCartaDipasang: S.tipCartaDipasang, pasangZumSlip: S.pasangZumSlip, janjiHtml2pdf: S.janjiHtml2pdf };
+  Object.keys(S).forEach(k => { delete S[k]; });
+  Object.assign(S, keadaanAwal(), kekal);
+  document.body.classList.remove('mod-cetak', 'mod-cetak-laporan');
+  ['app', 'tukarKataLaluanBox'].forEach(id => { document.getElementById(id).style.display = 'none'; });
+  ['content', 'kawalanGlobal', 'kawasanCetak', 'infoNama', 'infoPeranan'].forEach(id => { document.getElementById(id).innerHTML = ''; });
+  document.querySelectorAll('.nav-item').forEach(el => { el.style.display = ''; el.classList.remove('aktif'); });
+  document.getElementById('inNoKP').value = '';
+  document.getElementById('inPIN').value = '';
+  document.getElementById('mesejLogin').textContent = '';
+  document.getElementById('btnLogin').disabled = false;
+  document.getElementById('loginBox').style.display = 'block';
+  window.scrollTo(0, 0);
+  document.getElementById('inNoKP').focus();
 }
 document.getElementById('btnLogout').addEventListener('click', logKeluar);
 
@@ -701,20 +737,23 @@ function mulakanApp() {
     (LABEL_PERANAN[r] || r.replace(/_/g, ' ')) +
     (r === 'KETUA_UNIT' && S.unitKetua.length ? ' (' + S.unitKetua.join(', ') + ')' : '') +
     (r === 'GURU_TINGKATAN' && S.skopKelas.length ? ' (' + S.skopKelas.join(', ') + ')' : '')).join(' + ');
+  document.querySelectorAll('.nav-item').forEach(el => { el.style.display = ''; }); // set semula (log masuk semula)
   if (!bolehUrus()) document.querySelector('.nav-item[data-halaman="pengguna"]').style.display = 'none';
   if (!bolehUrusBLD()) document.querySelector('.nav-item[data-halaman="bld"]').style.display = 'none';
   if (!bolehUrus()) document.querySelector('.nav-item[data-halaman="arkib"]').style.display = 'none';
   const aksesMuet = bolehUrus() || S.skopSubjek.indexOf(KOD_SUBJEK_MUET) !== -1 || (adaPeranan('GURU_TINGKATAN') && S.skopKelas.length);
   if (!aksesMuet) document.querySelector('.nav-item[data-halaman="muet"]').style.display = 'none';
-  document.querySelectorAll('.nav-item').forEach(el => {
-    el.addEventListener('click', () => tukarHalaman(el.dataset.halaman));
-  });
-
   panggil('apiSenaraiTahunSTPM', { token: S.token }).then(res => {
     S.senaraiTahun = res.senarai;
     S.tahunSTPM = (res.tahunAktif && res.senarai.indexOf(res.tahunAktif) !== -1) ? res.tahunAktif : (res.senarai[0] || '');
   }).catch(() => {}).finally(() => tukarHalaman('dashboard'));
 }
+
+// Pendengar navigasi dipasang SEKALI sahaja (bukan dalam mulakanApp) — elak pendengar
+// berganda selepas log keluar dan log masuk semula.
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => { if (S.token) tukarHalaman(el.dataset.halaman); });
+});
 
 function tukarHalaman(nama) {
   S.halaman = nama;
