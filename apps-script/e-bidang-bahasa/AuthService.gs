@@ -57,6 +57,15 @@ function wajibAksesPanitia(sesi, panitia) {
   return (sesi.panitia || []).indexOf(String(panitia || '')) !== -1;
 }
 
+/* Akses LIHAT sahaja: skop Bidang (SKOP_BIDANG) boleh dilihat semua guru bidang,
+   tetapi hanya Admin/Ketua Bidang boleh mengurusnya (melalui wajibAksesPanitia). */
+function bolehLihatPanitia(sesi, panitia) {
+  if (String(panitia) === SKOP_BIDANG) {
+    return PERANAN_AKSES_PENUH.indexOf(sesi.peranan) !== -1 || (sesi.panitia || []).length > 0;
+  }
+  return wajibAksesPanitia(sesi, panitia);
+}
+
 /* ------------------------- LOG MASUK / LOG KELUAR ------------------------- */
 function apiLogin(p) {
   const nokp = String(p.nokp || '').trim();

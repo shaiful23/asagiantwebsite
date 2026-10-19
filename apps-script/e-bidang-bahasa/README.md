@@ -70,6 +70,15 @@ Panitia dan kemaskini Panitia setiap guru di menu Pengguna jika perlu.
 - **Program & PLC** — rekod program/aktiviti panitia (termasuk sesi PLC)
   berserta evidens pelaksanaan (fail Drive). **Masa Mula & Masa Tamat**
   (pilihan) boleh diisi sama seperti Mesyuarat.
+- **Skop Bidang (Keseluruhan)** — menu Fail &amp; Dokumen, Mesyuarat, Tindakan
+  Susulan dan Program &amp; PLC mempunyai pilihan **"Bidang (Keseluruhan)"** dalam
+  pemilih panitia, dilayan seperti satu panitia tambahan bagi urusan peringkat
+  Ketua Bidang (cth. Mesyuarat Bidang, fail bidang, program bidang). **Semua guru**
+  bidang boleh melihat, tetapi hanya **Admin/Ketua Bidang** boleh tambah, sunting,
+  padam atau muat naik. Kehadiran mesyuarat & penanggungjawab tindakan bidang
+  dipilih daripada semua guru bidang; guru yang ditugaskan boleh kemas kini status
+  tindakan sendiri. Rekod disimpan dengan nilai Panitia `BIDANG` dan fail Drive
+  dalam folder `BIDANG`.
 - **Dashboard** — ringkasan kelengkapan fail, mesyuarat akan datang &
   tindakan tertunggak bagi setiap panitia (dalam skop akses peranan semasa),
   serta senarai tindakan susulan peribadi.
