@@ -150,7 +150,14 @@ sepenuhnya seperti diminta.
    Kemaskini Struktur (MUET)** — mencipta Sheet `MUET`, `MUET_BAND` (julat
    band lalai) dan `MUET_GPS_SEJARAH`. Rujuk **"MUET (800)"** di bawah.
 
-   **Kemaskini terkini (Dwi-peranan Ketua Unit + Guru Tingkatan):** **gantikan**
+   **Kemaskini terkini (Log Keluar kembali ke skrin log masuk):** **gantikan**
+   `Index` sahaja, kemudian deploy semula. Log Keluar kini terus memaparkan
+   skrin log masuk (tanpa muat semula halaman) — sebelum ini `location.reload()`
+   dalam iframe Apps Script / portal smkasajaya.my boleh meninggalkan halaman
+   kosong. Data pengguna sebelumnya dikosongkan dan menu ditetapkan semula ikut
+   peranan pengguna seterusnya.
+
+   **Kemaskini (Dwi-peranan Ketua Unit + Guru Tingkatan):** **gantikan**
    `AuthService.gs`, `Config.gs`, `Code.gs`, `MuetService.gs` dan `Index`,
    kemudian deploy semula. Tiada migrasi Sheet — pilih "Ketua Unit + Guru
    Tingkatan" bagi guru berkenaan di menu Pengguna. Rujuk "Peranan & Kebenaran".
