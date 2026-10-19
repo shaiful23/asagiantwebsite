@@ -190,7 +190,6 @@
       </div>
       <button class="btn" type="submit" style="width:100%">Log Masuk</button>
       <div class="ralat-login" id="ralatLogin"></div>
-      <button type="button" class="btn luar" id="btnKeluarPortal" style="width:100%;margin-top:10px"></button>
     </form>
   </div>
 
@@ -333,7 +332,6 @@ document.querySelectorAll('.item-nav .nav-ikon').forEach(span => {
 });
 document.getElementById('btnTukarPasswordSendiri').innerHTML = ikon('kunci') + 'Tukar Kata Laluan';
 document.getElementById('btnLogout').innerHTML = ikon('keluar') + 'Log Keluar';
-document.getElementById('btnKeluarPortal').innerHTML = ikon('keluar') + 'Keluar Portal';
 
 function panggil(namaFungsi, param) {
   return new Promise((selesai, gagal) => {
@@ -435,12 +433,6 @@ function keluar() {
 
 document.getElementById('btnLogout').addEventListener('click', () => {
   keluar();
-});
-
-document.getElementById('btnKeluarPortal').addEventListener('click', () => {
-  if (window.parent && window.parent !== window) {
-    window.parent.postMessage({ action: 'closePortal' }, '*');
-  }
 });
 
 /* ------------------------- MULAKAN APP SELEPAS LOG MASUK ------------------------- */
