@@ -454,7 +454,7 @@ function mulakanApp() {
   document.getElementById('navMakmalOps').classList.toggle('hidden', !bolehPesananMakmal);
   ['navDokumen', 'navMesyuarat', 'navTindakan', 'navProgram', 'navPerancangan', 'navPencerapan'].forEach(id => document.getElementById(id).classList.toggle('hidden', pembantuMakmal));
 
-  PANITIA_AKTIF = aksesPenuh ? SENARAI_PANITIA[0] : ((SESI.panitia && SESI.panitia[0]) || null);
+  PANITIA_AKTIF = panitiaLalai();
   document.getElementById('labelPanitiaAktif').textContent = SESI.peranan === 'KETUA_PEMBANTU_MAKMAL'
     ? 'Semua Makmal' : SESI.peranan === 'PEMBANTU_MAKMAL' ? (SESI.makmal || []).join(', ') || 'Tiada Makmal Ditetapkan' : PANITIA_AKTIF;
 
@@ -476,6 +476,10 @@ window.addEventListener('load', () => {
 
 /* ------------------------- NAVIGASI & MODAL ------------------------- */
 function navigasi(view) {
+  if (PANITIA_AKTIF === SKOP_BIDANG && ['dokumen', 'mesyuarat', 'tindakan', 'program', 'dashboard'].indexOf(view) === -1) {
+    PANITIA_AKTIF = panitiaLalai();
+    document.getElementById('labelPanitiaAktif').textContent = PANITIA_AKTIF;
+  }
   document.querySelectorAll('.item-nav').forEach(a => a.classList.toggle('aktif', a.dataset.view === view));
   const peta = {
     dashboard: paparDashboard, cartaOrganisasi: paparCartaOrganisasi, profilSaya: paparProfilSaya,
@@ -556,28 +560,38 @@ function inisialDaripadaNama(nama) {
   return (perkataan[0][0] + (perkataan.length > 1 ? perkataan[perkataan.length - 1][0] : '')).toUpperCase();
 }
 
+function panitiaLalai() {
+  const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
+  return aksesPenuh ? SENARAI_PANITIA[0] : ((SESI.panitia && SESI.panitia[0]) || null);
+}
+
 /* Kad ringkasan panitia di Dashboard boleh diklik terus ke Fail & Dokumen panitia berkenaan. */
 function bukaPanitiaDariDashboard(namaPanitia) {
   PANITIA_AKTIF = namaPanitia;
-  document.getElementById('labelPanitiaAktif').textContent = namaPanitia;
+  document.getElementById('labelPanitiaAktif').textContent = labelSkop(namaPanitia);
   navigasi('dokumen');
 }
 
 /* Selektor Panitia — dipaparkan di atas setiap view berkenaan. ADMIN/KETUA_BIDANG boleh
    pilih mana-mana daripada 5 panitia; guru/ketua panitia yang mengajar > 1 panitia boleh
-   tukar antara panitia sendiri sahaja. Guru bagi 1 panitia tunggal tak perlu selektor. */
-function pemilihPanitiaHtml() {
+   tukar antara panitia sendiri sahaja. denganBidang menambah pilihan "Bidang (Keseluruhan)"
+   (dilihat semua guru, diurus Admin/Ketua Bidang sahaja). */
+function pemilihPanitiaHtml(denganBidang) {
   const aksesPenuh = SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
-  const senarai = aksesPenuh ? SENARAI_PANITIA : (SESI.panitia || []);
+  const senarai = (denganBidang ? [SKOP_BIDANG] : []).concat(aksesPenuh ? SENARAI_PANITIA : (SESI.panitia || []));
   if (senarai.length <= 1) return '';
-  return `<select id="pemilihPanitia" style="width:auto">${senarai.map(p => `<option value="${p}" ${p === PANITIA_AKTIF ? 'selected' : ''}>${p}</option>`).join('')}</select>`;
+  return `<select id="pemilihPanitia" style="width:auto">${senarai.map(p => `<option value="${p}" ${p === PANITIA_AKTIF ? 'selected' : ''}>${labelSkop(p)}</option>`).join('')}</select>`;
+}
+// Skop Bidang hanya boleh diubah oleh Admin/Ketua Bidang; panitia biasa ikut kebenaran sedia ada.
+function bolehUbahSkopAktif() {
+  return PANITIA_AKTIF !== SKOP_BIDANG || SESI.peranan === 'ADMIN' || SESI.peranan === 'KETUA_BIDANG';
 }
 function pasangPemilihPanitia(muatSemula) {
   const el = document.getElementById('pemilihPanitia');
   if (!el) return;
   el.addEventListener('change', () => {
     PANITIA_AKTIF = el.value;
-    document.getElementById('labelPanitiaAktif').textContent = PANITIA_AKTIF;
+    document.getElementById('labelPanitiaAktif').textContent = labelSkop(PANITIA_AKTIF);
     muatSemula();
   });
 }
@@ -596,8 +610,8 @@ function paparDashboard() {
   panggilApi('apiDashboard').then(hasil => {
     if (tunjukRingkasanPanitia) {
       document.getElementById('gridRingkasan').innerHTML = hasil.ringkasanPanitia.map(r => `
-        <div class="kad kad-statistik" style="margin-bottom:0" onclick="bukaPanitiaDariDashboard('${r.panitia}')" tabindex="0" role="button" aria-label="Buka Fail &amp; Dokumen ${r.panitia}">
-          <div class="label">${r.panitia}</div>
+        <div class="kad kad-statistik" style="margin-bottom:0" onclick="bukaPanitiaDariDashboard('${r.panitia}')" tabindex="0" role="button" aria-label="Buka Fail &amp; Dokumen ${labelSkop(r.panitia)}">
+          <div class="label">${labelSkop(r.panitia)}</div>
           <div class="nilai">${r.jumlahDokumen} <span style="font-size:12px;color:var(--kelabu)">dokumen</span></div>
           <div style="font-size:12px;color:var(--kelabu)">Checklist wajib lengkap: ${r.peratusChecklist}%</div>
           <div class="bar-progres"><div style="width:${r.peratusChecklist}%"></div></div>
@@ -787,11 +801,12 @@ function paparProfilSaya() {
 function paparDokumen() {
   const k = document.getElementById('kandungan');
   k.innerHTML = `
-    <div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn kecil luar" id="btnEksportDokumen">${ikon('cetak')}Eksport CSV</button><button class="btn" id="btnMuatNaikDokumen">${ikon('muatNaik')}Muat Naik Dokumen</button></div>
+    <div class="baris-alat">${pemilihPanitiaHtml(true)}<button class="btn kecil luar" id="btnEksportDokumen">${ikon('cetak')}Eksport CSV</button>${bolehUbahSkopAktif() ? `<button class="btn" id="btnMuatNaikDokumen">${ikon('muatNaik')}Muat Naik Dokumen</button>` : ''}</div>
     <div class="kad"><h3>${ikon('senaraiSemak', 'ikon-h3')}Checklist Kelengkapan Fail</h3><div id="jadualChecklist"></div></div>
     <div class="kad"><h3>${ikon('dokumen', 'ikon-h3')}Senarai Dokumen</h3><div id="jadualDokumen"></div></div>`;
-  pasangPemilihPanitia(muatSemulaDokumen);
-  document.getElementById('btnMuatNaikDokumen').addEventListener('click', bukaBorangMuatNaikDokumen);
+  pasangPemilihPanitia(paparDokumen);
+  const btnMuatNaik = document.getElementById('btnMuatNaikDokumen');
+  if (btnMuatNaik) btnMuatNaik.addEventListener('click', bukaBorangMuatNaikDokumen);
   document.getElementById('btnEksportDokumen').addEventListener('click', () => eksportCSV(
     'Dokumen_' + PANITIA_AKTIF + '.csv',
     ['Nama Dokumen', 'Kategori', 'Tarikh', 'Dimuat Naik Oleh', 'Catatan'],
@@ -818,15 +833,15 @@ function muatSemulaDokumen() {
       dokumen.senarai.map(d => `<tr>
         <td>${d.namaDokumen}</td><td>${d.namaKategori}</td><td>${formatTarikhPaparan(d.tarikhDokumen)}</td><td>${d.dimuatNaikOleh}</td>
         <td><a href="${d.failUrl}" target="_blank">${ikon('lihat')}Lihat Fail</a></td><td>${d.catatan || ''}</td>
-        <td><button class="btn kecil luar" onclick='bukaBorangSuntingDokumen(${JSON.stringify(d)})'>${ikon('sunting')}Sunting</button>
-          <button class="btn kecil merah" onclick="padamDokumen('${d.idDokumen}')">${ikon('padam')}Padam</button></td>
+        <td>${bolehUbahSkopAktif() ? `<button class="btn kecil luar" onclick='bukaBorangSuntingDokumen(${JSON.stringify(d)})'>${ikon('sunting')}Sunting</button>
+          <button class="btn kecil merah" onclick="padamDokumen('${d.idDokumen}')">${ikon('padam')}Padam</button>` : ''}</td>
       </tr>`).join('') + `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada dokumen lagi.</p>';
   });
 }
 
 function bukaBorangMuatNaikDokumen() {
   panggilApi('apiSenaraiKategoriDokumen').then(hasil => {
-    bukaModal(ikon('muatNaik', 'ikon-h3') + 'Muat Naik Dokumen — ' + PANITIA_AKTIF, `
+    bukaModal(ikon('muatNaik', 'ikon-h3') + 'Muat Naik Dokumen — ' + labelSkop(PANITIA_AKTIF), `
       <form id="borangMuatNaikDokumen">
         <div class="grid-borang">
           <div class="medan lebar-penuh"><label>Kategori</label>
@@ -915,13 +930,13 @@ function resizeGambarSebagaiBase64(fail, saizMaksimum) {
 }
 
 /* ============================ MESYUARAT ============================ */
-function bolehUrusPanitia() { return ['ADMIN', 'KETUA_BIDANG', 'KETUA_PANITIA'].indexOf(SESI.peranan) !== -1; }
+function bolehUrusPanitia() { return bolehUbahSkopAktif() && ['ADMIN', 'KETUA_BIDANG', 'KETUA_PANITIA'].indexOf(SESI.peranan) !== -1; }
 
 function paparMesyuarat() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn kecil luar" id="btnEksportMesyuarat">${ikon('cetak')}Eksport CSV</button>${bolehUrusPanitia() ? `<button class="btn" id="btnTambahMesyuarat">${ikon('tambah')}Mesyuarat Baharu</button>` : ''}</div>
+  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml(true)}<button class="btn kecil luar" id="btnEksportMesyuarat">${ikon('cetak')}Eksport CSV</button>${bolehUrusPanitia() ? `<button class="btn" id="btnTambahMesyuarat">${ikon('tambah')}Mesyuarat Baharu</button>` : ''}</div>
     <div class="kad"><h3>${ikon('mesyuarat', 'ikon-h3')}Senarai Mesyuarat</h3><div id="jadualMesyuarat"></div></div>`;
-  pasangPemilihPanitia(muatSemulaMesyuarat);
+  pasangPemilihPanitia(paparMesyuarat);
   const btn = document.getElementById('btnTambahMesyuarat');
   if (btn) btn.addEventListener('click', () => bukaBorangMesyuarat(null));
   document.getElementById('btnEksportMesyuarat').addEventListener('click', () => eksportCSV(
@@ -1013,9 +1028,9 @@ function bukaKehadiran(idMesyuarat, tajuk) {
 /* ============================ TINDAKAN SUSULAN ============================ */
 function paparTindakan() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn kecil luar" id="btnEksportTindakan">${ikon('cetak')}Eksport CSV</button>${bolehUrusPanitia() ? `<button class="btn" id="btnTambahTindakan">${ikon('tambah')}Tindakan Baharu</button>` : ''}</div>
+  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml(true)}<button class="btn kecil luar" id="btnEksportTindakan">${ikon('cetak')}Eksport CSV</button>${bolehUrusPanitia() ? `<button class="btn" id="btnTambahTindakan">${ikon('tambah')}Tindakan Baharu</button>` : ''}</div>
     <div class="kad"><h3>${ikon('tindakan', 'ikon-h3')}Senarai Tindakan Susulan</h3><div id="jadualTindakan"></div></div>`;
-  pasangPemilihPanitia(muatSemulaTindakan);
+  pasangPemilihPanitia(paparTindakan);
   const btn = document.getElementById('btnTambahTindakan');
   if (btn) btn.addEventListener('click', () => bukaBorangTindakan(null));
   document.getElementById('btnEksportTindakan').addEventListener('click', () => eksportCSV(
@@ -1079,9 +1094,9 @@ function padamTindakan(idTindakan) {
 /* ============================ PROGRAM & PLC ============================ */
 function paparProgram() {
   const k = document.getElementById('kandungan');
-  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml()}<button class="btn kecil luar" id="btnEksportProgram">${ikon('cetak')}Eksport CSV</button>${bolehUrusPanitia() ? `<button class="btn" id="btnTambahProgram">${ikon('tambah')}Program/PLC Baharu</button>` : ''}</div>
+  k.innerHTML = `<div class="baris-alat">${pemilihPanitiaHtml(true)}<button class="btn kecil luar" id="btnEksportProgram">${ikon('cetak')}Eksport CSV</button>${bolehUrusPanitia() ? `<button class="btn" id="btnTambahProgram">${ikon('tambah')}Program/PLC Baharu</button>` : ''}</div>
     <div class="kad"><h3>${ikon('program', 'ikon-h3')}Senarai Program &amp; PLC</h3><div id="jadualProgram"></div></div>`;
-  pasangPemilihPanitia(muatSemulaProgram);
+  pasangPemilihPanitia(paparProgram);
   const btn = document.getElementById('btnTambahProgram');
   if (btn) btn.addEventListener('click', () => bukaBorangProgram(null));
   document.getElementById('btnEksportProgram').addEventListener('click', () => eksportCSV(
@@ -1152,14 +1167,15 @@ function bukaEvidens(idProgram, namaProgram) {
     bukaModal(ikon('dokumen', 'ikon-h3') + 'Evidens — ' + namaProgram, `
       <div id="jadualEvidens">${hasil.senarai.length ? `<table><thead><tr><th>Keterangan</th><th>Fail</th><th></th></tr></thead><tbody>` +
         hasil.senarai.map(ev => `<tr><td>${ev.Keterangan || '-'}</td><td><a href="${ev.FailUrl}" target="_blank">${ikon('lihat')}Lihat</a></td>
-          <td><button class="btn kecil merah" onclick="padamEvidens('${ev.IDEvidens}', '${idProgram}', '${namaProgram.replace(/'/g, "\\'")}')">${ikon('padam')}Padam</button></td></tr>`).join('') +
+          <td>${bolehUbahSkopAktif() ? `<button class="btn kecil merah" onclick="padamEvidens('${ev.IDEvidens}', '${idProgram}', '${namaProgram.replace(/'/g, "\\'")}')">${ikon('padam')}Padam</button>` : ''}</td></tr>`).join('') +
         `</tbody></table>` : '<p style="color:var(--kelabu);font-size:13px">Tiada evidens lagi.</p>'}</div>
-      <form id="borangEvidens" style="margin-top:14px">
+      ${bolehUbahSkopAktif() ? `<form id="borangEvidens" style="margin-top:14px">
         <div class="medan"><label>Keterangan</label><input type="text" name="keterangan"></div>
         <div class="medan"><label>Fail</label><input type="file" name="fail" required></div>
         <div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Tutup</button><button type="submit" class="btn">${ikon('muatNaik')}Muat Naik Evidens</button></div>
-      </form>`);
-    document.getElementById('borangEvidens').addEventListener('submit', ev => {
+      </form>` : '<div class="aksi-modal"><button type="button" class="btn kelabu" onclick="tutupModal()">Tutup</button></div>'}`);
+    const borangEvidens = document.getElementById('borangEvidens');
+    if (borangEvidens) borangEvidens.addEventListener('submit', ev => {
       ev.preventDefault();
       const f = new FormData(ev.target);
       const fail = f.get('fail');

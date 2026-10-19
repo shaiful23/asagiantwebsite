@@ -21,7 +21,7 @@ function apiSenaraiKategoriDokumen(p) {
 function apiSenaraiDokumen(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
-  if (!wajibAksesPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
+  if (!bolehLihatPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
 
   const kategori = bacaSheetSebagaiObjek(SHEET_KATEGORI_DOKUMEN);
   const senarai = bacaSheetSebagaiObjek(SHEET_DOKUMEN)
@@ -43,7 +43,7 @@ function apiSenaraiDokumen(p) {
 function apiChecklistDokumen(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
-  if (!wajibAksesPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
+  if (!bolehLihatPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
 
   const dokumen = bacaSheetSebagaiObjek(SHEET_DOKUMEN)
     .filter(d => String(d.Panitia) === String(p.panitia) && String(d.Status).toUpperCase() !== 'DIPADAM');

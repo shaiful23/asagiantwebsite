@@ -25,10 +25,14 @@ function apiSenaraiPengguna(p) {
 function apiSenaraiAhliPanitia(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
-  if (!wajibAksesPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
+  if (!bolehLihatPanitia(sesi, p.panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
 
+  // Skop Bidang = semua guru yang berdaftar dalam sekurang-kurangnya satu panitia.
+  const ahliSkop = u => p.panitia === SKOP_BIDANG
+    ? senaraiPanitiaDaripadaMedan(u.Panitia).length > 0
+    : senaraiPanitiaDaripadaMedan(u.Panitia).indexOf(p.panitia) !== -1;
   const senarai = bacaSheetSebagaiObjek(SHEET_USERS)
-    .filter(u => senaraiPanitiaDaripadaMedan(u.Panitia).indexOf(p.panitia) !== -1 && String(u.Status).toUpperCase() === 'AKTIF')
+    .filter(u => ahliSkop(u) && String(u.Status).toUpperCase() === 'AKTIF')
     .map(u => ({ nokp: u.NoKP, nama: u.NamaPenuh, peranan: u.Peranan }));
   return jaya({ senarai });
 }
