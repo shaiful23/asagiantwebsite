@@ -263,9 +263,9 @@ function kemaskiniPerananDanUlasan() {
     const ditukar = {};
     baris.forEach(r => {
       const lama = String(r[iPeranan] || '').trim().toUpperCase();
-      const baru = normalPeranan(lama);
+      const baru = senaraiPeranan(lama).join(','); // kekalkan dwi-peranan (cth. KETUA_UNIT,GURU_TINGKATAN)
       if (baru !== lama) { r[iPeranan] = baru; ditukar[lama + ' -> ' + baru] = (ditukar[lama + ' -> ' + baru] || 0) + 1; }
-      if (baru === ROLE_KETUA_UNIT && !String(r[iUnit] || '').trim()) r[iUnit] = String(r[iSkop] || '').trim();
+      if (baru.split(',').indexOf(ROLE_KETUA_UNIT) !== -1 && !String(r[iUnit] || '').trim()) r[iUnit] = String(r[iSkop] || '').trim();
     });
     if (baris.length) shUsers.getRange(2, 1, baris.length, header.length).setValues(baris);
     Object.keys(ditukar).forEach(k => mesej.push('Peranan ' + k + ': ' + ditukar[k] + ' pengguna.'));

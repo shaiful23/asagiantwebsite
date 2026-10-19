@@ -150,7 +150,12 @@ sepenuhnya seperti diminta.
    Kemaskini Struktur (MUET)** — mencipta Sheet `MUET`, `MUET_BAND` (julat
    band lalai) dan `MUET_GPS_SEJARAH`. Rujuk **"MUET (800)"** di bawah.
 
-   **Kemaskini terkini (Laporan Persembahan):** **gantikan** `ReportService.gs`,
+   **Kemaskini terkini (Dwi-peranan Ketua Unit + Guru Tingkatan):** **gantikan**
+   `AuthService.gs`, `Config.gs`, `Code.gs`, `MuetService.gs` dan `Index`,
+   kemudian deploy semula. Tiada migrasi Sheet — pilih "Ketua Unit + Guru
+   Tingkatan" bagi guru berkenaan di menu Pengguna. Rujuk "Peranan & Kebenaran".
+
+   **Kemaskini (Laporan Persembahan):** **gantikan** `ReportService.gs`,
    `RepeatService.gs` dan `Index`, kemudian deploy semula. Tiada migrasi Sheet.
    Menu **Laporan** kini memaparkan setiap laporan sebagai persembahan — jubin
    pilihan berikon, banner, kad KPI, carta (donut risiko/trend/status, bar
@@ -222,6 +227,15 @@ Sistem kini ada **4 peranan sahaja**:
 | `KETUA_UNIT` | Ketua bagi mata pelajaran dalam lajur **UnitKetua** (menu Pengguna: "Unit Diketuai"). **Seorang Ketua Unit bagi setiap mata pelajaran, termasuk MUET (800)** — sistem menolak Ketua Unit kedua bagi subjek yang sama. Akses penuh subjek unitnya: semua kelas, BLD, dashboard subjek; Ketua Unit MUET turut mengurus **Penetapan Guru** & GPS sejarah MUET serta boleh mengisi markah MUET semua kelas |
 | `GURU_TINGKATAN` | Menggantikan Guru Kelas. Akses **semua mata pelajaran (termasuk MUET)** bagi pelajar dalam **Kelas Jagaan** (lajur `SkopKelas`): headcount, markah ujian, intervensi, ulangan, dan **Tukar Kelas** pelajar kelas jagaan |
 | `GURU` | Subjek dalam **Subjek Diajar** (`SkopSubjek`) sahaja. Isi **ETR** (Headcount) dan **AR1/AR2/SEBENAR** (Markah Ujian) |
+
+**Dwi-peranan (Ketua Unit + Guru Tingkatan):** guru yang memegang kedua-dua
+tugas dipilih sebagai **"Ketua Unit + Guru Tingkatan"** di menu Pengguna (lajur
+`Peranan` = `KETUA_UNIT,GURU_TINGKATAN`), dan mengisi **Unit Diketuai** DAN
+**Kelas Jagaan**. Aksesnya ialah gabungan kedua-dua peranan — cth. penuh bagi
+subjek unitnya (semua kelas, BLD, TOV/OTR) serta semua subjek bagi pelajar
+kelas jagaannya. Hanya gabungan ini dibenarkan (Admin sudah akses penuh; Guru
+ialah peranan asas). Sidebar memaparkan kedua-dua peranan, cth. "Ketua Unit
+(800) + Guru Tingkatan (6A AKASIA)".
 
 Semua peranan bukan Admin juga boleh mengajar subjek dalam **Subjek Diajar**
 (cth. Guru Tingkatan yang juga mengajar MUET). Guru, Guru Tingkatan dan Ketua

@@ -95,7 +95,9 @@ function sheetRepeat(semester) {
    - GURU_TINGKATAN : guru tingkatan bagi kelas dalam SkopKelas — akses SEMUA mata
                       pelajaran (termasuk MUET) bagi pelajar dalam kelas tersebut.
    - GURU           : mata pelajaran dalam SkopSubjek sahaja.
-   Semua peranan bukan ADMIN juga boleh mengajar subjek dalam SkopSubjek. */
+   Semua peranan bukan ADMIN juga boleh mengajar subjek dalam SkopSubjek.
+   DWI-PERANAN: seorang guru boleh memegang KETUA_UNIT + GURU_TINGKATAN serentak
+   (lajur Peranan = "KETUA_UNIT,GURU_TINGKATAN") — kebenaran ialah gabungan kedua-duanya. */
 const ROLE_ADMIN = 'ADMIN';
 const ROLE_KETUA_UNIT = 'KETUA_UNIT';
 const ROLE_GURU_TINGKATAN = 'GURU_TINGKATAN';
