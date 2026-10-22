@@ -242,7 +242,7 @@ function sediakanSegerakKalendarAutomatik() {
   });
   ScriptApp.newTrigger('segerakSemuaKeKalendar').timeBased().everyHours(6).create();
   const hasil = segerakSemuaKeKalendar();
-  SpreadsheetApp.getUi().alert(
+  paparMesejAdmin(
     'Segerak automatik Google Calendar diaktifkan (setiap 6 jam).\n\n' +
     'Larian pertama: ' + hasil.disegerak + ' event dicipta/dikemaskini, ' + hasil.tidakBerubah + ' tidak berubah, ' +
     hasil.gagal + ' gagal' + (hasil.belumSelesai ? ' (baki akan disambung pada larian seterusnya)' : '') + '.\n\n' +
@@ -253,6 +253,6 @@ function sediakanSegerakKalendarAutomatik() {
 
 function segerakKalendarSekarangMenu() {
   const hasil = segerakSemuaKeKalendar();
-  SpreadsheetApp.getUi().alert('Segerak selesai: ' + hasil.disegerak + ' dicipta/dikemaskini, ' + hasil.tidakBerubah +
+  paparMesejAdmin('Segerak selesai: ' + hasil.disegerak + ' dicipta/dikemaskini, ' + hasil.tidakBerubah +
     ' tidak berubah, ' + hasil.gagal + ' gagal' + (hasil.belumSelesai ? ' (belum selesai — jalankan sekali lagi)' : '') + '.');
 }

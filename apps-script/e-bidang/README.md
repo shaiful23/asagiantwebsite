@@ -322,6 +322,21 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
     kepada kuota harian akaun Google (~100 e-mel/hari bagi akaun Gmail
     percuma) — memadai bagi bilangan staf sekolah biasa.
 
+## Menu "Sistem E-Bidang" Tidak Muncul?
+
+- Projek Apps Script mesti **terikat pada Google Sheet ini** (dibuka melalui
+  **Sambungan → Apps Script** dari dalam Sheet). Projek yang dicipta di
+  script.google.com secara berasingan tidak akan memaparkan menu.
+- Muat semula Sheet dan tunggu 5–10 saat; menu muncul selepas "Bantuan".
+- Jika pelayar log masuk ke **lebih daripada satu akaun Google**, menu skrip
+  sering gagal dimuat. Gunakan tetingkap Inkognito dengan akaun pemilik sahaja.
+- Pastikan semua fail `.gs` disalin **lengkap** dan tiada fail lama yang
+  bertindih. Dalam editor Apps Script, pilih fungsi `onOpen` → **Run**; sebarang
+  ralat akan dipaparkan di situ.
+- **Alternatif tanpa menu:** dalam editor Apps Script, pilih fungsi
+  (cth. `sediakanSegerakKalendarAutomatik`, `kemaskiniStrukturSistem`) di senarai
+  fungsi → **Run**. Keputusan dipaparkan dalam **Log Pelaksanaan**.
+
 ## Naik Taraf Deployment Sedia Ada
 
 Jika sistem ini sudah dideploy **sebelum** ciri Pesanan Makmal/Emel/Kalendar/

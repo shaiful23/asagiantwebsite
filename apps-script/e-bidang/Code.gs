@@ -75,7 +75,7 @@ function sediakanSistemEBidang() {
   pastikanSheet(SHEET_INVENTORI_MAKMAL, HEADER_INVENTORI_MAKMAL, []);
   pastikanSheet(SHEET_SEMAKAN_KESELAMATAN_MAKMAL, HEADER_SEMAKAN_KESELAMATAN_MAKMAL, []);
 
-  SpreadsheetApp.getUi().alert(
+  paparMesejAdmin(
     'Sistem sedia. Semua 20 Sheet (USERS, PANITIA, KATEGORI_DOKUMEN, DOKUMEN, MESYUARAT, ' +
     'KEHADIRAN_MESYUARAT, TINDAKAN_SUSULAN, PROGRAM, EVIDENS, AUDIT_LOG, PESANAN_MAKMAL, ' +
     'ITEM_PESANAN_MAKMAL, PERANCANGAN_STRATEGIK, PELAN_TAKTIKAL, PELAN_OPERASI, AKTIVITI_TAHUNAN, ' +
@@ -130,7 +130,7 @@ function kemaskiniStrukturSistem() {
     if (ciptaSheetBaharuJikaTiada(nama, header)) perubahan.push(nama + ' (Sheet baharu)');
   });
 
-  SpreadsheetApp.getUi().alert(perubahan.length
+  paparMesejAdmin(perubahan.length
     ? 'Struktur dikemaskini: ' + perubahan.join(', ') + '.\n\nIsi lajur Emel bagi setiap ' +
       'pengguna (menu Pengguna) untuk notifikasi e-mel; lajur EventIdKalendar diisi automatik ' +
       'oleh sistem apabila Mesyuarat/Program disimpan seterusnya. Tetapkan lajur MakmalDijaga ' +
@@ -156,7 +156,7 @@ function sediakanNotifikasiHarian() {
     if (t.getHandlerFunction() === 'hantarNotifikasiHarian') ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger('hantarNotifikasiHarian').timeBased().everyDays(1).atHour(7).create();
-  SpreadsheetApp.getUi().alert(
+  paparMesejAdmin(
     'Notifikasi e-mel harian diaktifkan — akan dihantar automatik lebih kurang jam 7 pagi ' +
     'setiap hari kepada: (a) guru/ketua panitia yang mempunyai tindakan susulan tertunggak/ ' +
     'tamat tempoh, dan (b) Pembantu Makmal/Admin/Ketua Bidang jika ada Pesanan Makmal menunggu ' +
