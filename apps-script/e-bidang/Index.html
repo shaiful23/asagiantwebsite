@@ -368,7 +368,7 @@
       <div class="hero-moto">Berazam · Berusaha · Berjaya</div>
     </section>
     <section class="panel-login">
-      <form class="kad-login" id="borangLogin">
+      <form class="kad-login" id="borangLogin" onsubmit="return false;">
         <img class="logo-sekolah logo-mudah-alih" alt="Logo SMK Asajaya">
         <h1>Selamat Datang</h1>
         <p class="sub">Log masuk ke Sistem E-Bidang Sains &amp; Matematik SMK Asajaya.</p>
@@ -455,6 +455,21 @@
 
   <div id="kontainerToast" aria-live="polite"></div>
   <div id="kawasanCetak"></div>
+
+<script>
+/* Pengesan ralat awal: jika skrip utama gagal dimuat (cth. Index.html tidak disalin
+   lengkap ke projek Apps Script), paparkan puncanya di skrin log masuk. */
+window.addEventListener('error', function (e) {
+  var el = document.getElementById('ralatLogin');
+  if (el) el.textContent = 'Ralat skrip: ' + (e.message || 'tidak diketahui') + ' (baris ' + (e.lineno || '?') + '). Pastikan Index.html disalin lengkap.';
+});
+window.addEventListener('DOMContentLoaded', function () {
+  if (typeof sambungSesiTersimpan !== 'function') {
+    var el = document.getElementById('ralatLogin');
+    if (el && !el.textContent) el.textContent = 'Skrip sistem tidak dimuatkan — Index.html dalam projek Apps Script mungkin tidak lengkap. Salin semula keseluruhan fail.';
+  }
+});
+</script>
 
 <script>
 /* =========================================================================
