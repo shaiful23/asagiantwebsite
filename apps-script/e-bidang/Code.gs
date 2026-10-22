@@ -21,7 +21,15 @@ function onOpen() {
     .addItem('1. Sediakan Sistem (Jalankan Sekali)', 'sediakanSistemEBidang')
     .addItem('2. Kemaskini Struktur (Emel & Kalendar)', 'kemaskiniStrukturSistem')
     .addItem('3. Aktifkan Notifikasi E-mel Harian', 'sediakanNotifikasiHarian')
+    .addItem('4. Aktifkan Segerak Google Calendar Automatik', 'sediakanSegerakKalendarAutomatik')
+    .addItem('5. Segerak Google Calendar Sekarang', 'segerakKalendarSekarangMenu')
     .addToUi();
+}
+
+/* Pencetus mudah: admin menyunting Sheet secara manual -> buang cache data Sheet
+   itu (Utils.gs) supaya sistem terus nampak perubahan, tanpa menunggu cache tamat. */
+function onEdit(e) {
+  try { batalCacheSheet(e.range.getSheet().getName()); } catch (err) { /* abaikan */ }
 }
 
 /* Cipta semua Sheet + header + data lalai jika belum wujud.

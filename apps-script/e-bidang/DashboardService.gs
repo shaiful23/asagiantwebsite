@@ -15,7 +15,10 @@ function apiDashboard(p) {
   const semuaMesyuarat = bacaSheetSebagaiObjek(SHEET_MESYUARAT);
   const semuaTindakan = bacaSheetSebagaiObjek(SHEET_TINDAKAN_SUSULAN);
   const semuaPesanan = bacaSheetSebagaiObjek(SHEET_PESANAN_MAKMAL);
+  const semuaProgram = bacaSheetSebagaiObjek(SHEET_PROGRAM);
   const hariIni = formatTarikh(new Date());
+  const tahunIni = hariIni.slice(0, 4);
+  const dalamSkop = r => panitiaSkop.indexOf(String(r.Panitia)) !== -1;
 
   const ringkasanPanitia = panitiaSkop.map(namaPanitia => {
     const dokumenPanitia = semuaDokumen.filter(d => d.Panitia === namaPanitia);
@@ -51,7 +54,46 @@ function apiDashboard(p) {
     ringkasanPesananMakmal = ringkasanPesananDaripadaSenarai(pesananMakmalSaya);
   }
 
-  return jaya({ ringkasanPanitia, tindakanSaya, jumlahPenggunaAktif, ringkasanPesananMakmal });
+  // Data carta & kad ringkas (dalam skop panitia yang boleh dilihat sahaja).
+  const mesyuaratSkop = semuaMesyuarat.filter(dalamSkop);
+  const programSkop = semuaProgram.filter(dalamSkop);
+  const tindakanSkop = semuaTindakan.filter(dalamSkop);
+
+  const aktivitiBulanan = [];
+  for (let b = 1; b <= 12; b++) {
+    const awalan = tahunIni + '-' + ('0' + b).slice(-2);
+    aktivitiBulanan.push({
+      mesyuarat: mesyuaratSkop.filter(m => String(m.TarikhMesyuarat).indexOf(awalan) === 0).length,
+      program: programSkop.filter(pr => pr.JenisProgram !== 'PLC' && String(pr.TarikhMula).indexOf(awalan) === 0).length,
+      plc: programSkop.filter(pr => pr.JenisProgram === 'PLC' && String(pr.TarikhMula).indexOf(awalan) === 0).length
+    });
+  }
+
+  const statusTindakan = {};
+  SEMUA_STATUS_TINDAKAN.forEach(st => { statusTindakan[st] = tindakanSkop.filter(t => t.Status === st).length; });
+
+  const aktivitiAkanDatang = mesyuaratSkop
+    .filter(m => String(m.TarikhMesyuarat) >= hariIni)
+    .map(m => ({ jenis: 'MESYUARAT', tajuk: m.Tajuk, panitia: m.Panitia, tarikhMula: m.TarikhMesyuarat, tarikhTamat: m.TarikhMesyuarat,
+      masaMula: m.MasaMula || '', masaTamat: m.MasaTamat || '', keterangan: m.Agenda || '', disegerak: !!m.EventIdKalendar }))
+    .concat(programSkop
+      .filter(pr => String(pr.TarikhTamat || pr.TarikhMula) >= hariIni)
+      .map(pr => ({ jenis: pr.JenisProgram === 'PLC' ? 'PLC' : 'PROGRAM', tajuk: pr.NamaProgram, panitia: pr.Panitia,
+        tarikhMula: pr.TarikhMula, tarikhTamat: pr.TarikhTamat || pr.TarikhMula, masaMula: pr.MasaMula || '', masaTamat: pr.MasaTamat || '',
+        keterangan: pr.Objektif || '', disegerak: !!pr.EventIdKalendar })))
+    .sort((a, b) => String(a.tarikhMula).localeCompare(String(b.tarikhMula)))
+    .slice(0, 6);
+
+  const kpi = {
+    jumlahDokumen: ringkasanPanitia.reduce((j, r) => j + r.jumlahDokumen, 0),
+    purataKelengkapan: ringkasanPanitia.length ? Math.round(ringkasanPanitia.reduce((j, r) => j + r.peratusChecklist, 0) / ringkasanPanitia.length) : 0,
+    mesyuaratAkanDatang: mesyuaratSkop.filter(m => String(m.TarikhMesyuarat) >= hariIni).length,
+    programTahunIni: programSkop.filter(pr => String(pr.TarikhMula).indexOf(tahunIni) === 0).length,
+    tindakanTertunggak: tindakanSkop.filter(t => t.Status !== STATUS_SELESAI).length
+  };
+
+  return jaya({ ringkasanPanitia, tindakanSaya, jumlahPenggunaAktif, ringkasanPesananMakmal,
+    kpi, aktivitiBulanan, statusTindakan, aktivitiAkanDatang, tahun: Number(tahunIni) });
 }
 
 function ringkasanPesananDaripadaSenarai(senarai) {

@@ -149,16 +149,46 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   blok tandatangan Guru/Ketua Panitia/Pembantu Makmal) dijana terus di
   pelayar dan dicetak/dimuat turun sebagai PDF melalui dialog cetak pelayar
   (butang "Cetak / PDF").
-- **Kalendar Bersepadu (Google Calendar)** — setiap Mesyuarat dan Program/PLC
-  disegerakkan secara automatik ke satu Kalendar Google khusus bernama
-  **"E-Bidang Sains & Matematik"**, dicipta automatik (di bawah akaun Google
-  yang men-deploy sistem) apabila mesyuarat/program pertama disimpan. Jika
-  Masa Mula & Masa Tamat diisi, *event* dicipta **bermasa** (waktu sebenar);
-  jika tidak, *event* sehari penuh (atau julat hari bagi Program dengan
-  Tarikh Tamat) seperti asal. Kemaskini/padam rekod turut mengemaskini/
-  memadam *event* berkaitan. Kongsikan kalendar ini dengan staf (rujuk
-  **Cara Pasang** langkah 14) — kegagalan penyegerakan Kalendar (cth. kuota)
-  tidak menghalang mesyuarat/program itu sendiri daripada disimpan.
+- **Kalendar Bersepadu (Google Calendar) — segerak automatik** — setiap
+  Mesyuarat dan Program/PLC (panitia & skop Bidang) disegerakkan ke satu
+  Kalendar Google khusus **"E-Bidang Sains & Matematik"** (dicipta automatik di
+  bawah akaun yang men-deploy sistem; ID-nya disimpan dalam Script Properties).
+  - **Serta-merta** setiap kali rekod disimpan, disunting atau dipadam.
+  - **Jemputan automatik:** ahli panitia berkenaan (atau semua guru bidang bagi
+    skop Bidang) yang mempunyai lajur **Emel** di menu Pengguna dijemput sebagai
+    tetamu **tanpa e-mel jemputan**, jadi *event* terus muncul dalam Google
+    Calendar peribadi setiap guru.
+  - **Pencetus automatik setiap 6 jam** (aktifkan sekali melalui menu Sheet
+    **"4. Aktifkan Segerak Google Calendar Automatik"**) menyegerak rekod dari 30
+    hari lalu ke hadapan: rekod lama yang belum ada *event*, kegagalan sementara
+    dan perubahan senarai ahli/emel. Hanya rekod yang berubah disentuh (cincangan
+    disimpan) supaya kuota CalendarApp dijimatkan. Menu **"5. Segerak Google
+    Calendar Sekarang"** dan butang **Segerak Sekarang** (Admin/Ketua Bidang, menu
+    Kalendar) menjalankannya serta-merta.
+  - Masa Mula & Masa Tamat diisi → *event* **bermasa**; jika tidak → sehari penuh
+    (atau julat hari bagi Program). Kegagalan Kalendar tidak menghalang
+    mesyuarat/program daripada disimpan.
+- **Menu Kalendar** — paparan bulanan (Mesyuarat biru, Program merah, PLC ungu)
+  bagi semua panitia dalam skop pengguna, senarai aktiviti bulan itu dengan
+  status segerak, butang **"Kalendar Saya"** (tambah satu *event* ke Google
+  Calendar sendiri, berfungsi untuk sesiapa) dan **"Langgan di Google Calendar"**
+  (perlu kalendar dikongsi dengan guru, rujuk Cara Pasang).
+- **Antara muka baharu (identiti SMK Asajaya, konsep STEM)** — warna logo
+  sekolah (merah, biru diraja, kuning, ungu), logo sekolah **terbenam dalam kod**
+  (log masuk, bilah sisi, splash, borang cetak), corak heksagon/atom, Dashboard
+  dengan kad ringkas (KPI), carta aktiviti bulanan, carta donut status tindakan,
+  gauge kelengkapan fail setiap panitia dan senarai aktiviti akan datang. Carta
+  dilukis terus dalam SVG (tiada pustaka luar) supaya ringan dan pantas.
+- **Prestasi & kestabilan** — data Sheet dibaca sekali sahaja bagi setiap
+  panggilan pelayan; Sheet USERS/PANITIA/KATEGORI_DOKUMEN di-cache 10 minit
+  (dibuang automatik setiap kali sistem menulis, dan oleh pencetus `onEdit`
+  apabila admin menyunting Sheet secara manual). Di pelayar, data yang baru
+  dibaca disimpan 45 saat supaya bertukar menu terasa serta-merta (sebarang
+  simpan/padam mengosongkannya), panggilan bacaan dicuba semula sekali jika
+  rangkaian terputus, sesi dipulihkan dengan skrin *splash* berlogo, dan
+  pemuat *skeleton* dipaparkan sementara data dimuat. Halaman pembungkus
+  `bidangsains&matematik.html` memaparkan skrin pemuat berlogo sementara portal
+  Apps Script dibuka.
 - **Notifikasi E-mel** — dua bentuk:
   - **Digest Harian** — pencetus terjadual (diaktifkan sekali melalui menu
     Sheet) menghantar e-mel setiap hari lebih kurang jam 7 pagi kepada:
@@ -280,7 +310,13 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
     cari kalendar tersebut di bawah "Kalendar Saya", **Tetapan dan perkongsian**,
     kongsikan dengan staf (cth. "Lihat semua butiran acara") supaya tarikh
     mesyuarat/program panitia kelihatan dalam kalendar peribadi mereka.
-15. **(Pilihan) Aktifkan notifikasi e-mel harian** — pastikan pengguna
+15. **Aktifkan segerak Google Calendar automatik** — klik **Sistem E-Bidang →
+    4. Aktifkan Segerak Google Calendar Automatik** SEKALI. Ini mencipta
+    pencetus setiap 6 jam dan terus menyegerak semua mesyuarat/program sedia
+    ada. Pastikan lajur **Emel** guru diisi supaya mereka dijemput automatik.
+    (Selepas menaik taraf kod, jalankan menu ini sekali lagi selepas Deploy
+    semula supaya pencetus menggunakan versi terkini.)
+16. **(Pilihan) Aktifkan notifikasi e-mel harian** — pastikan pengguna
     berkenaan sudah ada Emel diisi (langkah 9), kemudian klik **Sistem
     E-Bidang → 3. Aktifkan Notifikasi E-mel Harian**. `MailApp` tertakluk
     kepada kuota harian akaun Google (~100 e-mel/hari bagi akaun Gmail
