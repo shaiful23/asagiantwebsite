@@ -1253,7 +1253,7 @@ function paparDashboard() {
       <div style="position:relative">
         <div class="jalur-pelangi" style="width:90px"></div>
         <div style="font-size:12.5px;opacity:.85;font-weight:600">${hariIni}</div>
-        <div class="hero-sapaan" style="font-size:24px;font-weight:800;margin:4px 0 6px;letter-spacing:-.01em">${salamMasa()}, ${esc(SESI.nama.split(' ')[0])}!</div>
+        <div class="hero-sapaan" style="font-size:24px;font-weight:800;margin:4px 0 6px;letter-spacing:-.01em">${salamMasa()}, ${esc(SESI.nama)}!</div>
         <div style="font-size:13.5px;opacity:.88">${LABEL_PERANAN[SESI.peranan] || SESI.peranan} · Bidang Sains &amp; Matematik SMK Asajaya</div>
         ${tunjukRingkasanPanitia ? `<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
           <button class="btn kuning kecil" onclick="navigasi('kalendar')">${ikon('kalendar')}Buka Kalendar</button>
@@ -1285,7 +1285,7 @@ function paparDashboard() {
         ${kad('kuning', 'mesyuarat', 'Mesyuarat Akan Datang', kpi.mesyuaratAkanDatang, 'mesyuarat')}
         ${kad('ungu', 'program', 'Program/PLC ' + hasil.tahun, kpi.programTahunIni, 'program')}
         ${kad('merah', 'tindakan', 'Tindakan Tertunggak', kpi.tindakanTertunggak, 'tindakan')}
-        ${hasil.jumlahPenggunaAktif !== null ? kad('biru', 'pengguna', 'Pengguna Aktif', hasil.jumlahPenggunaAktif, 'pengguna') : ''}
+        ${hasil.jumlahPenggunaAktif != null ? kad('biru', 'pengguna', 'Pengguna Aktif', hasil.jumlahPenggunaAktif, 'pengguna') : ''}
       </div>`;
 
       document.getElementById('labelTahunCarta').textContent = 'Tahun ' + hasil.tahun;
@@ -1315,7 +1315,7 @@ function paparDashboard() {
               <span class="cip biru">${ikon('dokumen')}${r.jumlahDokumen}</span>
               <span class="cip kuning">${ikon('kalendar')}${r.mesyuaratAkanDatang}</span>
               <span class="cip ${r.tindakanTertunggak ? 'merah' : 'hijau'}">${ikon('tindakan')}${r.tindakanTertunggak}</span>
-              ${r.pesananMenunggu !== null ? `<span class="cip ungu">${ikon('pesananMakmal')}${r.pesananMenunggu}</span>` : ''}
+              ${r.pesananMenunggu != null ? `<span class="cip ungu">${ikon('pesananMakmal')}${r.pesananMenunggu}</span>` : ''}
             </div></div>
         </div>`).join('') || kosongHtml('Tiada panitia dalam skop anda.');
 
@@ -1529,7 +1529,7 @@ function bukaProfilModal(nokp) {
         ${baris('Opsyen/Pengkhususan', pr.opsyenPengkhususan)}
         ${baris('Kelayakan Akademik', pr.kelayakanAkademik)}
         ${baris('Kelas Diajar', pr.kelasDiajar)}
-        ${baris('Tempoh Mengajar Subjek Semasa', pr.tempohMengajarTahun !== null ? (pr.tempohMengajarTahun + ' tahun (sejak ' + pr.tahunMulaSubjekSemasa + ')') : '')}
+        ${baris('Tempoh Mengajar Subjek Semasa', pr.tempohMengajarTahun != null ? (pr.tempohMengajarTahun + ' tahun (sejak ' + pr.tahunMulaSubjekSemasa + ')') : '')}
         ${baris('No. Telefon', pr.noTelefon)}
         ${baris('E-mel', pr.emel)}
       </table>
