@@ -24,7 +24,15 @@ function onOpen() {
     .addItem('2. Kemaskini Struktur (Emel & Kalendar)', 'kemaskiniStrukturSistem')
     .addItem('3. Aktifkan Notifikasi E-mel Harian', 'sediakanNotifikasiHarian')
     .addItem('4. Selaraskan Senarai Panitia', 'menuSelaraskanSenaraiPanitia')
+    .addItem('5. Aktifkan Segerak Google Calendar Automatik', 'sediakanSegerakKalendarAutomatik')
+    .addItem('6. Segerak Google Calendar Sekarang', 'segerakKalendarSekarangMenu')
     .addToUi();
+}
+
+/* Pencetus mudah: admin menyunting Sheet secara manual -> buang cache data Sheet
+   itu (Utils.gs) supaya sistem terus nampak perubahan, tanpa menunggu cache tamat. */
+function onEdit(e) {
+  try { batalCacheSheet(e.range.getSheet().getName()); } catch (err) { /* abaikan */ }
 }
 
 /* Cipta semua Sheet + header + data lalai jika belum wujud.
@@ -66,7 +74,7 @@ function sediakanSistemEBidang() {
   pastikanSheet(SHEET_PENCERAPAN_PDP, HEADER_PENCERAPAN_PDP, []);
   pastikanSheet(SHEET_SEMAKAN_BUKU_LATIHAN, HEADER_SEMAKAN_BUKU_LATIHAN, []);
 
-  SpreadsheetApp.getUi().alert(
+  paparMesejAdmin(
     'Sistem sedia. Semua 16 Sheet (USERS, PANITIA, KATEGORI_DOKUMEN, DOKUMEN, MESYUARAT, ' +
     'KEHADIRAN_MESYUARAT, TINDAKAN_SUSULAN, PROGRAM, EVIDENS, AUDIT_LOG, ' +
     'PERANCANGAN_STRATEGIK, PELAN_TAKTIKAL, PELAN_OPERASI, AKTIVITI_TAHUNAN, ' +
@@ -111,7 +119,7 @@ function kemaskiniStrukturSistem() {
     if (ciptaSheetBaharuJikaTiada(nama, header)) perubahan.push(nama + ' (Sheet baharu)');
   });
 
-  SpreadsheetApp.getUi().alert(perubahan.length
+  paparMesejAdmin(perubahan.length
     ? 'Struktur dikemaskini: ' + perubahan.join(', ') + '.\n\nIsi lajur Emel bagi setiap ' +
       'pengguna (menu Pengguna) untuk notifikasi e-mel; lajur EventIdKalendar diisi automatik ' +
       'oleh sistem apabila Mesyuarat/Program disimpan seterusnya. ' +
@@ -134,7 +142,7 @@ function menuSelaraskanSenaraiPanitia() {
   if (h.ditambah.length) baris.push('Ditambah: ' + h.ditambah.join(', '));
   if (h.diaktifkan.length) baris.push('Diaktifkan semula: ' + h.diaktifkan.join(', '));
   if (h.dinyahaktif.length) baris.push('Dinyahaktifkan (dibuang daripada senarai): ' + h.dinyahaktif.join(', '));
-  SpreadsheetApp.getUi().alert(baris.length
+  paparMesejAdmin(baris.length
     ? 'Sheet PANITIA diselaraskan dengan SENARAI_PANITIA (Config.gs).\n\n' + baris.join('\n') +
       '\n\nTetapkan Ketua Panitia bagi panitia baharu di menu Panitia, dan kemaskini Panitia ' +
       'setiap guru di menu Pengguna jika perlu. Rekod lama (dokumen, mesyuarat, dll.) bagi ' +
@@ -151,7 +159,7 @@ function sediakanNotifikasiHarian() {
     if (t.getHandlerFunction() === 'hantarNotifikasiHarian') ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger('hantarNotifikasiHarian').timeBased().everyDays(1).atHour(7).create();
-  SpreadsheetApp.getUi().alert(
+  paparMesejAdmin(
     'Notifikasi e-mel harian diaktifkan — akan dihantar automatik lebih kurang jam 7 pagi ' +
     'setiap hari kepada guru/ketua panitia yang mempunyai tindakan susulan tertunggak/ ' +
     'tamat tempoh. Hanya pengguna dengan lajur Emel diisi akan menerima e-mel.'

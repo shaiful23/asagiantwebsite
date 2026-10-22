@@ -83,7 +83,7 @@ function apiPadamProgram(p) {
     .sort((a, b) => b.__row - a.__row)
     .forEach(ev => { padamFailDrive(ev.FailId); padamBaris(SHEET_EVIDENS, ev.__row); });
 
-  try { padamEventKalendar(program.EventIdKalendar); } catch (e) { /* abaikan — rekod Sheet tetap dipadam */ }
+  try { padamEventKalendar(program.EventIdKalendar, program.IDProgram); } catch (e) { /* abaikan — rekod Sheet tetap dipadam */ }
   padamBaris(SHEET_PROGRAM, program.__row);
   catatAudit(sesi, 'PADAM', 'PROGRAM', program.IDProgram, 'Padam program: ' + program.NamaProgram);
   return jaya({});

@@ -79,7 +79,7 @@ function apiPadamMesyuarat(p) {
   if (!wajibAksesPanitia(sesi, mesyuarat.Panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
 
   padamFailDrive(mesyuarat.MinitFailId);
-  try { padamEventKalendar(mesyuarat.EventIdKalendar); } catch (e) { /* abaikan — rekod Sheet tetap dipadam */ }
+  try { padamEventKalendar(mesyuarat.EventIdKalendar, mesyuarat.IDMesyuarat); } catch (e) { /* abaikan — rekod Sheet tetap dipadam */ }
   padamBaris(SHEET_MESYUARAT, mesyuarat.__row);
 
   bacaSheetSebagaiObjek(SHEET_KEHADIRAN_MESYUARAT)
