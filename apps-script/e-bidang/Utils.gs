@@ -220,3 +220,13 @@ function jaya(data) {
 function includeFile(nama) {
   return HtmlService.createHtmlOutputFromFile(nama).getContent();
 }
+
+/* Papar mesej kepada admin: kotak dialog jika dijalankan dari menu Sheet; jika
+   dijalankan terus dari editor Apps Script (tiada UI), tulis ke Log Pelaksanaan. */
+function paparMesejAdmin(mesej) {
+  try {
+    SpreadsheetApp.getUi().alert(mesej);
+  } catch (e) {
+    console.log(mesej);
+  }
+}
