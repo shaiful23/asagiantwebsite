@@ -452,7 +452,7 @@ function lukisMurid() {
 }
 function borangMurid(nokp) {
   var x = nokp ? S.data.murid.filter(function (y) { return y.nokp === nokp; })[0] :
-    { nokp: '', nama: '', jantina: '', tingkatan: '', kelas: '', kaum: '', agama: '', tarikhLahir: '', noTelPenjaga: '', atlet: false, acara: '', rumahId: '', kunciRumah: false, status: 'AKTIF' };
+    { nokp: '', nama: '', jantina: '', tingkatan: '', kelas: '', kaum: '', agama: '', tarikhLahir: '', noTelPenjaga: '', atlet: false, acara: '', rumahId: '', kunciRumah: false, status: 'AKTIF', noBib: '' };
   var m = bukaModal('<h3>' + (nokp ? 'Sunting' : 'Tambah') + ' Murid</h3><div class="grid-borang">' +
     '<div class="medan"><label>No. KP</label><input id="bmKP" value="' + e(x.nokp) + '"' + (nokp ? ' disabled' : '') + ' inputmode="numeric"></div>' +
     '<div class="medan"><label>Nama penuh</label><input id="bmNama" value="' + e(x.nama) + '"></div>' +
@@ -467,6 +467,7 @@ function borangMurid(nokp) {
     '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="bmAtlet"' + (x.atlet ? ' checked' : '') + '> Atlet</label>' +
     '<div class="medan"><label>Acara</label><input id="bmAcara" value="' + e(x.acara) + '" placeholder="cth. 100M, 4X100M"></div>' +
     '<div class="medan"><label>Rumah sukan</label><select id="bmRumah">' + pilihanRumah(x.rumahId, '— tiada —') + '</select></div>' +
+    '<div class="medan"><label>No. Bib (kosong = automatik)</label><input id="bmBib" inputmode="numeric" value="' + e(x.noBib || '') + '" placeholder="auto"></div>' +
     '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="bmKunci"' + (x.kunciRumah ? ' checked' : '') + '> 🔒 Kunci rumah (tidak dipindah oleh agihan automatik)</label>' +
     '</div><div class="aksi-modal">' + (nokp ? '<button class="btn merah" data-x="p" style="margin-right:auto">Padam</button>' : '') +
     '<button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>');
@@ -475,7 +476,7 @@ function borangMurid(nokp) {
     api('apiSimpanMurid', { data: {
       baharu: !nokp, nokp: nokp || nilaiEl('bmKP').replace(/\D/g, ''), nama: nilaiEl('bmNama'), tingkatan: nilaiEl('bmTing'), kelas: nilaiEl('bmKelas'),
       jantina: nilaiEl('bmJan'), tarikhLahir: nilaiEl('bmLahir'), kaum: nilaiEl('bmKaum'), agama: nilaiEl('bmAgama'), noTelPenjaga: nilaiEl('bmTel'),
-      status: nilaiEl('bmStatus'), atlet: semakEl('bmAtlet'), acara: nilaiEl('bmAcara'), rumahId: nilaiEl('bmRumah'), kunciRumah: semakEl('bmKunci') } })
+      status: nilaiEl('bmStatus'), atlet: semakEl('bmAtlet'), acara: nilaiEl('bmAcara'), rumahId: nilaiEl('bmRumah'), kunciRumah: semakEl('bmKunci'), noBib: nilaiEl('bmBib') } })
       .then(function () { tutupModal(m); toast('Rekod murid disimpan.', 'jaya'); HALAMAN.murid(); }).catch(gagal);
   };
   if (nokp) m.querySelector('[data-x=p]').onclick = function () {

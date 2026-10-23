@@ -100,15 +100,30 @@ Menu **Kejohanan Olahraga** — semua kerja dibuat terus dalam Web App, tanpa me
 | **Papan Mata & Pingat** | Johan keseluruhan (podium), jadual mata, kutipan pingat emas/perak/gangsa, sumbangan mata mengikut kategori, **olahragawan/olahragawati** setiap kategori, mata lain-lain (perbarisan, sorakan, khemah) |
 | **Rekod Kejohanan** | Rekod setiap acara dikemas kini **automatik** apabila dipecahkan, dan dipulihkan sendiri jika keputusan dibetulkan (rekod sebelum kejohanan disimpan sebagai garis asas) |
 | **Laporan & Cetak** | Jadual acara, senarai mula semua acara, buku keputusan, senarai pemenang, papan mata & olahragawan, senarai atlet ikut rumah (Cetak / PDF) + eksport CSV |
-| **Tetapan Kejohanan** (Admin) | Tarikh, lokasi, jadual mata individu & berganti, had acara per atlet, masa mula & selang jadual automatik, buka/tutup pendaftaran, terbitkan keputusan ke Portal Murid |
+| **Tetapan Kejohanan** (Admin) | Tarikh, lokasi, jadual mata individu & berganti, had acara per atlet, tarikh hari padang & hari balapan 1/2, masa mula & selang jadual automatik, buka/tutup pendaftaran, terbitkan keputusan ke Portal Murid |
 
 **Automatik sepenuhnya (tiada proses manual oleh guru):**
-- **Jadual** — no. acara, tarikh & masa (aliran balapan & padang serentak; masa mula & selang di Tetapan Kejohanan).
+- **Jadual** — no. acara, tarikh & masa. Acara padang dan balapan **tidak serentak**: semua acara **padang pada 1 hari**,
+  acara **balapan dibahagi kepada 2 hari** (jarak menaik, berganti-ganti di akhir). Lalai: padang = tarikh kejohanan,
+  balapan = hari ke-2 & ke-3; ketiga-tiga tarikh, masa mula dan selang boleh diubah di Tetapan Kejohanan
+  (jadual disusun semula sendiri apabila tetapan ini diubah).
 - **No. Bib** — diberi sebaik atlet didaftarkan (`<no. rumah><3 digit>`, cth. 1001).
 - **Senarai mula** — dijana apabila pendaftaran ditutup (atau sebaik acara dibuka di halaman keputusan).
 - **Kedudukan, mata, pingat, papan mata, olahragawan/olahragawati** — sebaik keputusan disimpan; dikira semula jika jadual mata ditukar.
 - **Mara ke akhir** — finalis terbaik merentasi semua saringan dipilih sebaik semua saringan lengkap.
 - **Rekod kejohanan** — dikemas kini sendiri (tiada pengesahan diperlukan).
+
+**Kawalan manual mengatasi automasi.** Admin dan guru/AJK yang mempunyai akses boleh menyunting apa sahaja hasil
+automatik; suntingan itu **dikunci** dan tidak ditimpa oleh fungsi automatik:
+
+| Perkara | Cara sunting | Kembali automatik |
+|---|---|---|
+| Jadual (no., tarikh, masa) | Terus dalam jadual *Acara & Jadual* atau borang acara (ikon 🔒) | Kosongkan tarikh & masa, atau *Jana jadual automatik* → tanda "termasuk acara disunting manual" |
+| Senarai mula (saringan, lorong / giliran) | *Saringan & Keputusan* → **Sunting lorong / saringan** | *Rawak semula lorong* / *Set semula* |
+| Finalis ke akhir | Tanda lajur **Ke akhir** → **Simpan pilihan finalis** | *Set semula* |
+| Kedudukan (photo-finish / keputusan hakim) | Isi lajur **Kedudukan** (mata ikut kedudukan manual) | Kosongkan lajur (auto) |
+| Rekod semasa | Borang acara → **Tetapkan rekod semasa secara manual** (lencana *Manual*) | Nyahtanda pilihan itu |
+| No. Bib | *Murid & Atlet* → sunting murid → No. Bib | Kosongkan medan |
 
 **Kebenaran:** Admin (semua) · AJK yang ditanda *Akses keputusan* (jadual, senarai mula, keputusan) ·
 Ketua/Penolong Ketua Guru Rumah (pendaftaran atlet rumah sendiri semasa pendaftaran dibuka) · staf lain (lihat).
@@ -160,7 +175,7 @@ Menu Sheet **2. Tambah / Pulihkan Admin** boleh digunakan jika Admin terlupa kat
 
 **Naik taraf daripada versi lama:** salin semula semua fail (termasuk fail HTML baharu), kemudian
 **Deploy → Manage deployments → Edit → New version**. Sheet `ACARA`, `PESERTA`, `MATA_LAIN` dan lajur baharu
-(`MURID.NoBib`, `AJK.AksesKeputusan`) dicipta secara automatik pada log masuk pertama.
+(`MURID.NoBib`, `AJK.AksesKeputusan`, `ACARA.JadualManual/AkhirManual/RekodManual`, `PESERTA.KedudukanManual`) dicipta secara automatik pada log masuk pertama.
 
 ## Penyelesaian masalah
 

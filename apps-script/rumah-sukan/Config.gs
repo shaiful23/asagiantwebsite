@@ -29,9 +29,10 @@ const HEADER_TETAPAN = ['Kunci', 'Nilai', 'Keterangan'];
 const HEADER_AUDIT = ['Tarikh', 'NoKP', 'Nama', 'Peranan', 'Tindakan', 'Modul', 'RujukanId', 'Butiran'];
 const HEADER_ACARA = ['AcaraId', 'Tahun', 'NoAcara', 'Nama', 'Jenis', 'Kategori', 'Jantina', 'Unit', 'HadPerRumah',
   'BilLorong', 'BilKeAkhir', 'Tarikh', 'Masa', 'Status', 'RekodNilai', 'RekodPemegang', 'RekodRumah', 'RekodTahun', 'Susunan', 'Dikemaskini',
-  'RekodAsalNilai', 'RekodAsalPemegang', 'RekodAsalRumah', 'RekodAsalTahun'];   // RekodAsal* = rekod sebelum kejohanan tahun ini
+  'RekodAsalNilai', 'RekodAsalPemegang', 'RekodAsalRumah', 'RekodAsalTahun',   // RekodAsal* = rekod sebelum kejohanan tahun ini
+  'JadualManual', 'AkhirManual', 'RekodManual'];   // YA = disunting manual -> automasi tidak menimpa
 const HEADER_PESERTA = ['Id', 'Tahun', 'AcaraId', 'RumahId', 'NoKP', 'Ahli', 'Pusingan', 'Saringan', 'Lorong',
-  'Keputusan', 'Nilai', 'Kedudukan', 'Mata', 'Status', 'RekodBaharu', 'Dikemaskini'];
+  'Keputusan', 'Nilai', 'Kedudukan', 'Mata', 'Status', 'RekodBaharu', 'Dikemaskini', 'KedudukanManual'];
 const HEADER_MATA_LAIN = ['Id', 'Tahun', 'RumahId', 'Perkara', 'Mata', 'Catatan', 'Dikemaskini'];
 
 /* Lajur yang mesti disimpan sebagai TEKS (No. KP bermula 0, hash kata laluan, no. telefon). */
@@ -111,7 +112,7 @@ const TEMPOH_KUNCI_LOGIN_SAAT = 10 * 60;    // 10 minit
 const PREFIKS_CACHE = 'rs_';
 
 /* ------------------------- KEJOHANAN OLAHRAGA ------------------------- */
-const VERSI_SKEMA = 3;   // naikkan apabila Sheet/lajur baharu ditambah (Migrasi.gs menyelaras secara automatik)
+const VERSI_SKEMA = 4;   // naikkan apabila Sheet/lajur baharu ditambah (Migrasi.gs menyelaras secara automatik)
 
 const TET_TARIKH_KEJOHANAN = 'TARIKH_KEJOHANAN';
 const TET_LOKASI = 'LOKASI_KEJOHANAN';
@@ -123,7 +124,10 @@ const TET_PENDAFTARAN = 'PENDAFTARAN_ATLET';       // BUKA | TUTUP
 const TET_TERBIT = 'TERBIT_KEPUTUSAN';             // YA = keputusan & papan mata dipaparkan di Portal Murid
 const TET_MASA_MULA = 'MASA_MULA_ACARA';           // jadual automatik: masa acara pertama (HH:MM)
 const TET_SELANG_BALAPAN = 'SELANG_BALAPAN';       // minit antara acara balapan
-const TET_SELANG_PADANG = 'SELANG_PADANG';         // minit antara acara padang (berjalan serentak)
+const TET_SELANG_PADANG = 'SELANG_PADANG';         // minit antara acara padang
+const TET_TARIKH_PADANG = 'TARIKH_PADANG';         // hari acara padang (kosong = tarikh kejohanan)
+const TET_TARIKH_BALAPAN1 = 'TARIKH_BALAPAN_1';    // hari balapan pertama (kosong = tarikh kejohanan + 1)
+const TET_TARIKH_BALAPAN2 = 'TARIKH_BALAPAN_2';    // hari balapan kedua (kosong = tarikh kejohanan + 2)
 
 const JENIS_ACARA = { BALAPAN: 'Balapan', PADANG: 'Padang', BERGANTI: 'Lari Berganti-ganti' };
 const UNIT_ACARA = { MASA: 'Masa (saat)', JARAK: 'Jarak (meter)', TINGGI: 'Ketinggian (meter)' };

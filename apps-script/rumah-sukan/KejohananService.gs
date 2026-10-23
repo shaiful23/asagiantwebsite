@@ -9,13 +9,16 @@
  * AUTOMATIK (tiada proses manual oleh guru): jadual masa acara, No. Bib, senarai mula
  * (saringan & lorong / giliran), kedudukan, mata, mara ke akhir, rekod kejohanan,
  * pingat, papan mata dan olahragawan/olahragawati.
+ * KAWALAN MANUAL MENGATASI AUTOMASI: jadual, senarai mula (saringan/lorong), finalis, kedudukan,
+ * rekod dan No. Bib yang disunting oleh Admin / AJK berakses ditanda (…Manual = YA) dan tidak
+ * ditimpa oleh proses automatik.
  * Kebenaran: Admin (semua) · AJK berakses keputusan (jadual, senarai mula, keputusan)
  *            · Ketua/Penolong Guru Rumah (pendaftaran atlet rumah sendiri) · staf lain (lihat)
  * ========================================================================= */
 
 /* ------------------------- TETAPAN & UTILITI ------------------------- */
 function senaraiNombor(teks, lalai) {
-  const v = String(teks || '').split(/[,;\s]+/).map(Number).filter(n => isFinite(n) && n >= 0);
+  const v = String(teks || '').split(/[,;\s]+/).filter(x => x !== '').map(Number).filter(n => isFinite(n) && n >= 0);
   return v.length ? v : lalai;
 }
 
@@ -30,8 +33,21 @@ function tetKejohanan(tet) {
     pendaftaran: String(t[TET_PENDAFTARAN] || 'TUTUP').toUpperCase() === 'BUKA' ? 'BUKA' : 'TUTUP',
     terbit: ya(t[TET_TERBIT]),
     masaMula: /^\d{2}:\d{2}$/.test(String(t[TET_MASA_MULA] || '')) ? String(t[TET_MASA_MULA]) : '07:30',
-    selangBalapan: Math.max(1, nombor(t[TET_SELANG_BALAPAN], 10)), selangPadang: Math.max(1, nombor(t[TET_SELANG_PADANG], 30))
+    selangBalapan: Math.max(1, nombor(t[TET_SELANG_BALAPAN], 10)), selangPadang: Math.max(1, nombor(t[TET_SELANG_PADANG], 30)),
+    // padang 1 hari, balapan 2 hari (tidak serentak). Kosong = tarikh kejohanan, +1 hari, +2 hari.
+    tarikhPadang: tarikhSah(t[TET_TARIKH_PADANG]) || tambahHari(t[TET_TARIKH_KEJOHANAN], 0),
+    tarikhBalapan1: tarikhSah(t[TET_TARIKH_BALAPAN1]) || tambahHari(t[TET_TARIKH_KEJOHANAN], 1),
+    tarikhBalapan2: tarikhSah(t[TET_TARIKH_BALAPAN2]) || tambahHari(t[TET_TARIKH_KEJOHANAN], 2),
+    // nilai yang disimpan (kosong = ikut tarikh kejohanan) untuk borang tetapan
+    tarikhHari: { padang: tarikhSah(t[TET_TARIKH_PADANG]), balapan1: tarikhSah(t[TET_TARIKH_BALAPAN1]), balapan2: tarikhSah(t[TET_TARIKH_BALAPAN2]) }
   };
+}
+
+function tarikhSah(t) { return /^\d{4}-\d{2}-\d{2}$/.test(String(t || '')) ? String(t) : ''; }
+function tambahHari(t, n) {
+  if (!tarikhSah(t)) return '';
+  const d = new Date(Date.UTC(Number(t.slice(0, 4)), Number(t.slice(5, 7)) - 1, Number(t.slice(8, 10)) + n));
+  return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2);
 }
 
 /* "12.45" | "1:05.32" | "1.05.32" | "4.35m" -> nombor (saat / meter); null jika tidak sah. */
@@ -122,7 +138,8 @@ function acaraKeKlien(a) {
     had: nombor(a.HadPerRumah, a.Jenis === 'BERGANTI' ? 1 : 2), bilLorong: nombor(a.BilLorong, 8), bilKeAkhir: nombor(a.BilKeAkhir, 0),
     tarikh: String(a.Tarikh || ''), masa: String(a.Masa || ''), status: a.Status || 'DIRANCANG',
     rekod: { nilai: String(a.RekodNilai || ''), pemegang: String(a.RekodPemegang || ''), rumah: String(a.RekodRumah || ''), tahun: String(a.RekodTahun || '') },
-    rekodAsal: rekodAsal(a)
+    rekodAsal: rekodAsal(a),
+    jadualManual: ya(a.JadualManual), akhirManual: ya(a.AkhirManual), rekodManual: ya(a.RekodManual)
   };
 }
 
@@ -140,6 +157,7 @@ function rekodAsal(a) {
 
 /* Kemas kini medan rekod objek acara `a` (tidak menulis ke Sheet). Pulangkan true jika berubah. */
 function kiraRekodAuto(a, pesertaAcara, murid, rumah) {
+  if (ya(a.RekodManual)) return false;   // rekod ditetapkan manual oleh Admin -> automasi tidak menimpa
   const asal = rekodAsal(a);
   const nilaiAsal = huraiKeputusan(asal.nilai, a.Unit);
   let terbaik = null;
@@ -351,12 +369,17 @@ function apiSimpanTetapanKejohanan(p) {
     peta[TET_MASA_MULA] = d.masaMula || lama.masaMula;
     peta[TET_SELANG_BALAPAN] = String(Math.max(1, Math.min(120, nombor(d.selangBalapan, lama.selangBalapan))));
     peta[TET_SELANG_PADANG] = String(Math.max(1, Math.min(240, nombor(d.selangPadang, lama.selangPadang))));
+    peta[TET_TARIKH_PADANG] = tarikhSah(d.tarikhPadang);
+    peta[TET_TARIKH_BALAPAN1] = tarikhSah(d.tarikhBalapan1);
+    peta[TET_TARIKH_BALAPAN2] = tarikhSah(d.tarikhBalapan2);
     simpanTetapan(peta);
     const kt = tetKejohanan();
+    // tetapan hari/masa berubah -> jadual automatik disusun semula (acara yang disunting manual kekal)
+    const ubahJadual = ['tarikhPadang', 'tarikhBalapan1', 'tarikhBalapan2', 'masaMula', 'selangBalapan', 'selangPadang'].some(k => String(lama[k]) !== String(kt[k]));
     // AUTOMATIK: mata dikira semula, jadual dilengkapkan, dan apabila pendaftaran ditutup:
     // No. Bib + senarai mula (saringan & lorong / giliran) dijana bagi semua acara berpeserta.
     const bil = kiraSemulaMataSemua();
-    const jadual = janaJadualDalaman(kt, false);
+    const jadual = janaJadualDalaman(kt, ubahJadual);
     let senaraiMula = 0, bib = 0;
     if (kt.pendaftaran === 'TUTUP') {
       bib = janaBibDalaman(kt);
@@ -375,12 +398,20 @@ function normalAcara(d, kt) {
     Nama: banding(d.nama), Jenis: jenis, Kategori: banding(d.kategori), Jantina: ['L', 'P', 'C'].indexOf(d.jantina) !== -1 ? d.jantina : 'L',
     Unit: unit, HadPerRumah: Math.max(1, Math.min(10, nombor(d.had, jenis === 'BERGANTI' ? 1 : 2))),
     BilLorong: Math.max(4, Math.min(10, nombor(d.bilLorong, 8))), BilKeAkhir: Math.max(0, Math.min(16, nombor(d.bilKeAkhir, 0))),
-    Tarikh: /^\d{4}-\d{2}-\d{2}$/.test(String(d.tarikh || '')) ? d.tarikh : (d.tarikh ? '' : kt.tarikh || ''),
+    Tarikh: tarikhSah(d.tarikh),
     Masa: /^\d{2}:\d{2}$/.test(String(d.masa || '')) ? d.masa : '',
     // rekod yang diisi di borang = rekod SEBELUM kejohanan tahun ini (garis asas); rekod semasa dikira automatik
     RekodAsalNilai: (function () { const n = huraiKeputusan(d.rekodNilai, unit); return n ? formatKeputusan(n, unit) : ''; })(),
     RekodAsalPemegang: banding(d.rekodPemegang), RekodAsalRumah: banding(d.rekodRumah), RekodAsalTahun: teksBersih(d.rekodTahun)
   };
+}
+
+/* Rekod semasa ditetapkan manual oleh Admin (mengatasi pengiraan automatik). */
+function rekodManualDaripada(d, unit) {
+  if (!d.rekodManual) return { RekodManual: '' };
+  const n = huraiKeputusan(d.rekodSemasaNilai, unit);
+  return { RekodManual: 'YA', RekodNilai: n ? formatKeputusan(n, unit) : '', RekodPemegang: banding(d.rekodSemasaPemegang),
+    RekodRumah: banding(d.rekodSemasaRumah), RekodTahun: teksBersih(d.rekodSemasaTahun) };
 }
 
 function apiSimpanAcara(p) {
@@ -398,15 +429,20 @@ function apiSimpanAcara(p) {
       if (!a) return ralat('Acara tidak dijumpai.');
       const ubahStruktur = a.Jenis !== o.Jenis || a.Unit !== o.Unit;
       if (ubahStruktur && a.Status && a.Status !== 'DIRANCANG') return ralat('Jenis/unit tidak boleh diubah selepas senarai mula dijana.');
-      Object.assign(a, o, { NoAcara: teksBersih(d.no) || a.NoAcara, Dikemaskini: masa });
+      // jadual disunting manual -> dikunci daripada jadual automatik; dikosongkan -> kembali automatik
+      const jadualUbah = o.Tarikh !== String(a.Tarikh || '') || o.Masa !== String(a.Masa || '') || (teksBersih(d.no) && teksBersih(d.no) !== String(a.NoAcara || ''));
+      const manual = jadualUbah ? ((o.Tarikh || o.Masa) ? 'YA' : '') : (a.JadualManual || '');
+      Object.assign(a, o, { NoAcara: teksBersih(d.no) || a.NoAcara, JadualManual: manual, Dikemaskini: masa }, rekodManualDaripada(d, o.Unit));
       kiraRekodAuto(a, pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId), petaMuridRingkas(), petaRumah());
       kemaskiniBaris(SHEET_ACARA, a.__row, a);
+      if (!manual) janaJadualDalaman(kt, false);
     } else {
       const no = teksBersih(d.no) || String(semua.reduce((mx, x) => Math.max(mx, nombor(x.NoAcara, 0)), 0) + 1);
-      const baru = Object.assign(o, { AcaraId: janaId('AC'), Tahun: kt.tahun, NoAcara: no, Status: 'DIRANCANG', Susunan: semua.length + 1, Dikemaskini: masa });
+      const baru = Object.assign(o, { AcaraId: janaId('AC'), Tahun: kt.tahun, NoAcara: no, Status: 'DIRANCANG', Susunan: semua.length + 1, Dikemaskini: masa,
+        JadualManual: o.Tarikh || o.Masa || teksBersih(d.no) ? 'YA' : '' }, rekodManualDaripada(d, o.Unit));
       kiraRekodAuto(baru, [], {}, {});
       tambahBaris(SHEET_ACARA, baru);
-      if (!baru.Masa) janaJadualDalaman(kt, false);
+      if (!baru.JadualManual) janaJadualDalaman(kt, false);
     }
     catatAudit(sesi, d.id ? 'KEMASKINI_ACARA' : 'TAMBAH_ACARA', 'KEJOHANAN', d.id || '', o.Nama + ' ' + o.Kategori + ' ' + o.Jantina);
     return jaya({});
@@ -454,12 +490,12 @@ function apiJanaAcaraStandard(p) {
       kategori.forEach(k => jantina.forEach(j => {
         if (ada[s.nama + '|' + k + '|' + j]) return;
         baru.push({ AcaraId: janaId('AC'), Tahun: kt.tahun, NoAcara: String(++no), Nama: s.nama, Jenis: s.jenis, Kategori: k, Jantina: j, Unit: s.unit,
-          HadPerRumah: s.jenis === 'BERGANTI' ? 1 : 2, BilLorong: 8, BilKeAkhir: 0, Tarikh: kt.tarikh || '', Masa: '', Status: 'DIRANCANG',
+          HadPerRumah: s.jenis === 'BERGANTI' ? 1 : 2, BilLorong: 8, BilKeAkhir: 0, Tarikh: '', Masa: '', Status: 'DIRANCANG',
           Susunan: ++susunan, Dikemaskini: masa });
       }));
     });
     if (baru.length) tulisBarisBaharu(SHEET_ACARA, baru);
-    const jadual = janaJadualDalaman(kt, false);   // AUTOMATIK: no. acara, tarikh & masa
+    const jadual = janaJadualDalaman(kt, true);   // AUTOMATIK: no. acara, tarikh & masa (acara manual kekal)
     catatAudit(sesi, 'JANA_ACARA_STANDARD', 'KEJOHANAN', '', baru.length + ' acara dicipta, ' + jadual + ' dijadualkan');
     return jaya({ bil: baru.length, jadual });
   });
@@ -497,20 +533,25 @@ function apiSimpanJadual(p) {
   const objek = (p.jadual || []).map(j => ({
     AcaraId: j.id, NoAcara: teksBersih(j.no),
     Tarikh: /^\d{4}-\d{2}-\d{2}$/.test(String(j.tarikh || '')) ? j.tarikh : '',
-    Masa: /^\d{2}:\d{2}$/.test(String(j.masa || '')) ? j.masa : '', Dikemaskini: masa
+    Masa: /^\d{2}:\d{2}$/.test(String(j.masa || '')) ? j.masa : '', JadualManual: 'YA', Dikemaskini: masa
   })).filter(o => o.AcaraId);
+  // tarikh & masa dikosongkan -> acara kembali kepada jadual automatik
+  objek.forEach(o => { if (!o.Tarikh && !o.Masa) o.JadualManual = ''; });
   if (!objek.length) return ralat('Tiada perubahan jadual.');
   return denganKunci(() => {
     upsertBanyak(SHEET_ACARA, 'AcaraId', objek);
+    if (objek.some(o => !o.JadualManual)) janaJadualDalaman(tetKejohanan(), false);
     catatAudit(sesi, 'SIMPAN_JADUAL', 'KEJOHANAN', '', objek.length + ' acara');
     return jaya({ bil: objek.length });
   });
 }
 
 /* ------------------------- JADUAL AUTOMATIK -------------------------
-   Dua aliran serentak: BALAPAN (jarak menaik, kemudian berganti-ganti) setiap `selangBalapan` minit
-   dan PADANG (ikut acara) setiap `selangPadang` minit, bermula `masaMula` pada tarikh kejohanan.
-   No. acara diberi mengikut susunan masa. semua=false: hanya acara yang belum ada masa diisi. */
+   Padang dan balapan TIDAK serentak: semua acara PADANG pada hari padang (1 hari) setiap
+   `selangPadang` minit; acara BALAPAN (jarak menaik, kemudian berganti-ganti) dibahagi kepada
+   2 hari balapan setiap `selangBalapan` minit. Setiap hari bermula `masaMula`. No. acara diberi
+   mengikut tarikh & masa. Acara yang jadualnya disunting manual (JadualManual = YA) TIDAK ditimpa.
+   semua=false: hanya acara yang belum lengkap jadualnya diisi. */
 function janaJadualDalaman(kt, semua) {
   const acara = acaraTahun(kt.tahun);
   if (!acara.length) return 0;
@@ -526,15 +567,23 @@ function janaJadualDalaman(kt, semua) {
   const mula = Number(kt.masaMula.slice(0, 2)) * 60 + Number(kt.masaMula.slice(3, 5));
   const hh = m => ('0' + Math.floor(m / 60) % 24).slice(-2) + ':' + ('0' + m % 60).slice(-2);
   const slot = [];
-  balapan.forEach((a, i) => slot.push({ a, minit: mula + i * kt.selangBalapan, r: 0 }));
-  padang.forEach((a, i) => slot.push({ a, minit: mula + i * kt.selangPadang, r: 1 }));
-  slot.sort((x, y) => x.minit - y.minit || x.r - y.r);
+  padang.forEach((a, i) => slot.push({ a, tarikh: kt.tarikhPadang, minit: mula + i * kt.selangPadang }));
+  const separuh = Math.ceil(balapan.length / 2);
+  balapan.forEach((a, i) => {
+    const hari2 = i >= separuh;
+    slot.push({ a, tarikh: hari2 ? kt.tarikhBalapan2 : kt.tarikhBalapan1, minit: mula + (hari2 ? i - separuh : i) * kt.selangBalapan });
+  });
+  // acara manual kekal pada tarikh/masanya sendiri dan turut menentukan susunan no. acara
+  slot.forEach(x => { if (ya(x.a.JadualManual) && x.a.Tarikh && x.a.Masa) { x.tarikh = x.a.Tarikh; x.minit = Number(x.a.Masa.slice(0, 2)) * 60 + Number(x.a.Masa.slice(3, 5)); } });
+  slot.sort((x, y) => String(x.tarikh).localeCompare(String(y.tarikh)) || x.minit - y.minit || (x.a.Jenis === 'PADANG') - (y.a.Jenis === 'PADANG'));
   const masa = sekarangTeks(), objek = [];
   slot.forEach((x, i) => {
     const a = x.a;
+    if (ya(a.JadualManual)) return;
     if (!semua && a.Masa && a.Tarikh && a.NoAcara) return;
-    objek.push({ AcaraId: a.AcaraId, NoAcara: semua || !a.NoAcara ? String(i + 1) : a.NoAcara, Tarikh: semua || !a.Tarikh ? (kt.tarikh || a.Tarikh || '') : a.Tarikh,
-      Masa: semua || !a.Masa ? hh(x.minit) : a.Masa, Susunan: i + 1, Dikemaskini: masa });
+    // acara automatik yang belum lengkap dijadualkan penuh (tarikh hari padang / balapan + masa)
+    objek.push({ AcaraId: a.AcaraId, NoAcara: semua || !a.NoAcara ? String(i + 1) : a.NoAcara, Tarikh: x.tarikh || a.Tarikh || '',
+      Masa: hh(x.minit), Susunan: i + 1, Dikemaskini: masa });
   });
   if (objek.length) upsertBanyak(SHEET_ACARA, 'AcaraId', objek);
   return objek.length;
@@ -544,7 +593,12 @@ function apiJanaJadual(p) {
   const sesi = wajibKeputusan(p.token);
   if (sesi.success === false) return sesi;
   return denganKunci(() => {
-    const bil = janaJadualDalaman(tetKejohanan(), true);
+    const kt = tetKejohanan();
+    if (p.termasukManual) {   // pilihan pengguna: kembalikan acara manual kepada jadual automatik
+      const kunci = acaraTahun(kt.tahun).filter(a => ya(a.JadualManual)).map(a => ({ AcaraId: a.AcaraId, JadualManual: '' }));
+      if (kunci.length) upsertBanyak(SHEET_ACARA, 'AcaraId', kunci);
+    }
+    const bil = janaJadualDalaman(kt, true);
     catatAudit(sesi, 'JANA_JADUAL', 'KEJOHANAN', '', bil + ' acara dijadualkan semula');
     return jaya({ bil });
   });
@@ -679,7 +733,8 @@ function butiranPeserta(x, murid, rumah) {
     ahli: x.NoKP ? [] : namaAhli(x.Ahli, murid), kelas: m.kelas || '', bib: m.bib || '',
     pusingan: x.Pusingan || '', saringan: x.Saringan === 'M' ? '' : String(x.Saringan || ''), lorong: String(x.Lorong || ''),
     keputusan: String(x.Keputusan || ''), nilai: nombor(x.Nilai, 0), kedudukan: x.Kedudukan === '' ? '' : nombor(x.Kedudukan, 0) || '',
-    mata: nombor(x.Mata, 0), status: x.Status || 'OK', rekodBaharu: ya(x.RekodBaharu)
+    mata: nombor(x.Mata, 0), status: x.Status || 'OK', rekodBaharu: ya(x.RekodBaharu), kedudukanManual: String(x.KedudukanManual || ''),
+    kunci: x.RumahId + '|' + (x.NoKP ? normalKP(x.NoKP) : senaraiDaripadaMedan(x.Ahli).map(normalKP).sort().join(','))   // padan saringan <-> akhir
   };
 }
 
@@ -800,7 +855,8 @@ function apiSimpanKeputusan(p) {
       const status = STATUS_PESERTA.indexOf(b.status) !== -1 ? b.status : 'OK';
       const nilai = status === 'OK' ? huraiKeputusan(b.keputusan, a.Unit) : null;
       if (status === 'OK' && String(b.keputusan || '').trim() && nilai === null) ralatInput.push(String(b.keputusan));
-      return { x, status, nilai, saringan: x.Saringan };
+      const km = String(b.kedudukanManual === undefined ? (x.KedudukanManual || '') : b.kedudukanManual).trim();
+      return { x, status, nilai, saringan: x.Saringan, manual: /^\d+$/.test(km) && Number(km) > 0 ? Number(km) : '' };
     });
     if (ralatInput.length) return ralat('Keputusan tidak sah: ' + ralatInput.slice(0, 5).join(', ') + '. Contoh masa: 12.345 · 1:05.321 · jarak: 4.35');
 
@@ -808,17 +864,19 @@ function apiSimpanKeputusan(p) {
     const kumpulan = {};
     data.forEach(d => { (kumpulan[pusingan === 'SARINGAN' ? d.saringan : 'A'] = kumpulan[pusingan === 'SARINGAN' ? d.saringan : 'A'] || []).push(d); });
     Object.keys(kumpulan).forEach(k => tetapkanKedudukan(kumpulan[k], a.Unit));
+    // kedudukan yang ditetapkan manual (cth. keputusan hakim / photo-finish) mengatasi kedudukan automatik
+    data.forEach(d => { if (d.manual) d.kedudukan = d.manual; });
     const mataJadual = a.Jenis === 'BERGANTI' ? kt.mataBerganti : kt.mataIndividu;
     const rekod = huraiKeputusan(rekodAsal(a).nilai, a.Unit);   // pecah rekod = lebih baik daripada rekod SEBELUM kejohanan ini
     const masa = sekarangTeks();
     let lengkap = true, rekodBaru = 0;
     const objek = data.map(d => {
-      if (d.status === 'OK' && !d.nilai) lengkap = false;
+      if (d.status === 'OK' && !d.nilai && !d.manual) lengkap = false;
       const baru = d.nilai && rekod !== null && lebihBaik(d.nilai, rekod, a.Unit);
       if (baru) rekodBaru++;
       return { Id: d.x.Id, Keputusan: d.nilai ? formatKeputusan(d.nilai, a.Unit) : '', Nilai: d.nilai || '', Status: d.status,
         Kedudukan: d.kedudukan || '', Mata: pusingan === 'AKHIR' && d.kedudukan ? (mataJadual[d.kedudukan - 1] || 0) : '',
-        RekodBaharu: baru ? 'YA' : '', Dikemaskini: masa };
+        RekodBaharu: baru ? 'YA' : '', KedudukanManual: d.manual || '', Dikemaskini: masa };
     });
     upsertBanyak(SHEET_PESERTA, 'Id', objek);
     if (lengkap) a.Status = pusingan === 'AKHIR' ? 'SELESAI' : 'SARINGAN';
@@ -831,11 +889,77 @@ function apiSimpanKeputusan(p) {
     let keAkhir = 0;
     if (pusingan === 'SARINGAN' && lengkap) {
       const akhirLama = pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId && x.Saringan === 'M');
-      if (!akhirLama.some(x => String(x.Keputusan || '') || (x.Status && x.Status !== 'OK'))) keAkhir = maraKeAkhirDalaman(a, kt);
+      if (!ya(a.AkhirManual) && !akhirLama.some(x => String(x.Keputusan || '') || (x.Status && x.Status !== 'OK'))) keAkhir = maraKeAkhirDalaman(a, kt);
     }
     catatAudit(sesi, 'SIMPAN_KEPUTUSAN', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina + ' (' + pusingan + ')' + (lengkap ? ' lengkap' : ' separa') +
       (rekodBaru ? ' · ' + rekodBaru + ' pecah rekod' : '') + (keAkhir ? ' · ' + keAkhir + ' mara ke akhir' : ''));
     return jaya({ lengkap, rekodBaru, rekodBerubah, keAkhir, status: a.Status, rekod: a.RekodNilai });
+  });
+}
+
+/* SUNTINGAN MANUAL senarai mula: tukar saringan / lorong (giliran) peserta. p = {acaraId, baris:[{id, saringan, lorong}]} */
+function apiSimpanSenaraiMula(p) {
+  const sesi = wajibKeputusan(p.token);
+  if (sesi.success === false) return sesi;
+  const kt = tetKejohanan();
+  return denganKunci(() => {
+    const a = acaraTahun(kt.tahun).find(x => x.AcaraId === p.acaraId);
+    if (!a) return ralat('Acara tidak dijumpai.');
+    const semua = pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId);
+    const ikutId = {};
+    semua.forEach(x => { ikutId[x.Id] = x; });
+    const objek = [], guna = {}, dihantar = {};
+    (p.baris || []).forEach(b => { dihantar[b.id] = true; });
+    // lorong peserta yang tidak diubah turut dikira supaya tiada lorong berganda
+    semua.filter(x => x.Pusingan && !dihantar[x.Id] && x.Lorong).forEach(x => { guna[x.Pusingan + '|' + x.Saringan + '|' + Number(x.Lorong)] = true; });
+    for (const b of (p.baris || [])) {
+      const x = ikutId[b.id];
+      if (!x || !x.Pusingan) continue;
+      const lorong = String(b.lorong || '').trim(), saringan = x.Saringan === 'M' ? 'M' : String(b.saringan || x.Saringan || '1').trim();
+      if (!/^\d+$/.test(lorong) || Number(lorong) < 1) return ralat('Lorong / giliran mesti nombor positif.');
+      if (saringan !== 'M' && !/^\d+$/.test(saringan)) return ralat('No. saringan mesti nombor.');
+      const k = x.Pusingan + '|' + saringan + '|' + Number(lorong);
+      if (guna[k]) return ralat('Lorong ' + lorong + (x.Pusingan === 'SARINGAN' ? ' dalam saringan ' + saringan : '') + ' digunakan lebih daripada sekali.');
+      guna[k] = true;
+      objek.push({ Id: x.Id, Saringan: saringan, Lorong: String(Number(lorong)), Dikemaskini: sekarangTeks() });
+    }
+    if (!objek.length) return ralat('Tiada perubahan senarai mula.');
+    upsertBanyak(SHEET_PESERTA, 'Id', objek);
+    catatAudit(sesi, 'SUNTING_SENARAI_MULA', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina + ': ' + objek.length + ' peserta');
+    return jaya({ bil: objek.length });
+  });
+}
+
+/* PEMILIHAN FINALIS MANUAL: p = {acaraId, ids:[Id baris saringan]} — mengatasi mara automatik. */
+function apiTetapkanFinalis(p) {
+  const sesi = wajibKeputusan(p.token);
+  if (sesi.success === false) return sesi;
+  const kt = tetKejohanan();
+  return denganKunci(() => {
+    const a = acaraTahun(kt.tahun).find(x => x.AcaraId === p.acaraId);
+    if (!a) return ralat('Acara tidak dijumpai.');
+    const semua = pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId);
+    const pilih = {};
+    (p.ids || []).forEach(id => { pilih[id] = true; });
+    const layak = semua.filter(x => x.Pusingan === 'SARINGAN' && pilih[x.Id]);
+    if (layak.length < 2) return ralat('Pilih sekurang-kurangnya 2 finalis.');
+    if (layak.length > 10) return ralat('Maksimum 10 finalis.');
+    if (semua.some(x => x.Saringan === 'M' && (String(x.Keputusan || '') || (x.Status && x.Status !== 'OK')))) return ralat('Keputusan akhir sudah dimasukkan. Kosongkan keputusan akhir dahulu sebelum menukar finalis.');
+    // susun ikut keputusan saringan (terbaik di lorong tengah); tanpa keputusan di hujung
+    layak.sort((x, y) => {
+      const nx = nombor(x.Nilai, 0), ny = nombor(y.Nilai, 0);
+      if (!nx || !ny) return (ny > 0) - (nx > 0);
+      return a.Unit === 'MASA' ? nx - ny : ny - nx;
+    });
+    padamBarisBanyak(SHEET_PESERTA, semua.filter(x => x.Saringan === 'M'));
+    const lo = susunanLorong(Math.max(layak.length, nombor(a.BilLorong, 8))), masa = sekarangTeks();
+    tulisBarisBaharu(SHEET_PESERTA, layak.map((x, i) => ({ Id: janaId('PS'), Tahun: kt.tahun, AcaraId: a.AcaraId, RumahId: x.RumahId, NoKP: x.NoKP, Ahli: x.Ahli,
+      Pusingan: 'AKHIR', Saringan: 'M', Lorong: String(lo[i] || i + 1), Status: 'OK', Dikemaskini: masa })));
+    a.AkhirManual = 'YA'; a.BilKeAkhir = layak.length; a.Dikemaskini = masa;
+    if (a.Status === 'SEDIA') a.Status = 'SARINGAN';
+    kemaskiniBaris(SHEET_ACARA, a.__row, a);
+    catatAudit(sesi, 'TETAPKAN_FINALIS', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina + ': ' + layak.length + ' finalis (manual)');
+    return jaya({ bil: layak.length });
   });
 }
 
@@ -867,7 +991,7 @@ function apiMaraKeAkhir(p) {
     if (a.Status !== 'SARINGAN') return ralat('Lengkapkan keputusan semua saringan dahulu.');
     const bil = maraKeAkhirDalaman(a, kt, p.bil);
     if (!bil) return ralat('Tiada keputusan saringan yang sah.');
-    a.BilKeAkhir = bil; a.Dikemaskini = sekarangTeks();
+    a.BilKeAkhir = bil; a.AkhirManual = 'YA'; a.Dikemaskini = sekarangTeks();
     kemaskiniBaris(SHEET_ACARA, a.__row, a);
     catatAudit(sesi, 'MARA_KE_AKHIR', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina + ': ' + bil + ' ke akhir');
     return jaya({ bil });
@@ -886,8 +1010,8 @@ function apiSetSemulaAcara(p) {
     padamBarisBanyak(SHEET_PESERTA, semua.filter(x => x.Saringan === 'M'));
     const masa = sekarangTeks();
     upsertBanyak(SHEET_PESERTA, 'Id', semua.filter(x => x.Saringan !== 'M').map(x => ({ Id: x.Id, Pusingan: '', Saringan: '', Lorong: '', Keputusan: '',
-      Nilai: '', Kedudukan: '', Mata: '', Status: 'OK', RekodBaharu: '', Dikemaskini: masa })));
-    a.Status = 'DIRANCANG'; a.Dikemaskini = masa;
+      Nilai: '', Kedudukan: '', Mata: '', Status: 'OK', RekodBaharu: '', KedudukanManual: '', Dikemaskini: masa })));
+    a.Status = 'DIRANCANG'; a.AkhirManual = ''; a.Dikemaskini = masa;
     kiraRekodAuto(a, [], {}, {});
     kemaskiniBaris(SHEET_ACARA, a.__row, a);
     catatAudit(sesi, 'SET_SEMULA_ACARA', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina);

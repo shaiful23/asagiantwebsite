@@ -22,7 +22,10 @@ function tetapanLalai() {
     [TET_TERBIT, 'TIDAK', 'YA = papan mata & keputusan dipaparkan di Portal Murid'],
     [TET_MASA_MULA, '07:30', 'Jadual automatik: masa acara pertama'],
     [TET_SELANG_BALAPAN, '10', 'Jadual automatik: minit antara acara balapan'],
-    [TET_SELANG_PADANG, '30', 'Jadual automatik: minit antara acara padang']
+    [TET_SELANG_PADANG, '30', 'Jadual automatik: minit antara acara padang'],
+    [TET_TARIKH_PADANG, '', 'Hari acara padang (kosong = tarikh kejohanan)'],
+    [TET_TARIKH_BALAPAN1, '', 'Hari balapan 1 (kosong = tarikh kejohanan + 1)'],
+    [TET_TARIKH_BALAPAN2, '', 'Hari balapan 2 (kosong = tarikh kejohanan + 2)']
   ];
 }
 
