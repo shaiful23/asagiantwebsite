@@ -35,7 +35,7 @@ HALAMAN['kj-pusat'] = function () {
     var t = r.tet, kb = r.kebenaran;
     var selesai = r.acara.filter(function (a) { return a.status === 'SELESAI'; }).length;
     var penyertaan = r.acara.reduce(function (n, a) { return n + a.bilPeserta; }, 0);
-    var rekodBaru = r.acara.filter(function (a) { return a.rekodTertunda || a.podium.some(function (p) { return p.rekodBaharu; }); }).length;
+    var rekodBaru = r.acara.filter(function (a) { return a.rekodBaharu; }).length;
     var h = '<div class="hero"><div class="baris-hero"><div><div class="salam">Pusat Kejohanan · ' + e(t.tahun) + '</div><h1>' + e(t.nama) + '</h1>' +
       '<span class="cip">' + ik('calendar', 'kecil') + e(t.tarikh ? tarikhPapar(t.tarikh) : 'Tarikh belum ditetapkan') + '</span>' + (t.lokasi ? '<span class="cip">' + ik('pin', 'kecil') + e(t.lokasi) + '</span>' : '') +
       '<span class="cip">' + ik(t.pendaftaran === 'BUKA' ? 'check' : 'lock', 'kecil') + 'Pendaftaran ' + (t.pendaftaran === 'BUKA' ? 'dibuka' : 'ditutup') + '</span>' +
@@ -83,8 +83,9 @@ HALAMAN['kj-acara'] = function () {
     S.ubah.jadual = {};
     var kb = r.kebenaran;
     var aksi = (kb.admin ? '<button class="btn luar" id="kaSalin">' + ik('copy') + '<span class="teks-panjang">Salin tahun lepas</span></button><button class="btn luar" id="kaStandard">' + ik('layers') + 'Jana acara standard</button><button class="btn" id="kaTambah">' + ik('plus') + 'Tambah acara</button>' : '') +
+      (kb.keputusan ? '<button class="btn luar" id="kaJadualAuto">' + ik('clock') + '<span class="teks-panjang">Jana jadual automatik</span></button>' : '') +
       '<button class="btn luar" id="kaCetak">' + ik('printer') + '<span class="teks-panjang">Cetak jadual</span></button>';
-    var h = kepalaHalaman('Acara & Jadual', 'Senarai acara ' + e(r.tet.tahun) + ', tarikh/masa dan status.' + (kb.keputusan ? ' Ubah no. acara, tarikh & masa terus dalam jadual dan tekan Simpan Jadual.' : ''), 'calendar', aksi);
+    var h = kepalaHalaman('Acara & Jadual', 'Senarai acara ' + e(r.tet.tahun) + '. No. acara, tarikh & masa dijana <b>automatik</b>' + (kb.keputusan ? ' — boleh diubah terus dalam jadual (tekan Simpan Jadual).' : '.'), 'calendar', aksi);
     if (!r.acara.length) {
       h += '<div class="kad">' + kosongHtml('Belum ada acara. ' + (kb.admin ? 'Gunakan "Jana acara standard" untuk mencipta acara lazim secara automatik.' : ''), 'calendar') + '</div>';
       kandungan(h); pasangAksiAcara(); return;
@@ -117,6 +118,11 @@ function pasangAksiAcara() {
     }, 'Salin', 'biasa');
   };
   if ($('kaCetak')) $('kaCetak').onclick = cetakJadual;
+  if ($('kaJadualAuto')) $('kaJadualAuto').onclick = function () {
+    sahkan('Susun semula no. acara, tarikh & masa SEMUA acara secara automatik?\n\nBalapan (jarak menaik, kemudian berganti-ganti) setiap ' + S.kj.tet.selangBalapan + ' minit dan padang setiap ' + S.kj.tet.selangPadang + ' minit, bermula ' + S.kj.tet.masaMula + ' (boleh diubah di Tetapan Kejohanan).', function () {
+      api('apiJanaJadual').then(function (x) { selepasTulisKj(x.bil + ' acara dijadualkan secara automatik.'); }).catch(gagal);
+    }, 'Jana jadual', 'biasa');
+  };
 }
 function nilaiJadual(a) { var u = S.ubah.jadual[a.id]; return u || { id: a.id, no: a.no, tarikh: a.tarikh, masa: a.masa }; }
 function lukisAcara() {
@@ -134,7 +140,7 @@ function lukisAcara() {
       '<td style="white-space:nowrap">' + e(a.kategori || 'Terbuka') + ' · ' + e(namaJantina(a.jantina)) + '</td><td style="white-space:nowrap">' + e(JENIS_KJ[a.jenis] || a.jenis) + '</td>' +
       (kb.keputusan ? '<td><input type="date" data-j="tarikh" data-id="' + e(a.id) + '" value="' + e(j.tarikh) + '" style="width:150px"></td><td><input type="time" data-j="masa" data-id="' + e(a.id) + '" value="' + e(j.masa) + '" style="width:112px"></td>'
         : '<td>' + e(a.tarikh ? tarikhPapar(a.tarikh) : '-') + '</td><td>' + e(a.masa || '-') + '</td>') +
-      '<td class="c"><b>' + a.bilPeserta + '</b></td><td>' + lencanaStatus(a.status) + (a.rekodTertunda ? ' <span class="lencana kuning">' + ik('star', 'kecil') + 'Rekod!</span>' : '') + '</td>' +
+      '<td class="c"><b>' + a.bilPeserta + '</b></td><td>' + lencanaStatus(a.status) + (a.rekodBaharu ? ' <span class="lencana kuning">' + ik('star', 'kecil') + 'Rekod baharu</span>' : '') + '</td>' +
       '<td style="white-space:nowrap"><button class="btn luar kecil" data-buka="' + e(a.id) + '">' + ik('timer', 'kecil') + 'Buka</button>' +
       (kb.admin ? ' <button class="btn hantu kecil" data-sunting="' + e(a.id) + '" title="Sunting">' + ik('edit', 'kecil') + '</button><button class="btn hantu kecil" data-padam="' + e(a.id) + '" title="Padam" style="color:var(--merah)">' + ik('trash', 'kecil') + '</button>' : '') + '</td></tr>';
   }).join('') : '<tr><td colspan="9">' + kosongHtml('Tiada acara sepadan.', 'search') + '</td></tr>';
@@ -163,7 +169,8 @@ function lukisAcara() {
   });
 }
 function borangAcara(id) {
-  var a = id ? kjAcara(id) : { nama: '', jenis: 'BALAPAN', kategori: '', jantina: 'L', unit: 'MASA', had: 2, bilLorong: 8, bilKeAkhir: 0, no: '', tarikh: S.kj.tet.tarikh || '', masa: '', rekod: { nilai: '', pemegang: '', rumah: '', tahun: '' } };
+  var a = id ? kjAcara(id) : { nama: '', jenis: 'BALAPAN', kategori: '', jantina: 'L', unit: 'MASA', had: 2, bilLorong: 8, bilKeAkhir: 0, no: '', tarikh: S.kj.tet.tarikh || '', masa: '', rekodAsal: { nilai: '', pemegang: '', rumah: '', tahun: '' } };
+  var ra = a.rekodAsal || { nilai: '', pemegang: '', rumah: '', tahun: '' };
   var m = bukaModal('<h3>' + ik('calendar') + (id ? 'Sunting' : 'Tambah') + ' Acara</h3><datalist id="dlStandard">' + S.kj.standard.map(function (n) { return '<option value="' + e(n) + '">'; }).join('') + '</datalist><div class="grid-borang">' +
     '<div class="medan penuh"><label>Nama acara</label><input id="baNama" list="dlStandard" value="' + e(a.nama) + '" placeholder="cth. 100 METER"></div>' +
     '<div class="medan"><label>Jenis</label><select id="baJenis">' + pilihan(Object.keys(JENIS_KJ).map(function (k) { return { v: k, l: JENIS_KJ[k] }; }), a.jenis) + '</select></div>' +
@@ -176,11 +183,11 @@ function borangAcara(id) {
     '<div class="medan"><label>No. acara</label><input id="baNo" value="' + e(a.no) + '" placeholder="auto"></div>' +
     '<div class="medan"><label>Tarikh</label><input id="baTarikh" type="date" value="' + e(a.tarikh) + '"></div>' +
     '<div class="medan"><label>Masa</label><input id="baMasa" type="time" value="' + e(a.masa) + '"></div>' +
-    '<div class="medan penuh" style="margin-top:6px"><label style="font-size:13px;color:var(--navy)">' + ik('star', 'kecil') + ' Rekod kejohanan semasa (pilihan)</label></div>' +
-    '<div class="medan"><label>Catatan rekod</label><input id="baRekod" value="' + e(a.rekod.nilai) + '" placeholder="cth. 12.45 atau 4.80"></div>' +
-    '<div class="medan"><label>Pemegang rekod</label><input id="baPemegang" value="' + e(a.rekod.pemegang) + '"></div>' +
-    '<div class="medan"><label>Rumah</label><input id="baRRumah" value="' + e(a.rekod.rumah) + '"></div>' +
-    '<div class="medan"><label>Tahun rekod</label><input id="baRTahun" value="' + e(a.rekod.tahun) + '"></div>' +
+    '<div class="medan penuh" style="margin-top:6px"><label style="font-size:13px;color:var(--navy)">' + ik('star', 'kecil') + ' Rekod kejohanan SEBELUM tahun ini (pilihan)</label><div class="nota">Rekod baharu tahun ini dikemas kini secara automatik daripada keputusan.</div></div>' +
+    '<div class="medan"><label>Catatan rekod</label><input id="baRekod" value="' + e(ra.nilai) + '" placeholder="cth. 12.345 atau 4.80"></div>' +
+    '<div class="medan"><label>Pemegang rekod</label><input id="baPemegang" value="' + e(ra.pemegang) + '"></div>' +
+    '<div class="medan"><label>Rumah</label><input id="baRRumah" value="' + e(ra.rumah) + '"></div>' +
+    '<div class="medan"><label>Tahun rekod</label><input id="baRTahun" value="' + e(ra.tahun) + '"></div>' +
     '</div><div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">' + ik('check') + 'Simpan</button></div>');
   $('baJenis').onchange = function () { $('baUnit').value = this.value === 'PADANG' ? 'JARAK' : 'MASA'; if (this.value === 'BERGANTI') $('baHad').value = 1; };
   m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
@@ -322,7 +329,7 @@ HALAMAN['kj-keputusan'] = function (acaraId) {
     var pemilih = '<div class="baris-alat"><button class="btn luar ikon" id="kkSblm" title="Acara sebelum"' + (idx <= 0 ? ' disabled' : '') + '>' + ik('kiri') + '</button>' +
       '<select id="kkAcara" style="flex:1;min-width:240px">' + senarai.map(function (a) { return '<option value="' + e(a.id) + '"' + (a.id === id ? ' selected' : '') + '>' + e((a.no ? a.no + '. ' : '') + labelAcara(a) + ' — ' + (STATUS_KJ[a.status] || [a.status])[0]) + '</option>'; }).join('') + '</select>' +
       '<button class="btn luar ikon" id="kkSlps" title="Acara seterusnya"' + (idx >= senarai.length - 1 ? ' disabled' : '') + '>' + ik('kanan') + '</button></div>';
-    kandungan(kepalaHalaman('Saringan & Keputusan', 'Jana senarai mula (saringan & lorong), masukkan keputusan, dan mara ke akhir. Format: <b>12.45</b> · <b>1:05.32</b> · <b>4.35</b>', 'timer') + pemilih + '<div id="kkIsi">' + rangkaHalaman() + '</div>');
+    kandungan(kepalaHalaman('Saringan & Keputusan', 'Masukkan keputusan sahaja — senarai mula, kedudukan, mata, mara ke akhir dan rekod dikira <b>automatik</b>. Format masa: <b>12.345</b> · <b>1:05.321</b> · jarak: <b>4.35</b>', 'timer') + pemilih + '<div id="kkIsi">' + rangkaHalaman() + '</div>');
     $('kkAcara').onchange = function () { pergi('kj-keputusan', this.value); };
     $('kkSblm').onclick = function () { pergi('kj-keputusan', senarai[idx - 1].id); };
     $('kkSlps').onclick = function () { pergi('kj-keputusan', senarai[idx + 1].id); };
@@ -340,15 +347,17 @@ function lukisKeputusan(r) {
     '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' + lencanaStatus(a.status) + (a.rekod.nilai ? '<span class="lencana kuning">' + ik('star', 'kecil') + 'Rekod ' + e(a.rekod.nilai) + (a.rekod.pemegang ? ' · ' + e(a.rekod.pemegang) : '') + (a.rekod.tahun ? ' (' + e(a.rekod.tahun) + ')' : '') + '</span>' : '') + '</div></div>';
   // butang aksi
   var aksi = [];
-  if (boleh && (a.status === 'DIRANCANG' || a.status === 'SEDIA') && r.peserta.length) aksi.push('<button class="btn" id="kkJana">' + ik('shuffle') + (a.status === 'SEDIA' ? 'Jana semula senarai mula' : 'Jana senarai mula') + '</button>');
-  if (boleh && a.status === 'SARINGAN') aksi.push('<button class="btn kuning" id="kkMara">' + ik('flag') + 'Mara ke akhir</button>');
+  var akhirBermula = akhir.some(function (x) { return x.keputusan || x.status !== 'OK'; });
   if (r.peserta.length && a.status !== 'DIRANCANG') aksi.push('<button class="btn luar" id="kkCetak">' + ik('printer') + 'Cetak senarai mula / keputusan</button>');
+  if (boleh && a.status === 'DIRANCANG' && r.peserta.length) aksi.push('<button class="btn" id="kkJana">' + ik('shuffle') + 'Jana senarai mula sekarang</button>');
+  if (boleh && a.status === 'SEDIA') aksi.push('<button class="btn hantu" id="kkJana">' + ik('shuffle') + 'Rawak semula lorong</button>');
+  if (boleh && a.status === 'SARINGAN' && !akhirBermula) aksi.push('<button class="btn hantu" id="kkMara">' + ik('flag') + 'Ubah bilangan finalis</button>');
   if (boleh && a.status !== 'DIRANCANG') aksi.push('<button class="btn hantu" id="kkSetSemula" style="color:var(--merah)">' + ik('refresh') + 'Set semula</button>');
   if (aksi.length) h += '<div style="display:flex;gap:8px;flex-wrap:wrap">' + aksi.join('') + '</div>';
   h += '</div>';
   if (!r.peserta.length) h += '<div class="kad">' + kosongHtml('Belum ada peserta berdaftar bagi acara ini.', 'users') + '</div>';
   else if (a.status === 'DIRANCANG') {
-    h += kotak('info', r.peserta.length + ' penyertaan berdaftar. ' + (boleh ? 'Tekan <b>Jana senarai mula</b> untuk membahagikan peserta kepada saringan & lorong (balapan) atau giliran (padang).' : 'Menunggu AJK menjana senarai mula.'));
+    h += kotak('info', r.peserta.length + ' penyertaan berdaftar. Senarai mula (saringan & lorong / giliran) dijana <b>automatik</b> sebaik pendaftaran ditutup' + (boleh ? ' — atau tekan <b>Jana senarai mula sekarang</b>.' : '.'), 'shuffle');
     h += jadualPeserta(daftar, a, false, 'Peserta berdaftar');
   } else {
     if (saringan.length) {
@@ -360,7 +369,7 @@ function lukisKeputusan(r) {
       h += '<div class="kad" style="border-top:4px solid var(--kuning)"><div class="kepala-kad"><h3>' + ik('trophy') + (a.jenis === 'PADANG' ? 'Pertandingan (Akhir)' : 'Pusingan Akhir') + '</h3>' + (boleh ? '<button class="btn hijau" data-simpan="AKHIR">' + ik('check') + 'Simpan keputusan akhir</button>' : '') + '</div>' +
         jadualPeserta(akhir, a, boleh, '', true) + '</div>';
     } else if (saringan.length) {
-      h += kotak('info', a.status === 'SARINGAN' ? 'Saringan lengkap. ' + (boleh ? 'Tekan <b>Mara ke akhir</b> untuk memilih ' + (a.bilKeAkhir || a.bilLorong) + ' atlet terbaik ke pusingan akhir.' : 'Menunggu senarai akhir.') : 'Lengkapkan keputusan semua saringan untuk menentukan finalis.');
+      h += kotak('info', 'Finalis (' + (a.bilKeAkhir || a.bilLorong) + ' terbaik merentasi semua saringan) dimarakan ke pusingan akhir secara <b>automatik</b> sebaik keputusan semua saringan lengkap.', 'flag');
     }
   }
   $('kkIsi').innerHTML = h;
@@ -376,7 +385,7 @@ function jadualPeserta(senarai, a, boleh, tajuk, adaKeputusan) {
       return '<tr' + (Number(x.kedudukan) === 1 ? ' class="emas"' : '') + '><td class="c">' + (x.lorong ? '<span class="lorong-no">' + e(x.lorong) + '</span>' : '-') + '</td>' + (relay ? '' : '<td class="papan" style="font-size:17px">' + e(x.bib || '-') + '</td>') +
         '<td><b>' + e(x.nama) + '</b>' + (relay ? '<div class="nota" style="margin:0">' + e(x.ahli.join(', ')) + '</div>' : '<div class="nota" style="margin:0">' + e(x.kelas) + '</div>') + '</td><td>' + lencanaRumah({ nama: x.rumah, warna: x.warna }) + '</td>' +
         (adaKeputusan ? (boleh
-          ? '<td><input class="keputusan-input" data-kid="' + e(x.id) + '" value="' + e(x.keputusan) + '" placeholder="' + (a.unit === 'MASA' ? '00.00' : '0.00') + '" inputmode="decimal"></td><td><select data-sid="' + e(x.id) + '" style="width:92px">' + pilihan(['OK', 'DNS', 'DNF', 'DQ'], x.status) + '</select></td>'
+          ? '<td><input class="keputusan-input" data-kid="' + e(x.id) + '" value="' + e(x.keputusan) + '" placeholder="' + (a.unit === 'MASA' ? '00.000' : '0.00') + '" inputmode="decimal"></td><td><select data-sid="' + e(x.id) + '" style="width:92px">' + pilihan(['OK', 'DNS', 'DNF', 'DQ'], x.status) + '</select></td>'
           : '<td class="papan" style="font-size:19px">' + e(x.keputusan || '-') + '</td><td>' + (x.status !== 'OK' ? '<span class="lencana merah">' + e(x.status) + '</span>' : '') + '</td>') +
           '<td class="c">' + (pingat(x.kedudukan) || '-') + (x.rekodBaharu ? '<div><span class="lencana kuning">' + ik('star', 'kecil') + 'Rekod</span></div>' : '') + '</td><td class="c"><b>' + (x.mata || (x.pusingan === 'AKHIR' && x.kedudukan ? 0 : '')) + '</b></td>' : '') + '</tr>';
     }).join('') + '</tbody></table></div>';
@@ -387,12 +396,12 @@ function pasangKeputusan() {
   var muatSemula = function (mesej) { toast(mesej, 'jaya'); muatKj(true).then(function () { if (S.halaman === 'kj-keputusan') pergi('kj-keputusan', a.id); }).catch(gagal); };
   if ($('kkJana')) $('kkJana').onclick = function () {
     var lanjut = function () { api('apiJanaSenaraiMula', { acaraId: a.id }).then(function (x) { muatSemula('Senarai mula dijana bagi ' + x.bil + ' peserta.'); }).catch(gagal); };
-    if (a.status === 'SEDIA') sahkan('Jana semula senarai mula? Saringan & lorong sedia ada akan ditukar.', lanjut, 'Jana semula', 'biasa'); else lanjut();
+    if (a.status === 'SEDIA') sahkan('Rawak semula saringan & lorong? Senarai mula sedia ada akan ditukar.', lanjut, 'Rawak semula', 'biasa'); else lanjut();
   };
   if ($('kkMara')) $('kkMara').onclick = function () {
-    var m = bukaModal('<h3>' + ik('flag') + 'Mara ke Akhir</h3><p style="margin:0 0 12px;color:#334155">Atlet/pasukan dengan keputusan terbaik merentasi semua saringan dipilih ke pusingan akhir dan diberi lorong (terbaik di lorong tengah).</p>' +
+    var m = bukaModal('<h3>' + ik('flag') + 'Ubah Bilangan Finalis</h3><p style="margin:0 0 12px;color:#334155">Finalis telah dipilih automatik. Pilih semula dengan bilangan lain (terbaik di lorong tengah).</p>' +
       '<div class="medan"><label>Bilangan ke akhir</label><input id="mkBil" type="number" min="2" max="10" value="' + e(a.bilKeAkhir || a.bilLorong || 8) + '"></div>' +
-      '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn kuning" data-x="s">' + ik('flag') + 'Mara</button></div>', true);
+      '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn kuning" data-x="s">' + ik('flag') + 'Pilih semula</button></div>', true);
     m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
     m.querySelector('[data-x=s]').onclick = function () { api('apiMaraKeAkhir', { acaraId: a.id, bil: nilaiEl('mkBil') }).then(function (x) { tutupModal(m); muatSemula(x.bil + ' finalis dipilih.'); }).catch(gagal); };
   };
@@ -410,7 +419,8 @@ function pasangKeputusan() {
         return { id: x.id, keputusan: k ? k.value : x.keputusan, status: st ? st.value : x.status };
       });
       api('apiSimpanKeputusan', { acaraId: a.id, pusingan: pusingan, baris: baris }).then(function (x) {
-        muatSemula((x.lengkap ? 'Keputusan lengkap disimpan.' : 'Keputusan separa disimpan.') + (x.rekodBaru ? ' 🎉 ' + x.rekodBaru + ' catatan memecahkan rekod!' : ''));
+        muatSemula((x.lengkap ? 'Keputusan lengkap disimpan — kedudukan & mata dikira.' : 'Keputusan separa disimpan.') + (x.keAkhir ? ' ' + x.keAkhir + ' finalis dimarakan ke akhir.' : '') +
+          (x.rekodBaru ? ' 🎉 Rekod baharu: ' + x.rekod + '!' : ''));
       }).catch(gagal);
     };
   });
@@ -503,25 +513,22 @@ function cetakPapanMata() {
 /* ================================ REKOD KEJOHANAN ================================ */
 HALAMAN['kj-rekod'] = function () {
   muatKj().then(function (r) {
-    var kb = r.kebenaran;
-    var tertunda = r.acara.filter(function (a) { return a.rekodTertunda; });
-    var h = kepalaHalaman('Rekod Kejohanan', 'Rekod terbaik setiap acara. Catatan yang memecahkan rekod ditanda secara automatik semasa keputusan disimpan' + (kb.admin ? ' — tekan <b>Sahkan</b> untuk mengemas kini rekod rasmi.' : '.'), 'star');
-    if (tertunda.length) h += kotak('amaran', '<b>' + tertunda.length + '</b> acara mempunyai catatan rekod baharu yang menunggu pengesahan.', 'star');
+    var kb = r.kebenaran, tahun = r.tet.tahun;
+    var baru = r.acara.filter(function (a) { return a.rekodBaharu; });
+    var h = kepalaHalaman('Rekod Kejohanan', 'Rekod dikemas kini <b>automatik</b> sebaik catatan yang lebih baik disimpan (dan dipulihkan sendiri jika keputusan dibetulkan).', 'star');
+    if (baru.length) h += kotak('jaya', '<b>' + baru.length + '</b> rekod baharu dicipta pada kejohanan ' + e(tahun) + ': ' + baru.map(function (a) { return e(labelAcara(a)) + ' (' + e(a.rekod.nilai) + ')'; }).join(', '), 'star');
     var ikut = ikutKunci(r.acara, function (a) { return a.nama; });
-    h += '<div class="kad rapat"><div class="jadual-skrol"><table><thead><tr><th>Acara</th><th>Kategori</th><th>Rekod</th><th>Pemegang</th><th>Rumah</th><th>Tahun</th><th>Tahun ini</th>' + (kb.admin ? '<th></th>' : '') + '</tr></thead><tbody>' +
+    h += '<div class="kad rapat"><div class="jadual-skrol"><table><thead><tr><th>Acara</th><th>Kategori</th><th>Rekod Semasa</th><th>Pemegang</th><th>Rumah</th><th>Tahun</th><th>Rekod Sebelum</th>' + (kb.admin ? '<th></th>' : '') + '</tr></thead><tbody>' +
       Object.keys(ikut).sort().map(function (n) {
         return ikut[n].map(function (a) {
-          var terbaik = a.podium.filter(function (p) { return p.kedudukan === 1; })[0];
-          return '<tr' + (a.rekodTertunda ? ' class="berubah"' : '') + '><td><b>' + e(a.nama) + '</b></td><td>' + e((a.kategori || 'Terbuka') + ' ' + namaJantina(a.jantina)) + '</td>' +
-            '<td class="papan" style="font-size:19px;color:var(--navy)">' + e(a.rekod.nilai || '-') + '</td><td>' + e(a.rekod.pemegang || '-') + '</td><td>' + e(a.rekod.rumah || '-') + '</td><td>' + e(a.rekod.tahun || '-') + '</td>' +
-            '<td>' + (terbaik ? '<span class="papan" style="font-size:17px">' + e(terbaik.keputusan) + '</span> ' + (terbaik.rekodBaharu ? '<span class="lencana kuning">' + ik('star', 'kecil') + 'Pecah rekod</span>' : '') : '-') + '</td>' +
-            (kb.admin ? '<td>' + (a.rekodTertunda ? '<button class="btn kuning kecil" data-sahkan="' + e(a.id) + '">' + ik('check', 'kecil') + 'Sahkan</button>' : '<button class="btn hantu kecil" data-suntingrekod="' + e(a.id) + '">' + ik('edit', 'kecil') + '</button>') + '</td>' : '') + '</tr>';
+          return '<tr' + (a.rekodBaharu ? ' class="emas"' : '') + '><td><b>' + e(a.nama) + '</b></td><td>' + e((a.kategori || 'Terbuka') + ' ' + namaJantina(a.jantina)) + '</td>' +
+            '<td class="papan" style="font-size:19px;color:var(--navy)">' + e(a.rekod.nilai || '-') + (a.rekodBaharu ? ' <span class="lencana kuning">' + ik('star', 'kecil') + 'Baharu</span>' : '') + '</td>' +
+            '<td>' + e(a.rekod.pemegang || '-') + '</td><td>' + e(a.rekod.rumah || '-') + '</td><td>' + e(a.rekod.tahun || '-') + '</td>' +
+            '<td class="nota">' + (a.rekodBaharu && a.rekodAsal.nilai ? e(a.rekodAsal.nilai + ' · ' + a.rekodAsal.pemegang + ' (' + a.rekodAsal.tahun + ')') : '-') + '</td>' +
+            (kb.admin ? '<td><button class="btn hantu kecil" data-suntingrekod="' + e(a.id) + '" title="Sunting rekod sebelum kejohanan">' + ik('edit', 'kecil') + '</button></td>' : '') + '</tr>';
         }).join('');
       }).join('') + '</tbody></table></div></div>';
     kandungan(h);
-    semua('[data-sahkan]').forEach(function (b) {
-      b.onclick = function () { api('apiSahkanRekod', { acaraId: b.getAttribute('data-sahkan') }).then(function (x) { selepasTulisKj('Rekod baharu ' + x.rekod + ' disahkan.'); }).catch(gagal); };
-    });
     semua('[data-suntingrekod]').forEach(function (b) { b.onclick = function () { borangAcara(b.getAttribute('data-suntingrekod')); }; });
   }).catch(ralatHalaman);
 };
@@ -603,22 +610,28 @@ HALAMAN['kj-tetapan'] = function () {
       '<div class="medan"><label>Mata berganti-ganti</label><input id="ktMataB" value="' + e(t.mataBerganti.join(',')) + '"></div>' +
       '<div class="medan"><label>Had acara individu / atlet</label><input id="ktHadI" type="number" min="1" max="10" value="' + e(t.hadIndividu) + '"></div>' +
       '<div class="medan"><label>Had acara berganti-ganti / atlet</label><input id="ktHadB" type="number" min="0" max="10" value="' + e(t.hadBerganti) + '"></div>' +
+      '<div class="medan"><label>Masa acara pertama (jadual automatik)</label><input id="ktMasaMula" type="time" value="' + e(t.masaMula) + '"></div>' +
+      '<div class="medan"><label>Selang balapan / padang (minit)</label><div style="display:flex;gap:8px"><input id="ktSelB" type="number" min="1" max="120" value="' + e(t.selangBalapan) + '"><input id="ktSelP" type="number" min="1" max="240" value="' + e(t.selangPadang) + '"></div></div>' +
       '<div class="medan penuh"><label class="togol"><input type="checkbox" id="ktDaftar"' + (t.pendaftaran === 'BUKA' ? ' checked' : '') + '> Buka pendaftaran atlet (Ketua/Penolong Ketua Guru Rumah boleh mendaftar)</label></div>' +
       '<div class="medan penuh"><label class="togol"><input type="checkbox" id="ktTerbit"' + (t.terbit ? ' checked' : '') + '> Terbitkan keputusan & papan mata di Portal Murid</label></div>' +
       '</div><div class="nota">Nama & tahun kejohanan serta kategori ditetapkan di <a href="#" onclick="pergi(\'tetapan\');return false">Tetapan Rumah Sukan</a>. Mata semua acara selesai dikira semula secara automatik jika jadual mata diubah.</div>' +
       '<div class="aksi-modal"><button class="btn" id="ktSimpan">' + ik('check') + 'Simpan Tetapan</button></div></div>';
-    h += '<div><div class="kad"><h3>' + ik('hash') + 'No. Bib Atlet</h3><p class="nota" style="margin-top:0">Beri No. Bib kepada semua atlet berdaftar yang belum mempunyainya. Format: <b>&lt;no. rumah&gt;&lt;3 digit&gt;</b> (cth. 1001, 2015). Bib sedia ada tidak diubah.</p>' +
-      '<button class="btn luar" id="ktBib">' + ik('hash') + 'Jana No. Bib</button></div>' +
+    h += '<div><div class="kad"><h3>' + ik('bolt') + 'Dibuat Automatik oleh Sistem</h3><ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:#334155">' +
+      '<li><b>Jadual</b> — no. acara, tarikh & masa (masa mula & selang di atas)</li><li><b>No. Bib</b> — sebaik atlet didaftarkan</li>' +
+      '<li><b>Senarai mula</b> — saringan & lorong / giliran sebaik pendaftaran ditutup</li><li><b>Kedudukan & mata</b> — sebaik keputusan disimpan (seri berkongsi kedudukan)</li>' +
+      '<li><b>Mara ke akhir</b> — sebaik semua saringan lengkap</li><li><b>Rekod kejohanan</b>, pingat, papan mata & olahragawan/olahragawati</li></ul></div>' +
       '<div class="kad"><h3>' + ik('info') + 'Aliran Kerja Kejohanan</h3><ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:#334155">' +
-      '<li>Tetapkan tarikh, lokasi & mata (halaman ini)</li><li>Jana / tambah acara (Acara & Jadual)</li><li>Lantik AJK & beri akses keputusan (AJK Kejohanan)</li><li>Buka pendaftaran — guru rumah daftar atlet</li><li>Tutup pendaftaran, jana No. Bib & senarai mula</li>' +
-      '<li>Hari kejohanan: masukkan keputusan, mara ke akhir</li><li>Masukkan mata lain-lain, sahkan rekod baharu</li><li>Terbitkan keputusan & cetak laporan</li></ol></div></div></div>';
+      '<li>Tetapkan tarikh, lokasi & mata (halaman ini)</li><li>Jana acara standard (jadual dijana automatik)</li><li>Lantik AJK & beri akses keputusan</li><li>Buka pendaftaran — guru rumah daftar atlet</li><li>Tutup pendaftaran (senarai mula & bib automatik)</li>' +
+      '<li>Hari kejohanan: masukkan keputusan sahaja</li><li>Masukkan mata lain-lain (perbarisan, sorakan)</li><li>Terbitkan keputusan & cetak laporan</li></ol></div></div></div>';
     kandungan(h);
     $('ktSimpan').onclick = function () {
       api('apiSimpanTetapanKejohanan', { data: { tarikh: nilaiEl('ktTarikh'), lokasi: nilaiEl('ktLokasi'), mataIndividu: nilaiEl('ktMataI'), mataBerganti: nilaiEl('ktMataB'),
-        hadIndividu: nilaiEl('ktHadI'), hadBerganti: nilaiEl('ktHadB'), pendaftaran: semakEl('ktDaftar') ? 'BUKA' : 'TUTUP', terbit: semakEl('ktTerbit') } })
-        .then(function () { selepasTulisKj('Tetapan kejohanan disimpan.'); }).catch(gagal);
+        hadIndividu: nilaiEl('ktHadI'), hadBerganti: nilaiEl('ktHadB'), pendaftaran: semakEl('ktDaftar') ? 'BUKA' : 'TUTUP', terbit: semakEl('ktTerbit'),
+        masaMula: nilaiEl('ktMasaMula'), selangBalapan: nilaiEl('ktSelB'), selangPadang: nilaiEl('ktSelP') } })
+        .then(function (x) {
+          selepasTulisKj('Tetapan disimpan.' + (x.jadual ? ' ' + x.jadual + ' acara dijadualkan.' : '') + (x.bib ? ' ' + x.bib + ' No. Bib dijana.' : '') + (x.senaraiMula ? ' Senarai mula ' + x.senaraiMula + ' acara dijana.' : ''));
+        }).catch(gagal);
     };
-    $('ktBib').onclick = function () { api('apiJanaBib').then(function (x) { toast(x.bil + ' No. Bib baharu dijana.', 'jaya'); }).catch(gagal); };
   }).catch(ralatHalaman);
 };
 </script>

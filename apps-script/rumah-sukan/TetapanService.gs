@@ -19,7 +19,10 @@ function tetapanLalai() {
     [TET_HAD_INDIVIDU, '3', 'Maksimum acara individu seorang atlet'],
     [TET_HAD_BERGANTI, '2', 'Maksimum acara berganti-ganti seorang atlet'],
     [TET_PENDAFTARAN, 'TUTUP', 'BUKA / TUTUP pendaftaran atlet oleh guru rumah'],
-    [TET_TERBIT, 'TIDAK', 'YA = papan mata & keputusan dipaparkan di Portal Murid']
+    [TET_TERBIT, 'TIDAK', 'YA = papan mata & keputusan dipaparkan di Portal Murid'],
+    [TET_MASA_MULA, '07:30', 'Jadual automatik: masa acara pertama'],
+    [TET_SELANG_BALAPAN, '10', 'Jadual automatik: minit antara acara balapan'],
+    [TET_SELANG_PADANG, '30', 'Jadual automatik: minit antara acara padang']
   ];
 }
 

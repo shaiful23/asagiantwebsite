@@ -96,11 +96,19 @@ Menu **Kejohanan Olahraga** — semua kerja dibuat terus dalam Web App, tanpa me
 | **Pusat Kejohanan** | Kiraan detik, 5 fasa (Persediaan → Pendaftaran → Jadual & Senarai Mula → Pertandingan → Keputusan Rasmi) dengan peratus siap, papan mata langsung, keputusan terkini, status acara |
 | **Acara & Jadual** | Jana **acara standard** (100m–1500m, 4×100m, 4×400m, lompat jauh/kijang/tinggi, lontar peluru, lempar cakera, rejam lembing) bagi setiap kategori × jantina, **salin acara & rekod tahun lepas**, tambah/sunting acara, ubah no./tarikh/masa terus dalam jadual, cetak jadual |
 | **Pendaftaran Atlet** | Ketua/Penolong Ketua Guru Rumah mendaftar atlet rumah sendiri bagi setiap acara (semakan automatik: kategori, jantina, had per rumah, had acara per atlet, pasukan berganti 4–6 orang) |
-| **Saringan & Keputusan** | Jana senarai mula — balapan: saringan & lorong (atlet serumah disebar, lorong tengah dahulu), padang: giliran; masukkan keputusan (`12.45`, `1:05.32`, `4.35`; DNS/DNF/DQ), kedudukan & mata dikira automatik (seri berkongsi kedudukan), **mara ke akhir**, pengesanan **pecah rekod**, cetak senarai mula/keputusan |
+| **Saringan & Keputusan** | Guru/AJK hanya **memasukkan keputusan** — masa larian dengan milisaat (`12.345`, `1:05.321`), jarak (`4.35`), atau DNS/DNF/DQ. Senarai mula (saringan & lorong untuk balapan dengan atlet serumah disebar dan lorong tengah dahulu; giliran untuk padang), kedudukan (seri berkongsi kedudukan), mata, **mara ke akhir** dan **rekod** dikira automatik. Senarai mula / keputusan boleh dicetak |
 | **Papan Mata & Pingat** | Johan keseluruhan (podium), jadual mata, kutipan pingat emas/perak/gangsa, sumbangan mata mengikut kategori, **olahragawan/olahragawati** setiap kategori, mata lain-lain (perbarisan, sorakan, khemah) |
-| **Rekod Kejohanan** | Rekod setiap acara; catatan baharu yang memecahkan rekod menunggu **pengesahan Admin** |
+| **Rekod Kejohanan** | Rekod setiap acara dikemas kini **automatik** apabila dipecahkan, dan dipulihkan sendiri jika keputusan dibetulkan (rekod sebelum kejohanan disimpan sebagai garis asas) |
 | **Laporan & Cetak** | Jadual acara, senarai mula semua acara, buku keputusan, senarai pemenang, papan mata & olahragawan, senarai atlet ikut rumah (Cetak / PDF) + eksport CSV |
-| **Tetapan Kejohanan** (Admin) | Tarikh, lokasi, jadual mata individu & berganti, had acara per atlet, buka/tutup pendaftaran, terbitkan keputusan ke Portal Murid, jana **No. Bib** |
+| **Tetapan Kejohanan** (Admin) | Tarikh, lokasi, jadual mata individu & berganti, had acara per atlet, masa mula & selang jadual automatik, buka/tutup pendaftaran, terbitkan keputusan ke Portal Murid |
+
+**Automatik sepenuhnya (tiada proses manual oleh guru):**
+- **Jadual** — no. acara, tarikh & masa (aliran balapan & padang serentak; masa mula & selang di Tetapan Kejohanan).
+- **No. Bib** — diberi sebaik atlet didaftarkan (`<no. rumah><3 digit>`, cth. 1001).
+- **Senarai mula** — dijana apabila pendaftaran ditutup (atau sebaik acara dibuka di halaman keputusan).
+- **Kedudukan, mata, pingat, papan mata, olahragawan/olahragawati** — sebaik keputusan disimpan; dikira semula jika jadual mata ditukar.
+- **Mara ke akhir** — finalis terbaik merentasi semua saringan dipilih sebaik semua saringan lengkap.
+- **Rekod kejohanan** — dikemas kini sendiri (tiada pengesahan diperlukan).
 
 **Kebenaran:** Admin (semua) · AJK yang ditanda *Akses keputusan* (jadual, senarai mula, keputusan) ·
 Ketua/Penolong Ketua Guru Rumah (pendaftaran atlet rumah sendiri semasa pendaftaran dibuka) · staf lain (lihat).

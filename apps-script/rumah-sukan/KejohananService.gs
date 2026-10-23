@@ -6,6 +6,9 @@
  *   4. Pertandingan : keputusan, kedudukan, mata, mara ke akhir, pecah rekod
  *   5. Penutup      : papan mata, pingat, olahragawan/olahragawati, rekod, laporan
  * Semua data disimpan dalam Sheet ACARA, PESERTA & MATA_LAIN mengikut TAHUN kejohanan.
+ * AUTOMATIK (tiada proses manual oleh guru): jadual masa acara, No. Bib, senarai mula
+ * (saringan & lorong / giliran), kedudukan, mata, mara ke akhir, rekod kejohanan,
+ * pingat, papan mata dan olahragawan/olahragawati.
  * Kebenaran: Admin (semua) · AJK berakses keputusan (jadual, senarai mula, keputusan)
  *            · Ketua/Penolong Guru Rumah (pendaftaran atlet rumah sendiri) · staf lain (lihat)
  * ========================================================================= */
@@ -25,7 +28,9 @@ function tetKejohanan(tet) {
     mataBerganti: senaraiNombor(t[TET_MATA_BERGANTI], [14, 10, 8, 6, 4, 2]),
     hadIndividu: nombor(t[TET_HAD_INDIVIDU], 3), hadBerganti: nombor(t[TET_HAD_BERGANTI], 2),
     pendaftaran: String(t[TET_PENDAFTARAN] || 'TUTUP').toUpperCase() === 'BUKA' ? 'BUKA' : 'TUTUP',
-    terbit: ya(t[TET_TERBIT])
+    terbit: ya(t[TET_TERBIT]),
+    masaMula: /^\d{2}:\d{2}$/.test(String(t[TET_MASA_MULA] || '')) ? String(t[TET_MASA_MULA]) : '07:30',
+    selangBalapan: Math.max(1, nombor(t[TET_SELANG_BALAPAN], 10)), selangPadang: Math.max(1, nombor(t[TET_SELANG_PADANG], 30))
   };
 }
 
@@ -49,9 +54,12 @@ function huraiKeputusan(teks, unit) {
 function formatKeputusan(n, unit) {
   if (n === null || n === undefined || n === '' || !isFinite(Number(n))) return '';
   n = Number(n);
-  if (unit === 'MASA' && n >= 60) {
-    const min = Math.floor(n / 60), saat = n - min * 60;
-    return min + ':' + (saat < 10 ? '0' : '') + saat.toFixed(2);
+  if (unit === 'MASA') {   // masa larian dengan milisaat: 12.345 · 1:05.321
+    if (n >= 60) {
+      const min = Math.floor(n / 60), saat = Math.round((n - min * 60) * 1000) / 1000;
+      return min + ':' + (saat < 10 ? '0' : '') + saat.toFixed(3);
+    }
+    return n.toFixed(3);
   }
   return n.toFixed(2);
 }
@@ -113,8 +121,44 @@ function acaraKeKlien(a) {
     kategori: String(a.Kategori || ''), jantina: a.Jantina || 'L', unit: a.Unit || 'MASA',
     had: nombor(a.HadPerRumah, a.Jenis === 'BERGANTI' ? 1 : 2), bilLorong: nombor(a.BilLorong, 8), bilKeAkhir: nombor(a.BilKeAkhir, 0),
     tarikh: String(a.Tarikh || ''), masa: String(a.Masa || ''), status: a.Status || 'DIRANCANG',
-    rekod: { nilai: String(a.RekodNilai || ''), pemegang: String(a.RekodPemegang || ''), rumah: String(a.RekodRumah || ''), tahun: String(a.RekodTahun || '') }
+    rekod: { nilai: String(a.RekodNilai || ''), pemegang: String(a.RekodPemegang || ''), rumah: String(a.RekodRumah || ''), tahun: String(a.RekodTahun || '') },
+    rekodAsal: rekodAsal(a)
   };
+}
+
+/* ------------------------- REKOD (AUTOMATIK) -------------------------
+   RekodAsal* = rekod sebelum kejohanan tahun ini (garis asas). Rekod semasa = terbaik antara
+   rekod asal dan keputusan sah tahun ini. Dikira semula setiap kali keputusan disimpan, jadi
+   pembetulan keputusan (cth. salah taip) turut membetulkan rekod secara automatik. */
+function rekodAsal(a) {
+  if (String(a.RekodAsalNilai || '') || String(a.RekodAsalTahun || '') || String(a.RekodAsalPemegang || '')) {
+    return { nilai: String(a.RekodAsalNilai || ''), pemegang: String(a.RekodAsalPemegang || ''), rumah: String(a.RekodAsalRumah || ''), tahun: String(a.RekodAsalTahun || '') };
+  }
+  if (String(a.RekodTahun || '') === String(a.Tahun)) return { nilai: '', pemegang: '', rumah: '', tahun: '' };
+  return { nilai: String(a.RekodNilai || ''), pemegang: String(a.RekodPemegang || ''), rumah: String(a.RekodRumah || ''), tahun: String(a.RekodTahun || '') };
+}
+
+/* Kemas kini medan rekod objek acara `a` (tidak menulis ke Sheet). Pulangkan true jika berubah. */
+function kiraRekodAuto(a, pesertaAcara, murid, rumah) {
+  const asal = rekodAsal(a);
+  const nilaiAsal = huraiKeputusan(asal.nilai, a.Unit);
+  let terbaik = null;
+  pesertaAcara.forEach(x => {
+    const n = nombor(x.Nilai, 0);
+    if (x.Status !== 'OK' || !(n > 0)) return;
+    if (!terbaik || lebihBaik(n, nombor(terbaik.Nilai, 0), a.Unit)) terbaik = x;
+  });
+  const sebelum = [a.RekodNilai, a.RekodPemegang, a.RekodRumah, a.RekodTahun].join('|');
+  a.RekodAsalNilai = asal.nilai; a.RekodAsalPemegang = asal.pemegang; a.RekodAsalRumah = asal.rumah; a.RekodAsalTahun = asal.tahun;
+  if (terbaik && (nilaiAsal === null || lebihBaik(nombor(terbaik.Nilai, 0), nilaiAsal, a.Unit))) {
+    a.RekodNilai = formatKeputusan(nombor(terbaik.Nilai, 0), a.Unit);
+    a.RekodPemegang = terbaik.NoKP ? (murid[normalKP(terbaik.NoKP)] || {}).nama || normalKP(terbaik.NoKP) : namaAhli(terbaik.Ahli, murid).join(', ');
+    a.RekodRumah = rumah[terbaik.RumahId] ? rumah[terbaik.RumahId].nama : '';
+    a.RekodTahun = String(a.Tahun);
+  } else {
+    a.RekodNilai = asal.nilai; a.RekodPemegang = asal.pemegang; a.RekodRumah = asal.rumah; a.RekodTahun = asal.tahun;
+  }
+  return sebelum !== [a.RekodNilai, a.RekodPemegang, a.RekodRumah, a.RekodTahun].join('|');
 }
 
 /* ------------------------- KEBENARAN ------------------------- */
@@ -199,7 +243,7 @@ function kiraKedudukan(acara, peserta, mataLain, rumah, murid, cfgKat) {
 }
 
 /* Fasa kejohanan — dipaparkan sebagai langkah (stepper) di Pusat Kejohanan. */
-function kiraFasa(kt, acara, peserta, bilAjk, bilRumah, rekodTertunda) {
+function kiraFasa(kt, acara, peserta, bilAjk, bilRumah) {
   const n = acara.length;
   const adaPeserta = {};
   peserta.forEach(x => { adaPeserta[x.AcaraId] = true; });
@@ -216,26 +260,9 @@ function kiraFasa(kt, acara, peserta, bilAjk, bilRumah, rekodTertunda) {
     { kod: 'JADUAL', nama: 'Jadual & Senarai Mula', ikon: 'calendar', peratus: n ? Math.round((pct(berjadual, n) + pct(sedia, n)) / 2) : 0,
       butiran: berjadual + '/' + n + ' berjadual · ' + sedia + '/' + n + ' senarai mula sedia' },
     { kod: 'PERTANDINGAN', nama: 'Pertandingan', ikon: 'timer', peratus: pct(selesai, n), butiran: selesai + '/' + n + ' acara selesai' },
-    { kod: 'PENUTUP', nama: 'Keputusan Rasmi', ikon: 'trophy', peratus: Math.round(((n && selesai === n ? 1 : 0) + (rekodTertunda ? 0 : 1) + (kt.terbit ? 1 : 0)) / 3 * 100),
-      butiran: (kt.terbit ? 'Keputusan diterbitkan' : 'Belum diterbitkan') + (rekodTertunda ? ' · ' + rekodTertunda + ' rekod baharu menunggu pengesahan' : '') }
+    { kod: 'PENUTUP', nama: 'Keputusan Rasmi', ikon: 'trophy', peratus: Math.round(((n && selesai === n ? 1 : 0) + (kt.terbit ? 1 : 0)) / 2 * 100),
+      butiran: (kt.terbit ? 'Keputusan diterbitkan' : 'Belum diterbitkan') + ' · ' + acara.filter(a => String(a.RekodTahun) === String(kt.tahun)).length + ' rekod baharu' }
   ];
-}
-
-/* Baris pemenang/rekod-baharu yang belum disahkan (nilai lebih baik daripada rekod semasa). */
-function rekodTertunda(acara, peserta) {
-  const petaAcara = {};
-  acara.forEach(a => { petaAcara[a.AcaraId] = a; });
-  const tertunda = {};
-  peserta.forEach(x => {
-    if (!ya(x.RekodBaharu) || x.Status !== 'OK') return;
-    const a = petaAcara[x.AcaraId];
-    if (!a) return;
-    const nilai = nombor(x.Nilai, 0), rekod = huraiKeputusan(a.RekodNilai, a.Unit);
-    if (nilai > 0 && (rekod === null || lebihBaik(nilai, rekod, a.Unit))) {
-      if (!tertunda[a.AcaraId] || lebihBaik(nilai, tertunda[a.AcaraId].nilai, a.Unit)) tertunda[a.AcaraId] = { nilai, baris: x };
-    }
-  });
-  return tertunda;
 }
 
 /* Ringkasan untuk Dashboard guru & Portal Murid. */
@@ -266,7 +293,6 @@ function apiKejohanan(p) {
   const rumah = senaraiRumah();
   const murid = petaMuridRingkas();
   const ked = kiraKedudukan(acara, peserta, mataLain, rumah, murid, cfg.senarai);
-  const tertunda = rekodTertunda(acara, peserta);
 
   // ringkasan per acara: bilangan peserta (pendaftaran), per rumah, podium
   const per = {};
@@ -285,7 +311,7 @@ function apiKejohanan(p) {
       kedudukan: nombor(x.Kedudukan, 0), rumahId: x.RumahId, keputusan: x.Keputusan,
       nama: x.NoKP ? ((murid[normalKP(x.NoKP)] || {}).nama || '') : '', rekodBaharu: ya(x.RekodBaharu)
     }));
-    k.rekodTertunda = !!tertunda[a.AcaraId];
+    k.rekodBaharu = String(a.RekodTahun) === String(kt.tahun) && !!a.RekodNilai;
     k.dikemaskini = String(a.Dikemaskini || '');
     return k;
   });
@@ -295,7 +321,7 @@ function apiKejohanan(p) {
     tet: kt, kebenaran: kebenaranKejohanan(sesi, kt.tahun), kategori: cfg.senarai, rumah,
     acara: senaraiAcara, kedudukan: ked.rumah, olahragawan: ked.olahragawan,
     mataLain: mataLain.map(m => ({ id: m.Id, rumahId: m.RumahId, perkara: m.Perkara, mata: nombor(m.Mata, 0), catatan: m.Catatan || '' })),
-    fasa: kiraFasa(kt, acara, peserta, bilAjk, rumah.length, Object.keys(tertunda).length),
+    fasa: kiraFasa(kt, acara, peserta, bilAjk, rumah.length),
     terkini: terkini.map(a => a.id),
     jenis: JENIS_ACARA, unit: UNIT_ACARA, statusAcara: STATUS_ACARA, standard: ACARA_STANDARD.map(x => x.nama)
   });
@@ -310,7 +336,9 @@ function apiSimpanTetapanKejohanan(p) {
   if (tarikh && !/^\d{4}-\d{2}-\d{2}$/.test(tarikh)) return ralat('Tarikh kejohanan mesti dalam format YYYY-MM-DD.');
   const mi = senaraiNombor(d.mataIndividu, null), mb = senaraiNombor(d.mataBerganti, null);
   if (!mi || !mb) return ralat('Mata kedudukan mesti senarai nombor dipisah koma (cth. 7,5,4,3,2,1).');
+  if (d.masaMula && !/^\d{2}:\d{2}$/.test(String(d.masaMula))) return ralat('Masa mula mesti dalam format HH:MM.');
   return denganKunci(() => {
+    const lama = tetKejohanan();
     const peta = {};
     peta[TET_TARIKH_KEJOHANAN] = tarikh;
     peta[TET_LOKASI] = teksBersih(d.lokasi);
@@ -320,11 +348,22 @@ function apiSimpanTetapanKejohanan(p) {
     peta[TET_HAD_BERGANTI] = String(Math.max(0, Math.min(10, nombor(d.hadBerganti, 2))));
     peta[TET_PENDAFTARAN] = d.pendaftaran === 'BUKA' ? 'BUKA' : 'TUTUP';
     peta[TET_TERBIT] = d.terbit ? 'YA' : 'TIDAK';
+    peta[TET_MASA_MULA] = d.masaMula || lama.masaMula;
+    peta[TET_SELANG_BALAPAN] = String(Math.max(1, Math.min(120, nombor(d.selangBalapan, lama.selangBalapan))));
+    peta[TET_SELANG_PADANG] = String(Math.max(1, Math.min(240, nombor(d.selangPadang, lama.selangPadang))));
     simpanTetapan(peta);
-    // mata baharu dikira semula bagi semua acara yang sudah ada keputusan akhir
+    const kt = tetKejohanan();
+    // AUTOMATIK: mata dikira semula, jadual dilengkapkan, dan apabila pendaftaran ditutup:
+    // No. Bib + senarai mula (saringan & lorong / giliran) dijana bagi semua acara berpeserta.
     const bil = kiraSemulaMataSemua();
-    catatAudit(sesi, 'SIMPAN_TETAPAN_KEJOHANAN', 'KEJOHANAN', '', JSON.stringify(peta) + (bil ? ' | mata dikira semula: ' + bil + ' acara' : ''));
-    return jaya({});
+    const jadual = janaJadualDalaman(kt, false);
+    let senaraiMula = 0, bib = 0;
+    if (kt.pendaftaran === 'TUTUP') {
+      bib = janaBibDalaman(kt);
+      senaraiMula = janaSemuaSenaraiMula(kt);
+    }
+    catatAudit(sesi, 'SIMPAN_TETAPAN_KEJOHANAN', 'KEJOHANAN', '', JSON.stringify(peta) + ' | mata dikira semula: ' + bil + ' · jadual: ' + jadual + ' · bib: ' + bib + ' · senarai mula: ' + senaraiMula);
+    return jaya({ jadual, bib, senaraiMula });
   });
 }
 
@@ -338,8 +377,9 @@ function normalAcara(d, kt) {
     BilLorong: Math.max(4, Math.min(10, nombor(d.bilLorong, 8))), BilKeAkhir: Math.max(0, Math.min(16, nombor(d.bilKeAkhir, 0))),
     Tarikh: /^\d{4}-\d{2}-\d{2}$/.test(String(d.tarikh || '')) ? d.tarikh : (d.tarikh ? '' : kt.tarikh || ''),
     Masa: /^\d{2}:\d{2}$/.test(String(d.masa || '')) ? d.masa : '',
-    RekodNilai: (function () { const n = huraiKeputusan(d.rekodNilai, unit); return n ? formatKeputusan(n, unit) : ''; })(),
-    RekodPemegang: banding(d.rekodPemegang), RekodRumah: banding(d.rekodRumah), RekodTahun: teksBersih(d.rekodTahun)
+    // rekod yang diisi di borang = rekod SEBELUM kejohanan tahun ini (garis asas); rekod semasa dikira automatik
+    RekodAsalNilai: (function () { const n = huraiKeputusan(d.rekodNilai, unit); return n ? formatKeputusan(n, unit) : ''; })(),
+    RekodAsalPemegang: banding(d.rekodPemegang), RekodAsalRumah: banding(d.rekodRumah), RekodAsalTahun: teksBersih(d.rekodTahun)
   };
 }
 
@@ -359,10 +399,14 @@ function apiSimpanAcara(p) {
       const ubahStruktur = a.Jenis !== o.Jenis || a.Unit !== o.Unit;
       if (ubahStruktur && a.Status && a.Status !== 'DIRANCANG') return ralat('Jenis/unit tidak boleh diubah selepas senarai mula dijana.');
       Object.assign(a, o, { NoAcara: teksBersih(d.no) || a.NoAcara, Dikemaskini: masa });
+      kiraRekodAuto(a, pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId), petaMuridRingkas(), petaRumah());
       kemaskiniBaris(SHEET_ACARA, a.__row, a);
     } else {
       const no = teksBersih(d.no) || String(semua.reduce((mx, x) => Math.max(mx, nombor(x.NoAcara, 0)), 0) + 1);
-      tambahBaris(SHEET_ACARA, Object.assign(o, { AcaraId: janaId('AC'), Tahun: kt.tahun, NoAcara: no, Status: 'DIRANCANG', Susunan: semua.length + 1, Dikemaskini: masa }));
+      const baru = Object.assign(o, { AcaraId: janaId('AC'), Tahun: kt.tahun, NoAcara: no, Status: 'DIRANCANG', Susunan: semua.length + 1, Dikemaskini: masa });
+      kiraRekodAuto(baru, [], {}, {});
+      tambahBaris(SHEET_ACARA, baru);
+      if (!baru.Masa) janaJadualDalaman(kt, false);
     }
     catatAudit(sesi, d.id ? 'KEMASKINI_ACARA' : 'TAMBAH_ACARA', 'KEJOHANAN', d.id || '', o.Nama + ' ' + o.Kategori + ' ' + o.Jantina);
     return jaya({});
@@ -415,8 +459,9 @@ function apiJanaAcaraStandard(p) {
       }));
     });
     if (baru.length) tulisBarisBaharu(SHEET_ACARA, baru);
-    catatAudit(sesi, 'JANA_ACARA_STANDARD', 'KEJOHANAN', '', baru.length + ' acara dicipta');
-    return jaya({ bil: baru.length });
+    const jadual = janaJadualDalaman(kt, false);   // AUTOMATIK: no. acara, tarikh & masa
+    catatAudit(sesi, 'JANA_ACARA_STANDARD', 'KEJOHANAN', '', baru.length + ' acara dicipta, ' + jadual + ' dijadualkan');
+    return jaya({ bil: baru.length, jadual });
   });
 }
 
@@ -433,10 +478,12 @@ function apiSalinAcaraTahunLepas(p) {
     acaraTahun(kt.tahun).forEach(a => { ada[a.Nama + '|' + a.Kategori + '|' + a.Jantina] = true; });
     const masa = sekarangTeks();
     const baru = acaraTahun(tahunLepas).filter(a => !ada[a.Nama + '|' + a.Kategori + '|' + a.Jantina]).map(a => Object.assign({}, a, {
-      AcaraId: janaId('AC'), Tahun: kt.tahun, Tarikh: kt.tarikh || '', Masa: '', Status: 'DIRANCANG', Dikemaskini: masa
+      AcaraId: janaId('AC'), Tahun: kt.tahun, Tarikh: kt.tarikh || '', Masa: '', Status: 'DIRANCANG', Dikemaskini: masa,
+      RekodAsalNilai: '', RekodAsalPemegang: '', RekodAsalRumah: '', RekodAsalTahun: ''   // rekod terbaik setakat tahun lepas jadi garis asas
     }));
     baru.forEach(b => { delete b.__row; });
     if (baru.length) tulisBarisBaharu(SHEET_ACARA, baru);
+    janaJadualDalaman(kt, false);
     catatAudit(sesi, 'SALIN_ACARA', 'KEJOHANAN', String(tahunLepas), baru.length + ' acara disalin');
     return jaya({ bil: baru.length, tahun: tahunLepas });
   });
@@ -457,6 +504,49 @@ function apiSimpanJadual(p) {
     upsertBanyak(SHEET_ACARA, 'AcaraId', objek);
     catatAudit(sesi, 'SIMPAN_JADUAL', 'KEJOHANAN', '', objek.length + ' acara');
     return jaya({ bil: objek.length });
+  });
+}
+
+/* ------------------------- JADUAL AUTOMATIK -------------------------
+   Dua aliran serentak: BALAPAN (jarak menaik, kemudian berganti-ganti) setiap `selangBalapan` minit
+   dan PADANG (ikut acara) setiap `selangPadang` minit, bermula `masaMula` pada tarikh kejohanan.
+   No. acara diberi mengikut susunan masa. semua=false: hanya acara yang belum ada masa diisi. */
+function janaJadualDalaman(kt, semua) {
+  const acara = acaraTahun(kt.tahun);
+  if (!acara.length) return 0;
+  if (!semua && acara.every(a => a.Masa && a.Tarikh && a.NoAcara)) return 0;
+  const kat = {};
+  konfigKategori().senarai.forEach((k, i) => { kat[k.kod] = i; });
+  const indeksStd = {};
+  ACARA_STANDARD.forEach((x, i) => { indeksStd[x.nama] = i; });
+  const jarak = a => { const m = String(a.Nama).match(/(\d+)\s*X\s*(\d+)/i); if (m) return Number(m[1]) * Number(m[2]); const n = String(a.Nama).match(/(\d+)/); return n ? Number(n[1]) : 0; };
+  const banding2 = (a, b) => (kat[a.Kategori] === undefined ? 99 : kat[a.Kategori]) - (kat[b.Kategori] === undefined ? 99 : kat[b.Kategori]) || String(a.Jantina).localeCompare(String(b.Jantina));
+  const balapan = acara.filter(a => a.Jenis !== 'PADANG').sort((a, b) => (a.Jenis === 'BERGANTI') - (b.Jenis === 'BERGANTI') || jarak(a) - jarak(b) || String(a.Nama).localeCompare(String(b.Nama)) || banding2(a, b));
+  const padang = acara.filter(a => a.Jenis === 'PADANG').sort((a, b) => (indeksStd[a.Nama] === undefined ? 99 : indeksStd[a.Nama]) - (indeksStd[b.Nama] === undefined ? 99 : indeksStd[b.Nama]) || String(a.Nama).localeCompare(String(b.Nama)) || banding2(a, b));
+  const mula = Number(kt.masaMula.slice(0, 2)) * 60 + Number(kt.masaMula.slice(3, 5));
+  const hh = m => ('0' + Math.floor(m / 60) % 24).slice(-2) + ':' + ('0' + m % 60).slice(-2);
+  const slot = [];
+  balapan.forEach((a, i) => slot.push({ a, minit: mula + i * kt.selangBalapan, r: 0 }));
+  padang.forEach((a, i) => slot.push({ a, minit: mula + i * kt.selangPadang, r: 1 }));
+  slot.sort((x, y) => x.minit - y.minit || x.r - y.r);
+  const masa = sekarangTeks(), objek = [];
+  slot.forEach((x, i) => {
+    const a = x.a;
+    if (!semua && a.Masa && a.Tarikh && a.NoAcara) return;
+    objek.push({ AcaraId: a.AcaraId, NoAcara: semua || !a.NoAcara ? String(i + 1) : a.NoAcara, Tarikh: semua || !a.Tarikh ? (kt.tarikh || a.Tarikh || '') : a.Tarikh,
+      Masa: semua || !a.Masa ? hh(x.minit) : a.Masa, Susunan: i + 1, Dikemaskini: masa });
+  });
+  if (objek.length) upsertBanyak(SHEET_ACARA, 'AcaraId', objek);
+  return objek.length;
+}
+
+function apiJanaJadual(p) {
+  const sesi = wajibKeputusan(p.token);
+  if (sesi.success === false) return sesi;
+  return denganKunci(() => {
+    const bil = janaJadualDalaman(tetKejohanan(), true);
+    catatAudit(sesi, 'JANA_JADUAL', 'KEJOHANAN', '', bil + ' acara dijadualkan semula');
+    return jaya({ bil });
   });
 }
 
@@ -572,6 +662,9 @@ function apiSimpanPenyertaan(p) {
       a.Status = 'DIRANCANG'; a.Dikemaskini = masa;
       kemaskiniBaris(SHEET_ACARA, a.__row, a);
     }
+    // AUTOMATIK: No. Bib bagi atlet baharu; jika pendaftaran sudah ditutup (perubahan oleh Admin), senarai mula dijana semula
+    janaBibDalaman(kt);
+    if (kt.pendaftaran === 'TUTUP' && a.Status === 'DIRANCANG' && dipilih.length) janaSenaraiMulaDalaman(a, kt);
     catatAudit(sesi, 'SIMPAN_PENYERTAAN', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina + ' | rumah ' + rumahId + ': ' + dipilih.length + ' atlet');
     return jaya({ bil: dipilih.length });
   });
@@ -594,8 +687,19 @@ function apiAcaraButiran(p) {
   const sesi = wajibStaf(p.token);
   if (sesi.success === false) return sesi;
   const kt = tetKejohanan();
-  const a = acaraTahun(kt.tahun).find(x => x.AcaraId === p.acaraId);
+  let a = acaraTahun(kt.tahun).find(x => x.AcaraId === p.acaraId);
   if (!a) return ralat('Acara tidak dijumpai.');
+  // AUTOMATIK: selepas pendaftaran ditutup, senarai mula dijana sebaik acara dibuka (tiada butang perlu ditekan)
+  if ((!a.Status || a.Status === 'DIRANCANG') && kt.pendaftaran === 'TUTUP' && pesertaTahun(kt.tahun).some(x => x.AcaraId === a.AcaraId)) {
+    const kunci = LockService.getScriptLock();
+    if (kunci.tryLock(15000)) {
+      try {
+        a = acaraTahun(kt.tahun).find(x => x.AcaraId === p.acaraId);
+        if (!a.Status || a.Status === 'DIRANCANG') janaSenaraiMulaDalaman(a, kt);
+      } finally { kunci.releaseLock(); }
+      a = acaraTahun(kt.tahun).find(x => x.AcaraId === p.acaraId);
+    }
+  }
   const murid = petaMuridRingkas();
   const rumah = petaRumah();
   const peserta = pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId).map(x => butiranPeserta(x, murid, rumah))
@@ -604,7 +708,61 @@ function apiAcaraButiran(p) {
 }
 
 /* Jana senarai mula: balapan -> saringan & lorong (atau terus akhir jika muat); padang -> giliran.
-   Atlet dari rumah sama diselang-seli supaya tidak bertembung dalam saringan yang sama. */
+   Atlet dari rumah sama diselang-seli supaya tidak bertembung dalam saringan yang sama.
+   Dijana AUTOMATIK apabila pendaftaran ditutup / acara dibuka; butang Jana hanya untuk jana semula. */
+function janaSenaraiMulaDalaman(a, kt) {
+  const semua = pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId);
+  padamBarisBanyak(SHEET_PESERTA, semua.filter(x => x.Saringan === 'M'));   // buang baris akhir lama (jika ada)
+  const daftar = semua.filter(x => x.Saringan !== 'M');
+  if (!daftar.length) return 0;
+  const rawak = penjanaRawak(Date.now() % 2147483647);
+  const ikutRumah = {};
+  kocok(daftar.slice(), rawak).forEach(x => { (ikutRumah[x.RumahId] = ikutRumah[x.RumahId] || []).push(x); });
+  const kumpulan = kocok(Object.keys(ikutRumah), rawak).map(k => ikutRumah[k]);
+  const tertib = [];
+  for (let i = 0; tertib.length < daftar.length; i++) kumpulan.forEach(g => { if (g[i]) tertib.push(g[i]); });
+
+  const masa = sekarangTeks(), objek = [];
+  const lorong = Math.max(4, Math.min(10, nombor(a.BilLorong, 8)));
+  if (a.Jenis === 'PADANG') {
+    tertib.forEach((x, i) => objek.push({ Id: x.Id, Pusingan: 'AKHIR', Saringan: '1', Lorong: String(i + 1) }));
+  } else {
+    const bilSaringan = Math.ceil(tertib.length / lorong);
+    const pusingan = bilSaringan > 1 ? 'SARINGAN' : 'AKHIR';
+    const saringan = [];
+    for (let h = 0; h < bilSaringan; h++) saringan.push([]);
+    // saiz saringan seimbang dahulu, kemudian rumah yang paling sedikit dalam saringan itu (atlet serumah tersebar)
+    const bilRumah = saringan.map(() => ({}));
+    tertib.forEach(x => {
+      const min = Math.min.apply(null, saringan.map(g => g.length));
+      let pilih = -1;
+      saringan.forEach((g, h) => {
+        if (g.length !== min) return;
+        if (pilih === -1 || (bilRumah[h][x.RumahId] || 0) < (bilRumah[pilih][x.RumahId] || 0)) pilih = h;
+      });
+      saringan[pilih].push(x);
+      bilRumah[pilih][x.RumahId] = (bilRumah[pilih][x.RumahId] || 0) + 1;
+    });
+    const lo = susunanLorong(lorong);
+    saringan.forEach((g, h) => g.forEach((x, i) => objek.push({ Id: x.Id, Pusingan: pusingan, Saringan: String(h + 1), Lorong: String(lo[i] || i + 1) })));
+  }
+  objek.forEach(o => { o.Keputusan = ''; o.Nilai = ''; o.Kedudukan = ''; o.Mata = ''; o.Status = 'OK'; o.RekodBaharu = ''; o.Dikemaskini = masa; });
+  upsertBanyak(SHEET_PESERTA, 'Id', objek);
+  a.Status = 'SEDIA'; a.BilLorong = lorong; a.Dikemaskini = masa;
+  kiraRekodAuto(a, [], {}, {});   // tiada keputusan lagi -> rekod kembali kepada rekod asal
+  kemaskiniBaris(SHEET_ACARA, a.__row, a);
+  return objek.length;
+}
+
+function janaSemuaSenaraiMula(kt) {
+  const ada = {};
+  pesertaTahun(kt.tahun).forEach(x => { ada[x.AcaraId] = true; });
+  let bil = 0;
+  acaraTahun(kt.tahun).forEach(a => { if ((!a.Status || a.Status === 'DIRANCANG') && ada[a.AcaraId]) { janaSenaraiMulaDalaman(a, kt); bil++; } });
+  return bil;
+}
+
+/* Jana semula (rawak semula) senarai mula sesuatu acara — pilihan; senarai mula sudah dijana automatik. */
 function apiJanaSenaraiMula(p) {
   const sesi = wajibKeputusan(p.token);
   if (sesi.success === false) return sesi;
@@ -612,49 +770,13 @@ function apiJanaSenaraiMula(p) {
   return denganKunci(() => {
     const a = acaraTahun(kt.tahun).find(x => x.AcaraId === p.acaraId);
     if (!a) return ralat('Acara tidak dijumpai.');
-    if (a.Status === 'SARINGAN' || a.Status === 'SELESAI') return ralat('Acara ini sudah mempunyai keputusan. Kosongkan keputusan dahulu untuk menjana semula.');
-    const semua = pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId);
-    padamBarisBanyak(SHEET_PESERTA, semua.filter(x => x.Saringan === 'M'));   // buang baris akhir lama (jika ada)
-    const daftar = semua.filter(x => x.Saringan !== 'M');
-    if (!daftar.length) return ralat('Tiada peserta berdaftar untuk acara ini.');
-    const rawak = penjanaRawak(Date.now() % 2147483647);
-    // selang-seli mengikut rumah
-    const ikutRumah = {};
-    kocok(daftar.slice(), rawak).forEach(x => { (ikutRumah[x.RumahId] = ikutRumah[x.RumahId] || []).push(x); });
-    const kumpulan = kocok(Object.keys(ikutRumah), rawak).map(k => ikutRumah[k]);
-    const tertib = [];
-    for (let i = 0; tertib.length < daftar.length; i++) kumpulan.forEach(g => { if (g[i]) tertib.push(g[i]); });
-
-    const masa = sekarangTeks(), objek = [];
-    const lorong = Math.max(4, Math.min(10, nombor(p.bilLorong, nombor(a.BilLorong, 8))));
-    if (a.Jenis === 'PADANG') {
-      tertib.forEach((x, i) => objek.push({ Id: x.Id, Pusingan: 'AKHIR', Saringan: '1', Lorong: String(i + 1) }));
-    } else {
-      const bilSaringan = Math.ceil(tertib.length / lorong);
-      const pusingan = bilSaringan > 1 ? 'SARINGAN' : 'AKHIR';
-      const saringan = [];
-      for (let h = 0; h < bilSaringan; h++) saringan.push([]);
-      // saiz saringan seimbang dahulu, kemudian rumah yang paling sedikit dalam saringan itu (atlet serumah tersebar)
-      const bilRumah = saringan.map(() => ({}));
-      tertib.forEach(x => {
-        const min = Math.min.apply(null, saringan.map(g => g.length));
-        let pilih = -1;
-        saringan.forEach((g, h) => {
-          if (g.length !== min) return;
-          if (pilih === -1 || (bilRumah[h][x.RumahId] || 0) < (bilRumah[pilih][x.RumahId] || 0)) pilih = h;
-        });
-        saringan[pilih].push(x);
-        bilRumah[pilih][x.RumahId] = (bilRumah[pilih][x.RumahId] || 0) + 1;
-      });
-      const lo = susunanLorong(lorong);
-      saringan.forEach((g, h) => g.forEach((x, i) => objek.push({ Id: x.Id, Pusingan: pusingan, Saringan: String(h + 1), Lorong: String(lo[i] || i + 1) })));
-    }
-    objek.forEach(o => { o.Keputusan = ''; o.Nilai = ''; o.Kedudukan = ''; o.Mata = ''; o.Status = 'OK'; o.RekodBaharu = ''; o.Dikemaskini = masa; });
-    upsertBanyak(SHEET_PESERTA, 'Id', objek);
-    a.Status = 'SEDIA'; a.BilLorong = lorong; a.Dikemaskini = masa;
-    kemaskiniBaris(SHEET_ACARA, a.__row, a);
-    catatAudit(sesi, 'JANA_SENARAI_MULA', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina + ': ' + objek.length + ' peserta');
-    return jaya({ bil: objek.length });
+    if (a.Status === 'SARINGAN' || a.Status === 'SELESAI') return ralat('Acara ini sudah mempunyai keputusan. Set semula dahulu untuk menjana semula.');
+    if (p.bilLorong) a.BilLorong = p.bilLorong;
+    const bil = janaSenaraiMulaDalaman(a, kt);
+    if (!bil) return ralat('Tiada peserta berdaftar untuk acara ini.');
+    janaBibDalaman(kt);
+    catatAudit(sesi, 'JANA_SENARAI_MULA', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina + ': ' + bil + ' peserta');
+    return jaya({ bil });
   });
 }
 
@@ -667,7 +789,7 @@ function apiSimpanKeputusan(p) {
   return denganKunci(() => {
     const a = acaraTahun(kt.tahun).find(x => x.AcaraId === p.acaraId);
     if (!a) return ralat('Acara tidak dijumpai.');
-    if (!a.Status || a.Status === 'DIRANCANG') return ralat('Jana senarai mula dahulu.');
+    if (!a.Status || a.Status === 'DIRANCANG') janaSenaraiMulaDalaman(a, kt);   // AUTOMATIK
     const input = {};
     (p.baris || []).forEach(b => { input[b.id] = b; });
     const baris = pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId && x.Pusingan === pusingan);
@@ -680,14 +802,14 @@ function apiSimpanKeputusan(p) {
       if (status === 'OK' && String(b.keputusan || '').trim() && nilai === null) ralatInput.push(String(b.keputusan));
       return { x, status, nilai, saringan: x.Saringan };
     });
-    if (ralatInput.length) return ralat('Keputusan tidak sah: ' + ralatInput.slice(0, 5).join(', ') + '. Contoh: 12.45 · 1:05.32 · 4.35');
+    if (ralatInput.length) return ralat('Keputusan tidak sah: ' + ralatInput.slice(0, 5).join(', ') + '. Contoh masa: 12.345 · 1:05.321 · jarak: 4.35');
 
     // kedudukan: saringan dalam setiap saringan; akhir keseluruhan
     const kumpulan = {};
     data.forEach(d => { (kumpulan[pusingan === 'SARINGAN' ? d.saringan : 'A'] = kumpulan[pusingan === 'SARINGAN' ? d.saringan : 'A'] || []).push(d); });
     Object.keys(kumpulan).forEach(k => tetapkanKedudukan(kumpulan[k], a.Unit));
     const mataJadual = a.Jenis === 'BERGANTI' ? kt.mataBerganti : kt.mataIndividu;
-    const rekod = huraiKeputusan(a.RekodNilai, a.Unit);
+    const rekod = huraiKeputusan(rekodAsal(a).nilai, a.Unit);   // pecah rekod = lebih baik daripada rekod SEBELUM kejohanan ini
     const masa = sekarangTeks();
     let lengkap = true, rekodBaru = 0;
     const objek = data.map(d => {
@@ -699,17 +821,42 @@ function apiSimpanKeputusan(p) {
         RekodBaharu: baru ? 'YA' : '', Dikemaskini: masa };
     });
     upsertBanyak(SHEET_PESERTA, 'Id', objek);
-    if (lengkap) {
-      a.Status = pusingan === 'AKHIR' ? 'SELESAI' : 'SARINGAN';
-      a.Dikemaskini = masa;
-      kemaskiniBaris(SHEET_ACARA, a.__row, a);
+    if (lengkap) a.Status = pusingan === 'AKHIR' ? 'SELESAI' : 'SARINGAN';
+    else if (a.Status === 'SELESAI' && pusingan === 'AKHIR') a.Status = baris.some(x => x.Saringan === 'M') ? 'SARINGAN' : 'SEDIA';
+    a.Dikemaskini = masa;
+    // AUTOMATIK: rekod kejohanan dikira semula daripada semua keputusan sah acara ini
+    const rekodBerubah = kiraRekodAuto(a, pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId), petaMuridRingkas(), petaRumah());
+    kemaskiniBaris(SHEET_ACARA, a.__row, a);
+    // AUTOMATIK: saringan lengkap -> finalis terbaik terus dimarakan ke pusingan akhir (jika akhir belum bermula)
+    let keAkhir = 0;
+    if (pusingan === 'SARINGAN' && lengkap) {
+      const akhirLama = pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId && x.Saringan === 'M');
+      if (!akhirLama.some(x => String(x.Keputusan || '') || (x.Status && x.Status !== 'OK'))) keAkhir = maraKeAkhirDalaman(a, kt);
     }
-    catatAudit(sesi, 'SIMPAN_KEPUTUSAN', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina + ' (' + pusingan + ')' + (lengkap ? ' lengkap' : ' separa') + (rekodBaru ? ' · ' + rekodBaru + ' pecah rekod' : ''));
-    return jaya({ lengkap, rekodBaru, status: a.Status });
+    catatAudit(sesi, 'SIMPAN_KEPUTUSAN', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina + ' (' + pusingan + ')' + (lengkap ? ' lengkap' : ' separa') +
+      (rekodBaru ? ' · ' + rekodBaru + ' pecah rekod' : '') + (keAkhir ? ' · ' + keAkhir + ' mara ke akhir' : ''));
+    return jaya({ lengkap, rekodBaru, rekodBerubah, keAkhir, status: a.Status, rekod: a.RekodNilai });
   });
 }
 
-/* Pilih atlet terpantas/terbaik merentasi semua saringan untuk ke pusingan akhir. */
+/* Pilih atlet terpantas/terbaik merentasi semua saringan untuk ke pusingan akhir (AUTOMATIK selepas saringan lengkap). */
+function maraKeAkhirDalaman(a, kt, bilDiminta) {
+  const semua = pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId);
+  const bil = Math.max(2, Math.min(10, nombor(bilDiminta, nombor(a.BilKeAkhir, 0) || nombor(a.BilLorong, 8))));
+  const layak = semua.filter(x => x.Pusingan === 'SARINGAN' && x.Status === 'OK' && nombor(x.Nilai, 0) > 0)
+    .sort((x, y) => a.Unit === 'MASA' ? nombor(x.Nilai, 0) - nombor(y.Nilai, 0) : nombor(y.Nilai, 0) - nombor(x.Nilai, 0)).slice(0, bil);
+  if (!layak.length) return 0;
+  padamBarisBanyak(SHEET_PESERTA, semua.filter(x => x.Saringan === 'M'));
+  const masa = sekarangTeks();
+  const lo = susunanLorong(Math.max(bil, nombor(a.BilLorong, 8)));
+  tulisBarisBaharu(SHEET_PESERTA, layak.map((x, i) => ({
+    Id: janaId('PS'), Tahun: kt.tahun, AcaraId: a.AcaraId, RumahId: x.RumahId, NoKP: x.NoKP, Ahli: x.Ahli, Pusingan: 'AKHIR', Saringan: 'M',
+    Lorong: String(lo[i] || i + 1), Status: 'OK', Dikemaskini: masa
+  })));
+  return layak.length;
+}
+
+/* Pilih semula finalis dengan bilangan lain (pilihan; mara ke akhir sudah automatik). */
 function apiMaraKeAkhir(p) {
   const sesi = wajibKeputusan(p.token);
   if (sesi.success === false) return sesi;
@@ -718,22 +865,12 @@ function apiMaraKeAkhir(p) {
     const a = acaraTahun(kt.tahun).find(x => x.AcaraId === p.acaraId);
     if (!a) return ralat('Acara tidak dijumpai.');
     if (a.Status !== 'SARINGAN') return ralat('Lengkapkan keputusan semua saringan dahulu.');
-    const semua = pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId);
-    const bil = Math.max(2, Math.min(10, nombor(p.bil, nombor(a.BilKeAkhir, 0) || nombor(a.BilLorong, 8))));
-    const layak = semua.filter(x => x.Pusingan === 'SARINGAN' && x.Status === 'OK' && nombor(x.Nilai, 0) > 0)
-      .sort((x, y) => a.Unit === 'MASA' ? nombor(x.Nilai, 0) - nombor(y.Nilai, 0) : nombor(y.Nilai, 0) - nombor(x.Nilai, 0)).slice(0, bil);
-    if (!layak.length) return ralat('Tiada keputusan saringan yang sah.');
-    padamBarisBanyak(SHEET_PESERTA, semua.filter(x => x.Saringan === 'M'));
-    const masa = sekarangTeks();
-    const lo = susunanLorong(Math.max(bil, nombor(a.BilLorong, 8)));
-    tulisBarisBaharu(SHEET_PESERTA, layak.map((x, i) => ({
-      Id: janaId('PS'), Tahun: kt.tahun, AcaraId: a.AcaraId, RumahId: x.RumahId, NoKP: x.NoKP, Ahli: x.Ahli, Pusingan: 'AKHIR', Saringan: 'M',
-      Lorong: String(lo[i] || i + 1), Status: 'OK', Dikemaskini: masa
-    })));
-    a.BilKeAkhir = bil; a.Dikemaskini = masa;
+    const bil = maraKeAkhirDalaman(a, kt, p.bil);
+    if (!bil) return ralat('Tiada keputusan saringan yang sah.');
+    a.BilKeAkhir = bil; a.Dikemaskini = sekarangTeks();
     kemaskiniBaris(SHEET_ACARA, a.__row, a);
-    catatAudit(sesi, 'MARA_KE_AKHIR', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina + ': ' + layak.length + ' ke akhir');
-    return jaya({ bil: layak.length });
+    catatAudit(sesi, 'MARA_KE_AKHIR', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina + ': ' + bil + ' ke akhir');
+    return jaya({ bil });
   });
 }
 
@@ -751,6 +888,7 @@ function apiSetSemulaAcara(p) {
     upsertBanyak(SHEET_PESERTA, 'Id', semua.filter(x => x.Saringan !== 'M').map(x => ({ Id: x.Id, Pusingan: '', Saringan: '', Lorong: '', Keputusan: '',
       Nilai: '', Kedudukan: '', Mata: '', Status: 'OK', RekodBaharu: '', Dikemaskini: masa })));
     a.Status = 'DIRANCANG'; a.Dikemaskini = masa;
+    kiraRekodAuto(a, [], {}, {});
     kemaskiniBaris(SHEET_ACARA, a.__row, a);
     catatAudit(sesi, 'SET_SEMULA_ACARA', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina);
     return jaya({});
@@ -773,31 +911,6 @@ function kiraSemulaMataSemua() {
   });
   if (objek.length) upsertBanyak(SHEET_PESERTA, 'Id', objek);
   return objek.length;
-}
-
-/* ------------------------- API: REKOD ------------------------- */
-function apiSahkanRekod(p) {
-  const sesi = wajibAdmin(p.token);
-  if (sesi.success === false) return sesi;
-  const kt = tetKejohanan();
-  return denganKunci(() => {
-    const acara = acaraTahun(kt.tahun);
-    const a = acara.find(x => x.AcaraId === p.acaraId);
-    if (!a) return ralat('Acara tidak dijumpai.');
-    const t = rekodTertunda([a], pesertaTahun(kt.tahun).filter(x => x.AcaraId === a.AcaraId))[a.AcaraId];
-    if (!t) return ralat('Tiada rekod baharu untuk disahkan.');
-    const murid = petaMuridRingkas();
-    const rumah = petaRumah();
-    const x = t.baris;
-    a.RekodNilai = formatKeputusan(t.nilai, a.Unit);
-    a.RekodPemegang = x.NoKP ? (murid[normalKP(x.NoKP)] || {}).nama || normalKP(x.NoKP) : namaAhli(x.Ahli, murid).join(', ');
-    a.RekodRumah = rumah[x.RumahId] ? rumah[x.RumahId].nama : '';
-    a.RekodTahun = String(kt.tahun);
-    a.Dikemaskini = sekarangTeks();
-    kemaskiniBaris(SHEET_ACARA, a.__row, a);
-    catatAudit(sesi, 'SAHKAN_REKOD', 'KEJOHANAN', a.AcaraId, a.Nama + ' ' + a.Kategori + ' ' + a.Jantina + ': ' + a.RekodNilai + ' (' + a.RekodPemegang + ')');
-    return jaya({ rekod: a.RekodNilai });
-  });
 }
 
 /* ------------------------- API: MATA LAIN-LAIN ------------------------- */
@@ -836,31 +949,25 @@ function apiPadamMataLain(p) {
   });
 }
 
-/* ------------------------- API: NO. BIB ------------------------- */
-/* Beri No. Bib kepada semua peserta berdaftar yang belum mempunyainya: <susunan rumah><3 digit>, cth. 1001. */
-function apiJanaBib(p) {
-  const sesi = wajibAdmin(p.token);
-  if (sesi.success === false) return sesi;
-  const kt = tetKejohanan();
-  return denganKunci(() => {
-    const rumah = senaraiRumah();
-    const indeks = {};
-    rumah.forEach((r, i) => { indeks[r.id] = i + 1; });
-    const perlu = {};
-    pesertaTahun(kt.tahun).forEach(x => (x.NoKP ? [x.NoKP] : senaraiDaripadaMedan(x.Ahli)).forEach(kp => { perlu[normalKP(kp)] = true; }));
-    const murid = bacaSheetSebagaiObjek(SHEET_MURID).filter(m => m.NoKP && indeks[m.RumahId]);
-    const maks = {};
-    murid.forEach(m => { const n = nombor(m.NoBib, 0); if (n) maks[m.RumahId] = Math.max(maks[m.RumahId] || 0, n % 1000); });
-    const objek = [];
-    murid.filter(m => perlu[normalKP(m.NoKP)] && !String(m.NoBib || '')).sort((a, b) => String(a.NamaPenuh).localeCompare(String(b.NamaPenuh))).forEach(m => {
-      const seq = (maks[m.RumahId] || 0) + 1;
-      maks[m.RumahId] = seq;
-      objek.push({ NoKP: m.NoKP, NoBib: String(indeks[m.RumahId] * 1000 + seq) });
-    });
-    upsertBanyak(SHEET_MURID, 'NoKP', objek);
-    catatAudit(sesi, 'JANA_BIB', 'KEJOHANAN', '', objek.length + ' no. bib baharu');
-    return jaya({ bil: objek.length });
+/* ------------------------- NO. BIB (AUTOMATIK) -------------------------
+   Setiap atlet berdaftar diberi No. Bib secara automatik: <no. rumah><3 digit>, cth. 1001. Bib sedia ada kekal. */
+function janaBibDalaman(kt) {
+  const rumah = senaraiRumah();
+  const indeks = {};
+  rumah.forEach((r, i) => { indeks[r.id] = i + 1; });
+  const perlu = {};
+  pesertaTahun(kt.tahun).forEach(x => (x.NoKP ? [x.NoKP] : senaraiDaripadaMedan(x.Ahli)).forEach(kp => { perlu[normalKP(kp)] = true; }));
+  const murid = bacaSheetSebagaiObjek(SHEET_MURID).filter(m => m.NoKP && indeks[m.RumahId]);
+  const maks = {};
+  murid.forEach(m => { const n = nombor(m.NoBib, 0); if (n) maks[m.RumahId] = Math.max(maks[m.RumahId] || 0, n % 1000); });
+  const objek = [];
+  murid.filter(m => perlu[normalKP(m.NoKP)] && !String(m.NoBib || '')).sort((a, b) => String(a.NamaPenuh).localeCompare(String(b.NamaPenuh))).forEach(m => {
+    const seq = (maks[m.RumahId] || 0) + 1;
+    maks[m.RumahId] = seq;
+    objek.push({ NoKP: m.NoKP, NoBib: String(indeks[m.RumahId] * 1000 + seq) });
   });
+  if (objek.length) upsertBanyak(SHEET_MURID, 'NoKP', objek);
+  return objek.length;
 }
 
 /* ------------------------- API: LAPORAN (buku keputusan) ------------------------- */
