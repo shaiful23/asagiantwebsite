@@ -3,11 +3,46 @@
  * supaya cara baca/tulis Sheet konsisten.
  * ========================================================================= */
 
+/* ------------------------- PRESTASI: MEMO & CACHE -------------------------
+   Setiap panggilan api*() ialah satu pelaksanaan pelayan berasingan. Dalam satu
+   pelaksanaan, Spreadsheet/Sheet/data yang sama sering dibaca berulang kali
+   (cth. wajibAksesPanitia + cariBarisMengikutId + bacaSheetSebagaiObjek), jadi
+   simpan dalam memo per-pelaksanaan. Sheet kecil yang kerap dibaca tetapi jarang
+   berubah (USERS/PANITIA/KATEGORI_DOKUMEN) turut disimpan dalam CacheService
+   merentasi panggilan; cache dipadam setiap kali sistem menulis ke Sheet itu, dan
+   oleh onEdit() (Code.gs) apabila admin menyunting Sheet secara manual. */
+let MEMO_SPREADSHEET = null;
+const MEMO_SHEET = {};
+const MEMO_DATA = {};
+const TEMPOH_CACHE_SHEET_SAAT = 600;
+
+function sheetBolehDicache(namaSheet) {
+  return [SHEET_USERS, SHEET_PANITIA, SHEET_KATEGORI_DOKUMEN].indexOf(namaSheet) !== -1;
+}
+function kunciCacheSheet(namaSheet) { return 'sheet_ebahasa_' + namaSheet; }
+
+function batalCacheSheet(namaSheet) {
+  delete MEMO_DATA[namaSheet];
+  if (sheetBolehDicache(namaSheet)) {
+    try { CacheService.getScriptCache().remove(kunciCacheSheet(namaSheet)); } catch (e) { /* cache pilihan sahaja */ }
+  }
+}
+
+function dapatkanSpreadsheet() {
+  if (!MEMO_SPREADSHEET) MEMO_SPREADSHEET = SpreadsheetApp.getActiveSpreadsheet();
+  return MEMO_SPREADSHEET;
+}
+
 function dapatkanSheet(nama) {
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nama);
+  if (MEMO_SHEET[nama]) return MEMO_SHEET[nama];
+  const sh = dapatkanSpreadsheet().getSheetByName(nama);
   if (!sh) throw new Error('Sheet "' + nama + '" tidak wujud. Jalankan menu "Sediakan Sistem" dahulu.');
+  MEMO_SHEET[nama] = sh;
   return sh;
 }
+
+// Salinan cetek — pemanggil kerap mengubah objek baris sebelum kemaskiniBaris().
+function salinRekod(rekod) { return rekod.map(r => Object.assign({}, r)); }
 
 /* Google Sheets format "Automatic" secara senyap tukar sel yang ditulis sebagai
    rentetan tarikh/masa kepada objek Date sebenar apabila dibaca semula melalui
@@ -24,17 +59,39 @@ function nilaiSelSebagaiTeks(nilai) {
 
 /* Baca keseluruhan sheet sebagai array objek {header: nilai}, satu panggilan getValues(). */
 function bacaSheetSebagaiObjek(namaSheet) {
+  if (MEMO_DATA[namaSheet]) return salinRekod(MEMO_DATA[namaSheet]);
+
+  const bolehCache = sheetBolehDicache(namaSheet);
+  if (bolehCache) {
+    try {
+      const mentah = CacheService.getScriptCache().get(kunciCacheSheet(namaSheet));
+      if (mentah) {
+        MEMO_DATA[namaSheet] = JSON.parse(mentah);
+        return salinRekod(MEMO_DATA[namaSheet]);
+      }
+    } catch (e) { /* baca terus daripada Sheet */ }
+  }
+
   const sh = dapatkanSheet(namaSheet);
   const nilai = sh.getDataRange().getValues();
   const header = nilai.shift() || [];
-  return nilai
-    .filter(baris => baris.some(sel => sel !== '' && sel !== null))
-    .map((baris, idx) => {
-      const obj = {};
-      header.forEach((h, i) => { obj[h] = nilaiSelSebagaiTeks(baris[i]); });
-      obj.__row = idx + 2; // nombor baris sebenar dalam Sheet (1 = header)
-      return obj;
-    });
+  const rekod = [];
+  nilai.forEach((baris, idx) => {
+    if (!baris.some(sel => sel !== '' && sel !== null)) return;
+    const obj = {};
+    header.forEach((h, i) => { obj[h] = nilaiSelSebagaiTeks(baris[i]); });
+    obj.__row = idx + 2; // nombor baris sebenar dalam Sheet (1 = header)
+    rekod.push(obj);
+  });
+
+  MEMO_DATA[namaSheet] = rekod;
+  if (bolehCache) {
+    try {
+      const json = JSON.stringify(rekod);
+      if (json.length < 95000) CacheService.getScriptCache().put(kunciCacheSheet(namaSheet), json, TEMPOH_CACHE_SHEET_SAAT);
+    } catch (e) { /* cache pilihan sahaja */ }
+  }
+  return salinRekod(rekod);
 }
 
 /* Baca baris 1 SEBENAR terus daripada Sheet (bukan andaian daripada pemalar
@@ -54,6 +111,7 @@ function tambahBaris(namaSheet, objek, header) {
   const headerSebenar = headerSebenarSheet(sh);
   const baris = headerSebenar.map(h => (objek[h] !== undefined && objek[h] !== null ? objek[h] : ''));
   sh.appendRow(baris);
+  batalCacheSheet(namaSheet);
   return sh.getLastRow();
 }
 
@@ -63,10 +121,12 @@ function kemaskiniBaris(namaSheet, nomborBaris, objek, header) {
   const headerSebenar = headerSebenarSheet(sh);
   const baris = headerSebenar.map(h => (objek[h] !== undefined && objek[h] !== null ? objek[h] : ''));
   sh.getRange(nomborBaris, 1, 1, headerSebenar.length).setValues([baris]);
+  batalCacheSheet(namaSheet);
 }
 
 function padamBaris(namaSheet, nomborBaris) {
   dapatkanSheet(namaSheet).deleteRow(nomborBaris);
+  batalCacheSheet(namaSheet);
 }
 
 function cariBarisMengikutId(namaSheet, medanId, nilaiId) {
@@ -132,6 +192,7 @@ function tambahLajurJikaTiada(namaSheet, namaLajur) {
   const header = sh.getRange(1, 1, 1, lajurSemasa).getValues()[0];
   if (header.indexOf(namaLajur) !== -1) return false;
   sh.getRange(1, lajurSemasa + 1).setValue(namaLajur).setFontWeight('bold');
+  batalCacheSheet(namaSheet);
   return true;
 }
 
@@ -158,4 +219,14 @@ function jaya(data) {
 
 function includeFile(nama) {
   return HtmlService.createHtmlOutputFromFile(nama).getContent();
+}
+
+/* Papar mesej kepada admin: kotak dialog jika dijalankan dari menu Sheet; jika
+   dijalankan terus dari editor Apps Script (tiada UI), tulis ke Log Pelaksanaan. */
+function paparMesejAdmin(mesej) {
+  try {
+    SpreadsheetApp.getUi().alert(mesej);
+  } catch (e) {
+    console.log(mesej);
+  }
 }
