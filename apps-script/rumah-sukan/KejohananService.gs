@@ -124,6 +124,15 @@ function petaMuridRingkas() {
     peta[normalKP(m.NoKP)] = { nama: m.NamaPenuh, kelas: kunciKelas(m), rumahId: String(m.RumahId || ''), bib: String(m.NoBib || ''),
       jantina: (m.Jantina || jantinaDaripadaKP(m.NoKP)) === 'PEREMPUAN' ? 'P' : 'L', rekod: m };
   });
+  // murid lepasan (arkib) supaya nama atlet tahun-tahun lepas kekal dipaparkan
+  try {
+    bacaSheetSebagaiObjek(SHEET_ARKIB_MURID).forEach(m => {
+      const kp = normalKP(m.NoKP);
+      if (!kp || peta[kp]) return;
+      peta[kp] = { nama: m.NamaPenuh, kelas: kunciKelas(m), rumahId: String(m.RumahId || ''), bib: String(m.NoBib || ''),
+        jantina: (m.Jantina || jantinaDaripadaKP(m.NoKP)) === 'PEREMPUAN' ? 'P' : 'L', rekod: m, arkib: true };
+    });
+  } catch (e) { /* Sheet arkib belum dicipta */ }
   return peta;
 }
 
@@ -507,22 +516,29 @@ function apiSalinAcaraTahunLepas(p) {
   if (sesi.success === false) return sesi;
   const kt = tetKejohanan();
   return denganKunci(() => {
+    const h = salinAcaraDalaman(kt);
+    if (!h.tahun) return ralat('Tiada acara tahun sebelumnya untuk disalin.');
+    catatAudit(sesi, 'SALIN_ACARA', 'KEJOHANAN', String(h.tahun), h.bil + ' acara disalin');
+    return jaya(h);
+  });
+}
+
+/* Salin acara (termasuk rekod terbaik) daripada tahun terakhir sebelum kt.tahun. Dipanggil di bawah kunci. */
+function salinAcaraDalaman(kt) {
     const semua = bacaSheetSebagaiObjek(SHEET_ACARA).filter(a => a.AcaraId);
     const tahunLepas = semua.map(a => nombor(a.Tahun, 0)).filter(t => t < kt.tahun).reduce((mx, t) => Math.max(mx, t), 0);
-    if (!tahunLepas) return ralat('Tiada acara tahun sebelumnya untuk disalin.');
+    if (!tahunLepas) return { bil: 0, tahun: 0 };
     const ada = {};
     acaraTahun(kt.tahun).forEach(a => { ada[a.Nama + '|' + a.Kategori + '|' + a.Jantina] = true; });
     const masa = sekarangTeks();
     const baru = acaraTahun(tahunLepas).filter(a => !ada[a.Nama + '|' + a.Kategori + '|' + a.Jantina]).map(a => Object.assign({}, a, {
-      AcaraId: janaId('AC'), Tahun: kt.tahun, Tarikh: kt.tarikh || '', Masa: '', Status: 'DIRANCANG', Dikemaskini: masa,
+      AcaraId: janaId('AC'), Tahun: kt.tahun, NoAcara: '', Tarikh: '', Masa: '', Status: 'DIRANCANG', Dikemaskini: masa, JadualManual: '', AkhirManual: '',
       RekodAsalNilai: '', RekodAsalPemegang: '', RekodAsalRumah: '', RekodAsalTahun: ''   // rekod terbaik setakat tahun lepas jadi garis asas
     }));
     baru.forEach(b => { delete b.__row; });
     if (baru.length) tulisBarisBaharu(SHEET_ACARA, baru);
     janaJadualDalaman(kt, false);
-    catatAudit(sesi, 'SALIN_ACARA', 'KEJOHANAN', String(tahunLepas), baru.length + ' acara disalin');
-    return jaya({ bil: baru.length, tahun: tahunLepas });
-  });
+    return { bil: baru.length, tahun: tahunLepas };
 }
 
 /* Simpan jadual (no. acara, tarikh, masa) bagi banyak acara sekali gus. */

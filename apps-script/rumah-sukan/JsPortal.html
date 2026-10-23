@@ -52,9 +52,9 @@ function lukisDashboard(r) {
 
   // carta ahli rumah
   h += '<div class="grid k-2-1 blok"><div class="kad"><h3>' + ik('chart') + 'Ahli Rumah Sukan (Lelaki / Perempuan)</h3>' +
-    cartaLajur(st.rumah.map(function (x) { return { label: x.nama, siri: [x.L, x.P] }; }), [{ nama: 'Lelaki', warna: '#3d7bff' }, { nama: 'Perempuan', warna: '#ff4fa3' }]) + '</div>' +
+    cartaLajur(st.rumah.map(function (x) { return { label: x.nama, siri: [x.L, x.P] }; }), [{ nama: 'Lelaki', warna: '#1f5fd6' }, { nama: 'Perempuan', warna: '#db2777' }]) + '</div>' +
     '<div class="kad"><h3>' + ik('target') + 'Taburan Murid</h3>' +
-    cartaDonut(st.rumah.map(function (x) { return { label: x.nama, nilai: x.murid, warna: x.warna }; }).concat(st.muridTanpaRumah ? [{ label: 'Tiada rumah', nilai: st.muridTanpaRumah, warna: '#5d6b98' }] : []), st.muridAktif, 'murid') + '</div></div>';
+    cartaDonut(st.rumah.map(function (x) { return { label: x.nama, nilai: x.murid, warna: x.warna }; }).concat(st.muridTanpaRumah ? [{ label: 'Tiada rumah', nilai: st.muridTanpaRumah, warna: '#cbd5e1' }] : []), st.muridAktif, 'murid') + '</div></div>';
 
   if (r.admin) {
     var amaran = [];

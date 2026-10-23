@@ -26,6 +26,7 @@ function senaraiSemakPemasangan() {
     'AuthService.gs': ['apiLogin', 'apiTukarPasswordSendiri'], 'AuditService.gs': ['apiSenaraiAudit'], 'TetapanService.gs': ['apiSimpanTetapan', 'dataTetapan'],
     'StafService.gs': ['apiAgihStafAuto'], 'AjkService.gs': ['apiSimpanAhliAjk'], 'MuridService.gs': ['apiSimpanMurid', 'apiKunciRumahMurid'],
     'AgihanService.gs': ['apiSimpanAgihan'], 'PortalService.gs': ['apiMula', 'apiPortalMurid'],
+    'ArkibService.gs': ['apiPratontonNaik', 'apiJalankanNaik', 'apiBatalNaik', 'apiArkib', 'apiArkibKejohanan', 'apiMulaTahunBaharu'],
     'KejohananService.gs': ['apiKejohanan', 'apiJanaJadual', 'apiSimpanSenaraiMula', 'apiTetapkanFinalis', 'apiLaporanKejohanan']
   };
 }
@@ -33,10 +34,10 @@ function hasilSemakPemasangan() {
   const g = globalThis, hilang = [];
   const senarai = senaraiSemakPemasangan();
   Object.keys(senarai).forEach(fail => {
-    const tiada = senarai[fail].filter(n => n === 'VERSI_SKEMA' ? typeof VERSI_SKEMA === 'undefined' || VERSI_SKEMA < 4 : typeof g[n] !== 'function');
+    const tiada = senarai[fail].filter(n => n === 'VERSI_SKEMA' ? typeof VERSI_SKEMA === 'undefined' || VERSI_SKEMA < 5 : typeof g[n] !== 'function');
     if (tiada.length) hilang.push(fail + ' (tiada / versi lama: ' + tiada.join(', ') + ')');
   });
-  ['Index', 'Css', 'JsTeras', 'JsPortal', 'JsAdmin', 'JsKejohanan', 'Logo'].forEach(h => {
+  ['Index', 'Css', 'JsTeras', 'JsPortal', 'JsAdmin', 'JsKejohanan', 'JsArkib', 'Logo'].forEach(h => {
     try { HtmlService.createHtmlOutputFromFile(h); } catch (e) { hilang.push(h + '.html (tiada)'); }
   });
   return hilang;
@@ -54,7 +55,7 @@ function semakPemasangan() {
    biasanya dimuatkan SEBELUM Config.gs — const global yang merujuk Config.gs akan gagal semasa dimuatkan
    (ReferenceError) lalu menghalang onOpen() daripada membina menu. */
 function semuaSheetData() {
-  return [SHEET_STAF, SHEET_MURID, SHEET_RUMAH, SHEET_AJK, SHEET_AJK_AHLI, SHEET_TETAPAN, SHEET_ACARA, SHEET_PESERTA, SHEET_MATA_LAIN];
+  return [SHEET_STAF, SHEET_MURID, SHEET_RUMAH, SHEET_AJK, SHEET_AJK_AHLI, SHEET_TETAPAN, SHEET_ACARA, SHEET_PESERTA, SHEET_MATA_LAIN, SHEET_ARKIB_MURID, SHEET_SEJARAH_NAIK];
 }
 
 /* Cipta / selaraskan semua Sheet (lihat Migrasi.gs). Selamat dijalankan berulang kali —

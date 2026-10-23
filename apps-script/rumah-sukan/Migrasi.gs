@@ -23,7 +23,9 @@ function definisiSkema() {
     { nama: SHEET_AUDIT, header: HEADER_AUDIT },
     { nama: SHEET_ACARA, header: HEADER_ACARA },
     { nama: SHEET_PESERTA, header: HEADER_PESERTA },
-    { nama: SHEET_MATA_LAIN, header: HEADER_MATA_LAIN }
+    { nama: SHEET_MATA_LAIN, header: HEADER_MATA_LAIN },
+    { nama: SHEET_ARKIB_MURID, header: HEADER_ARKIB_MURID },
+    { nama: SHEET_SEJARAH_NAIK, header: HEADER_SEJARAH_NAIK }
   ];
 }
 

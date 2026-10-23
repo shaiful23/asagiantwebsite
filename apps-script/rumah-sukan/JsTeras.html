@@ -10,7 +10,7 @@
 var S = { token: null, user: null, portal: PORTAL_AWAL, tet: null, mula: null, halaman: '', data: {}, ubah: {}, kj: null };
 var NAMA_PERANAN_RUMAH = { KETUA_GURU_RUMAH: 'Ketua Guru Rumah', PENOLONG_KETUA_GURU_RUMAH: 'Penolong Ketua Guru Rumah', GURU_RUMAH: 'Guru Rumah' };
 var NAMA_PERANAN_AJK = { KETUA_AJK: 'Ketua AJK', AHLI_AJK: 'Ahli AJK' };
-var WARNA_SIRI = ['#3d7bff', '#ff3d5e', '#ffd23f', '#a979ff', '#1de9a4', '#ff6a3d', '#22e3ff', '#ff3cc7'];
+var WARNA_SIRI = ['#1f5fd6', '#d6312b', '#f5b301', '#6d3fd6', '#138a52', '#d9532c', '#0e7490', '#db2777'];
 var KURANG_GERAK = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 /* ---------- Utiliti ---------- */
@@ -99,6 +99,11 @@ var IKON = {
   layers: '<path d="m12 2 10 5-10 5L2 7l10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
   copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   play: '<polygon points="6 3 20 12 6 21 6 3"/>',
+  archive: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+  naik: '<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/><path d="M5 21h14"/>',
+  bawah: '<path d="m6 9 6 6 6-6"/>',
+  undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>',
+  login: '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>',
   ruler: '<path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/>'
 };
 function ik(nama, kelas) { return '<svg class="ik' + (kelas ? ' ' + kelas : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (IKON[nama] || IKON.info) + '</svg>'; }
@@ -149,7 +154,7 @@ function cartaLajur(data, siri, opts) {
   var g = '';
   for (var v = 0; v <= atasY + 1e-9; v += langkahY) {
     var y = atas + (H - atas - bawah) * (1 - v / atasY);
-    g += '<line x1="' + kiri + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" style="stroke:rgba(120,160,255,.16)" stroke-dasharray="3 5"/><text x="' + (kiri - 6) + '" y="' + (y + 4) + '" text-anchor="end">' + Math.round(v) + '</text>';
+    g += '<line x1="' + kiri + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" style="stroke:#e4e8ef" stroke-dasharray="3 5"/><text x="' + (kiri - 6) + '" y="' + (y + 4) + '" text-anchor="end">' + Math.round(v) + '</text>';
   }
   data.forEach(function (d, i) {
     var x = kiri + i * lebar + (lebar - bar) / 2, yAsas = H - bawah;
@@ -158,7 +163,7 @@ function cartaLajur(data, siri, opts) {
       if (h > 0) g += '<rect class="lajur" x="' + x + '" y="' + (yAsas - h) + '" width="' + bar + '" height="' + h + '" rx="' + (j === d.siri.length - 1 ? 6 : 0) + '" fill="' + e(siri[j].warna) + '" style="animation-delay:' + (i * 60) + 'ms"><title>' + e(d.label + ' · ' + siri[j].nama + ': ' + n) + '</title></rect>';
       yAsas -= h;
     });
-    g += '<text x="' + (x + bar / 2) + '" y="' + (yAsas - 5) + '" text-anchor="middle" style="font-weight:800;fill:#fff;font-size:12px;font-family:var(--fon-papan)">' + jumlah[i] + '</text>';
+    g += '<text x="' + (x + bar / 2) + '" y="' + (yAsas - 5) + '" text-anchor="middle" style="font-weight:800;fill:var(--navy);font-size:12px;font-family:var(--fon-papan)">' + jumlah[i] + '</text>';
     g += '<text x="' + (x + bar / 2) + '" y="' + (H - 8) + '" text-anchor="middle" style="font-weight:700;fill:var(--teks-2);letter-spacing:.04em">' + e(String(d.label).slice(0, 12)) + '</text>';
   });
   return '<svg class="carta" viewBox="0 0 ' + W + ' ' + H + '" style="max-width:' + Math.round(W * 1.5) + 'px;margin:0 auto" role="img">' + g + '</svg>' +
@@ -166,21 +171,21 @@ function cartaLajur(data, siri, opts) {
 }
 function cartaDonut(segmen, tengah, label) {
   var jumlah = segmen.reduce(function (a, s) { return a + s.nilai; }, 0);
-  var r = 52, c = 2 * Math.PI * r, off = 0, g = '<circle cx="70" cy="70" r="' + r + '" fill="none" style="stroke:rgba(120,160,255,.1)" stroke-width="20"/>';
+  var r = 52, c = 2 * Math.PI * r, off = 0, g = '<circle cx="70" cy="70" r="' + r + '" fill="none" style="stroke:#eef1f6" stroke-width="20"/>';
   segmen.forEach(function (s) {
     var p = jumlah ? s.nilai / jumlah : 0;
     if (p > 0) g += '<circle class="segmen" cx="70" cy="70" r="' + r + '" fill="none" stroke="' + e(s.warna) + '" stroke-width="20" stroke-dasharray="' + (p * c) + ' ' + c + '" stroke-dashoffset="' + (-off * c) + '" transform="rotate(-90 70 70)"><title>' + e(s.label + ': ' + s.nilai) + '</title></circle>';
     off += p;
   });
-  g += '<text x="70" y="70" text-anchor="middle" style="font-family:var(--fon-papan);font-size:24px;font-weight:800;fill:#fff">' + e(tengah !== undefined ? tengah : jumlah) + '</text>' +
-    '<text x="70" y="88" text-anchor="middle" style="font-size:9px;fill:var(--neon);letter-spacing:.2em">' + e((label || 'JUMLAH').toUpperCase()) + '</text>';
+  g += '<text x="70" y="70" text-anchor="middle" style="font-family:var(--fon-papan);font-size:26px;font-weight:800;fill:var(--navy)">' + e(tengah !== undefined ? tengah : jumlah) + '</text>' +
+    '<text x="70" y="88" text-anchor="middle" style="font-size:9.5px;fill:var(--kelabu);letter-spacing:.14em">' + e((label || 'JUMLAH').toUpperCase()) + '</text>';
   return '<div class="donut-wrap"><svg viewBox="0 0 140 140">' + g + '</svg><div class="legenda">' + segmen.map(function (s) {
     return '<span><i style="background:' + e(s.warna) + '"></i>' + e(s.label) + ' — <b>' + nomborFormat(s.nilai) + '</b>' + (jumlah ? ' (' + Math.round(s.nilai / jumlah * 100) + '%)' : '') + '</span>';
   }).join('') + '</div></div>';
 }
 function cincin(pct, warna) {
   var r = 22, c = 2 * Math.PI * r;
-  return '<div class="cincin"><svg viewBox="0 0 54 54"><circle cx="27" cy="27" r="' + r + '" fill="none" style="stroke:rgba(120,160,255,.14)" stroke-width="6"/><circle cx="27" cy="27" r="' + r + '" fill="none" stroke="' + (warna || '#1de9a4') + '" stroke-width="6" stroke-linecap="round" stroke-dasharray="' + (c * pct / 100) + ' ' + c + '"/></svg><b>' + Math.round(pct) + '%</b></div>';
+  return '<div class="cincin"><svg viewBox="0 0 54 54"><circle cx="27" cy="27" r="' + r + '" fill="none" style="stroke:#eef1f6" stroke-width="6"/><circle cx="27" cy="27" r="' + r + '" fill="none" stroke="' + (warna || '#138a52') + '" stroke-width="6" stroke-linecap="round" stroke-dasharray="' + (c * pct / 100) + ' ' + c + '"/></svg><b>' + Math.round(pct) + '%</b></div>';
 }
 function podiumHtml(tiga) {
   var susun = [tiga[1], tiga[0], tiga[2]], kls = ['t2', 't1', 't3'], no = [2, 1, 3];
@@ -302,7 +307,7 @@ function pasangKesanKursor() {
       sasaranCondong = c;
       if (c) {
         var b = c.getBoundingClientRect(), x = (ev.clientX - b.left) / b.width - .5, y = (ev.clientY - b.top) / b.height - .5;
-        c.style.transform = 'perspective(800px) rotateX(' + (-y * 7).toFixed(2) + 'deg) rotateY(' + (x * 9).toFixed(2) + 'deg) translateY(-3px)';
+        c.style.transform = 'perspective(900px) rotateX(' + (-y * 4).toFixed(2) + 'deg) rotateY(' + (x * 5).toFixed(2) + 'deg) translateY(-2px)';
       }
     });
   }, { passive: true });
@@ -313,7 +318,7 @@ function mainIntro() {
   if (KURANG_GERAK || $('introArena')) return;
   var d = document.createElement('div');
   d.id = 'introArena';
-  d.innerHTML = '<div class="garis-laju"></div><div class="teras"><img alt="" src="' + LOGO + '"><b>MEMASUKI ARENA</b><div class="bar"><i></i></div></div>';
+  d.innerHTML = '<div class="garis-laju"></div><div class="teras"><img alt="" src="' + LOGO + '"><b>RUMAH SUKAN SMK ASAJAYA</b><div class="bar"><i></i></div></div>';
   document.body.appendChild(d);
   setTimeout(function () { d.remove(); }, 1600);
 }
@@ -329,7 +334,7 @@ function mulaJam() {
 /* Ticker papan skor langsung. item = [{warna, html}] — kandungan diulang dua kali supaya gelungan lancar. */
 function tickerHtml(item, label) {
   if (!item.length) return '';
-  var isi = item.map(function (x) { return '<span>' + (x.warna ? '<i style="background:' + e(x.warna) + ';box-shadow:0 0 8px ' + e(x.warna) + '"></i>' : '') + x.html + '</span>'; }).join('');
+  var isi = item.map(function (x) { return '<span>' + (x.warna ? '<i style="background:' + e(x.warna) + ';"></i>' : '') + x.html + '</span>'; }).join('');
   return '<div class="ticker" aria-label="Papan skor langsung"><div class="tag">' + e(label || 'LANGSUNG') + '</div><div class="landasan"><div class="gerak" style="--tempoh:' + Math.max(18, item.length * 5) + 's">' + isi + isi + '</div></div></div>';
 }
 /* Item ticker standard daripada kedudukan rumah + maklumat kejohanan. */
@@ -339,12 +344,12 @@ function itemTicker(ked, info) {
     return { warna: x.warna, html: adaMata ? '<b>#' + (x.kedudukan || i + 1) + '</b> ' + e(x.nama) + ' <b>' + nomborFormat(x.jumlah) + '</b> mata'
       : 'RUMAH ' + e(x.nama) + (x.murid !== undefined ? ' <b>' + nomborFormat(x.murid) + '</b> ahli' : '') };
   });
-  if (info.selesai !== undefined) item.push({ warna: '#22e3ff', html: 'ACARA SELESAI <b>' + info.selesai + '/' + info.jumlah + '</b>' });
-  if (info.penyertaan) item.push({ warna: '#ff6a3d', html: 'PENYERTAAN <b>' + nomborFormat(info.penyertaan) + '</b>' });
+  if (info.selesai !== undefined) item.push({ warna: '#1f5fd6', html: 'ACARA SELESAI <b>' + info.selesai + '/' + info.jumlah + '</b>' });
+  if (info.penyertaan) item.push({ warna: '#d9532c', html: 'PENYERTAAN <b>' + nomborFormat(info.penyertaan) + '</b>' });
   var k = kiraDetik(info.tarikh);
-  if (k && !k.lepas) item.push({ warna: '#ffd23f', html: 'KEJOHANAN DALAM <b>' + k.hari + '</b> HARI <b>' + k.jam + '</b> JAM' });
-  else if (k && k.lepas && k.hari < 3) item.push({ warna: '#ffd23f', html: '<b>HARI KEJOHANAN</b> — SELAMAT BERTANDING!' });
-  if (info.rekod) item.push({ warna: '#ff3cc7', html: 'REKOD BAHARU <b>' + info.rekod + '</b>' });
+  if (k && !k.lepas) item.push({ warna: '#f5b301', html: 'KEJOHANAN DALAM <b>' + k.hari + '</b> HARI <b>' + k.jam + '</b> JAM' });
+  else if (k && k.lepas && k.hari < 3) item.push({ warna: '#f5b301', html: '<b>HARI KEJOHANAN</b> — SELAMAT BERTANDING!' });
+  if (info.rekod) item.push({ warna: '#6d3fd6', html: 'REKOD BAHARU <b>' + info.rekod + '</b>' });
   return item;
 }
 
@@ -367,7 +372,7 @@ function bebanAtas(hidup) {
 }
 
 /* ---------- Panggilan pelayan (dengan cache bacaan) ---------- */
-var API_TULIS = /^api(Simpan|Import|Padam|Reset|Tetapkan|Agih|Kunci|Tukar|Login|Jana|Salin|Mara|Sahkan|SetSemula)/;
+var API_TULIS = /^api(Simpan|Import|Padam|Reset|Tetapkan|Agih|Kunci|Tukar|Login|Jana|Salin|Mara|Sahkan|SetSemula|Jalankan|Batal|Pulihkan|MulaTahun)/;
 var CACHE_API = {}, TTL_CACHE_MS = 60000;
 function kosongkanCacheApi() { CACHE_API = {}; }
 function api(fn, param, pilihan) {
@@ -471,7 +476,7 @@ function pasangLogMasuk() {
       $('lgKW').value = '';
       if (r.mestiTukarPassword) paparSkrin('skrinTukar'); else { mainIntro(); mulaAplikasi(); }
     }).catch(function (er) { $('ralatLogin').textContent = er.message; }).then(function () {
-      $('btnLogin').disabled = false; $('btnLogin').innerHTML = ik('logout') + ' Log Masuk';
+      $('btnLogin').disabled = false; $('btnLogin').innerHTML = ik('login', 'kecil') + ' Log masuk';
     });
   });
   $('borangTukar').addEventListener('submit', function (ev) {
@@ -550,7 +555,8 @@ function senaraiMenu() {
     { id: 'kj-keputusan', label: 'Saringan & Keputusan', ikon: 'timer' },
     { id: 'kj-mata', label: 'Papan Mata & Pingat', ikon: 'medal' },
     { id: 'kj-rekod', label: 'Rekod Kejohanan', ikon: 'star' },
-    { id: 'kj-laporan', label: 'Laporan & Cetak', ikon: 'printer' }
+    { id: 'kj-laporan', label: 'Laporan & Cetak', ikon: 'printer' },
+    { id: 'arkib', label: 'Arkib', ikon: 'archive' }
   ];
   if (S.user.admin) m = m.concat([
     { kumpulan: 'Pentadbiran' },
@@ -559,16 +565,38 @@ function senaraiMenu() {
     { id: 'staf', label: 'Guru & Staf AKP', ikon: 'user' },
     { id: 'murid', label: 'Murid & Atlet', ikon: 'users' },
     { id: 'agihan', label: 'Agihan Murid', ikon: 'shuffle' },
+    { id: 'naik', label: 'Naik Tingkatan', ikon: 'naik' },
     { id: 'audit', label: 'Log Audit', ikon: 'file' }
   ]);
   return m;
 }
+/* Menu tab mendatar (gaya SMART): kumpulan "Utama"/"Portal Murid" sebagai tab terus,
+   kumpulan lain sebagai tab dengan senarai jatuh. Pada telefon, CSS menukarnya menjadi laci. */
+var IKON_KUMPULAN = { 'Kejohanan Olahraga': 'trophy', 'Pentadbiran': 'shield' };
 function binaMenu() {
-  $('menuNav').innerHTML = senaraiMenu().map(function (m) {
-    return m.kumpulan ? '<div class="label-nav">' + e(m.kumpulan) + '</div>' : '<button class="item-nav" data-h="' + m.id + '">' + ik(m.ikon) + '<span>' + e(m.label) + '</span></button>';
+  var kumpulan = [], semasa = null;
+  senaraiMenu().forEach(function (m) {
+    if (m.kumpulan) { semasa = { nama: m.kumpulan, item: [] }; kumpulan.push(semasa); } else if (semasa) semasa.item.push(m);
+  });
+  var butang = function (m) { return '<button class="item-nav" data-h="' + m.id + '">' + ik(m.ikon) + '<span>' + e(m.label) + '</span></button>'; };
+  $('menuNav').innerHTML = kumpulan.map(function (k, i) {
+    if (i === 0) return k.item.map(butang).join('');   // kumpulan pertama: tab terus
+    return '<div class="kumpulan-menu" data-kumpulan="' + e(k.nama) + '"><button class="btn-kumpulan" type="button" aria-haspopup="true" aria-expanded="false">' + ik(IKON_KUMPULAN[k.nama] || 'list') + '<span>' + e(k.nama) + '</span>' + ik('bawah', 'anak-panah') + '</button>' +
+      '<div class="panel" role="menu">' + k.item.map(butang).join('') + '</div></div>';
   }).join('');
-  semua('#menuNav .item-nav').forEach(function (b) { b.onclick = function () { pergi(b.getAttribute('data-h')); }; });
+  semua('#menuNav .item-nav').forEach(function (b) { b.onclick = function () { tutupKumpulan(); pergi(b.getAttribute('data-h')); }; });
+  semua('#menuNav .kumpulan-menu > .btn-kumpulan').forEach(function (b) {
+    b.onclick = function (ev) {
+      ev.stopPropagation();
+      var k = b.parentNode, buka = !k.classList.contains('buka');
+      tutupKumpulan();
+      k.classList.toggle('buka', buka); b.setAttribute('aria-expanded', buka ? 'true' : 'false');
+    };
+  });
 }
+function tutupKumpulan() { semua('#menuNav .kumpulan-menu.buka').forEach(function (k) { k.classList.remove('buka'); k.firstChild.setAttribute('aria-expanded', 'false'); }); }
+document.addEventListener('click', function (ev) { if (!ev.target.closest || !ev.target.closest('.kumpulan-menu')) tutupKumpulan(); });
+document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') tutupKumpulan(); });
 function adaPerubahan() { return Object.keys(S.ubah).some(function (k) { return S.ubah[k] && Object.keys(S.ubah[k]).length; }); }
 function pergi(h, arg) {
   if (adaPerubahan() && h !== S.halaman) {
@@ -580,6 +608,7 @@ function pergi(h, arg) {
   var item = senaraiMenu().filter(function (m) { return m.id === h; })[0];
   $('tajukHalaman').textContent = item ? item.label : '';
   semua('#menuNav .item-nav').forEach(function (b) { b.classList.toggle('aktif', b.getAttribute('data-h') === h); });
+  semua('#menuNav .kumpulan-menu').forEach(function (k) { var b = k.querySelector('.btn-kumpulan'); if (b) b.classList.toggle('aktif', !!k.querySelector('.item-nav[data-h="' + h + '"]')); });
   kandungan(rangkaHalaman());
   window.scrollTo(0, 0);
   var f = HALAMAN[h];
@@ -589,11 +618,12 @@ function pergi(h, arg) {
 function mulaAplikasi() {
   paparSkrin('aplikasi');
   var u = S.user;
-  $('labelPortal').textContent = u.jenis === 'MURID' ? 'Portal Murid' : 'Portal Guru & Staf';
+  $('labelPortal').textContent = u.jenis === 'MURID' ? ' · Portal Murid' : ' · Portal Guru & Staf';
   var warna = u.jenis === 'MURID' && S.mula && S.mula.portal && S.mula.portal.rumah ? S.mula.portal.rumah.warna
     : (S.mula && S.mula.dashboard && S.mula.dashboard.saya.rumah ? S.mula.dashboard.saya.rumah.warna : '#1d4ed8');
-  $('cipPengguna').innerHTML = '<span class="avatar" style="background:' + e(warna) + ';color:' + warnaTeks(warna) + '">' + e(inisial(u.nama)) + '</span><span class="teks" title="' + e(u.nama) + '"><div class="nm">' + e(u.nama) + '</div><div class="pr">' +
-    (u.jenis === 'MURID' ? 'Murid' : (u.admin ? 'Admin' : (u.peranan === 'AKP' ? 'Staf AKP' : 'Guru'))) + '</div></span>';
+  var peranan = u.jenis === 'MURID' ? 'Murid' : (u.admin ? 'Admin' : (u.peranan === 'AKP' ? 'Staf AKP' : 'Guru'));
+  $('cipPengguna').innerHTML = '<span class="avatar" title="' + e(u.nama + ' · ' + peranan) + '" style="background:' + e(warna) + ';color:' + warnaTeks(warna) + '">' + e(inisial(u.nama)) + '</span>';
+  $('cipNama').textContent = u.nama + ' · ' + peranan;
   binaMenu();
   mulaJam();
   pergi(u.jenis === 'MURID' ? 'portalmurid' : 'dashboard');

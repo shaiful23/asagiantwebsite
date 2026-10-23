@@ -15,6 +15,8 @@ const SHEET_AUDIT = 'LOG_AUDIT';
 const SHEET_ACARA = 'ACARA';               // acara kejohanan olahraga (setiap tahun)
 const SHEET_PESERTA = 'PESERTA';           // penyertaan, saringan/lorong & keputusan
 const SHEET_MATA_LAIN = 'MATA_LAIN';       // mata bukan acara (perbarisan, sorakan, khemah, ...)
+const SHEET_ARKIB_MURID = 'ARKIB_MURID';   // murid lepasan / diarkibkan (dipindah keluar daripada MURID)
+const SHEET_SEJARAH_NAIK = 'SEJARAH_NAIK'; // rekod setiap proses naik tingkatan (untuk batal / audit)
 
 /* ------------------------- HEADER SHEET ------------------------- */
 // Lajur pertama setiap Sheet ialah KUNCI baris (disemak sebelum menulis).
@@ -34,11 +36,15 @@ const HEADER_ACARA = ['AcaraId', 'Tahun', 'NoAcara', 'Nama', 'Jenis', 'Kategori'
 const HEADER_PESERTA = ['Id', 'Tahun', 'AcaraId', 'RumahId', 'NoKP', 'Ahli', 'Pusingan', 'Saringan', 'Lorong',
   'Keputusan', 'Nilai', 'Kedudukan', 'Mata', 'Status', 'RekodBaharu', 'Dikemaskini', 'KedudukanManual'];
 const HEADER_MATA_LAIN = ['Id', 'Tahun', 'RumahId', 'Perkara', 'Mata', 'Catatan', 'Dikemaskini'];
+const HEADER_ARKIB_MURID = HEADER_MURID.concat(['TahunTamat', 'TarikhArkib', 'IdNaik', 'Sebab']);
+const HEADER_SEJARAH_NAIK = ['Id', 'IdNaik', 'Tahun', 'NoKP', 'Nama', 'TingkatanLama', 'TingkatanBaru', 'Tindakan', 'Masa', 'Oleh', 'Status'];
 
 /* Lajur yang mesti disimpan sebagai TEKS (No. KP bermula 0, hash kata laluan, no. telefon). */
 const LAJUR_TEKS = {
   STAF: ['NoKP', 'Password', 'Telefon'],
   MURID: ['NoKP', 'Password', 'Tingkatan', 'Kelas', 'TarikhLahir', 'NoTelPenjaga', 'NoBib'],
+  ARKIB_MURID: ['NoKP', 'Password', 'Tingkatan', 'Kelas', 'TarikhLahir', 'NoTelPenjaga', 'NoBib', 'TahunTamat'],
+  SEJARAH_NAIK: ['NoKP', 'TingkatanLama', 'TingkatanBaru', 'Tahun'],
   ACARA: ['NoAcara', 'Tarikh', 'Masa', 'RekodNilai', 'RekodAsalNilai'],
   PESERTA: ['NoKP', 'Ahli', 'Keputusan'],
   AJK_AHLI: ['NoKP'],
@@ -112,7 +118,7 @@ const TEMPOH_KUNCI_LOGIN_SAAT = 10 * 60;    // 10 minit
 const PREFIKS_CACHE = 'rs_';
 
 /* ------------------------- KEJOHANAN OLAHRAGA ------------------------- */
-const VERSI_SKEMA = 4;   // naikkan apabila Sheet/lajur baharu ditambah (Migrasi.gs menyelaras secara automatik)
+const VERSI_SKEMA = 5;   // naikkan apabila Sheet/lajur baharu ditambah (Migrasi.gs menyelaras secara automatik)
 
 const TET_TARIKH_KEJOHANAN = 'TARIKH_KEJOHANAN';
 const TET_LOKASI = 'LOKASI_KEJOHANAN';

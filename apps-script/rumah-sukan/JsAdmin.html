@@ -290,7 +290,7 @@ function lukisStaf() {
     var v = nilaiStaf(x), ub = !!S.ubah.staf[x.nokp];
     return '<tr' + (ub ? ' class="berubah"' : '') + '><td><b>' + e(x.nama) + '</b>' + (x.admin ? ' <span class="lencana merah">ADMIN</span>' : '') + '<div class="nota" style="margin:0">' + e(kpPapar(x.nokp)) + (x.jawatan ? ' · ' + e(x.jawatan) : '') + '</div></td>' +
       '<td>' + e(x.kategori) + '</td>' +
-      '<td><select data-sr="' + x.nokp + '" style="border-left:6px solid ' + e((rumahIkutId(v.rumahId) || {}).warna || '#5d6b98') + '">' + pilihanRumah(v.rumahId, '— tiada —') + '</select></td>' +
+      '<td><select data-sr="' + x.nokp + '" style="border-left:6px solid ' + e((rumahIkutId(v.rumahId) || {}).warna || '#e2e8f0') + '">' + pilihanRumah(v.rumahId, '— tiada —') + '</select></td>' +
       '<td><select data-sp="' + x.nokp + '"' + (v.rumahId ? '' : ' disabled') + '>' + pilihan(opsPeranan, v.perananRumah || 'GURU_RUMAH') + '</select></td>' +
       '<td>' + x.ajk.map(function (a) { return '<span class="lencana ' + (a.peranan === 'KETUA_AJK' ? 'kuning' : 'biru') + '">' + e(a.ajk) + (a.peranan === 'KETUA_AJK' ? ' (K)' : '') + '</span>'; }).join(' ') + '</td>' +
       '<td>' + (x.status === 'AKTIF' ? '<span class="lencana hijau">AKTIF</span>' : '<span class="lencana">' + e(x.status) + '</span>') + (x.mestiTukar ? '<div class="nota" style="margin:2px 0 0">KW lalai</div>' : '') + '</td>' +
