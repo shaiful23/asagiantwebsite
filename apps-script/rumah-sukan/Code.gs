@@ -22,36 +22,15 @@ function onOpen() {
    biasanya dimuatkan SEBELUM Config.gs — const global yang merujuk Config.gs akan gagal semasa dimuatkan
    (ReferenceError) lalu menghalang onOpen() daripada membina menu. */
 function semuaSheetData() {
-  return [SHEET_STAF, SHEET_MURID, SHEET_RUMAH, SHEET_AJK, SHEET_AJK_AHLI, SHEET_TETAPAN];
+  return [SHEET_STAF, SHEET_MURID, SHEET_RUMAH, SHEET_AJK, SHEET_AJK_AHLI, SHEET_TETAPAN, SHEET_ACARA, SHEET_PESERTA, SHEET_MATA_LAIN];
 }
 
-/* Cipta semua Sheet + header + data lalai jika belum wujud.
-   Selamat dijalankan berulang kali — tidak akan menimpa Sheet sedia ada. */
+/* Cipta / selaraskan semua Sheet (lihat Migrasi.gs). Selamat dijalankan berulang kali —
+   tidak menimpa data sedia ada. (Web App juga menjalankan penyelarasan ini secara automatik.) */
 function sediakanSistemRumahSukan() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const baharu = [];
-  const pastikan = (nama, header, isi) => {
-    const wujud = !!ss.getSheetByName(nama);
-    const sh = ciptaSheetJikaTiada(ss, nama, header, LAJUR_TEKS[nama]);
-    if (!wujud) {
-      baharu.push(nama);
-      if (isi && isi.length) sh.getRange(2, 1, isi.length, header.length).setValues(isi);
-    }
-    return sh;
-  };
-
-  pastikan(SHEET_STAF, HEADER_STAF);
-  pastikan(SHEET_MURID, HEADER_MURID);
-  pastikan(SHEET_RUMAH, HEADER_RUMAH, RUMAH_LALAI);
-  pastikan(SHEET_AJK, HEADER_AJK, [
-    ['AJK-TEKNIK', 'AJK TEKNIK', 'Pengurusan padang, peralatan & balapan', 1],
-    ['AJK-HADIAH', 'AJK HADIAH & PIALA', 'Penyediaan hadiah, pingat & piala', 2],
-    ['AJK-PENGADIL', 'AJK PENGADIL & HAKIM', 'Pengadilan acara padang & balapan', 3],
-    ['AJK-REKOD', 'AJK REKOD & KEPUTUSAN', 'Rekod & pengumuman keputusan', 4]
-  ]);
-  pastikan(SHEET_AJK_AHLI, HEADER_AJK_AHLI);
-  pastikan(SHEET_TETAPAN, HEADER_TETAPAN, tetapanLalai());
-  pastikan(SHEET_AUDIT, HEADER_AUDIT);
+  const ubah = selaraskanSkema();
+  PropertiesService.getScriptProperties().setProperty('VERSI_SKEMA', String(VERSI_SKEMA));
 
   const lalai = ss.getSheetByName('Sheet1') || ss.getSheetByName('Sheet 1');
   if (lalai && ss.getSheets().length > 1 && lalai.getLastRow() === 0) ss.deleteSheet(lalai);
@@ -59,12 +38,12 @@ function sediakanSistemRumahSukan() {
 
   const ui = SpreadsheetApp.getUi();
   ui.alert('Sistem sedia',
-    (baharu.length ? 'Sheet baharu dicipta: ' + baharu.join(', ') + '.\n\n' : 'Semua Sheet sudah wujud.\n\n') +
+    (ubah.length ? 'Dicipta / dikemas kini: ' + ubah.join('; ') + '.\n\n' : 'Semua Sheet sudah lengkap.\n\n') +
     'Langkah seterusnya:\n' +
     '1. Tambah Admin pertama (kotak dialog akan muncul jika belum ada Admin).\n' +
     '2. Deploy sebagai Web App (Execute as: Me, Who has access: Anyone).\n' +
     '3. Log masuk Portal Guru guna No. KP; kata laluan lalai = 6 digit terakhir No. KP (akan dipaksa tukar).\n' +
-    '4. Tetapkan rumah sukan, import guru/staf & murid, tanda atlet, kemudian jalankan Agihan.',
+    '4. Semua kerja seterusnya (rumah sukan, guru, murid, agihan, kejohanan) dibuat terus di Web App.',
     ui.ButtonSet.OK);
 
   const adaAdmin = bacaSheetSebagaiObjek(SHEET_STAF).some(u => ya(u.Admin) && aktif(u));

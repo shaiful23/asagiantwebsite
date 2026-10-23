@@ -1,0 +1,624 @@
+<script>
+/* =========================================================================
+ * JsKejohanan — Modul Kejohanan Olahraga Tahunan (mula hingga akhir).
+ * Data modul dimuat dalam SATU panggilan (apiKejohanan) dan dikongsi semua
+ * halaman modul; butiran acara/pendaftaran dimuat apabila perlu sahaja.
+ * ========================================================================= */
+var STATUS_KJ = { DIRANCANG: ['Dirancang', ''], SEDIA: ['Senarai mula sedia', 'biru'], SARINGAN: ['Saringan selesai', 'ungu'], SELESAI: ['Selesai', 'hijau'] };
+var JENIS_KJ = { BALAPAN: 'Balapan', PADANG: 'Padang', BERGANTI: 'Berganti-ganti' };
+var UNIT_KJ = { MASA: 'Masa', JARAK: 'Jarak (m)', TINGGI: 'Tinggi (m)' };
+
+function muatKj(segar) { return api('apiKejohanan', {}, { segar: !!segar }).then(function (r) { S.kj = r; return r; }); }
+function kjAcara(id) { return (S.kj.acara || []).filter(function (a) { return a.id === id; })[0]; }
+function labelAcara(a) { return a.nama + ' · ' + (a.kategori || 'Terbuka') + ' ' + namaJantina(a.jantina); }
+function lencanaStatus(s) { var x = STATUS_KJ[s] || [s, '']; return '<span class="lencana ' + x[1] + '">' + e(x[0]) + '</span>'; }
+function ikonJenis(j) { return j === 'PADANG' ? 'ruler' : j === 'BERGANTI' ? 'users' : 'run'; }
+function warnaJenis(j) { return j === 'PADANG' ? '#1f9254' : j === 'BERGANTI' ? '#6d28d9' : '#c8462b'; }
+function rumahKj(id) { return (S.kj.rumah || []).filter(function (r) { return r.id === id; })[0] || null; }
+function lencanaRumahKj(id) { return lencanaRumah(rumahKj(id)); }
+function pilihanKategoriKj(dipilih, kosong) { return pilihan((S.kj.kategori || []).map(function (k) { return { v: k.kod, l: k.kod + ' — ' + k.nama }; }), dipilih, kosong); }
+function selepasTulisKj(mesej, halaman, arg) { toast(mesej, 'jaya'); muatKj(true).then(function () { pergi(halaman || S.halaman, arg); }).catch(gagal); }
+
+/* Kawasan cetak (laporan dicetak tanpa membuka tetingkap baharu) */
+function cetak(tajuk, html) {
+  var k = $('kawasanCetak');
+  if (!k) { k = document.createElement('div'); k.id = 'kawasanCetak'; document.body.appendChild(k); }
+  k.innerHTML = '<div class="kepala-cetak"><img src="' + LOGO + '" alt=""><div><b>SMK ASAJAYA</b><div>' + e(S.kj ? S.kj.tet.nama + ' ' + S.kj.tet.tahun : '') + '</div><h1>' + e(tajuk) + '</h1></div></div>' + html +
+    '<div class="kaki-cetak">Dicetak pada ' + e(new Date().toLocaleString('ms-MY')) + ' · Sistem Rumah Sukan SMK Asajaya</div>';
+  document.body.classList.add('mod-cetak');
+  setTimeout(function () { window.print(); setTimeout(function () { document.body.classList.remove('mod-cetak'); }, 300); }, 120);
+}
+
+/* ================================ PUSAT KEJOHANAN ================================ */
+HALAMAN['kj-pusat'] = function () {
+  muatKj().then(function (r) {
+    var t = r.tet, kb = r.kebenaran;
+    var selesai = r.acara.filter(function (a) { return a.status === 'SELESAI'; }).length;
+    var penyertaan = r.acara.reduce(function (n, a) { return n + a.bilPeserta; }, 0);
+    var rekodBaru = r.acara.filter(function (a) { return a.rekodTertunda || a.podium.some(function (p) { return p.rekodBaharu; }); }).length;
+    var h = '<div class="hero"><div class="baris-hero"><div><div class="salam">Pusat Kejohanan · ' + e(t.tahun) + '</div><h1>' + e(t.nama) + '</h1>' +
+      '<span class="cip">' + ik('calendar', 'kecil') + e(t.tarikh ? tarikhPapar(t.tarikh) : 'Tarikh belum ditetapkan') + '</span>' + (t.lokasi ? '<span class="cip">' + ik('pin', 'kecil') + e(t.lokasi) + '</span>' : '') +
+      '<span class="cip">' + ik(t.pendaftaran === 'BUKA' ? 'check' : 'lock', 'kecil') + 'Pendaftaran ' + (t.pendaftaran === 'BUKA' ? 'dibuka' : 'ditutup') + '</span>' +
+      '<span class="cip">' + ik('megaphone', 'kecil') + (t.terbit ? 'Keputusan diterbitkan' : 'Belum diterbitkan') + '</span></div>' + kiraanHtml(t.tarikh) + '</div></div>';
+    // stepper fasa
+    var jalan = r.fasa.findIndex(function (f) { return f.peratus < 100; });
+    h += '<div class="kad blok"><div class="kepala-kad"><h3>' + ik('flag') + 'Perjalanan Kejohanan</h3><span class="nota">Dari persediaan hingga keputusan rasmi</span></div><div class="langkah">' + r.fasa.map(function (f, i) {
+      var kls = f.peratus >= 100 ? 'siap' : i === jalan ? 'jalan' : '';
+      return '<div class="l ' + kls + '"><div class="bulat">' + ik(f.peratus >= 100 ? 'check' : f.ikon, 'besar') + '</div><div><div class="nm">' + (i + 1) + '. ' + e(f.nama) + '</div><div class="pc">' + f.peratus + '%</div><div class="bt">' + e(f.butiran) + '</div></div></div>';
+    }).join('') + '</div></div>';
+    h += '<div class="grid auto blok">' + kpi('Acara', r.acara.length, 'calendar', 'biru', JENIS_KJ.BALAPAN + ' ' + r.acara.filter(function (a) { return a.jenis === 'BALAPAN'; }).length + ' · Padang ' + r.acara.filter(function (a) { return a.jenis === 'PADANG'; }).length + ' · Berganti ' + r.acara.filter(function (a) { return a.jenis === 'BERGANTI'; }).length) +
+      kpi('Penyertaan', nomborFormat(penyertaan), 'run', 'trek', 'atlet / pasukan berdaftar') +
+      kpi('Acara Selesai', selesai + '/' + r.acara.length, 'timer', 'hijau', r.acara.length ? Math.round(selesai / r.acara.length * 100) + '% siap' : '') +
+      kpi('Pecah Rekod', rekodBaru, 'star', 'kuning', rekodBaru ? 'acara dengan rekod baharu' : 'belum ada') + '</div>';
+    // papan mata + keputusan terkini
+    var ked = r.kedudukan, adaMata = ked.some(function (x) { return x.jumlah > 0; });
+    h += '<div class="grid k-1-1 blok"><div class="kad"><div class="kepala-kad"><h3>' + ik('trophy') + 'Papan Mata Langsung</h3><button class="btn luar kecil" onclick="pergi(\'kj-mata\')">Butiran ' + ik('kanan', 'kecil') + '</button></div>' +
+      (adaMata ? podiumHtml(ked.slice(0, 3).map(function (x) { return { nama: x.nama, nilai: x.jumlah, warna: x.warna }; })) + '<div style="margin-top:14px">' +
+        cartaHbar(ked.map(function (x) { return { label: x.nama, nilai: x.jumlah, warna: x.warna, prefix: pingat(x.kedudukan) + ' ' }; })) + '</div>' : kosongHtml('Belum ada mata.', 'trophy')) + '</div>';
+    h += '<div class="kad"><div class="kepala-kad"><h3>' + ik('bolt') + 'Keputusan Terkini</h3><button class="btn luar kecil" onclick="pergi(\'kj-keputusan\')">Semua ' + ik('kanan', 'kecil') + '</button></div>' +
+      (r.terkini.length ? '<div style="display:grid;gap:10px">' + r.terkini.map(function (id) {
+        var a = kjAcara(id);
+        return '<div class="kad-acara" style="cursor:pointer" onclick="pergi(\'kj-keputusan\',\'' + e(a.id) + '\')"><span class="jalur" style="background:' + warnaJenis(a.jenis) + '"></span><div class="nm">' + e(labelAcara(a)) + '</div><div class="mt">' +
+          a.podium.map(function (p) { return '<span>' + pingat(p.kedudukan) + ' ' + e(p.nama || (rumahKj(p.rumahId) || {}).nama || '') + ' <b class="papan" style="font-size:15px">' + e(p.keputusan) + '</b>' + (p.rekodBaharu ? ' ' + ik('star', 'kecil') : '') + '</span>'; }).join('') + '</div></div>';
+      }).join('') + '</div>' : kosongHtml('Belum ada acara selesai.', 'timer')) + '</div></div>';
+    // status acara
+    var bil = { DIRANCANG: 0, SEDIA: 0, SARINGAN: 0, SELESAI: 0 };
+    r.acara.forEach(function (a) { bil[a.status] = (bil[a.status] || 0) + 1; });
+    h += '<div class="grid k-1-1 blok"><div class="kad"><h3>' + ik('target') + 'Status Acara</h3>' + cartaDonut([
+      { label: 'Dirancang', nilai: bil.DIRANCANG, warna: '#cbd5e1' }, { label: 'Senarai mula sedia', nilai: bil.SEDIA, warna: '#1d4ed8' },
+      { label: 'Saringan selesai', nilai: bil.SARINGAN, warna: '#6d28d9' }, { label: 'Selesai', nilai: bil.SELESAI, warna: '#1f9254' }], r.acara.length, 'acara') + '</div>';
+    h += '<div class="kad"><h3>' + ik('bolt') + 'Tindakan Pantas</h3><div class="grid k2" style="gap:10px">' +
+      (kb.admin ? '<button class="btn luar" onclick="pergi(\'kj-tetapan\')">' + ik('sliders') + 'Tetapan kejohanan</button><button class="btn luar" onclick="pergi(\'kj-acara\')">' + ik('calendar') + 'Urus acara</button>' : '') +
+      (kb.rumahUrus.length ? '<button class="btn" onclick="pergi(\'kj-daftar\')">' + ik('run') + 'Daftar atlet</button>' : '') +
+      (kb.keputusan ? '<button class="btn hijau" onclick="pergi(\'kj-keputusan\')">' + ik('timer') + 'Masukkan keputusan</button>' : '') +
+      '<button class="btn luar" onclick="pergi(\'kj-laporan\')">' + ik('printer') + 'Laporan & cetak</button><button class="btn luar" onclick="pergi(\'kj-rekod\')">' + ik('star') + 'Rekod kejohanan</button></div>' +
+      '<div class="nota" style="margin-top:12px">Akses anda: ' + (kb.admin ? 'Admin (penuh)' : [kb.keputusan ? 'keputusan & jadual' : '', kb.rumahUrus.length ? 'pendaftaran atlet rumah' : ''].filter(Boolean).join(', ') || 'lihat sahaja') + '</div></div></div>';
+    kandungan(h);
+  }).catch(ralatHalaman);
+};
+
+/* ================================ ACARA & JADUAL ================================ */
+HALAMAN['kj-acara'] = function () {
+  muatKj().then(function (r) {
+    S.ubah.jadual = {};
+    var kb = r.kebenaran;
+    var aksi = (kb.admin ? '<button class="btn luar" id="kaSalin">' + ik('copy') + '<span class="teks-panjang">Salin tahun lepas</span></button><button class="btn luar" id="kaStandard">' + ik('layers') + 'Jana acara standard</button><button class="btn" id="kaTambah">' + ik('plus') + 'Tambah acara</button>' : '') +
+      '<button class="btn luar" id="kaCetak">' + ik('printer') + '<span class="teks-panjang">Cetak jadual</span></button>';
+    var h = kepalaHalaman('Acara & Jadual', 'Senarai acara ' + e(r.tet.tahun) + ', tarikh/masa dan status.' + (kb.keputusan ? ' Ubah no. acara, tarikh & masa terus dalam jadual dan tekan Simpan Jadual.' : ''), 'calendar', aksi);
+    if (!r.acara.length) {
+      h += '<div class="kad">' + kosongHtml('Belum ada acara. ' + (kb.admin ? 'Gunakan "Jana acara standard" untuk mencipta acara lazim secara automatik.' : ''), 'calendar') + '</div>';
+      kandungan(h); pasangAksiAcara(); return;
+    }
+    h += '<div class="baris-alat"><div class="cari">' + ik('search', 'kecil') + '<input id="kaCari" placeholder="Cari acara…"></div>' +
+      '<select id="kaKat">' + pilihanKategoriKj('', 'Semua kategori') + '</select><select id="kaJan">' + pilihan([{ v: 'L', l: 'Lelaki' }, { v: 'P', l: 'Perempuan' }, { v: 'C', l: 'Campuran' }], '', 'Semua jantina') + '</select>' +
+      '<select id="kaJenis">' + pilihan(Object.keys(JENIS_KJ).map(function (k) { return { v: k, l: JENIS_KJ[k] }; }), '', 'Semua jenis') + '</select>' +
+      '<select id="kaStatus">' + pilihan(Object.keys(STATUS_KJ).map(function (k) { return { v: k, l: STATUS_KJ[k][0] }; }), '', 'Semua status') + '</select></div>' +
+      '<div class="kad rapat"><div class="jadual-skrol"><table><thead><tr><th>No.</th><th>Acara</th><th>Kategori</th><th>Jenis</th><th>Tarikh</th><th>Masa</th><th class="c">Peserta</th><th>Status</th><th></th></tr></thead><tbody id="kaJadual"></tbody></table></div></div>' +
+      (kb.keputusan ? '<div class="aksi-modal kad" style="position:sticky;bottom:10px;padding:10px 14px;z-index:5"><span class="nota" id="kaBilUbah" style="margin-right:auto"></span><button class="btn luar" id="kaBatal">Batal</button><button class="btn hijau" id="kaSimpan" disabled>' + ik('check') + 'Simpan Jadual</button></div>' : '');
+    kandungan(h);
+    ['kaCari', 'kaKat', 'kaJan', 'kaJenis', 'kaStatus'].forEach(function (id) { $(id).oninput = lukisAcara; });
+    pasangAksiAcara();
+    if (kb.keputusan) {
+      $('kaBatal').onclick = function () { S.ubah.jadual = {}; lukisAcara(); };
+      $('kaSimpan').onclick = function () {
+        var j = Object.keys(S.ubah.jadual).map(function (k) { return S.ubah.jadual[k]; });
+        api('apiSimpanJadual', { jadual: j }).then(function (x) { S.ubah.jadual = {}; selepasTulisKj(x.bil + ' acara dikemas kini.'); }).catch(gagal);
+      };
+    }
+    lukisAcara();
+  }).catch(ralatHalaman);
+};
+function pasangAksiAcara() {
+  if ($('kaTambah')) $('kaTambah').onclick = function () { borangAcara(null); };
+  if ($('kaStandard')) $('kaStandard').onclick = borangJanaStandard;
+  if ($('kaSalin')) $('kaSalin').onclick = function () {
+    sahkan('Salin semua acara (termasuk rekod kejohanan) daripada tahun terakhir yang ada ke tahun ' + S.kj.tet.tahun + '? Acara yang sudah wujud tidak diduplikasi.', function () {
+      api('apiSalinAcaraTahunLepas').then(function (x) { selepasTulisKj(x.bil + ' acara disalin daripada ' + x.tahun + '.'); }).catch(gagal);
+    }, 'Salin', 'biasa');
+  };
+  if ($('kaCetak')) $('kaCetak').onclick = cetakJadual;
+}
+function nilaiJadual(a) { var u = S.ubah.jadual[a.id]; return u || { id: a.id, no: a.no, tarikh: a.tarikh, masa: a.masa }; }
+function lukisAcara() {
+  var kb = S.kj.kebenaran, cari = nilaiEl('kaCari').toUpperCase(), kat = nilaiEl('kaKat'), jan = nilaiEl('kaJan'), jen = nilaiEl('kaJenis'), st = nilaiEl('kaStatus');
+  var s = S.kj.acara.filter(function (a) {
+    return (!cari || labelAcara(a).toUpperCase().indexOf(cari) !== -1 || a.no === cari) && (!kat || a.kategori === kat) && (!jan || a.jantina === jan) && (!jen || a.jenis === jen) && (!st || a.status === st);
+  });
+  $('kaJadual').innerHTML = s.length ? s.map(function (a) {
+    var j = nilaiJadual(a), ub = !!S.ubah.jadual[a.id];
+    var sel = kb.keputusan
+      ? '<td><input data-j="no" data-id="' + e(a.id) + '" value="' + e(j.no) + '" style="width:62px"></td>'
+      : '<td><b>' + e(a.no) + '</b></td>';
+    return '<tr' + (ub ? ' class="berubah"' : '') + '>' + sel + '<td><div style="display:flex;gap:9px;align-items:center"><span class="cip-ikon" style="width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:' + warnaJenis(a.jenis) + '1f;color:' + warnaJenis(a.jenis) + '">' + ik(ikonJenis(a.jenis), 'kecil') + '</span><div><b style="white-space:nowrap">' + e(a.nama) + '</b>' +
+      (a.rekod.nilai ? '<div class="nota" style="margin:0">' + ik('star', 'kecil') + ' Rekod ' + e(a.rekod.nilai) + '</div>' : '') + '</div></div></td>' +
+      '<td style="white-space:nowrap">' + e(a.kategori || 'Terbuka') + ' · ' + e(namaJantina(a.jantina)) + '</td><td style="white-space:nowrap">' + e(JENIS_KJ[a.jenis] || a.jenis) + '</td>' +
+      (kb.keputusan ? '<td><input type="date" data-j="tarikh" data-id="' + e(a.id) + '" value="' + e(j.tarikh) + '" style="width:150px"></td><td><input type="time" data-j="masa" data-id="' + e(a.id) + '" value="' + e(j.masa) + '" style="width:112px"></td>'
+        : '<td>' + e(a.tarikh ? tarikhPapar(a.tarikh) : '-') + '</td><td>' + e(a.masa || '-') + '</td>') +
+      '<td class="c"><b>' + a.bilPeserta + '</b></td><td>' + lencanaStatus(a.status) + (a.rekodTertunda ? ' <span class="lencana kuning">' + ik('star', 'kecil') + 'Rekod!</span>' : '') + '</td>' +
+      '<td style="white-space:nowrap"><button class="btn luar kecil" data-buka="' + e(a.id) + '">' + ik('timer', 'kecil') + 'Buka</button>' +
+      (kb.admin ? ' <button class="btn hantu kecil" data-sunting="' + e(a.id) + '" title="Sunting">' + ik('edit', 'kecil') + '</button><button class="btn hantu kecil" data-padam="' + e(a.id) + '" title="Padam" style="color:var(--merah)">' + ik('trash', 'kecil') + '</button>' : '') + '</td></tr>';
+  }).join('') : '<tr><td colspan="9">' + kosongHtml('Tiada acara sepadan.', 'search') + '</td></tr>';
+  if (kb.keputusan) {
+    var n = Object.keys(S.ubah.jadual).length;
+    $('kaBilUbah').textContent = s.length + ' acara dipaparkan' + (n ? ' · ' + n + ' perubahan belum disimpan' : '');
+    $('kaSimpan').disabled = !n;
+    semua('[data-j]').forEach(function (el) {
+      el.onchange = function () {
+        var id = el.getAttribute('data-id'), a = kjAcara(id), j = Object.assign({}, nilaiJadual(a));
+        j[el.getAttribute('data-j')] = el.value;
+        if (j.no === a.no && j.tarikh === a.tarikh && j.masa === a.masa) delete S.ubah.jadual[id]; else S.ubah.jadual[id] = j;
+        lukisAcara();
+      };
+    });
+  }
+  semua('[data-buka]').forEach(function (b) { b.onclick = function () { pergi('kj-keputusan', b.getAttribute('data-buka')); }; });
+  semua('[data-sunting]').forEach(function (b) { b.onclick = function () { borangAcara(b.getAttribute('data-sunting')); }; });
+  semua('[data-padam]').forEach(function (b) {
+    b.onclick = function () {
+      var a = kjAcara(b.getAttribute('data-padam'));
+      sahkan('Padam acara ' + labelAcara(a) + '?' + (a.bilPeserta ? '\n\n' + a.bilPeserta + ' penyertaan dan semua keputusan acara ini turut dipadam.' : ''), function () {
+        api('apiPadamAcara', { id: a.id }).then(function () { selepasTulisKj('Acara dipadam.'); }).catch(gagal);
+      }, 'Padam');
+    };
+  });
+}
+function borangAcara(id) {
+  var a = id ? kjAcara(id) : { nama: '', jenis: 'BALAPAN', kategori: '', jantina: 'L', unit: 'MASA', had: 2, bilLorong: 8, bilKeAkhir: 0, no: '', tarikh: S.kj.tet.tarikh || '', masa: '', rekod: { nilai: '', pemegang: '', rumah: '', tahun: '' } };
+  var m = bukaModal('<h3>' + ik('calendar') + (id ? 'Sunting' : 'Tambah') + ' Acara</h3><datalist id="dlStandard">' + S.kj.standard.map(function (n) { return '<option value="' + e(n) + '">'; }).join('') + '</datalist><div class="grid-borang">' +
+    '<div class="medan penuh"><label>Nama acara</label><input id="baNama" list="dlStandard" value="' + e(a.nama) + '" placeholder="cth. 100 METER"></div>' +
+    '<div class="medan"><label>Jenis</label><select id="baJenis">' + pilihan(Object.keys(JENIS_KJ).map(function (k) { return { v: k, l: JENIS_KJ[k] }; }), a.jenis) + '</select></div>' +
+    '<div class="medan"><label>Unit keputusan</label><select id="baUnit">' + pilihan(Object.keys(UNIT_KJ).map(function (k) { return { v: k, l: UNIT_KJ[k] }; }), a.unit) + '</select></div>' +
+    '<div class="medan"><label>Kategori</label><select id="baKat">' + pilihanKategoriKj(a.kategori, 'Terbuka (semua kategori)') + '</select></div>' +
+    '<div class="medan"><label>Jantina</label><select id="baJan">' + pilihan([{ v: 'L', l: 'Lelaki' }, { v: 'P', l: 'Perempuan' }, { v: 'C', l: 'Campuran' }], a.jantina) + '</select></div>' +
+    '<div class="medan"><label>Had peserta / pasukan setiap rumah</label><input id="baHad" type="number" min="1" max="10" value="' + e(a.had) + '"></div>' +
+    '<div class="medan"><label>Bilangan lorong (balapan)</label><input id="baLorong" type="number" min="4" max="10" value="' + e(a.bilLorong) + '"></div>' +
+    '<div class="medan"><label>Bilangan ke akhir (0 = ikut lorong)</label><input id="baAkhir" type="number" min="0" max="16" value="' + e(a.bilKeAkhir) + '"></div>' +
+    '<div class="medan"><label>No. acara</label><input id="baNo" value="' + e(a.no) + '" placeholder="auto"></div>' +
+    '<div class="medan"><label>Tarikh</label><input id="baTarikh" type="date" value="' + e(a.tarikh) + '"></div>' +
+    '<div class="medan"><label>Masa</label><input id="baMasa" type="time" value="' + e(a.masa) + '"></div>' +
+    '<div class="medan penuh" style="margin-top:6px"><label style="font-size:13px;color:var(--navy)">' + ik('star', 'kecil') + ' Rekod kejohanan semasa (pilihan)</label></div>' +
+    '<div class="medan"><label>Catatan rekod</label><input id="baRekod" value="' + e(a.rekod.nilai) + '" placeholder="cth. 12.45 atau 4.80"></div>' +
+    '<div class="medan"><label>Pemegang rekod</label><input id="baPemegang" value="' + e(a.rekod.pemegang) + '"></div>' +
+    '<div class="medan"><label>Rumah</label><input id="baRRumah" value="' + e(a.rekod.rumah) + '"></div>' +
+    '<div class="medan"><label>Tahun rekod</label><input id="baRTahun" value="' + e(a.rekod.tahun) + '"></div>' +
+    '</div><div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">' + ik('check') + 'Simpan</button></div>');
+  $('baJenis').onchange = function () { $('baUnit').value = this.value === 'PADANG' ? 'JARAK' : 'MASA'; if (this.value === 'BERGANTI') $('baHad').value = 1; };
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    api('apiSimpanAcara', { data: { id: id || '', nama: nilaiEl('baNama'), jenis: nilaiEl('baJenis'), unit: nilaiEl('baUnit'), kategori: nilaiEl('baKat'), jantina: nilaiEl('baJan'),
+      had: nilaiEl('baHad'), bilLorong: nilaiEl('baLorong'), bilKeAkhir: nilaiEl('baAkhir'), no: nilaiEl('baNo'), tarikh: nilaiEl('baTarikh'), masa: nilaiEl('baMasa'),
+      rekodNilai: nilaiEl('baRekod'), rekodPemegang: nilaiEl('baPemegang'), rekodRumah: nilaiEl('baRRumah'), rekodTahun: nilaiEl('baRTahun') } })
+      .then(function () { tutupModal(m); selepasTulisKj('Acara disimpan.'); }).catch(gagal);
+  };
+}
+function borangJanaStandard() {
+  var m = bukaModal('<h3>' + ik('layers') + 'Jana Acara Standard</h3>' + kotak('info', 'Acara dicipta bagi setiap gabungan <b>acara × kategori × jantina</b> yang dipilih. Acara yang sudah wujud dilangkau. Tarikh lalai = tarikh kejohanan.') +
+    '<div class="grid k-2-1" style="gap:14px"><div><label style="font-weight:800;font-size:13px">Acara</label><div class="senarai-semak" style="margin-top:6px">' +
+    S.kj.standard.map(function (n) { return '<label><input type="checkbox" name="jsAcara" value="' + e(n) + '" checked>' + e(n) + '</label>'; }).join('') + '</div></div>' +
+    '<div><label style="font-weight:800;font-size:13px">Kategori</label><div class="senarai-semak" style="margin-top:6px">' + S.kj.kategori.map(function (k) { return '<label><input type="checkbox" name="jsKat" value="' + e(k.kod) + '" checked>' + e(k.kod + ' — ' + k.nama) + '</label>'; }).join('') + '</div>' +
+    '<label style="font-weight:800;font-size:13px;display:block;margin-top:12px">Jantina</label><div class="senarai-semak" style="margin-top:6px"><label><input type="checkbox" name="jsJan" value="L" checked>Lelaki</label><label><input type="checkbox" name="jsJan" value="P" checked>Perempuan</label></div></div></div>' +
+    '<div class="aksi-modal"><span class="nota" id="jsBil" style="margin-right:auto"></span><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">' + ik('layers') + 'Jana</button></div>');
+  var dipilih = function (n) { return semua('input[name=' + n + ']:checked', m).map(function (i) { return i.value; }); };
+  var kira = function () { $('jsBil').textContent = 'Sehingga ' + dipilih('jsAcara').length * dipilih('jsKat').length * dipilih('jsJan').length + ' acara'; };
+  m.onchange = kira; kira();
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    api('apiJanaAcaraStandard', { acara: dipilih('jsAcara'), kategori: dipilih('jsKat'), jantina: dipilih('jsJan') })
+      .then(function (x) { tutupModal(m); selepasTulisKj(x.bil + ' acara baharu dicipta.'); }).catch(gagal);
+  };
+}
+function cetakJadual() {
+  var ikut = ikutKunci(S.kj.acara.slice().sort(function (a, b) { return (a.tarikh + a.masa + ('000' + a.no).slice(-4)).localeCompare(b.tarikh + b.masa + ('000' + b.no).slice(-4)); }), function (a) { return a.tarikh || ''; });
+  cetak('Jadual Acara', Object.keys(ikut).sort().map(function (t) {
+    return '<h2>' + e(t ? tarikhPapar(t) : 'Tarikh belum ditetapkan') + '</h2><table><thead><tr><th>Masa</th><th>No.</th><th>Acara</th><th>Kategori</th><th>Jantina</th><th>Jenis</th><th>Peserta</th></tr></thead><tbody>' +
+      ikut[t].map(function (a) { return '<tr><td>' + e(a.masa || '-') + '</td><td>' + e(a.no) + '</td><td><b>' + e(a.nama) + '</b></td><td>' + e(a.kategori || 'Terbuka') + '</td><td>' + e(namaJantina(a.jantina)) + '</td><td>' + e(JENIS_KJ[a.jenis]) + '</td><td>' + a.bilPeserta + '</td></tr>'; }).join('') + '</tbody></table>';
+  }).join(''));
+}
+
+/* ================================ PENDAFTARAN ATLET ================================ */
+HALAMAN['kj-daftar'] = function () {
+  muatKj().then(function (kj) {
+    var kb = kj.kebenaran;
+    var pilihanRumahDaftar = kb.admin || kb.keputusan ? kj.rumah : kj.rumah.filter(function (r) { return r.id === kb.rumahSendiri || kb.rumahUrus.indexOf(r.id) !== -1; });
+    var rumahId = S.data.kjRumah && pilihanRumahDaftar.some(function (r) { return r.id === S.data.kjRumah; }) ? S.data.kjRumah : (kb.rumahUrus[0] || kb.rumahSendiri || (pilihanRumahDaftar[0] || {}).id || '');
+    if (!rumahId) { kandungan(kepalaHalaman('Pendaftaran Atlet', '', 'run') + kotak('amaran', 'Anda belum ditetapkan kepada mana-mana rumah sukan.')); return; }
+    S.data.kjRumah = rumahId;
+    return api('apiPenyertaanRumah', { rumahId: rumahId }).then(function (r) {
+      S.data.kjDaftar = r;
+      var ru = rumahKj(rumahId);
+      var pilih = pilihanRumahDaftar.length > 1 ? '<select id="kdRumah" style="min-width:180px">' + pilihan(pilihanRumahDaftar.map(function (x) { return { v: x.id, l: 'Rumah ' + x.nama }; }), rumahId) + '</select>' : '';
+      var h = kepalaHalaman('Pendaftaran Atlet', 'Daftar atlet Rumah <b>' + e(ru ? ru.nama : '') + '</b> bagi setiap acara. Had: ' + r.had.individu + ' acara individu & ' + r.had.berganti + ' acara berganti-ganti bagi setiap atlet.', 'run', pilih);
+      h += r.pendaftaran === 'BUKA' ? kotak('jaya', '<b>Pendaftaran dibuka.</b> ' + (r.bolehUbah ? 'Klik "Pilih atlet" pada mana-mana acara.' : 'Hanya Ketua / Penolong Ketua Guru Rumah boleh mendaftar.'), 'check')
+        : kotak('amaran', '<b>Pendaftaran ditutup.</b> ' + (r.bolehUbah ? 'Sebagai Admin, anda masih boleh mengubah penyertaan.' : 'Senarai di bawah untuk rujukan sahaja.'), 'lock');
+      var berdaftar = {};
+      Object.keys(r.penyertaan).forEach(function (id) { r.penyertaan[id].forEach(function (kp) { berdaftar[kp] = true; }); });
+      var bilAtlet = Object.keys(berdaftar).length;
+      h += '<div class="grid auto blok">' + kpi('Atlet Berdaftar', bilAtlet, 'users', 'biru', 'daripada ' + r.murid.length + ' ahli rumah') +
+        kpi('Acara Disertai', Object.keys(r.penyertaan).filter(function (k) { return r.penyertaan[k].length; }).length + '/' + kj.acara.length, 'calendar', 'ungu') +
+        kpi('Ditanda Atlet', r.murid.filter(function (m) { return m.atlet; }).length, 'run', 'trek', 'oleh admin (Murid & Atlet)') + '</div>';
+      h += '<div class="tab-bar"><button class="aktif" data-t="acara">' + ik('calendar', 'kecil') + 'Ikut acara</button><button data-t="atlet">' + ik('users', 'kecil') + 'Ikut atlet</button></div><div id="kdIsi"></div>';
+      kandungan(h);
+      if ($('kdRumah')) $('kdRumah').onchange = function () { S.data.kjRumah = this.value; HALAMAN['kj-daftar'](); };
+      semua('.tab-bar button').forEach(function (b) { b.onclick = function () { semua('.tab-bar button').forEach(function (x) { x.classList.toggle('aktif', x === b); }); lukisDaftar(b.getAttribute('data-t')); }; });
+      lukisDaftar('acara');
+    });
+  }).catch(ralatHalaman);
+};
+function lukisDaftar(tab) {
+  var r = S.data.kjDaftar, murid = {};
+  r.murid.forEach(function (m) { murid[m.nokp] = m; });
+  if (tab === 'atlet') {
+    var sertai = {};
+    Object.keys(r.penyertaan).forEach(function (id) { r.penyertaan[id].forEach(function (kp) { (sertai[kp] = sertai[kp] || []).push(id); }); });
+    var senarai = r.murid.filter(function (m) { return sertai[m.nokp]; });
+    $('kdIsi').innerHTML = '<div class="kad rapat"><div class="jadual-skrol"><table><thead><tr><th>#</th><th>Bib</th><th>Nama</th><th>Kelas</th><th>Kategori</th><th>Acara</th></tr></thead><tbody>' +
+      (senarai.length ? senarai.map(function (m, i) {
+        return '<tr><td>' + (i + 1) + '</td><td class="papan" style="font-size:17px">' + e(m.bib || '-') + '</td><td><b>' + e(m.nama) + '</b></td><td>' + e(m.kelas) + '</td><td>' + e(m.kategori) + ' ' + m.jantina + '</td><td>' +
+          sertai[m.nokp].map(function (id) { var a = kjAcara(id); return a ? '<span class="lencana" style="margin:1px">' + e(a.nama) + '</span>' : ''; }).join('') + '</td></tr>';
+      }).join('') : '<tr><td colspan="6">' + kosongHtml('Belum ada atlet didaftarkan.', 'users') + '</td></tr>') + '</tbody></table></div></div>';
+    return;
+  }
+  var kumpulan = ikutKunci(S.kj.acara, function (a) { return (a.kategori || 'Terbuka') + ' · ' + namaJantina(a.jantina); });
+  $('kdIsi').innerHTML = Object.keys(kumpulan).sort().map(function (k) {
+    return '<div class="kad"><h3>' + ik('flag') + e(k) + '</h3><div class="grid auto" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">' + kumpulan[k].map(function (a) {
+      var ada = r.penyertaan[a.id] || [];
+      var penuh = a.jenis === 'BERGANTI' ? ada.length >= 4 : ada.length >= a.had;
+      var kunci = a.status !== 'DIRANCANG' && a.status !== 'SEDIA';
+      return '<div class="kad-acara"><span class="jalur" style="background:' + warnaJenis(a.jenis) + '"></span><div style="display:flex;justify-content:space-between;gap:8px"><div class="nm">' + ik(ikonJenis(a.jenis), 'kecil') + ' ' + e(a.nama) + '</div>' +
+        '<span class="lencana ' + (penuh ? 'hijau' : ada.length ? 'kuning' : '') + '">' + (a.jenis === 'BERGANTI' ? (ada.length ? ada.length + ' ahli' : 'Tiada pasukan') : ada.length + '/' + a.had) + '</span></div>' +
+        '<div class="mt">' + (ada.length ? ada.map(function (kp) { return '<span>' + ik('user', 'kecil') + ' ' + e((murid[kp] || {}).nama || kp) + '</span>'; }).join('') : '<span>Belum ada peserta</span>') + '</div>' +
+        (r.bolehUbah && !kunci ? '<div><button class="btn luar kecil" data-pilih="' + e(a.id) + '">' + ik('edit', 'kecil') + 'Pilih atlet</button></div>' : kunci ? '<div class="nota" style="margin:0">' + lencanaStatus(a.status) + '</div>' : '') + '</div>';
+    }).join('') + '</div></div>';
+  }).join('') || '<div class="kad">' + kosongHtml('Belum ada acara.', 'calendar') + '</div>';
+  semua('[data-pilih]').forEach(function (b) { b.onclick = function () { borangPilihAtlet(b.getAttribute('data-pilih')); }; });
+}
+function borangPilihAtlet(acaraId) {
+  var r = S.data.kjDaftar, a = kjAcara(acaraId), berganti = a.jenis === 'BERGANTI';
+  var ada = {};
+  (r.penyertaan[acaraId] || []).forEach(function (kp) { ada[kp] = true; });
+  var maks = berganti ? 6 : a.had;
+  var layak = r.murid.filter(function (m) { return (a.jantina === 'C' || m.jantina === a.jantina) && (!a.kategori || m.kategori === a.kategori); });
+  var m = bukaModal('<h3>' + ik(ikonJenis(a.jenis)) + e(labelAcara(a)) + '</h3>' +
+    kotak('info', berganti ? 'Pilih <b>4 hingga 6</b> atlet untuk pasukan (termasuk simpanan).' : 'Pilih sehingga <b>' + a.had + '</b> atlet. Atlet yang telah mencapai had acara ditandakan.') +
+    '<div class="baris-alat"><div class="cari" style="flex:1">' + ik('search', 'kecil') + '<input id="paCari" placeholder="Cari nama / kelas…" style="width:100%"></div><label class="togol"><input type="checkbox" id="paAtlet"> Atlet sahaja</label></div>' +
+    '<div class="senarai-semak" id="paSenarai">' + (layak.length ? layak.map(function (x) {
+      var bil = berganti ? x.bilBerganti : x.bilIndividu, had = berganti ? r.had.berganti : r.had.individu;
+      var sudah = ada[x.nokp], penuh = !sudah && bil >= had;
+      return '<label class="' + (penuh ? 'tidak-layak' : '') + '" data-n="' + e((x.nama + ' ' + x.kelas).toUpperCase()) + '" data-a="' + (x.atlet ? 1 : 0) + '"><input type="checkbox" value="' + e(x.nokp) + '"' + (sudah ? ' checked' : '') + (penuh ? ' disabled' : '') + '>' +
+        '<span style="flex:1"><b>' + e(x.nama) + '</b> <span class="nota" style="margin:0">' + e(x.kelas) + (x.bib ? ' · Bib ' + e(x.bib) : '') + '</span></span>' +
+        (x.atlet ? '<span class="lencana hijau">' + ik('run', 'kecil') + e(x.acaraAtlet || 'Atlet') + '</span>' : '') + '<span class="lencana' + (penuh ? ' merah' : '') + '">' + bil + '/' + had + '</span></label>';
+    }).join('') : kosongHtml('Tiada ahli rumah yang layak (kategori & jantina).', 'users')) + '</div>' +
+    '<div class="aksi-modal"><span class="nota" id="paBil" style="margin-right:auto"></span><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">' + ik('check') + 'Simpan</button></div>');
+  var kira = function () {
+    var n = semua('#paSenarai input:checked', m).length;
+    $('paBil').innerHTML = '<b>' + n + '</b> dipilih' + (berganti ? ' (4–6)' : ' / maks ' + maks);
+    semua('#paSenarai input', m).forEach(function (i) { if (!i.checked && !i.closest('label').classList.contains('tidak-layak')) i.disabled = n >= maks; });
+  };
+  kira();
+  $('paSenarai').onchange = kira;
+  var tapis = function () {
+    var q = nilaiEl('paCari').toUpperCase(), at = semakEl('paAtlet');
+    semua('#paSenarai label', m).forEach(function (l) { l.style.display = l.getAttribute('data-n').indexOf(q) !== -1 && (!at || l.getAttribute('data-a') === '1') ? '' : 'none'; });
+  };
+  $('paCari').oninput = tapis; $('paAtlet').onchange = tapis;
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    var kp = semua('#paSenarai input:checked', m).map(function (i) { return i.value; });
+    api('apiSimpanPenyertaan', { rumahId: r.rumahId, acaraId: acaraId, nokp: kp }).then(function (x) {
+      tutupModal(m); selepasTulisKj(x.bil + ' atlet didaftarkan bagi ' + a.nama + '.', 'kj-daftar');
+    }).catch(gagal);
+  };
+}
+
+/* ================================ SARINGAN & KEPUTUSAN ================================ */
+HALAMAN['kj-keputusan'] = function (acaraId) {
+  muatKj().then(function (kj) {
+    if (!kj.acara.length) { kandungan(kepalaHalaman('Saringan & Keputusan', '', 'timer') + '<div class="kad">' + kosongHtml('Belum ada acara.', 'calendar') + '</div>'); return; }
+    var id = acaraId || S.data.kjAcara || kj.acara[0].id;
+    if (!kjAcara(id)) id = kj.acara[0].id;
+    S.data.kjAcara = id;
+    var senarai = kj.acara.slice().sort(function (a, b) { return (a.tarikh + a.masa).localeCompare(b.tarikh + b.masa) || Number(a.no) - Number(b.no); });
+    var idx = senarai.findIndex(function (a) { return a.id === id; });
+    var pemilih = '<div class="baris-alat"><button class="btn luar ikon" id="kkSblm" title="Acara sebelum"' + (idx <= 0 ? ' disabled' : '') + '>' + ik('kiri') + '</button>' +
+      '<select id="kkAcara" style="flex:1;min-width:240px">' + senarai.map(function (a) { return '<option value="' + e(a.id) + '"' + (a.id === id ? ' selected' : '') + '>' + e((a.no ? a.no + '. ' : '') + labelAcara(a) + ' — ' + (STATUS_KJ[a.status] || [a.status])[0]) + '</option>'; }).join('') + '</select>' +
+      '<button class="btn luar ikon" id="kkSlps" title="Acara seterusnya"' + (idx >= senarai.length - 1 ? ' disabled' : '') + '>' + ik('kanan') + '</button></div>';
+    kandungan(kepalaHalaman('Saringan & Keputusan', 'Jana senarai mula (saringan & lorong), masukkan keputusan, dan mara ke akhir. Format: <b>12.45</b> · <b>1:05.32</b> · <b>4.35</b>', 'timer') + pemilih + '<div id="kkIsi">' + rangkaHalaman() + '</div>');
+    $('kkAcara').onchange = function () { pergi('kj-keputusan', this.value); };
+    $('kkSblm').onclick = function () { pergi('kj-keputusan', senarai[idx - 1].id); };
+    $('kkSlps').onclick = function () { pergi('kj-keputusan', senarai[idx + 1].id); };
+    return api('apiAcaraButiran', { acaraId: id }, { segar: true }).then(lukisKeputusan);
+  }).catch(ralatHalaman);
+};
+function lukisKeputusan(r) {
+  S.data.kjButiran = r;
+  var a = r.acara, kb = r.kebenaran, boleh = kb.keputusan;
+  var saringan = r.peserta.filter(function (x) { return x.pusingan === 'SARINGAN'; });
+  var akhir = r.peserta.filter(function (x) { return x.pusingan === 'AKHIR'; });
+  var daftar = r.peserta.filter(function (x) { return !x.pusingan; });
+  var h = '<div class="kad"><div class="kepala-kad"><div><h3>' + ik(ikonJenis(a.jenis)) + e(labelAcara(a)) + '</h3><div class="nota" style="margin-top:4px">' +
+    (a.no ? 'Acara ' + e(a.no) + ' · ' : '') + e(JENIS_KJ[a.jenis]) + ' · ' + e(a.tarikh ? tarikhPapar(a.tarikh) : 'tarikh belum ditetapkan') + (a.masa ? ' · ' + e(a.masa) : '') + '</div></div>' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' + lencanaStatus(a.status) + (a.rekod.nilai ? '<span class="lencana kuning">' + ik('star', 'kecil') + 'Rekod ' + e(a.rekod.nilai) + (a.rekod.pemegang ? ' · ' + e(a.rekod.pemegang) : '') + (a.rekod.tahun ? ' (' + e(a.rekod.tahun) + ')' : '') + '</span>' : '') + '</div></div>';
+  // butang aksi
+  var aksi = [];
+  if (boleh && (a.status === 'DIRANCANG' || a.status === 'SEDIA') && r.peserta.length) aksi.push('<button class="btn" id="kkJana">' + ik('shuffle') + (a.status === 'SEDIA' ? 'Jana semula senarai mula' : 'Jana senarai mula') + '</button>');
+  if (boleh && a.status === 'SARINGAN') aksi.push('<button class="btn kuning" id="kkMara">' + ik('flag') + 'Mara ke akhir</button>');
+  if (r.peserta.length && a.status !== 'DIRANCANG') aksi.push('<button class="btn luar" id="kkCetak">' + ik('printer') + 'Cetak senarai mula / keputusan</button>');
+  if (boleh && a.status !== 'DIRANCANG') aksi.push('<button class="btn hantu" id="kkSetSemula" style="color:var(--merah)">' + ik('refresh') + 'Set semula</button>');
+  if (aksi.length) h += '<div style="display:flex;gap:8px;flex-wrap:wrap">' + aksi.join('') + '</div>';
+  h += '</div>';
+  if (!r.peserta.length) h += '<div class="kad">' + kosongHtml('Belum ada peserta berdaftar bagi acara ini.', 'users') + '</div>';
+  else if (a.status === 'DIRANCANG') {
+    h += kotak('info', r.peserta.length + ' penyertaan berdaftar. ' + (boleh ? 'Tekan <b>Jana senarai mula</b> untuk membahagikan peserta kepada saringan & lorong (balapan) atau giliran (padang).' : 'Menunggu AJK menjana senarai mula.'));
+    h += jadualPeserta(daftar, a, false, 'Peserta berdaftar');
+  } else {
+    if (saringan.length) {
+      var ikutSaringan = ikutKunci(saringan, function (x) { return x.saringan; });
+      h += '<div class="kad"><div class="kepala-kad"><h3>' + ik('timer') + 'Pusingan Saringan</h3>' + (boleh && a.status !== 'SELESAI' ? '<button class="btn hijau" data-simpan="SARINGAN">' + ik('check') + 'Simpan keputusan saringan</button>' : '') + '</div>' +
+        Object.keys(ikutSaringan).sort(function (x, y) { return x - y; }).map(function (k) { return jadualPeserta(ikutSaringan[k], a, boleh && a.status !== 'SELESAI', 'Saringan ' + k, true); }).join('') + '</div>';
+    }
+    if (akhir.length) {
+      h += '<div class="kad" style="border-top:4px solid var(--kuning)"><div class="kepala-kad"><h3>' + ik('trophy') + (a.jenis === 'PADANG' ? 'Pertandingan (Akhir)' : 'Pusingan Akhir') + '</h3>' + (boleh ? '<button class="btn hijau" data-simpan="AKHIR">' + ik('check') + 'Simpan keputusan akhir</button>' : '') + '</div>' +
+        jadualPeserta(akhir, a, boleh, '', true) + '</div>';
+    } else if (saringan.length) {
+      h += kotak('info', a.status === 'SARINGAN' ? 'Saringan lengkap. ' + (boleh ? 'Tekan <b>Mara ke akhir</b> untuk memilih ' + (a.bilKeAkhir || a.bilLorong) + ' atlet terbaik ke pusingan akhir.' : 'Menunggu senarai akhir.') : 'Lengkapkan keputusan semua saringan untuk menentukan finalis.');
+    }
+  }
+  $('kkIsi').innerHTML = h;
+  pasangKeputusan();
+}
+function jadualPeserta(senarai, a, boleh, tajuk, adaKeputusan) {
+  var padang = a.jenis === 'PADANG', relay = a.jenis === 'BERGANTI';
+  var s = senarai.slice().sort(function (x, y) { return Number(x.lorong || 99) - Number(y.lorong || 99) || x.rumah.localeCompare(y.rumah); });
+  return (tajuk ? '<div style="font-weight:800;color:var(--navy);margin:14px 0 8px;display:flex;gap:8px;align-items:center">' + ik('flag', 'kecil') + e(tajuk) + ' <span class="lencana">' + s.length + '</span></div>' : '') +
+    '<div class="jadual-skrol"><table><thead><tr><th class="c">' + (padang ? 'Giliran' : 'Lorong') + '</th>' + (relay ? '' : '<th>Bib</th>') + '<th>' + (relay ? 'Pasukan' : 'Atlet') + '</th><th>Rumah</th>' +
+    (adaKeputusan ? '<th>Keputusan</th><th>Status</th><th class="c">Kedudukan</th><th class="c">Mata</th>' : '') + '</tr></thead><tbody>' +
+    s.map(function (x) {
+      return '<tr' + (Number(x.kedudukan) === 1 ? ' class="emas"' : '') + '><td class="c">' + (x.lorong ? '<span class="lorong-no">' + e(x.lorong) + '</span>' : '-') + '</td>' + (relay ? '' : '<td class="papan" style="font-size:17px">' + e(x.bib || '-') + '</td>') +
+        '<td><b>' + e(x.nama) + '</b>' + (relay ? '<div class="nota" style="margin:0">' + e(x.ahli.join(', ')) + '</div>' : '<div class="nota" style="margin:0">' + e(x.kelas) + '</div>') + '</td><td>' + lencanaRumah({ nama: x.rumah, warna: x.warna }) + '</td>' +
+        (adaKeputusan ? (boleh
+          ? '<td><input class="keputusan-input" data-kid="' + e(x.id) + '" value="' + e(x.keputusan) + '" placeholder="' + (a.unit === 'MASA' ? '00.00' : '0.00') + '" inputmode="decimal"></td><td><select data-sid="' + e(x.id) + '" style="width:92px">' + pilihan(['OK', 'DNS', 'DNF', 'DQ'], x.status) + '</select></td>'
+          : '<td class="papan" style="font-size:19px">' + e(x.keputusan || '-') + '</td><td>' + (x.status !== 'OK' ? '<span class="lencana merah">' + e(x.status) + '</span>' : '') + '</td>') +
+          '<td class="c">' + (pingat(x.kedudukan) || '-') + (x.rekodBaharu ? '<div><span class="lencana kuning">' + ik('star', 'kecil') + 'Rekod</span></div>' : '') + '</td><td class="c"><b>' + (x.mata || (x.pusingan === 'AKHIR' && x.kedudukan ? 0 : '')) + '</b></td>' : '') + '</tr>';
+    }).join('') + '</tbody></table></div>';
+}
+function pasangKeputusan() {
+  var r = S.data.kjButiran, a = r.acara;
+  // selepas tulisan: segarkan data modul + butiran acara, kemudian lukis semula halaman (label status pemilih turut dikemas kini)
+  var muatSemula = function (mesej) { toast(mesej, 'jaya'); muatKj(true).then(function () { if (S.halaman === 'kj-keputusan') pergi('kj-keputusan', a.id); }).catch(gagal); };
+  if ($('kkJana')) $('kkJana').onclick = function () {
+    var lanjut = function () { api('apiJanaSenaraiMula', { acaraId: a.id }).then(function (x) { muatSemula('Senarai mula dijana bagi ' + x.bil + ' peserta.'); }).catch(gagal); };
+    if (a.status === 'SEDIA') sahkan('Jana semula senarai mula? Saringan & lorong sedia ada akan ditukar.', lanjut, 'Jana semula', 'biasa'); else lanjut();
+  };
+  if ($('kkMara')) $('kkMara').onclick = function () {
+    var m = bukaModal('<h3>' + ik('flag') + 'Mara ke Akhir</h3><p style="margin:0 0 12px;color:#334155">Atlet/pasukan dengan keputusan terbaik merentasi semua saringan dipilih ke pusingan akhir dan diberi lorong (terbaik di lorong tengah).</p>' +
+      '<div class="medan"><label>Bilangan ke akhir</label><input id="mkBil" type="number" min="2" max="10" value="' + e(a.bilKeAkhir || a.bilLorong || 8) + '"></div>' +
+      '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn kuning" data-x="s">' + ik('flag') + 'Mara</button></div>', true);
+    m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+    m.querySelector('[data-x=s]').onclick = function () { api('apiMaraKeAkhir', { acaraId: a.id, bil: nilaiEl('mkBil') }).then(function (x) { tutupModal(m); muatSemula(x.bil + ' finalis dipilih.'); }).catch(gagal); };
+  };
+  if ($('kkSetSemula')) $('kkSetSemula').onclick = function () {
+    sahkan('Set semula acara ini? Senarai mula, senarai akhir dan SEMUA keputusan acara ini akan dikosongkan (penyertaan kekal).', function () {
+      api('apiSetSemulaAcara', { acaraId: a.id }).then(function () { muatSemula('Acara di-set semula.'); }).catch(gagal);
+    }, 'Set semula');
+  };
+  if ($('kkCetak')) $('kkCetak').onclick = function () { cetakAcara(r); };
+  semua('[data-simpan]').forEach(function (b) {
+    b.onclick = function () {
+      var pusingan = b.getAttribute('data-simpan');
+      var baris = r.peserta.filter(function (x) { return x.pusingan === pusingan; }).map(function (x) {
+        var k = document.querySelector('[data-kid="' + x.id + '"]'), st = document.querySelector('[data-sid="' + x.id + '"]');
+        return { id: x.id, keputusan: k ? k.value : x.keputusan, status: st ? st.value : x.status };
+      });
+      api('apiSimpanKeputusan', { acaraId: a.id, pusingan: pusingan, baris: baris }).then(function (x) {
+        muatSemula((x.lengkap ? 'Keputusan lengkap disimpan.' : 'Keputusan separa disimpan.') + (x.rekodBaru ? ' 🎉 ' + x.rekodBaru + ' catatan memecahkan rekod!' : ''));
+      }).catch(gagal);
+    };
+  });
+  // Enter = ke medan seterusnya (pantas semasa hari kejohanan)
+  var input = semua('.keputusan-input');
+  input.forEach(function (el, i) { el.onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); if (input[i + 1]) input[i + 1].focus(); } }; });
+}
+function cetakAcara(r) {
+  var a = r.acara;
+  var bahagian = [['SARINGAN', 'Saringan'], ['AKHIR', a.jenis === 'PADANG' ? 'Pertandingan' : 'Akhir']].map(function (p) {
+    var s = r.peserta.filter(function (x) { return x.pusingan === p[0]; });
+    if (!s.length) return '';
+    var ikut = p[0] === 'SARINGAN' ? ikutKunci(s, function (x) { return x.saringan; }) : { '': s };
+    return Object.keys(ikut).sort().map(function (k) {
+      return '<h2>' + e(p[1] + (k ? ' ' + k : '')) + '</h2>' + jadualCetak(ikut[k], a);
+    }).join('');
+  }).join('');
+  cetak('Acara ' + (a.no || '') + ': ' + labelAcara(a), '<p>' + e(a.tarikh ? tarikhPapar(a.tarikh) : '') + (a.masa ? ' · ' + e(a.masa) : '') + (a.rekod.nilai ? ' · Rekod: ' + e(a.rekod.nilai) + ' (' + e(a.rekod.pemegang) + ', ' + e(a.rekod.tahun) + ')' : '') + '</p>' + bahagian +
+    '<p style="margin-top:30px">Tandatangan Pengadil: ________________________ &nbsp;&nbsp; Tandatangan Perekod: ________________________</p>');
+}
+function jadualCetak(s, a) {
+  var relay = a.jenis === 'BERGANTI';
+  return '<table><thead><tr><th>' + (a.jenis === 'PADANG' ? 'Giliran' : 'Lorong') + '</th>' + (relay ? '' : '<th>Bib</th>') + '<th>Nama</th><th>Rumah</th><th>Keputusan</th><th>Kedudukan</th></tr></thead><tbody>' +
+    s.slice().sort(function (x, y) { return Number(x.lorong || 99) - Number(y.lorong || 99); }).map(function (x) {
+      return '<tr><td>' + e(x.lorong) + '</td>' + (relay ? '' : '<td>' + e(x.bib) + '</td>') + '<td>' + e(x.nama) + (relay ? '<br><small>' + e(x.ahli.join(', ')) + '</small>' : '') + '</td><td>' + e(x.rumah) + '</td><td>' + e(x.status !== 'OK' ? x.status : x.keputusan) + '</td><td>' + e(x.kedudukan || '') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+/* ================================ PAPAN MATA & PINGAT ================================ */
+HALAMAN['kj-mata'] = function () {
+  muatKj().then(function (r) {
+    var ked = r.kedudukan, kb = r.kebenaran;
+    var h = kepalaHalaman('Papan Mata & Pingat', 'Mata acara (kedudukan akhir) + mata lain-lain (perbarisan, sorakan, dll.).', 'medal',
+      '<button class="btn luar" id="kmCetak">' + ik('printer') + 'Cetak</button><button class="btn luar" id="kmSegar">' + ik('refresh') + 'Segar</button>');
+    h += '<div class="grid k-1-1 blok"><div class="kad"><h3>' + ik('trophy') + 'Johan Keseluruhan</h3>' + (ked.some(function (x) { return x.jumlah > 0; }) ? podiumHtml(ked.slice(0, 3).map(function (x) { return { nama: x.nama, nilai: x.jumlah + ' mata', warna: x.warna }; })) : kosongHtml('Belum ada mata.', 'trophy')) + '</div>' +
+      '<div class="kad"><h3>' + ik('medal') + 'Kutipan Pingat</h3>' + cartaLajur(ked.map(function (x) { return { label: x.nama, siri: [x.emas, x.perak, x.gangsa] }; }), [{ nama: 'Emas', warna: '#e0a400' }, { nama: 'Perak', warna: '#a7b0bd' }, { nama: 'Gangsa', warna: '#b5652a' }], { tinggi: 200 }) + '</div></div>';
+    h += '<div class="kad rapat blok"><div class="kepala-kad"><h3>' + ik('list') + 'Kedudukan Rumah Sukan</h3></div><div class="jadual-skrol"><table><thead><tr><th class="c">#</th><th>Rumah</th><th class="c">Emas</th><th class="c">Perak</th><th class="c">Gangsa</th><th class="n">Mata Acara</th><th class="n">Mata Lain</th><th class="n">Jumlah</th></tr></thead><tbody>' +
+      ked.map(function (x) {
+        return '<tr' + (x.kedudukan === 1 && x.jumlah ? ' class="emas"' : '') + '><td class="c">' + pingat(x.kedudukan) + '</td><td>' + lencanaRumah(x) + '</td><td class="c"><b>' + x.emas + '</b></td><td class="c"><b>' + x.perak + '</b></td><td class="c"><b>' + x.gangsa + '</b></td>' +
+          '<td class="n">' + x.mataAcara + '</td><td class="n">' + x.mataLain + '</td><td class="n papan" style="font-size:24px;color:var(--navy)">' + x.jumlah + '</td></tr>';
+      }).join('') + '</tbody></table></div></div>';
+    // sumbangan mata ikut kategori
+    var kunciKat = unik([].concat.apply([], ked.map(function (x) { return Object.keys(x.kat); }))).sort();
+    if (kunciKat.length) h += '<div class="kad blok"><h3>' + ik('chart') + 'Sumbangan Mata Mengikut Kategori</h3>' +
+      cartaLajur(kunciKat.map(function (k) { var p = k.split('|'); return { label: p[0] + ' ' + p[1], siri: ked.map(function (x) { return x.kat[k] || 0; }) }; }), ked.map(function (x) { return { nama: x.nama, warna: x.warna }; })) + '</div>';
+    // olahragawan
+    h += '<div class="kad blok"><h3>' + ik('crown') + 'Olahragawan & Olahragawati</h3>' + (r.olahragawan.length ? '<div class="grid auto">' + r.olahragawan.map(function (o) {
+      return '<div class="kad-acara"><span class="jalur" style="background:' + (o.jantina === 'L' ? '#1d4ed8' : '#d92d27') + '"></span><div class="nm">' + ik('crown', 'kecil') + ' ' + e(o.gelaran) + '</div>' +
+        o.calon.map(function (c, i) { return '<div style="display:flex;gap:8px;align-items:center;font-size:13px">' + pingat(i + 1) + '<div style="flex:1"><b>' + e(c.nama) + '</b><div class="nota" style="margin:0">' + e(c.kelas) + ' · ' + e((rumahKj(c.rumahId) || {}).nama || '') + ' · ' + c.emas + 'E ' + c.perak + 'P ' + c.gangsa + 'G</div></div><b class="papan" style="font-size:20px">' + c.mata + '</b></div>'; }).join('') + '</div>';
+    }).join('') + '</div>' : kosongHtml('Akan dipaparkan selepas keputusan acara individu disimpan.', 'crown')) + '</div>';
+    // mata lain-lain
+    h += '<div class="kad rapat"><div class="kepala-kad"><h3>' + ik('star') + 'Mata Lain-lain</h3>' + (kb.admin ? '<button class="btn kecil" id="kmTambah">' + ik('plus', 'kecil') + 'Tambah</button>' : '') + '</div><div class="jadual-skrol"><table><thead><tr><th>Perkara</th><th>Rumah</th><th class="n">Mata</th><th>Catatan</th>' + (kb.admin ? '<th></th>' : '') + '</tr></thead><tbody>' +
+      (r.mataLain.length ? r.mataLain.map(function (m) {
+        return '<tr><td><b>' + e(m.perkara) + '</b></td><td>' + lencanaRumahKj(m.rumahId) + '</td><td class="n papan" style="font-size:18px">' + m.mata + '</td><td>' + e(m.catatan) + '</td>' +
+          (kb.admin ? '<td style="white-space:nowrap"><button class="btn hantu kecil" data-mls="' + e(m.id) + '">' + ik('edit', 'kecil') + '</button><button class="btn hantu kecil" data-mlp="' + e(m.id) + '" style="color:var(--merah)">' + ik('trash', 'kecil') + '</button></td>' : '') + '</tr>';
+      }).join('') : '<tr><td colspan="5">' + kosongHtml('Tiada mata lain-lain (cth. perbarisan, sorakan, kebersihan khemah).', 'star') + '</td></tr>') + '</tbody></table></div></div>';
+    kandungan(h);
+    $('kmSegar').onclick = function () { muatKj(true).then(function () { pergi('kj-mata'); }).catch(gagal); };
+    $('kmCetak').onclick = function () { cetakPapanMata(); };
+    if ($('kmTambah')) $('kmTambah').onclick = function () { borangMataLain(null); };
+    semua('[data-mls]').forEach(function (b) { b.onclick = function () { borangMataLain(b.getAttribute('data-mls')); }; });
+    semua('[data-mlp]').forEach(function (b) {
+      b.onclick = function () { sahkan('Padam rekod mata ini?', function () { api('apiPadamMataLain', { id: b.getAttribute('data-mlp') }).then(function () { selepasTulisKj('Dipadam.'); }).catch(gagal); }, 'Padam'); };
+    });
+  }).catch(ralatHalaman);
+};
+function borangMataLain(id) {
+  var m0 = id ? S.kj.mataLain.filter(function (x) { return x.id === id; })[0] : { rumahId: '', perkara: '', mata: '', catatan: '' };
+  var m = bukaModal('<h3>' + ik('star') + (id ? 'Sunting' : 'Tambah') + ' Mata Lain-lain</h3><div class="grid-borang">' +
+    '<div class="medan"><label>Perkara</label><input id="mlPerkara" list="dlPerkara" value="' + e(m0.perkara) + '" placeholder="cth. PERBARISAN"><datalist id="dlPerkara"><option value="PERBARISAN"><option value="SORAKAN"><option value="KEBERSIHAN KHEMAH"><option value="HIASAN KHEMAH"><option value="DISIPLIN"></datalist></div>' +
+    '<div class="medan"><label>Rumah</label><select id="mlRumah">' + pilihan(S.kj.rumah.map(function (r) { return { v: r.id, l: r.nama }; }), m0.rumahId, '— pilih —') + '</select></div>' +
+    '<div class="medan"><label>Mata</label><input id="mlMata" type="number" step="0.5" value="' + e(m0.mata) + '"></div>' +
+    '<div class="medan"><label>Catatan</label><input id="mlCatatan" value="' + e(m0.catatan) + '" placeholder="cth. Johan perbarisan"></div></div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">' + ik('check') + 'Simpan</button></div>', true);
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    api('apiSimpanMataLain', { data: { id: id || '', perkara: nilaiEl('mlPerkara'), rumahId: nilaiEl('mlRumah'), mata: nilaiEl('mlMata'), catatan: nilaiEl('mlCatatan') } })
+      .then(function () { tutupModal(m); selepasTulisKj('Mata disimpan.'); }).catch(gagal);
+  };
+}
+function cetakPapanMata() {
+  var r = S.kj;
+  cetak('Keputusan Keseluruhan & Papan Mata', '<table><thead><tr><th>Kedudukan</th><th>Rumah</th><th>Emas</th><th>Perak</th><th>Gangsa</th><th>Mata Acara</th><th>Mata Lain</th><th>Jumlah</th></tr></thead><tbody>' +
+    r.kedudukan.map(function (x) { return '<tr><td>' + x.kedudukan + '</td><td><b>' + e(x.nama) + '</b></td><td>' + x.emas + '</td><td>' + x.perak + '</td><td>' + x.gangsa + '</td><td>' + x.mataAcara + '</td><td>' + x.mataLain + '</td><td><b>' + x.jumlah + '</b></td></tr>'; }).join('') + '</tbody></table>' +
+    '<h2>Olahragawan & Olahragawati</h2><table><thead><tr><th>Anugerah</th><th>Nama</th><th>Kelas</th><th>Rumah</th><th>Mata</th><th>E/P/G</th></tr></thead><tbody>' +
+    (r.olahragawan.length ? r.olahragawan.map(function (o) { var c = o.calon[0]; return '<tr><td><b>' + e(o.gelaran) + '</b></td><td>' + e(c.nama) + '</td><td>' + e(c.kelas) + '</td><td>' + e((rumahKj(c.rumahId) || {}).nama || '') + '</td><td>' + c.mata + '</td><td>' + c.emas + '/' + c.perak + '/' + c.gangsa + '</td></tr>'; }).join('') : '<tr><td colspan="6">Belum ada.</td></tr>') + '</tbody></table>' +
+    (r.mataLain.length ? '<h2>Mata Lain-lain</h2><table><thead><tr><th>Perkara</th><th>Rumah</th><th>Mata</th><th>Catatan</th></tr></thead><tbody>' + r.mataLain.map(function (m) { return '<tr><td>' + e(m.perkara) + '</td><td>' + e((rumahKj(m.rumahId) || {}).nama || '') + '</td><td>' + m.mata + '</td><td>' + e(m.catatan) + '</td></tr>'; }).join('') + '</tbody></table>' : ''));
+}
+
+/* ================================ REKOD KEJOHANAN ================================ */
+HALAMAN['kj-rekod'] = function () {
+  muatKj().then(function (r) {
+    var kb = r.kebenaran;
+    var tertunda = r.acara.filter(function (a) { return a.rekodTertunda; });
+    var h = kepalaHalaman('Rekod Kejohanan', 'Rekod terbaik setiap acara. Catatan yang memecahkan rekod ditanda secara automatik semasa keputusan disimpan' + (kb.admin ? ' — tekan <b>Sahkan</b> untuk mengemas kini rekod rasmi.' : '.'), 'star');
+    if (tertunda.length) h += kotak('amaran', '<b>' + tertunda.length + '</b> acara mempunyai catatan rekod baharu yang menunggu pengesahan.', 'star');
+    var ikut = ikutKunci(r.acara, function (a) { return a.nama; });
+    h += '<div class="kad rapat"><div class="jadual-skrol"><table><thead><tr><th>Acara</th><th>Kategori</th><th>Rekod</th><th>Pemegang</th><th>Rumah</th><th>Tahun</th><th>Tahun ini</th>' + (kb.admin ? '<th></th>' : '') + '</tr></thead><tbody>' +
+      Object.keys(ikut).sort().map(function (n) {
+        return ikut[n].map(function (a) {
+          var terbaik = a.podium.filter(function (p) { return p.kedudukan === 1; })[0];
+          return '<tr' + (a.rekodTertunda ? ' class="berubah"' : '') + '><td><b>' + e(a.nama) + '</b></td><td>' + e((a.kategori || 'Terbuka') + ' ' + namaJantina(a.jantina)) + '</td>' +
+            '<td class="papan" style="font-size:19px;color:var(--navy)">' + e(a.rekod.nilai || '-') + '</td><td>' + e(a.rekod.pemegang || '-') + '</td><td>' + e(a.rekod.rumah || '-') + '</td><td>' + e(a.rekod.tahun || '-') + '</td>' +
+            '<td>' + (terbaik ? '<span class="papan" style="font-size:17px">' + e(terbaik.keputusan) + '</span> ' + (terbaik.rekodBaharu ? '<span class="lencana kuning">' + ik('star', 'kecil') + 'Pecah rekod</span>' : '') : '-') + '</td>' +
+            (kb.admin ? '<td>' + (a.rekodTertunda ? '<button class="btn kuning kecil" data-sahkan="' + e(a.id) + '">' + ik('check', 'kecil') + 'Sahkan</button>' : '<button class="btn hantu kecil" data-suntingrekod="' + e(a.id) + '">' + ik('edit', 'kecil') + '</button>') + '</td>' : '') + '</tr>';
+        }).join('');
+      }).join('') + '</tbody></table></div></div>';
+    kandungan(h);
+    semua('[data-sahkan]').forEach(function (b) {
+      b.onclick = function () { api('apiSahkanRekod', { acaraId: b.getAttribute('data-sahkan') }).then(function (x) { selepasTulisKj('Rekod baharu ' + x.rekod + ' disahkan.'); }).catch(gagal); };
+    });
+    semua('[data-suntingrekod]').forEach(function (b) { b.onclick = function () { borangAcara(b.getAttribute('data-suntingrekod')); }; });
+  }).catch(ralatHalaman);
+};
+
+/* ================================ LAPORAN & CETAK ================================ */
+HALAMAN['kj-laporan'] = function () {
+  muatKj().then(function (r) {
+    var kad = function (ikon, warna, tajuk, ket, id) {
+      return '<div class="kpi" style="align-items:flex-start;flex-direction:column;gap:10px"><div style="display:flex;gap:12px;align-items:center"><div class="cip-ikon w-' + warna + '">' + ik(ikon) + '</div><div><b style="font-size:15px;color:var(--navy)">' + e(tajuk) + '</b><div class="sub">' + e(ket) + '</div></div></div>' +
+        '<button class="btn luar kecil" id="' + id + '">' + ik('printer', 'kecil') + 'Cetak / PDF</button></div>';
+    };
+    var h = kepalaHalaman('Laporan & Cetak', 'Semua dokumen kejohanan boleh dicetak atau disimpan sebagai PDF (pilih "Save as PDF" dalam dialog cetak).', 'printer');
+    h += '<div class="grid auto">' +
+      kad('calendar', 'biru', 'Jadual Acara', 'Mengikut tarikh & masa', 'lpJadual') +
+      kad('list', 'trek', 'Senarai Mula Semua Acara', 'Saringan, lorong / giliran', 'lpMula') +
+      kad('file', 'ungu', 'Buku Keputusan', 'Keputusan penuh setiap acara', 'lpBuku') +
+      kad('medal', 'kuning', 'Senarai Pemenang', 'Johan, naib johan & ketiga setiap acara', 'lpPemenang') +
+      kad('trophy', 'hijau', 'Papan Mata & Olahragawan', 'Keputusan keseluruhan', 'lpMata') +
+      kad('users', 'merah', 'Senarai Atlet Ikut Rumah', 'Atlet & acara bagi setiap rumah', 'lpAtlet') +
+      '</div>' +
+      '<div class="kad" style="margin-top:18px"><h3>' + ik('download') + 'Eksport Data</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn luar" id="lpCsv">' + ik('download') + 'Keputusan (CSV)</button><button class="btn luar" id="lpCsvMata">' + ik('download') + 'Papan mata (CSV)</button></div></div>';
+    kandungan(h);
+    var dgnLaporan = function (fn) { return function () { api('apiLaporanKejohanan').then(fn).catch(gagal); }; };
+    $('lpJadual').onclick = cetakJadual;
+    $('lpMata').onclick = cetakPapanMata;
+    $('lpMula').onclick = dgnLaporan(function (l) {
+      cetak('Senarai Mula', l.acara.filter(function (a) { return a.saringan.length || a.akhir.length; }).map(function (a, i) {
+        var s = a.saringan.length ? ikutKunci(a.saringan, function (x) { return x.saringan; }) : { '': a.akhir };
+        return '<div' + (i ? ' class="cetak-pecah"' : '') + '><h2>Acara ' + e(a.no) + ': ' + e(labelAcara(a)) + '</h2><p>' + e(a.tarikh ? tarikhPapar(a.tarikh) : '') + ' ' + e(a.masa) + '</p>' +
+          Object.keys(s).sort().map(function (k) { return (k ? '<h3>Saringan ' + e(k) + '</h3>' : '') + jadualCetak(s[k], a); }).join('') + '</div>';
+      }).join('') || '<p>Belum ada senarai mula.</p>');
+    });
+    $('lpBuku').onclick = dgnLaporan(function (l) {
+      cetak('Buku Keputusan', l.acara.filter(function (a) { return a.status === 'SELESAI'; }).map(function (a) {
+        return '<h2>Acara ' + e(a.no) + ': ' + e(labelAcara(a)) + '</h2>' + jadualCetak(a.akhir.slice().sort(function (x, y) { return (Number(x.kedudukan) || 99) - (Number(y.kedudukan) || 99); }), a);
+      }).join('') || '<p>Belum ada acara selesai.</p>');
+    });
+    $('lpPemenang').onclick = dgnLaporan(function (l) {
+      cetak('Senarai Pemenang', '<table><thead><tr><th>No.</th><th>Acara</th><th>Johan</th><th>Naib Johan</th><th>Ketiga</th></tr></thead><tbody>' +
+        l.acara.filter(function (a) { return a.status === 'SELESAI'; }).map(function (a) {
+          var p = function (k) { return a.akhir.filter(function (x) { return Number(x.kedudukan) === k; }).map(function (x) { return e(x.nama) + ' (' + e(x.rumah) + ') ' + e(x.keputusan); }).join('<br>') || '-'; };
+          return '<tr><td>' + e(a.no) + '</td><td><b>' + e(labelAcara(a)) + '</b></td><td>' + p(1) + '</td><td>' + p(2) + '</td><td>' + p(3) + '</td></tr>';
+        }).join('') + '</tbody></table>');
+    });
+    $('lpAtlet').onclick = dgnLaporan(function (l) {
+      var ikutRumah = {};
+      l.acara.forEach(function (a) {
+        a.daftar.concat(a.saringan, a.akhir.filter(function (x) { return !a.saringan.length; })).forEach(function (x) {
+          var o = ikutRumah[x.rumah] = ikutRumah[x.rumah] || {};
+          (x.nokp ? [x.nama] : x.ahli).forEach(function (n) { (o[n] = o[n] || []).push(a.nama + ' ' + (a.kategori || '') + a.jantina); });
+        });
+      });
+      cetak('Senarai Atlet Mengikut Rumah', Object.keys(ikutRumah).sort().map(function (ru, i) {
+        return '<div' + (i ? ' class="cetak-pecah"' : '') + '><h2>Rumah ' + e(ru) + '</h2><table><thead><tr><th>#</th><th>Nama</th><th>Acara</th></tr></thead><tbody>' +
+          Object.keys(ikutRumah[ru]).sort().map(function (n, j) { return '<tr><td>' + (j + 1) + '</td><td>' + e(n) + '</td><td>' + e(unik(ikutRumah[ru][n]).join(', ')) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+      }).join('') || '<p>Belum ada penyertaan.</p>');
+    });
+    $('lpCsv').onclick = dgnLaporan(function (l) {
+      var baris = [['No Acara', 'Acara', 'Kategori', 'Jantina', 'Pusingan', 'Saringan', 'Lorong', 'Bib', 'Nama', 'Rumah', 'Keputusan', 'Status', 'Kedudukan', 'Mata']];
+      l.acara.forEach(function (a) { a.saringan.concat(a.akhir).forEach(function (x) { baris.push([a.no, a.nama, a.kategori, a.jantina, x.pusingan, x.saringan, x.lorong, x.bib, x.nokp ? x.nama : x.nama + ' (' + x.ahli.join('; ') + ')', x.rumah, x.keputusan, x.status, x.kedudukan, x.mata]); }); });
+      muatTurunTeks('keputusan_kejohanan_' + S.kj.tet.tahun + '.csv', baris.map(function (b) { return b.map(function (v) { return '"' + String(v === undefined ? '' : v).replace(/"/g, '""') + '"'; }).join(','); }).join('\n'));
+    });
+    $('lpCsvMata').onclick = function () {
+      var baris = [['Kedudukan', 'Rumah', 'Emas', 'Perak', 'Gangsa', 'Mata Acara', 'Mata Lain', 'Jumlah']].concat(S.kj.kedudukan.map(function (x) { return [x.kedudukan, x.nama, x.emas, x.perak, x.gangsa, x.mataAcara, x.mataLain, x.jumlah]; }));
+      muatTurunTeks('papan_mata_' + S.kj.tet.tahun + '.csv', baris.map(function (b) { return b.join(','); }).join('\n'));
+    };
+  }).catch(ralatHalaman);
+};
+
+/* ================================ TETAPAN KEJOHANAN ================================ */
+HALAMAN['kj-tetapan'] = function () {
+  muatKj(true).then(function (r) {
+    var t = r.tet;
+    var h = kepalaHalaman('Tetapan Kejohanan', 'Tarikh, lokasi, jadual mata, had penyertaan, pendaftaran dan penerbitan keputusan.', 'sliders');
+    h += '<div class="grid k-2-1"><div class="kad"><h3>' + ik('sliders') + 'Tetapan Utama</h3><div class="grid-borang">' +
+      '<div class="medan"><label>Tarikh kejohanan</label><input id="ktTarikh" type="date" value="' + e(t.tarikh) + '"></div>' +
+      '<div class="medan"><label>Lokasi</label><input id="ktLokasi" value="' + e(t.lokasi) + '"></div>' +
+      '<div class="medan"><label>Mata individu (kedudukan 1, 2, 3, …)</label><input id="ktMataI" value="' + e(t.mataIndividu.join(',')) + '"></div>' +
+      '<div class="medan"><label>Mata berganti-ganti</label><input id="ktMataB" value="' + e(t.mataBerganti.join(',')) + '"></div>' +
+      '<div class="medan"><label>Had acara individu / atlet</label><input id="ktHadI" type="number" min="1" max="10" value="' + e(t.hadIndividu) + '"></div>' +
+      '<div class="medan"><label>Had acara berganti-ganti / atlet</label><input id="ktHadB" type="number" min="0" max="10" value="' + e(t.hadBerganti) + '"></div>' +
+      '<div class="medan penuh"><label class="togol"><input type="checkbox" id="ktDaftar"' + (t.pendaftaran === 'BUKA' ? ' checked' : '') + '> Buka pendaftaran atlet (Ketua/Penolong Ketua Guru Rumah boleh mendaftar)</label></div>' +
+      '<div class="medan penuh"><label class="togol"><input type="checkbox" id="ktTerbit"' + (t.terbit ? ' checked' : '') + '> Terbitkan keputusan & papan mata di Portal Murid</label></div>' +
+      '</div><div class="nota">Nama & tahun kejohanan serta kategori ditetapkan di <a href="#" onclick="pergi(\'tetapan\');return false">Tetapan Rumah Sukan</a>. Mata semua acara selesai dikira semula secara automatik jika jadual mata diubah.</div>' +
+      '<div class="aksi-modal"><button class="btn" id="ktSimpan">' + ik('check') + 'Simpan Tetapan</button></div></div>';
+    h += '<div><div class="kad"><h3>' + ik('hash') + 'No. Bib Atlet</h3><p class="nota" style="margin-top:0">Beri No. Bib kepada semua atlet berdaftar yang belum mempunyainya. Format: <b>&lt;no. rumah&gt;&lt;3 digit&gt;</b> (cth. 1001, 2015). Bib sedia ada tidak diubah.</p>' +
+      '<button class="btn luar" id="ktBib">' + ik('hash') + 'Jana No. Bib</button></div>' +
+      '<div class="kad"><h3>' + ik('info') + 'Aliran Kerja Kejohanan</h3><ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:#334155">' +
+      '<li>Tetapkan tarikh, lokasi & mata (halaman ini)</li><li>Jana / tambah acara (Acara & Jadual)</li><li>Lantik AJK & beri akses keputusan (AJK Kejohanan)</li><li>Buka pendaftaran — guru rumah daftar atlet</li><li>Tutup pendaftaran, jana No. Bib & senarai mula</li>' +
+      '<li>Hari kejohanan: masukkan keputusan, mara ke akhir</li><li>Masukkan mata lain-lain, sahkan rekod baharu</li><li>Terbitkan keputusan & cetak laporan</li></ol></div></div></div>';
+    kandungan(h);
+    $('ktSimpan').onclick = function () {
+      api('apiSimpanTetapanKejohanan', { data: { tarikh: nilaiEl('ktTarikh'), lokasi: nilaiEl('ktLokasi'), mataIndividu: nilaiEl('ktMataI'), mataBerganti: nilaiEl('ktMataB'),
+        hadIndividu: nilaiEl('ktHadI'), hadBerganti: nilaiEl('ktHadB'), pendaftaran: semakEl('ktDaftar') ? 'BUKA' : 'TUTUP', terbit: semakEl('ktTerbit') } })
+        .then(function () { selepasTulisKj('Tetapan kejohanan disimpan.'); }).catch(gagal);
+    };
+    $('ktBib').onclick = function () { api('apiJanaBib').then(function (x) { toast(x.bil + ' No. Bib baharu dijana.', 'jaya'); }).catch(gagal); };
+  }).catch(ralatHalaman);
+};
+</script>

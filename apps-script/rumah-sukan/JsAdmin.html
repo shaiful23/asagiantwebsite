@@ -1,0 +1,588 @@
+<script>
+/* =========================================================================
+ * JsAdmin — halaman pentadbiran: tetapan rumah sukan & kategori, import pukal,
+ * guru & staf AKP, murid & atlet, agihan murid, log audit.
+ * ========================================================================= */
+/* =====================================================================
+ * ADMIN — TETAPAN RUMAH SUKAN & KATEGORI
+ * ===================================================================== */
+HALAMAN.tetapan = function () {
+  muatSemulaTetapan().then(function (t) {
+    S.data.rumahDraf = t.rumah.map(function (r) { return { id: r.id, nama: r.nama, warna: r.warna, moto: r.moto }; });
+    S.data.katDraf = t.kategori.senarai.map(function (k) { return Object.assign({}, k); });
+    var h = kepalaHalaman('Tetapan Rumah Sukan', 'Tetapkan bilangan, nama dan warna rumah sukan serta kategori kejohanan.', 'flag');
+    h += '<div class="kad"><h3>' + ik('flag') + 'Bilangan & Nama Rumah Sukan</h3>' +
+      '<div class="baris-alat"><label style="font-size:13px;font-weight:600">Bilangan rumah sukan:</label><input id="bilRumah" type="number" min="2" max="' + t.hadRumah + '" value="' + t.rumah.length + '" style="min-width:80px;width:90px">' +
+      '<button class="btn luar kecil" id="btnJanaRumah">Kemas kini bilangan</button></div>' +
+      '<div class="jadual-skrol"><table><thead><tr><th>#</th><th>Warna</th><th>Nama Rumah</th><th>Moto / Slogan</th><th></th></tr></thead><tbody id="jadualRumah"></tbody></table></div>' +
+      '<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:12px"><input type="checkbox" id="kosongkanAhli"> Kosongkan ahli (murid & guru) bagi rumah yang dibuang</label>' +
+      '<div class="aksi-modal"><button class="btn" id="btnSimpanRumah">' + ik('check') + 'Simpan Rumah Sukan</button></div></div>';
+    h += '<div class="kad"><h3>' + ik('sliders') + 'Tetapan Kejohanan & Kategori</h3><div class="grid-borang">' +
+      '<div class="medan"><label>Tahun kejohanan</label><input id="tetTahun" type="number" value="' + e(t.tahun) + '"></div>' +
+      '<div class="medan"><label>Nama kejohanan</label><input id="tetNama" value="' + e(t.namaKejohanan) + '"></div>' +
+      '<div class="medan penuh"><label>Kategori ditentukan mengikut</label><select id="tetMod">' + pilihan([{ v: 'UMUR', l: 'Umur (tahun kejohanan − tahun lahir daripada No. KP)' }, { v: 'TINGKATAN', l: 'Tingkatan' }], t.kategori.mod) + '</select></div></div>' +
+      '<div class="jadual-skrol" style="margin-top:12px"><table><thead><tr><th>Kod</th><th>Nama Kategori</th><th class="kUmur">Umur Min</th><th class="kUmur">Umur Maks</th><th class="kTing">Tingkatan (pisah koma)</th><th></th></tr></thead><tbody id="jadualKat"></tbody></table></div>' +
+      '<div class="aksi-modal" style="justify-content:space-between"><button class="btn luar kecil" id="btnTambahKat">' + ik('plus', 'kecil') + 'Tambah kategori</button><button class="btn" id="btnSimpanTet">' + ik('check') + 'Simpan Tetapan</button></div></div>';
+    kandungan(h);
+    lukisRumahDraf(); lukisKatDraf();
+    $('btnJanaRumah').onclick = function () {
+      simpanDrafRumah();
+      var n = Math.max(2, Math.min(t.hadRumah, Number(nilaiEl('bilRumah')) || 2));
+      var warna = ['#dc2626', '#2563eb', '#16a34a', '#eab308', '#9333ea', '#ea580c', '#0891b2', '#db2777', '#4b5563', '#65a30d', '#0f766e', '#7c2d12'];
+      while (S.data.rumahDraf.length < n) S.data.rumahDraf.push({ id: '', nama: '', warna: warna[S.data.rumahDraf.length % warna.length], moto: '' });
+      if (S.data.rumahDraf.length > n) S.data.rumahDraf = S.data.rumahDraf.slice(0, n);
+      lukisRumahDraf();
+    };
+    $('btnSimpanRumah').onclick = function () {
+      simpanDrafRumah();
+      api('apiSimpanRumah', { rumah: S.data.rumahDraf, kosongkanAhli: semakEl('kosongkanAhli') }).then(function (r) {
+        S.tet.rumah = r.rumah; toast('Rumah sukan disimpan.', 'jaya'); HALAMAN.tetapan();
+      }).catch(gagal);
+    };
+    $('tetMod').onchange = function () { simpanDrafKat(); lukisKatDraf(); };
+    $('btnTambahKat').onclick = function () { simpanDrafKat(); S.data.katDraf.push({ kod: '', nama: '', umurMin: 0, umurMax: 99, tingkatan: '' }); lukisKatDraf(); };
+    $('btnSimpanTet').onclick = function () {
+      simpanDrafKat();
+      api('apiSimpanTetapan', { tahun: nilaiEl('tetTahun'), namaKejohanan: nilaiEl('tetNama'), modKategori: nilaiEl('tetMod'), kategori: S.data.katDraf })
+        .then(function () { toast('Tetapan disimpan.', 'jaya'); HALAMAN.tetapan(); }).catch(gagal);
+    };
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+function lukisRumahDraf() {
+  $('jadualRumah').innerHTML = S.data.rumahDraf.map(function (r, i) {
+    return '<tr><td>' + (i + 1) + '</td><td><input type="color" data-w="' + i + '" value="' + e(r.warna) + '"></td>' +
+      '<td><input data-n="' + i + '" value="' + e(r.nama) + '" placeholder="cth. MERAH / NAMA TOKOH"></td><td><input data-m="' + i + '" value="' + e(r.moto) + '"></td>' +
+      '<td><button class="btn merah kecil" data-buang="' + i + '" title="Buang">' + ik('trash', 'kecil') + '</button></td></tr>';
+  }).join('');
+  $('bilRumah').value = S.data.rumahDraf.length;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-buang]'), function (b) {
+    b.onclick = function () {
+      simpanDrafRumah();
+      if (S.data.rumahDraf.length <= 2) { toast('Sekurang-kurangnya 2 rumah sukan.', 'gagal'); return; }
+      S.data.rumahDraf.splice(Number(b.getAttribute('data-buang')), 1); lukisRumahDraf();
+    };
+  });
+}
+function simpanDrafRumah() {
+  S.data.rumahDraf.forEach(function (r, i) {
+    var w = document.querySelector('[data-w="' + i + '"]'), n = document.querySelector('[data-n="' + i + '"]'), m = document.querySelector('[data-m="' + i + '"]');
+    if (w) r.warna = w.value; if (n) r.nama = n.value.toUpperCase(); if (m) r.moto = m.value;
+  });
+}
+function lukisKatDraf() {
+  var umur = nilaiEl('tetMod') !== 'TINGKATAN';
+  $('jadualKat').innerHTML = S.data.katDraf.map(function (k, i) {
+    return '<tr><td><input data-kk="' + i + '" value="' + e(k.kod) + '" style="width:80px"></td><td><input data-kn="' + i + '" value="' + e(k.nama) + '"></td>' +
+      '<td class="kUmur"><input type="number" data-kmin="' + i + '" value="' + e(k.umurMin) + '" style="width:80px"></td><td class="kUmur"><input type="number" data-kmax="' + i + '" value="' + e(k.umurMax) + '" style="width:80px"></td>' +
+      '<td class="kTing"><input data-kt="' + i + '" value="' + e(k.tingkatan) + '" placeholder="cth. 1,2,3"></td><td><button class="btn merah kecil" data-kbuang="' + i + '">' + ik('trash', 'kecil') + '</button></td></tr>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('.kUmur'), function (x) { x.style.display = umur ? '' : 'none'; });
+  Array.prototype.forEach.call(document.querySelectorAll('.kTing'), function (x) { x.style.display = umur ? 'none' : ''; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-kbuang]'), function (b) {
+    b.onclick = function () { simpanDrafKat(); S.data.katDraf.splice(Number(b.getAttribute('data-kbuang')), 1); lukisKatDraf(); };
+  });
+}
+function simpanDrafKat() {
+  S.data.katDraf.forEach(function (k, i) {
+    var g = function (a) { var el = document.querySelector('[data-' + a + '="' + i + '"]'); return el ? el.value : ''; };
+    k.kod = g('kk').toUpperCase(); k.nama = g('kn'); k.umurMin = g('kmin'); k.umurMax = g('kmax'); k.tingkatan = g('kt');
+  });
+}
+
+/* =====================================================================
+ * IMPORT PUKAL (CSV / Excel / tampal dari Excel) — dikongsi Staf & Murid
+ * ===================================================================== */
+var ALIAS_MURID = {
+  nokp: ['NOKP', 'NO KP', 'NO KAD PENGENALAN', 'KAD PENGENALAN', 'MYKAD', 'NO MYKAD', 'IC', 'NO IC', 'KP'],
+  nama: ['NAMA', 'NAMA MURID', 'NAMA PENUH', 'NAMA PELAJAR'],
+  jantina: ['JANTINA', 'GENDER', 'L/P', 'JANTINA (L/P)'],
+  tingkatan: ['TINGKATAN', 'TING', 'FORM'],
+  kelas: ['KELAS', 'NAMA KELAS', 'CLASS'],
+  kaum: ['KAUM', 'BANGSA'],
+  agama: ['AGAMA'],
+  tarikhLahir: ['TARIKH LAHIR', 'TARIKHLAHIR', 'DOB'],
+  noTelPenjaga: ['NO TEL PENJAGA', 'TELEFON PENJAGA', 'NO TELEFON PENJAGA', 'NO TELEFON', 'NO TEL', 'TELEFON'],
+  atlet: ['ATLET', 'ATLIT'],
+  acara: ['ACARA', 'ACARA ATLET']
+};
+var ALIAS_STAF = {
+  nokp: ALIAS_MURID.nokp, nama: ['NAMA', 'NAMA GURU', 'NAMA PENUH', 'NAMA STAF'],
+  kategori: ['KATEGORI', 'JENIS', 'GURU/AKP'], jantina: ALIAS_MURID.jantina,
+  jawatan: ['JAWATAN', 'GRED', 'JAWATAN/GRED'], telefon: ['TELEFON', 'NO TELEFON', 'NO TEL', 'NO HP'], emel: ['EMEL', 'EMAIL', 'E-MEL']
+};
+var TEMPLAT_MURID = 'NO KP,NAMA,JANTINA,TINGKATAN,KELAS,KAUM,AGAMA,TARIKH LAHIR,NO TEL PENJAGA,ATLET,ACARA\n' +
+  '080101130123,CONTOH NAMA MURID,LELAKI,1,BESTARI,MELAYU,ISLAM,2008-01-01,0123456789,YA,100M\n';
+var TEMPLAT_STAF = 'NO KP,NAMA,KATEGORI,JANTINA,JAWATAN,TELEFON,EMEL\n800101135001,CONTOH NAMA GURU,GURU,LELAKI,DG44,0123456789,guru@moe.gov.my\n';
+
+function normalHeader(h) { return String(h || '').toUpperCase().replace(/\./g, '').replace(/[_\s]+/g, ' ').trim(); }
+
+/* Penghurai CSV/TSV ringkas yang menyokong petikan. */
+function huraiTeksJadual(teks) {
+  teks = String(teks || '').replace(/^﻿/, '');
+  var baris1 = teks.split(/\r?\n/)[0] || '';
+  var pemisah = baris1.indexOf('\t') !== -1 ? '\t' : (baris1.split(';').length > baris1.split(',').length ? ';' : ',');
+  var hasil = [], baris = [], sel = '', petik = false;
+  for (var i = 0; i < teks.length; i++) {
+    var c = teks[i];
+    if (petik) {
+      if (c === '"') { if (teks[i + 1] === '"') { sel += '"'; i++; } else petik = false; } else sel += c;
+    } else if (c === '"') petik = true;
+    else if (c === pemisah) { baris.push(sel); sel = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && teks[i + 1] === '\n') i++; baris.push(sel); hasil.push(baris); baris = []; sel = ''; }
+    else sel += c;
+  }
+  if (sel !== '' || baris.length) { baris.push(sel); hasil.push(baris); }
+  return hasil.filter(function (b) { return b.some(function (x) { return String(x).trim() !== ''; }); });
+}
+
+/* Tukar jadual (baris pertama = header) kepada objek mengikut alias. */
+function petaJadual(jadual, alias) {
+  if (jadual.length < 2) return { ralat: 'Data mesti mempunyai baris header dan sekurang-kurangnya satu baris data.' };
+  var header = jadual[0].map(normalHeader), indeks = {};
+  Object.keys(alias).forEach(function (k) {
+    var al = alias[k].map(normalHeader);
+    for (var i = 0; i < header.length; i++) { if (al.indexOf(header[i]) !== -1) { indeks[k] = i; break; } }
+  });
+  if (indeks.nokp === undefined || indeks.nama === undefined) return { ralat: 'Lajur "NO KP" dan "NAMA" diperlukan. Header dijumpai: ' + jadual[0].join(', ') };
+  var baris = jadual.slice(1).map(function (b) {
+    var o = {};
+    Object.keys(indeks).forEach(function (k) { o[k] = String(b[indeks[k]] === undefined ? '' : b[indeks[k]]).trim(); });
+    return o;
+  });
+  return { baris: baris, lajur: Object.keys(indeks) };
+}
+
+function muatTurunTeks(namaFail, teks) {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + teks], { type: 'text/csv;charset=utf-8' }));
+  a.download = namaFail; document.body.appendChild(a); a.click(); a.remove();
+}
+
+var _xlsxMuat = null;
+function muatXlsx() {
+  if (window.XLSX) return Promise.resolve();
+  if (_xlsxMuat) return _xlsxMuat;
+  _xlsxMuat = new Promise(function (res, rej) {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = res; s.onerror = function () { _xlsxMuat = null; rej(new Error('Gagal memuatkan pembaca Excel. Simpan fail sebagai CSV atau tampal data.')); };
+    document.head.appendChild(s);
+  });
+  return _xlsxMuat;
+}
+function bacaFailJadual(fail) {
+  return new Promise(function (res, rej) {
+    var nama = fail.name.toLowerCase();
+    var pembaca = new FileReader();
+    if (/\.(xlsx|xls)$/.test(nama)) {
+      muatXlsx().then(function () {
+        pembaca.onload = function () {
+          try {
+            var wb = XLSX.read(new Uint8Array(pembaca.result), { type: 'array', raw: false });
+            res(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' })
+              .filter(function (b) { return b.some(function (x) { return String(x).trim() !== ''; }); }));
+          } catch (x) { rej(x); }
+        };
+        pembaca.readAsArrayBuffer(fail);
+      }).catch(rej);
+    } else {
+      pembaca.onload = function () { res(huraiTeksJadual(pembaca.result)); };
+      pembaca.readAsText(fail, 'utf-8');
+    }
+  });
+}
+
+/* Modal import generik. jenis = 'MURID' | 'STAF' */
+function bukaImport(jenis, selepas) {
+  var murid = jenis === 'MURID';
+  var alias = murid ? ALIAS_MURID : ALIAS_STAF;
+  var m = bukaModal('<h3>' + ik('upload') + 'Import Pukal ' + (murid ? 'Murid' : 'Guru & Staf AKP') + '</h3>' +
+    '<div class="info-kotak">Baris pertama mesti header. Lajur dikenal pasti mengikut nama header (susunan bebas). ' +
+    (murid ? 'Lajur: <b>NO KP, NAMA</b>, JANTINA, <b>TINGKATAN, KELAS</b>, KAUM, AGAMA, TARIKH LAHIR, NO TEL PENJAGA, ATLET (YA/TIDAK), ACARA. Jika tiada lajur JANTINA, jantina diteka daripada digit akhir No. KP.'
+      : 'Lajur: <b>NO KP, NAMA</b>, KATEGORI (GURU/AKP), JANTINA, JAWATAN, TELEFON, EMEL.') +
+    ' Akaun baharu menggunakan kata laluan lalai (6 digit terakhir No. KP). Kata laluan' + (murid ? ' dan rumah sukan' : ', rumah & peranan') + ' rekod sedia ada tidak diubah.</div>' +
+    '<div class="baris-alat"><button class="btn luar kecil" data-x="templat">Muat turun templat CSV</button><input type="file" id="impFail" accept=".csv,.txt,.tsv,.xlsx,.xls" style="width:auto"></div>' +
+    '<div class="medan"><label>…atau tampal terus dari Excel / Google Sheets (termasuk header)</label><textarea id="impTeks" rows="6" placeholder="NO KP&#9;NAMA&#9;JANTINA&#9;TINGKATAN&#9;KELAS…"></textarea></div>' +
+    (murid ? '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="impNyahaktif"> Tandakan murid AKTIF yang <b>tiada</b> dalam senarai ini sebagai TIDAK AKTIF (cth. murid berpindah / tamat)</label>' : '') +
+    '<div id="impPratonton" style="margin-top:12px"></div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Tutup</button><button class="btn hijau" data-x="s" disabled>Import</button></div>');
+  var data = null;
+  var proses = function (jadual) {
+    var r = petaJadual(jadual, alias);
+    if (r.ralat) { data = null; $('impPratonton').innerHTML = '<div class="amaran-kotak">' + e(r.ralat) + '</div>'; m.querySelector('[data-x=s]').disabled = true; return; }
+    if (murid) r.baris.forEach(function (b) {   // "1 BESTARI" dalam lajur KELAS tanpa lajur TINGKATAN
+      if (!b.tingkatan) { var x = String(b.kelas || '').match(/^(\d)\s*[-\s]?\s*(.+)$/); if (x) { b.tingkatan = x[1]; b.kelas = x[2]; } }
+    });
+    data = r;
+    var contoh = r.baris.slice(0, 5);
+    $('impPratonton').innerHTML = '<div class="jaya-kotak">' + r.baris.length + ' baris dikesan. Lajur dikenal pasti: <b>' + e(r.lajur.join(', ')) + '</b></div>' +
+      '<div class="jadual-skrol"><table><thead><tr>' + r.lajur.map(function (k) { return '<th>' + e(k) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      contoh.map(function (b) { return '<tr>' + r.lajur.map(function (k) { return '<td>' + e(b[k]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>' +
+      (r.baris.length > 5 ? '<div class="nota">…dan ' + (r.baris.length - 5) + ' baris lagi.</div>' : '');
+    m.querySelector('[data-x=s]').disabled = false;
+  };
+  m.querySelector('[data-x=templat]').onclick = function () { muatTurunTeks(murid ? 'templat_murid.csv' : 'templat_staf.csv', murid ? TEMPLAT_MURID : TEMPLAT_STAF); };
+  $('impFail').onchange = function () {
+    var f = this.files[0]; if (!f) return;
+    $('impTeks').value = '';
+    bacaFailJadual(f).then(proses).catch(function (er) { gagal(er); });
+  };
+  $('impTeks').oninput = function () { if (this.value.trim()) proses(huraiTeksJadual(this.value)); };
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); if (selepas) selepas(); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    if (!data) return;
+    var param = { baris: data.baris };
+    if (murid) { param.adaLajurAtlet = data.lajur.indexOf('atlet') !== -1; param.nyahaktifLain = semakEl('impNyahaktif'); }
+    var jalan = function () {
+      api(murid ? 'apiImportMurid' : 'apiImportStaf', param).then(function (r) {
+        $('impPratonton').innerHTML = '<div class="jaya-kotak">Import selesai: <b>' + r.ditambah + '</b> baharu, <b>' + r.dikemaskini + '</b> dikemaskini' +
+          (r.dinyahaktif !== undefined ? ', <b>' + r.dinyahaktif + '</b> dinyahaktif' : '') + (r.bilRalat ? ', <b>' + r.bilRalat + '</b> baris ditolak' : '') + '.</div>' +
+          (r.ralat.length ? '<div class="ralat-senarai">' + r.ralat.map(e).join('<br>') + (r.bilRalat > r.ralat.length ? '<br>…' : '') + '</div>' : '');
+        m.querySelector('[data-x=s]').disabled = true; data = null;
+        toast('Import selesai.', 'jaya');
+      }).catch(gagal);
+    };
+    if (param.nyahaktifLain) sahkan('Semua murid aktif yang tiada dalam fail ini akan ditanda TIDAK AKTIF. Teruskan?', jalan); else jalan();
+  };
+}
+
+/* =====================================================================
+ * ADMIN — GURU & STAF AKP
+ * ===================================================================== */
+HALAMAN.staf = function () {
+  S.ubah.staf = {};
+  api('apiSenaraiStaf').then(function (r) {
+    S.data.staf = r.senarai;
+    var h = kepalaHalaman('Guru & Staf AKP', 'Tetapkan rumah sukan dan peranan setiap guru & staf AKP. Perubahan dalam jadual disimpan sekali gus.', 'user') +
+      '<div class="baris-alat"><input id="sfCari" placeholder="Cari nama / No. KP…"><select id="sfKat">' + pilihan(['GURU', 'AKP'], '', 'Semua kategori') + '</select>' +
+      '<select id="sfRumah">' + pilihanRumah('', 'Semua rumah') + '<option value="-">Belum ditetapkan</option></select>' +
+      '<div class="rapat"><button class="btn luar" id="sfAgih">' + ik('shuffle') + 'Agih Automatik</button><button class="btn luar" id="sfImport">' + ik('upload') + 'Import Pukal</button><button class="btn" id="sfTambah">' + ik('plus') + 'Tambah</button></div></div>' +
+      '<div class="kad rapat"><div class="jadual-skrol"><table><thead><tr><th>Nama / No. KP</th><th>Kategori</th><th>Rumah Sukan</th><th>Peranan Rumah</th><th>AJK</th><th>Status</th><th></th></tr></thead><tbody id="sfJadual"></tbody></table></div></div>' +
+      '<div class="aksi-modal kad" style="position:sticky;bottom:10px;padding:10px 14px;margin-top:-6px;z-index:5"><span class="nota" id="sfBilUbah" style="margin-right:auto"></span><button class="btn luar" id="sfBatal">Batal Perubahan</button><button class="btn hijau" id="sfSimpan" disabled>Simpan Perubahan</button></div>';
+    kandungan(h);
+    ['sfCari', 'sfKat', 'sfRumah'].forEach(function (id) { $(id).oninput = lukisStaf; });
+    $('sfTambah').onclick = function () { borangStaf(null); };
+    $('sfImport').onclick = function () { bukaImport('STAF', HALAMAN.staf); };
+    $('sfBatal').onclick = function () { S.ubah.staf = {}; lukisStaf(); };
+    $('sfSimpan').onclick = simpanUbahStaf;
+    $('sfAgih').onclick = function () {
+      var m = bukaModal('<h3>' + ik('shuffle') + 'Agih Guru Automatik</h3><p style="font-size:13px">Guru/staf AKTIF yang <b>belum</b> mempunyai rumah sukan akan diagih sama rata ke semua rumah (seimbang mengikut kategori & jantina) dengan peranan <b>Guru Rumah</b>. Ketua & Penolong Ketua ditetapkan secara manual.</p>' +
+        '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="agihAkp" checked> Sertakan staf AKP</label>' +
+        '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Agih</button></div>', true);
+      m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+      m.querySelector('[data-x=s]').onclick = function () {
+        api('apiAgihStafAuto', { sertaAkp: semakEl('agihAkp') }).then(function (r) { tutupModal(m); toast(r.bil + ' guru/staf diagih.', 'jaya'); HALAMAN.staf(); }).catch(gagal);
+      };
+    };
+    lukisStaf();
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+function nilaiStaf(s) { var u = S.ubah.staf[s.nokp]; return { rumahId: u ? u.rumahId : s.rumahId, perananRumah: u ? u.perananRumah : s.perananRumah }; }
+function lukisStaf() {
+  var cari = nilaiEl('sfCari').toUpperCase(), kat = nilaiEl('sfKat'), ru = nilaiEl('sfRumah');
+  var s = S.data.staf.filter(function (x) {
+    var v = nilaiStaf(x);
+    return (!cari || x.nama.toUpperCase().indexOf(cari) !== -1 || x.nokp.indexOf(cari) !== -1) && (!kat || x.kategori === kat) &&
+      (!ru || (ru === '-' ? !v.rumahId : v.rumahId === ru));
+  });
+  var opsPeranan = Object.keys(NAMA_PERANAN_RUMAH).map(function (k) { return { v: k, l: NAMA_PERANAN_RUMAH[k] }; });
+  $('sfJadual').innerHTML = s.length ? s.map(function (x) {
+    var v = nilaiStaf(x), ub = !!S.ubah.staf[x.nokp];
+    return '<tr' + (ub ? ' class="berubah"' : '') + '><td><b>' + e(x.nama) + '</b>' + (x.admin ? ' <span class="lencana merah">ADMIN</span>' : '') + '<div class="nota" style="margin:0">' + e(kpPapar(x.nokp)) + (x.jawatan ? ' · ' + e(x.jawatan) : '') + '</div></td>' +
+      '<td>' + e(x.kategori) + '</td>' +
+      '<td><select data-sr="' + x.nokp + '" style="border-left:6px solid ' + e((rumahIkutId(v.rumahId) || {}).warna || '#e2e8f0') + '">' + pilihanRumah(v.rumahId, '— tiada —') + '</select></td>' +
+      '<td><select data-sp="' + x.nokp + '"' + (v.rumahId ? '' : ' disabled') + '>' + pilihan(opsPeranan, v.perananRumah || 'GURU_RUMAH') + '</select></td>' +
+      '<td>' + x.ajk.map(function (a) { return '<span class="lencana ' + (a.peranan === 'KETUA_AJK' ? 'kuning' : 'biru') + '">' + e(a.ajk) + (a.peranan === 'KETUA_AJK' ? ' (K)' : '') + '</span>'; }).join(' ') + '</td>' +
+      '<td>' + (x.status === 'AKTIF' ? '<span class="lencana hijau">AKTIF</span>' : '<span class="lencana">' + e(x.status) + '</span>') + (x.mestiTukar ? '<div class="nota" style="margin:2px 0 0">KW lalai</div>' : '') + '</td>' +
+      '<td style="white-space:nowrap"><button class="btn luar kecil" data-ss="' + x.nokp + '">Sunting</button> <button class="btn kelabu kecil" data-sk="' + x.nokp + '">Reset KW</button></td></tr>';
+  }).join('') : '<tr><td colspan="7" class="kosong">Tiada rekod. Gunakan Import Pukal atau + Tambah.</td></tr>';
+  var n = Object.keys(S.ubah.staf).length;
+  $('sfBilUbah').textContent = s.length + ' dipaparkan daripada ' + S.data.staf.length + (n ? ' · ' + n + ' perubahan belum disimpan' : '');
+  $('sfSimpan').disabled = !n;
+  var tanda = function (nokp, rumahId, peranan) {
+    var x = S.data.staf.filter(function (y) { return y.nokp === nokp; })[0];
+    if (rumahId === x.rumahId && (!rumahId || peranan === x.perananRumah)) delete S.ubah.staf[nokp];
+    else S.ubah.staf[nokp] = { nokp: nokp, rumahId: rumahId, perananRumah: rumahId ? peranan : '' };
+    lukisStaf();
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-sr]'), function (el) {
+    el.onchange = function () { var k = el.getAttribute('data-sr'); var p = document.querySelector('[data-sp="' + k + '"]').value || 'GURU_RUMAH'; tanda(k, el.value, p); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-sp]'), function (el) {
+    el.onchange = function () { var k = el.getAttribute('data-sp'); tanda(k, document.querySelector('[data-sr="' + k + '"]').value, el.value); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ss]'), function (b) { b.onclick = function () { borangStaf(b.getAttribute('data-ss')); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-sk]'), function (b) { b.onclick = function () { resetKW('STAF', b.getAttribute('data-sk')); }; });
+}
+function simpanUbahStaf() {
+  var perubahan = Object.keys(S.ubah.staf).map(function (k) { return S.ubah.staf[k]; });
+  api('apiTetapkanRumahStaf', { perubahan: perubahan }).then(function (r) { S.ubah.staf = {}; toast(r.bil + ' guru/staf dikemaskini.', 'jaya'); HALAMAN.staf(); }).catch(gagal);
+}
+function resetKW(jenis, nokp) {
+  sahkan('Set semula kata laluan akaun ' + kpPapar(nokp) + ' kepada 6 digit terakhir No. KP? Pengguna akan dipaksa menukar kata laluan semasa log masuk.', function () {
+    api('apiResetPassword', { jenis: jenis, nokp: nokp }).then(function (r) { toast(r.mesej, 'jaya'); }).catch(gagal);
+  }, 'Reset');
+}
+function borangStaf(nokp) {
+  var x = nokp ? S.data.staf.filter(function (y) { return y.nokp === nokp; })[0] : { nokp: '', nama: '', kategori: 'GURU', jantina: '', jawatan: '', telefon: '', emel: '', admin: false, rumahId: '', perananRumah: '', status: 'AKTIF' };
+  var opsPeranan = Object.keys(NAMA_PERANAN_RUMAH).map(function (k) { return { v: k, l: NAMA_PERANAN_RUMAH[k] }; });
+  var m = bukaModal('<h3>' + (nokp ? 'Sunting' : 'Tambah') + ' Guru / Staf</h3><div class="grid-borang">' +
+    '<div class="medan"><label>No. KP</label><input id="bsKP" value="' + e(x.nokp) + '"' + (nokp ? ' disabled' : '') + ' inputmode="numeric"></div>' +
+    '<div class="medan"><label>Nama penuh</label><input id="bsNama" value="' + e(x.nama) + '"></div>' +
+    '<div class="medan"><label>Kategori</label><select id="bsKat">' + pilihan([{ v: 'GURU', l: 'Guru' }, { v: 'AKP', l: 'Staf AKP' }], x.kategori) + '</select></div>' +
+    '<div class="medan"><label>Jantina</label><select id="bsJan">' + pilihan([{ v: 'LELAKI', l: 'Lelaki' }, { v: 'PEREMPUAN', l: 'Perempuan' }], x.jantina, '(ikut No. KP)') + '</select></div>' +
+    '<div class="medan"><label>Jawatan / Gred</label><input id="bsJaw" value="' + e(x.jawatan) + '"></div>' +
+    '<div class="medan"><label>Telefon</label><input id="bsTel" value="' + e(x.telefon) + '"></div>' +
+    '<div class="medan"><label>Emel</label><input id="bsEmel" value="' + e(x.emel) + '"></div>' +
+    '<div class="medan"><label>Status</label><select id="bsStatus">' + pilihan(['AKTIF', 'TIDAK AKTIF'], x.status) + '</select></div>' +
+    '<div class="medan"><label>Rumah sukan</label><select id="bsRumah">' + pilihanRumah(x.rumahId, '— tiada —') + '</select></div>' +
+    '<div class="medan"><label>Peranan rumah</label><select id="bsPeranan">' + pilihan(opsPeranan, x.perananRumah || 'GURU_RUMAH') + '</select></div>' +
+    '<label class="penuh" style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="bsAdmin"' + (x.admin ? ' checked' : '') + '> Beri akses <b>Admin</b> sistem rumah sukan</label>' +
+    '</div><div class="aksi-modal">' + (nokp ? '<button class="btn merah" data-x="p" style="margin-right:auto">Padam</button>' : '') +
+    '<button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>');
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    api('apiSimpanStaf', { data: {
+      baharu: !nokp, nokp: nokp || nilaiEl('bsKP').replace(/\D/g, ''), nama: nilaiEl('bsNama'), kategori: nilaiEl('bsKat'), jantina: nilaiEl('bsJan'),
+      jawatan: nilaiEl('bsJaw'), telefon: nilaiEl('bsTel'), emel: nilaiEl('bsEmel'), status: nilaiEl('bsStatus'),
+      rumahId: nilaiEl('bsRumah'), perananRumah: nilaiEl('bsPeranan'), admin: semakEl('bsAdmin') } })
+      .then(function () { tutupModal(m); toast('Rekod disimpan.', 'jaya'); HALAMAN.staf(); }).catch(gagal);
+  };
+  if (nokp) m.querySelector('[data-x=p]').onclick = function () {
+    sahkan('Padam ' + x.nama + '? Lantikan AJK staf ini turut dipadam. (Pilihan lain: tukar status kepada TIDAK AKTIF.)', function () {
+      api('apiPadamStaf', { nokp: nokp }).then(function () { tutupModal(m); toast('Rekod dipadam.', 'jaya'); HALAMAN.staf(); }).catch(gagal);
+    }, 'Padam');
+  };
+}
+
+/* =====================================================================
+ * ADMIN — MURID & ATLET
+ * ===================================================================== */
+HALAMAN.murid = function () {
+  S.ubah.atlet = {};
+  S.data.halMurid = 1;
+  api('apiSenaraiMurid').then(function (r) {
+    S.data.murid = r.senarai;
+    var ting = unik(r.senarai.map(function (m) { return m.tingkatan; })).sort(susunKelas);
+    var h = kepalaHalaman('Murid & Atlet', 'Import senarai murid, tanda atlet (beserta acara) dan tetapkan rumah secara manual jika perlu.', 'users') +
+      '<div class="baris-alat"><input id="mdCari" placeholder="Cari nama / No. KP…"><select id="mdTing">' + pilihan(ting.map(function (t) { return { v: t, l: 'Tingkatan ' + t }; }), '', 'Semua tingkatan') + '</select>' +
+      '<select id="mdKelas"></select><select id="mdRumah">' + pilihanRumah('', 'Semua rumah') + '<option value="-">Belum ditetapkan</option></select>' +
+      '<select id="mdKat">' + pilihan(S.tet.kategori.senarai.map(function (k) { return { v: k.kod, l: k.nama }; }), '', 'Semua kategori') + '<option value="-">Kategori tidak ditentukan</option></select>' +
+      '<select id="mdJan">' + pilihan([{ v: 'LELAKI', l: 'Lelaki' }, { v: 'PEREMPUAN', l: 'Perempuan' }], '', 'Semua jantina') + '</select>' +
+      '<select id="mdAtlet">' + pilihan([{ v: 'YA', l: 'Atlet sahaja' }, { v: 'TIDAK', l: 'Bukan atlet' }], '', 'Atlet & bukan') + '</select>' +
+      '<select id="mdStatus">' + pilihan([{ v: 'AKTIF', l: 'Aktif' }, { v: 'TIDAK AKTIF', l: 'Tidak aktif' }], 'AKTIF', 'Semua status') + '</select>' +
+      '<div class="rapat"><button class="btn luar" id="mdImport">' + ik('upload') + 'Import Pukal</button><button class="btn" id="mdTambah">' + ik('plus') + 'Tambah</button></div></div>' +
+      '<div class="info-kotak">Tandakan kotak <b>Atlet</b> dan isi acara (cth. 100M, LOMPAT JAUH) kemudian tekan <b>Simpan Atlet</b>. Atlet akan diagih sama rata ke semua rumah mengikut kategori & jantina semasa Agihan. Ikon 🔒 = rumah ditetapkan manual (tidak dipindah oleh agihan).</div>' +
+      '<div class="kad rapat"><div class="jadual-skrol"><table><thead><tr><th>Nama / No. KP</th><th>Kelas</th><th class="c">J</th><th>Kategori</th><th class="c">Atlet</th><th>Acara</th><th>Rumah</th><th></th></tr></thead><tbody id="mdJadual"></tbody></table></div>' +
+      '<div class="pager" style="padding:10px 12px"><span id="mdInfo"></span><div><button class="btn luar kecil" id="mdSblm">‹ Sebelum</button><button class="btn luar kecil" id="mdSlps">Seterusnya ›</button></div></div></div>' +
+      '<div class="aksi-modal kad" style="position:sticky;bottom:10px;padding:10px 14px;margin-top:-6px;z-index:5"><button class="btn luar kecil" id="mdTandaSemua" style="margin-right:auto">Tanda semua dipapar sebagai atlet</button><span class="nota" id="mdBilUbah"></span><button class="btn luar" id="mdBatal">Batal</button><button class="btn hijau" id="mdSimpan" disabled>Simpan Atlet</button></div>';
+    kandungan(h);
+    var kemasKelas = function () {
+      var t = nilaiEl('mdTing');
+      var kl = unik(S.data.murid.filter(function (m) { return !t || m.tingkatan === t; }).map(function (m) { return m.kunciKelas; })).sort(susunKelas);
+      $('mdKelas').innerHTML = pilihan(kl, '', 'Semua kelas');
+    };
+    kemasKelas();
+    $('mdTing').onchange = function () { kemasKelas(); S.data.halMurid = 1; lukisMurid(); };
+    ['mdCari', 'mdKelas', 'mdRumah', 'mdKat', 'mdJan', 'mdAtlet', 'mdStatus'].forEach(function (id) { $(id).oninput = function () { S.data.halMurid = 1; lukisMurid(); }; });
+    $('mdSblm').onclick = function () { S.data.halMurid--; lukisMurid(); };
+    $('mdSlps').onclick = function () { S.data.halMurid++; lukisMurid(); };
+    $('mdImport').onclick = function () { bukaImport('MURID', HALAMAN.murid); };
+    $('mdTambah').onclick = function () { borangMurid(null); };
+    $('mdBatal').onclick = function () { S.ubah.atlet = {}; lukisMurid(); };
+    $('mdTandaSemua').onclick = function () {
+      tapisMurid().forEach(function (m) { if (!m.atlet) S.ubah.atlet[m.nokp] = { nokp: m.nokp, atlet: true, acara: m.acara }; else if (S.ubah.atlet[m.nokp] && !S.ubah.atlet[m.nokp].atlet) delete S.ubah.atlet[m.nokp]; });
+      lukisMurid();
+    };
+    $('mdSimpan').onclick = function () {
+      var perubahan = Object.keys(S.ubah.atlet).map(function (k) { return S.ubah.atlet[k]; });
+      api('apiSimpanAtlet', { perubahan: perubahan }).then(function (r) {
+        S.data.murid.forEach(function (m) { var u = S.ubah.atlet[m.nokp]; if (u) { m.atlet = u.atlet; m.acara = u.atlet ? u.acara.toUpperCase() : ''; } });
+        S.ubah.atlet = {}; toast(r.bil + ' murid dikemaskini.', 'jaya'); lukisMurid();
+      }).catch(gagal);
+    };
+    lukisMurid();
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+function nilaiAtlet(m) { var u = S.ubah.atlet[m.nokp]; return u ? u : { atlet: m.atlet, acara: m.acara }; }
+function tapisMurid() {
+  var cari = nilaiEl('mdCari').toUpperCase(), t = nilaiEl('mdTing'), kl = nilaiEl('mdKelas'), ru = nilaiEl('mdRumah'), kat = nilaiEl('mdKat'),
+    jan = nilaiEl('mdJan'), at = nilaiEl('mdAtlet'), st = nilaiEl('mdStatus');
+  return S.data.murid.filter(function (m) {
+    var a = nilaiAtlet(m);
+    return (!cari || m.nama.toUpperCase().indexOf(cari) !== -1 || m.nokp.indexOf(cari) !== -1) && (!t || m.tingkatan === t) && (!kl || m.kunciKelas === kl) &&
+      (!ru || (ru === '-' ? !m.rumahId : m.rumahId === ru)) && (!kat || (kat === '-' ? !m.kategori : m.kategori === kat)) &&
+      (!jan || m.jantina === jan) && (!at || (at === 'YA') === !!a.atlet) && (!st || m.status === st);
+  });
+}
+function lukisMurid() {
+  var s = tapisMurid(), saiz = 50;
+  var jh = Math.max(1, Math.ceil(s.length / saiz));
+  S.data.halMurid = Math.max(1, Math.min(jh, S.data.halMurid));
+  var hal = s.slice((S.data.halMurid - 1) * saiz, S.data.halMurid * saiz);
+  $('mdJadual').innerHTML = hal.length ? hal.map(function (m) {
+    var a = nilaiAtlet(m), ub = !!S.ubah.atlet[m.nokp], r = rumahIkutId(m.rumahId);
+    return '<tr' + (ub ? ' class="berubah"' : '') + '><td><b>' + e(m.nama) + '</b>' + (m.status !== 'AKTIF' ? ' <span class="lencana">TIDAK AKTIF</span>' : '') + '<div class="nota" style="margin:0">' + e(kpPapar(m.nokp)) + '</div></td>' +
+      '<td>' + e(m.kunciKelas) + '</td><td class="c">' + jantinaPendek(m.jantina) + '</td><td>' + (m.kategori ? e(m.kategori) : '<span class="lencana kuning">?</span>') + '</td>' +
+      '<td class="c"><input type="checkbox" data-at="' + m.nokp + '"' + (a.atlet ? ' checked' : '') + ' style="width:18px;height:18px"></td>' +
+      '<td><input data-ac="' + m.nokp + '" value="' + e(a.acara) + '" placeholder="acara"' + (a.atlet ? '' : ' disabled') + ' style="min-width:120px"></td>' +
+      '<td style="white-space:nowrap">' + lencanaRumah(r) + (m.kunciRumah ? ' 🔒' : '') + '</td>' +
+      '<td style="white-space:nowrap"><button class="btn luar kecil" data-ms="' + m.nokp + '">Sunting</button> <button class="btn kelabu kecil" data-mk="' + m.nokp + '">Reset KW</button></td></tr>';
+  }).join('') : '<tr><td colspan="8" class="kosong">Tiada murid. Gunakan Import Pukal untuk memasukkan senarai murid.</td></tr>';
+  var bilAtlet = s.filter(function (m) { return nilaiAtlet(m).atlet; }).length;
+  $('mdInfo').textContent = s.length + ' murid (' + bilAtlet + ' atlet) · halaman ' + S.data.halMurid + '/' + jh;
+  $('mdSblm').disabled = S.data.halMurid <= 1; $('mdSlps').disabled = S.data.halMurid >= jh;
+  var n = Object.keys(S.ubah.atlet).length;
+  $('mdBilUbah').textContent = n ? n + ' perubahan belum disimpan' : '';
+  $('mdSimpan').disabled = !n;
+  var tanda = function (nokp) {
+    var m = S.data.murid.filter(function (x) { return x.nokp === nokp; })[0];
+    var at = document.querySelector('[data-at="' + nokp + '"]').checked, ac = document.querySelector('[data-ac="' + nokp + '"]').value.trim();
+    if (at === m.atlet && (!at || ac.toUpperCase() === String(m.acara).toUpperCase())) delete S.ubah.atlet[nokp];
+    else S.ubah.atlet[nokp] = { nokp: nokp, atlet: at, acara: ac };
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-at]'), function (el) {
+    el.onchange = function () { tanda(el.getAttribute('data-at')); lukisMurid(); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ac]'), function (el) {
+    el.onchange = function () { tanda(el.getAttribute('data-ac')); lukisMurid(); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ms]'), function (b) { b.onclick = function () { borangMurid(b.getAttribute('data-ms')); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-mk]'), function (b) { b.onclick = function () { resetKW('MURID', b.getAttribute('data-mk')); }; });
+}
+function borangMurid(nokp) {
+  var x = nokp ? S.data.murid.filter(function (y) { return y.nokp === nokp; })[0] :
+    { nokp: '', nama: '', jantina: '', tingkatan: '', kelas: '', kaum: '', agama: '', tarikhLahir: '', noTelPenjaga: '', atlet: false, acara: '', rumahId: '', kunciRumah: false, status: 'AKTIF' };
+  var m = bukaModal('<h3>' + (nokp ? 'Sunting' : 'Tambah') + ' Murid</h3><div class="grid-borang">' +
+    '<div class="medan"><label>No. KP</label><input id="bmKP" value="' + e(x.nokp) + '"' + (nokp ? ' disabled' : '') + ' inputmode="numeric"></div>' +
+    '<div class="medan"><label>Nama penuh</label><input id="bmNama" value="' + e(x.nama) + '"></div>' +
+    '<div class="medan"><label>Tingkatan</label><input id="bmTing" value="' + e(x.tingkatan) + '" placeholder="cth. 1 / 6 RENDAH"></div>' +
+    '<div class="medan"><label>Kelas</label><input id="bmKelas" value="' + e(x.kelas) + '" placeholder="cth. BESTARI"></div>' +
+    '<div class="medan"><label>Jantina</label><select id="bmJan">' + pilihan([{ v: 'LELAKI', l: 'Lelaki' }, { v: 'PEREMPUAN', l: 'Perempuan' }], x.jantina, '(ikut No. KP)') + '</select></div>' +
+    '<div class="medan"><label>Tarikh lahir (pilihan)</label><input id="bmLahir" value="' + e(x.tarikhLahir) + '" placeholder="YYYY-MM-DD"></div>' +
+    '<div class="medan"><label>Kaum</label><input id="bmKaum" value="' + e(x.kaum) + '"></div>' +
+    '<div class="medan"><label>Agama</label><input id="bmAgama" value="' + e(x.agama) + '"></div>' +
+    '<div class="medan"><label>No. tel penjaga</label><input id="bmTel" value="' + e(x.noTelPenjaga) + '"></div>' +
+    '<div class="medan"><label>Status</label><select id="bmStatus">' + pilihan(['AKTIF', 'TIDAK AKTIF'], x.status) + '</select></div>' +
+    '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="bmAtlet"' + (x.atlet ? ' checked' : '') + '> Atlet</label>' +
+    '<div class="medan"><label>Acara</label><input id="bmAcara" value="' + e(x.acara) + '" placeholder="cth. 100M, 4X100M"></div>' +
+    '<div class="medan"><label>Rumah sukan</label><select id="bmRumah">' + pilihanRumah(x.rumahId, '— tiada —') + '</select></div>' +
+    '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="bmKunci"' + (x.kunciRumah ? ' checked' : '') + '> 🔒 Kunci rumah (tidak dipindah oleh agihan automatik)</label>' +
+    '</div><div class="aksi-modal">' + (nokp ? '<button class="btn merah" data-x="p" style="margin-right:auto">Padam</button>' : '') +
+    '<button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">Simpan</button></div>');
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    api('apiSimpanMurid', { data: {
+      baharu: !nokp, nokp: nokp || nilaiEl('bmKP').replace(/\D/g, ''), nama: nilaiEl('bmNama'), tingkatan: nilaiEl('bmTing'), kelas: nilaiEl('bmKelas'),
+      jantina: nilaiEl('bmJan'), tarikhLahir: nilaiEl('bmLahir'), kaum: nilaiEl('bmKaum'), agama: nilaiEl('bmAgama'), noTelPenjaga: nilaiEl('bmTel'),
+      status: nilaiEl('bmStatus'), atlet: semakEl('bmAtlet'), acara: nilaiEl('bmAcara'), rumahId: nilaiEl('bmRumah'), kunciRumah: semakEl('bmKunci') } })
+      .then(function () { tutupModal(m); toast('Rekod murid disimpan.', 'jaya'); HALAMAN.murid(); }).catch(gagal);
+  };
+  if (nokp) m.querySelector('[data-x=p]').onclick = function () {
+    sahkan('Padam rekod ' + x.nama + '? (Pilihan lain: tukar status kepada TIDAK AKTIF.)', function () {
+      api('apiPadamMurid', { nokp: nokp }).then(function () { tutupModal(m); toast('Rekod dipadam.', 'jaya'); HALAMAN.murid(); }).catch(gagal);
+    }, 'Padam');
+  };
+}
+
+/* =====================================================================
+ * ADMIN — AGIHAN MURID KE RUMAH SUKAN
+ * ===================================================================== */
+var KRITERIA_UI = [
+  { k: 'atletDahulu', t: 'Agih atlet dahulu secara sama rata', d: 'Murid yang ditanda ATLET dibahagi sama rata kepada semua rumah sukan mengikut kategori dan jantina sebelum murid lain.' },
+  { k: 'atletIkutAcara', t: 'Sebar atlet bagi acara yang sama', d: 'Atlet bagi acara yang sama (cth. 100M) disebar ke semua rumah supaya setiap rumah mempunyai atlet bagi setiap acara.' },
+  { k: 'ikutKategori', t: 'Imbang mengikut kategori', d: 'Bilangan ahli setiap kategori (cth. B15, B18) hampir sama bagi setiap rumah.' },
+  { k: 'ikutJantina', t: 'Imbang mengikut jantina', d: 'Bilangan lelaki dan perempuan diimbangkan secara berasingan.' },
+  { k: 'ikutKelas', t: 'Imbang mengikut kelas', d: 'Setiap kelas mempunyai bilangan ahli yang hampir sama rata bagi setiap rumah sukan (mengikut jantina jika diaktifkan).' },
+  { k: 'hormatKunci', t: 'Kekalkan murid yang dikunci 🔒', d: 'Murid yang rumahnya ditetapkan secara manual tidak dipindahkan (tetapi dikira dalam imbangan).' }
+];
+HALAMAN.agihan = function () {
+  S.data.pratonton = null;
+  api('apiRingkasanAgihan').then(function (r) {
+    var k = r.kriteria;
+    var h = kepalaHalaman('Agihan Murid ke Rumah Sukan', 'Tetapkan kriteria, buat pratonton, dan sahkan untuk menyimpan agihan.', 'shuffle');
+    if (r.terakhir) h += '<div class="info-kotak"><b>Agihan terakhir:</b> ' + e(r.terakhir) + '</div>';
+    h += '<div class="grid k-1-1 blok"><div class="kad"><h3>' + ik('sliders') + 'Kriteria Agihan</h3>' + KRITERIA_UI.map(function (c) {
+      return '<label class="semak"><input type="checkbox" id="kr_' + c.k + '"' + (k[c.k] ? ' checked' : '') + '><div><b>' + e(c.t) + '</b><span>' + e(c.d) + '</span></div></label>';
+    }).join('') + '</div><div class="kad"><h3>' + ik('target') + 'Skop Agihan</h3>' +
+      '<label class="semak"><input type="radio" name="krSkop" value="SEMUA"' + (k.skop !== 'BAHARU' ? ' checked' : '') + '><div><b>Agih semula SEMUA murid aktif</b><span>Sesuai untuk awal tahun / agihan pertama. Murid boleh bertukar rumah (kecuali yang dikunci).</span></div></label>' +
+      '<label class="semak"><input type="radio" name="krSkop" value="BAHARU"' + (k.skop === 'BAHARU' ? ' checked' : '') + '><div><b>Hanya murid yang BELUM mempunyai rumah</b><span>Sesuai untuk murid baharu/pindah masuk. Ahli sedia ada kekal dan diambil kira supaya imbangan terpelihara.</span></div></label>' +
+      '<div class="aksi-modal"><button class="btn luar" id="agSimpanKr">Simpan Kriteria Sebagai Lalai</button><button class="btn" id="agPratonton">' + ik('eye') + 'Pratonton Agihan</button></div></div></div>' +
+      '<div id="agHasil"><div class="kad"><h3>' + ik('chart') + 'Taburan Semasa</h3>' + lukisRingkasan(r.ringkasan) + '</div></div>';
+    kandungan(h);
+    $('agSimpanKr').onclick = function () { api('apiSimpanKriteria', { kriteria: bacaKriteria() }).then(function () { toast('Kriteria disimpan.', 'jaya'); }).catch(gagal); };
+    $('agPratonton').onclick = function () { pratontonAgihan(); };
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+function bacaKriteria() {
+  var k = {};
+  KRITERIA_UI.forEach(function (c) { k[c.k] = semakEl('kr_' + c.k); });
+  var r = document.querySelector('input[name=krSkop]:checked');
+  k.skop = r ? r.value : 'SEMUA';
+  return k;
+}
+function pratontonAgihan(seed) {
+  var kr = bacaKriteria();
+  sibuk(true);
+  api('apiPratontonAgihan', { kriteria: kr, seed: seed || 0 }).then(function (r) {
+    sibuk(false);
+    S.data.pratonton = { seed: r.seed, kriteria: kr };
+    $('agHasil').innerHTML = '<div class="kad" style="border:2px solid var(--biru)"><h3>' + ik('eye') + 'Pratonton Agihan (belum disimpan)</h3>' +
+      '<div class="info-kotak">' + r.bilDiagih + ' murid akan diagih, ' + r.bilTetap + ' murid kekal di rumah sedia ada. ' +
+      (r.ringkasan.dipindah ? r.ringkasan.dipindah + ' murid akan bertukar rumah. ' : '') + '</div>' +
+      lukisRingkasan(r.ringkasan) +
+      '<div class="aksi-modal"><button class="btn luar" id="agSemula">Jana Semula (susunan rawak lain)</button><button class="btn hijau" id="agSahkan">Sahkan & Simpan Agihan</button></div></div>';
+    $('agSemula').onclick = function () { pratontonAgihan(); };
+    $('agSahkan').onclick = function () {
+      sahkan('Simpan agihan ini? Rumah sukan ' + r.bilDiagih + ' murid akan dikemas kini dan kriteria ini disimpan sebagai lalai.', function () {
+        api('apiSimpanAgihan', { kriteria: S.data.pratonton.kriteria, seed: S.data.pratonton.seed }).then(function (x) {
+          toast('Agihan disimpan: ' + x.bilDikemaskini + ' murid dikemas kini.', 'jaya');
+          HALAMAN.agihan();
+        }).catch(gagal);
+      }, 'Simpan Agihan');
+    };
+    $('agHasil').scrollIntoView({ behavior: 'smooth' });
+  }).catch(function (er) { sibuk(false); gagal(er); });
+}
+function lukisRingkasan(g) {
+  if (!g.jumlahMurid) return '<div class="kosong">Tiada murid aktif. Import senarai murid dahulu.</div>';
+  var h = '';
+  if (g.tiadaRumah) h += '<div class="amaran-kotak">' + g.tiadaRumah + ' murid belum mempunyai rumah sukan.</div>';
+  h += '<div class="jadual-skrol"><table><thead><tr><th>Rumah</th><th class="n">Jumlah</th><th class="n">Lelaki</th><th class="n">Perempuan</th><th class="n">Atlet L</th><th class="n">Atlet P</th>' +
+    g.kategori.map(function (k) { return '<th class="n">' + e(k.kod) + ' L</th><th class="n">' + e(k.kod) + ' P</th>'; }).join('') + '</tr></thead><tbody>' +
+    g.rumah.map(function (r) {
+      return '<tr><td><span class="titik" style="background:' + e(r.warna) + '"></span><b>' + e(r.nama) + '</b></td><td class="n"><b>' + r.jumlah + '</b></td><td class="n">' + r.L + '</td><td class="n">' + r.P + '</td><td class="n">' + r.atletL + '</td><td class="n">' + r.atletP + '</td>' +
+        g.kategori.map(function (k) {
+          var l = r.kat[k.kod + '|L'] || { semua: 0, atlet: 0 }, p = r.kat[k.kod + '|P'] || { semua: 0, atlet: 0 };
+          return '<td class="n" title="' + l.atlet + ' atlet">' + l.semua + '</td><td class="n" title="' + p.atlet + ' atlet">' + p.semua + '</td>';
+        }).join('') + '</tr>';
+    }).join('') + '</tbody></table></div>';
+  var tidakSeimbang = g.kelasTidakSeimbang;
+  h += '<h3 style="margin-top:18px">Taburan Mengikut Kelas <span class="lencana ' + (tidakSeimbang ? 'kuning' : 'hijau') + '">' +
+    (tidakSeimbang ? tidakSeimbang + ' kelas beza > 1' : 'Semua kelas seimbang (beza ≤ 1)') + '</span></h3>' +
+    '<div class="jadual-skrol" style="max-height:420px;overflow-y:auto"><table><thead><tr><th>Kelas</th><th class="n">Jumlah</th>' +
+    g.rumah.map(function (r) { return '<th class="c"><span class="titik" style="background:' + e(r.warna) + '"></span>' + e(r.nama) + '<br>L / P</th>'; }).join('') +
+    '<th class="c">Beza maks</th></tr></thead><tbody>' + g.kelas.map(function (c) {
+      var beza = Math.max(c.julatL, c.julatP);
+      return '<tr><td>' + e(c.kelas) + '</td><td class="n">' + c.jumlah + '</td>' +
+        g.rumah.map(function (r) { return '<td class="c">' + (c.L[r.id] || 0) + ' / ' + (c.P[r.id] || 0) + '</td>'; }).join('') +
+        '<td class="c"><span class="lencana ' + (beza > 1 ? 'kuning' : 'hijau') + '">' + beza + '</span>' + (c.tiadaRumah ? ' <span class="lencana merah">' + c.tiadaRumah + ' tiada rumah</span>' : '') + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+  return h;
+}
+
+/* =====================================================================
+ * ADMIN — LOG AUDIT
+ * ===================================================================== */
+HALAMAN.audit = function (halaman) {
+  api('apiSenaraiAudit', { halaman: halaman || 1, saiz: 50 }).then(function (r) {
+    kandungan(kepalaHalaman('Log Audit', r.jumlah + ' rekod, terbaharu dahulu.', 'file') + '<div class="kad rapat"><div class="jadual-skrol"><table><thead><tr><th>Tarikh</th><th>Pengguna</th><th>Tindakan</th><th>Modul</th><th>Butiran</th></tr></thead><tbody>' +
+      (r.senarai.length ? r.senarai.map(function (x) {
+        return '<tr><td style="white-space:nowrap">' + e(x.tarikh) + '</td><td>' + e(x.nama) + '<div class="nota" style="margin:0">' + e(x.peranan) + '</div></td><td>' + e(x.tindakan) + '</td><td>' + e(x.modul) + '</td><td>' + e(x.butiran) + '</td></tr>';
+      }).join('') : '<tr><td colspan="5" class="kosong">Tiada rekod.</td></tr>') + '</tbody></table></div>' +
+      '<div class="pager" style="padding:10px 12px"><span>Halaman ' + r.halaman + ' / ' + r.jumlahHalaman + '</span><div><button class="btn luar kecil" id="auSblm"' + (r.halaman <= 1 ? ' disabled' : '') + '>‹ Baharu</button><button class="btn luar kecil" id="auSlps"' + (r.halaman >= r.jumlahHalaman ? ' disabled' : '') + '>Lama ›</button></div></div></div>');
+    $('auSblm').onclick = function () { HALAMAN.audit(r.halaman - 1); };
+    $('auSlps').onclick = function () { HALAMAN.audit(r.halaman + 1); };
+  }).catch(function (er) { kandungan('<div class="amaran-kotak">' + e(er.message) + '</div>'); });
+};
+</script>
