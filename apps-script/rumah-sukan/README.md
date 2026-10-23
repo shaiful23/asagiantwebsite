@@ -182,3 +182,8 @@ Menu Sheet **2. Tambah / Pulihkan Admin** boleh digunakan jika Admin terlupa kat
 - **Menu "Sistem Rumah Sukan" tidak muncul** — pastikan kod terkini `Code.gs` digunakan, kemudian
   muat semula Sheet. Jika masih tiada, buka Apps Script, pilih fungsi `onOpen` dan tekan **Run** sekali
   (benarkan akses); ralat semasa memuatkan skrip akan dipaparkan dalam *Execution log*.
+- **Ralat `google.script.run…[fn] is not a function` / "Fungsi pelayan … tiada"** — bukan disebabkan data
+  murid kosong. Pelayar meminta fungsi yang tiada dalam versi Web App yang sedang di-deploy: sama ada
+  fail `.gs` (biasanya `KejohananService.gs`) belum disalin / masih versi lama, atau deployment belum
+  dikemas kini. Jalankan menu **Sistem Rumah Sukan → 4. Semak Pemasangan**, salin semula fail yang
+  disenaraikan, kemudian **Deploy → Manage deployments → Edit → Version: New version → Deploy**.
