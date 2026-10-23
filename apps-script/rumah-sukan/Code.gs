@@ -15,7 +15,39 @@ function onOpen() {
     .addItem('1. Sediakan Sistem (Jalankan Sekali)', 'sediakanSistemRumahSukan')
     .addItem('2. Tambah / Pulihkan Admin', 'tambahAdminMelaluiMenu')
     .addItem('3. Kosongkan Semua Cache', 'kosongkanCacheMelaluiMenu')
+    .addItem('4. Semak Pemasangan', 'semakPemasangan')
     .addToUi();
+}
+
+/* Semak semua fail kod wujud dan terkini (fungsi penanda daripada versi terbaharu setiap fail). */
+function senaraiSemakPemasangan() {
+  return {
+    'Config.gs': ['VERSI_SKEMA'], 'Utils.gs': ['bacaSheetSebagaiObjek', 'upsertBanyak'], 'Migrasi.gs': ['selaraskanSkema', 'pastikanSkema'],
+    'AuthService.gs': ['apiLogin', 'apiTukarPasswordSendiri'], 'AuditService.gs': ['apiSenaraiAudit'], 'TetapanService.gs': ['apiSimpanTetapan', 'dataTetapan'],
+    'StafService.gs': ['apiAgihStafAuto'], 'AjkService.gs': ['apiSimpanAhliAjk'], 'MuridService.gs': ['apiSimpanMurid', 'apiKunciRumahMurid'],
+    'AgihanService.gs': ['apiSimpanAgihan'], 'PortalService.gs': ['apiMula', 'apiPortalMurid'],
+    'KejohananService.gs': ['apiKejohanan', 'apiJanaJadual', 'apiSimpanSenaraiMula', 'apiTetapkanFinalis', 'apiLaporanKejohanan']
+  };
+}
+function hasilSemakPemasangan() {
+  const g = globalThis, hilang = [];
+  const senarai = senaraiSemakPemasangan();
+  Object.keys(senarai).forEach(fail => {
+    const tiada = senarai[fail].filter(n => n === 'VERSI_SKEMA' ? typeof VERSI_SKEMA === 'undefined' || VERSI_SKEMA < 4 : typeof g[n] !== 'function');
+    if (tiada.length) hilang.push(fail + ' (tiada / versi lama: ' + tiada.join(', ') + ')');
+  });
+  ['Index', 'Css', 'JsTeras', 'JsPortal', 'JsAdmin', 'JsKejohanan', 'Logo'].forEach(h => {
+    try { HtmlService.createHtmlOutputFromFile(h); } catch (e) { hilang.push(h + '.html (tiada)'); }
+  });
+  return hilang;
+}
+function semakPemasangan() {
+  const hilang = hasilSemakPemasangan();
+  const ui = SpreadsheetApp.getUi();
+  ui.alert('Semak Pemasangan', hilang.length
+    ? 'Fail berikut tiada atau belum dikemas kini:\n\n• ' + hilang.join('\n• ') + '\n\nSalin semula fail tersebut daripada versi terkini, simpan, kemudian Deploy → Manage deployments → Edit → Version: New version → Deploy.'
+    : 'Semua fail kod lengkap dan terkini. ✅\n\nJika portal masih memaparkan ralat "... is not a function", Web App sedang menjalankan versi deployment lama: Deploy → Manage deployments → Edit (ikon pensel) → Version: New version → Deploy, kemudian muat semula portal.',
+    ui.ButtonSet.OK);
 }
 
 /* Fungsi (bukan const global): Apps Script memuatkan fail mengikut susunan dalam projek, dan Code.gs

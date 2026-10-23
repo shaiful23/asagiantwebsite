@@ -246,6 +246,10 @@ function api(fn, param, pilihan) {
   if (tulis) kosongkanCacheApi();
   return new Promise(function (res, rej) {
     if (!window.google || !google.script || !google.script.run) { rej(new Error('Tidak bersambung dengan pelayan.')); return; }
+    if (typeof google.script.run[fn] !== 'function') {
+      rej(new Error('Fungsi pelayan "' + fn + '" tiada dalam versi sistem yang sedang di-deploy. Pastikan SEMUA fail .gs terkini (termasuk ' + (/Kejohanan|Acara|Jadual|Penyertaan|Keputusan|Finalis|SenaraiMula|Mara|MataLain|SetSemula/.test(fn) ? 'KejohananService.gs' : 'fail servis berkaitan') + ') telah disalin, kemudian Deploy → Manage deployments → Edit → Version: New version. Di Google Sheet, jalankan menu Sistem Rumah Sukan → 4. Semak Pemasangan untuk menyemak.'));
+      return;
+    }
     var sekat = tulis && !pilihan.senyap;
     if (sekat) sibuk(true); else bebanAtas(true);
     var tamat = function () { if (sekat) sibuk(false); else bebanAtas(false); };
@@ -455,7 +459,7 @@ function mulaAplikasi() {
   $('labelPortal').textContent = u.jenis === 'MURID' ? 'Portal Murid' : 'Portal Guru & Staf';
   var warna = u.jenis === 'MURID' && S.mula && S.mula.portal && S.mula.portal.rumah ? S.mula.portal.rumah.warna
     : (S.mula && S.mula.dashboard && S.mula.dashboard.saya.rumah ? S.mula.dashboard.saya.rumah.warna : '#1d4ed8');
-  $('cipPengguna').innerHTML = '<span class="avatar" style="background:' + e(warna) + ';color:' + warnaTeks(warna) + '">' + e(inisial(u.nama)) + '</span><span class="teks"><div class="nm">' + e(u.nama) + '</div><div class="pr">' +
+  $('cipPengguna').innerHTML = '<span class="avatar" style="background:' + e(warna) + ';color:' + warnaTeks(warna) + '">' + e(inisial(u.nama)) + '</span><span class="teks" title="' + e(u.nama) + '"><div class="nm">' + e(u.nama) + '</div><div class="pr">' +
     (u.jenis === 'MURID' ? 'Murid' : (u.admin ? 'Admin' : (u.peranan === 'AKP' ? 'Staf AKP' : 'Guru'))) + '</div></span>';
   binaMenu();
   pergi(u.jenis === 'MURID' ? 'portalmurid' : 'dashboard');
