@@ -80,12 +80,21 @@ Seri dipecahkan secara rawak berbiji (*seed*), jadi **Pratonton** dan **Sahkan &
 agihan yang sama. Pratonton memaparkan taburan setiap rumah (jumlah, L/P, atlet, kategori×jantina) dan
 setiap kelas (L/P bagi setiap rumah + beza maksimum) sebelum apa-apa disimpan.
 
-## Reka bentuk (UI)
+## Reka bentuk (UI) — NEO ARENA
 
-Tema **olahraga balapan & padang** dengan warna logo sekolah (biru tua, merah, kuning, ungu) serta merah bata
-balapan & hijau padang: skrin log masuk berstadium, *hero* berjalur lorong & garisan penamat, kad KPI berikon,
-carta (lajur, bar mendatar, donut, podium) dan jadual moden. Semua carta & ikon dilukis terus dalam SVG/CSS
-(tiada pustaka luar) supaya ringan. Responsif: menu laci (*drawer*) pada telefon/tablet.
+Tema **sukan futuristik**: latar angkasa gelap dengan lantai grid perspektif beranimasi, panel kaca bergaris neon
+dan bucu HUD, fon *Orbitron* (tajuk & papan skor) + *Exo 2* (teks). Warna neon diambil daripada logo sekolah
+(biru, merah, kuning, ungu) dengan aksen sian.
+
+- **Log masuk:** arena hologram — trek neon dengan jalur cahaya pelari, logo terapung dalam cincin berputar,
+  menara lampu, zarah cahaya dan tajuk berkesan *glitch*; kad log masuk berbingkai neon berputar.
+- **Intro "Memasuki Arena"** selepas log masuk (≈1.5 s, tidak dimainkan semasa muat semula).
+- **Ticker papan skor langsung** di Dashboard & Pusat Kejohanan (kedudukan rumah, acara selesai, kiraan detik).
+- **Jam digital** di bar atas, *hero* dengan lorong bergerak & pelari cahaya, kiraan detik bergaya papan skor.
+- Nombor KPI **mengira naik**, kad **condong 3D** & sorotan cahaya mengikut kursor, podium hologram dengan mahkota,
+  carta bercahaya (lajur, bar, donut) — semuanya SVG/CSS tanpa pustaka luar.
+- Kesan animasi dimatikan automatik jika peranti ditetapkan *kurangkan gerakan*; laporan cetak kekal hitam-putih.
+- Responsif: menu laci (*drawer*) pada telefon/tablet.
 
 ## Kejohanan Olahraga Tahunan (mula hingga akhir)
 
