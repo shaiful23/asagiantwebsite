@@ -1,0 +1,288 @@
+<script>
+/* =========================================================================
+ * JsArkib — NAIK TINGKATAN (Admin) & ARKIB (kejohanan lepas, murid lepasan,
+ * mula kejohanan tahun baharu).
+ * ========================================================================= */
+
+var TINDAKAN_NAIK_LABEL = { NAIK: 'Naik', TAMAT: 'Tamat (arkib)', KEKAL: 'Kekal' };
+
+/* ================================ NAIK TINGKATAN ================================ */
+HALAMAN.naik = function () {
+  api('apiPratontonNaik', {}, { segar: true }).then(function (r) {
+    S.data.naik = r;
+    S.ubah.naik = {};
+    lukisNaik();
+  }).catch(ralatHalaman);
+};
+
+function petaNaik() {
+  var r = S.data.naik, peta = {};
+  r.senarai.forEach(function (x) { peta[x.tingkatan] = Object.assign({ tindakan: x.tindakan, baru: x.baru }, S.ubah.naik[x.tingkatan] || {}); });
+  return peta;
+}
+
+function lukisNaik() {
+  var r = S.data.naik, peta = petaNaik();
+  var bil = { NAIK: 0, TAMAT: 0, KEKAL: 0 }, jumlah = 0;
+  r.senarai.forEach(function (x) { bil[peta[x.tingkatan].tindakan] += x.bil; jumlah += x.bil; });
+  var h = kepalaHalaman('Naik Tingkatan', 'Proses hujung tahun: setiap murid dinaikkan ke tingkatan seterusnya. Murid yang tamat persekolahan dipindahkan ke <b>Arkib</b>. Rumah sukan, kelas dan No. Bib murid kekal.', 'naik',
+    '<button class="btn luar" onclick="pergi(\'arkib\', \'murid\')">' + ik('archive') + '<span class="teks-panjang">Lihat arkib murid</span></button>');
+  if (r.sudahTahunIni && r.akhir) h += kotak('amaran', '<b>Naik tingkatan sudah dijalankan tahun ini</b> pada ' + e(r.akhir.masa) + ' oleh ' + e(r.akhir.oleh) + ' (' + r.akhir.naik + ' naik, ' + r.akhir.tamat + ' tamat). Menjalankannya sekali lagi akan menaikkan tingkatan murid <b>dua kali</b>. Jika ada kesilapan, batalkan proses tersebut di bahagian Sejarah di bawah.', 'alert');
+  h += '<div class="langkah-naik"><div><b><span>1</span>Semak cadangan</b>Sistem mencadangkan tindakan bagi setiap tingkatan (cth. 1 → 2, Peralihan → 1, 5 → tamat).</div>' +
+    '<div><b><span>2</span>Ubah jika perlu</b>Tukar tindakan atau nama tingkatan baharu bagi mana-mana kumpulan.</div>' +
+    '<div><b><span>3</span>Jalankan</b>Semua murid dikemas kini serentak. Proses terakhir boleh <b>dibatalkan</b> sepenuhnya.</div></div>';
+  h += '<div class="grid auto blok">' + kpi('Jumlah murid', nomborFormat(jumlah), 'users', 'biru', r.senarai.length + ' kumpulan tingkatan') +
+    kpi('Naik tingkatan', nomborFormat(bil.NAIK), 'naik', 'hijau', 'tingkatan dikemas kini') +
+    kpi('Tamat & diarkibkan', nomborFormat(bil.TAMAT), 'archive', 'merah', 'dipindah ke arkib murid') +
+    kpi('Kekal', nomborFormat(bil.KEKAL), 'lock', 'kuning', 'tiada perubahan') + '</div>';
+  h += '<div class="kad rapat"><div class="kepala-kad"><h3>' + ik('list') + 'Cadangan mengikut tingkatan</h3><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="nota" style="margin:0">Tahun tamat</label>' +
+    '<input id="nkTahun" type="number" min="2000" max="2100" value="' + e(S.data.naikTahun || r.tahun) + '" style="width:96px"></div></div>' +
+    '<div class="jadual-skrol" style="margin-top:12px"><table><thead><tr><th>Tingkatan semasa</th><th class="n">Murid</th><th>Kelas</th><th>Tindakan</th><th>Tingkatan baharu</th><th>Catatan</th></tr></thead><tbody>' +
+    (r.senarai.length ? r.senarai.map(function (x) {
+      var p = peta[x.tingkatan], ub = !!S.ubah.naik[x.tingkatan];
+      return '<tr class="' + (p.tindakan === 'TAMAT' ? 'tamat' : p.tindakan === 'KEKAL' ? 'kekal' : '') + (ub ? ' berubah' : '') + '"><td><b>' + e(x.tingkatan || '(kosong)') + '</b></td><td class="n"><b>' + x.bil + '</b>' + (x.tidakAktif ? '<div class="nota" style="margin:0">' + x.tidakAktif + ' tidak aktif</div>' : '') + '</td>' +
+        '<td style="max-width:260px"><span class="nota" style="margin:0">' + e(x.kelas.slice(0, 8).join(', ') + (x.kelas.length > 8 ? ' …' : '')) + '</span></td>' +
+        '<td><select class="tindakan-naik" data-nkt="' + e(x.tingkatan) + '">' + pilihan(['NAIK', 'TAMAT', 'KEKAL'].map(function (t) { return { v: t, l: TINDAKAN_NAIK_LABEL[t] }; }), p.tindakan) + '</select></td>' +
+        '<td>' + (p.tindakan === 'NAIK' ? '<div style="display:flex;gap:8px;align-items:center"><span class="anak-panah-naik">' + ik('kanan', 'kecil') + '</span><input data-nkb="' + e(x.tingkatan) + '" value="' + e(p.baru) + '" placeholder="cth. 2" style="width:140px"></div>'
+          : p.tindakan === 'TAMAT' ? '<span class="lencana merah">' + ik('archive', 'kecil') + 'Ke arkib</span>' : '<span class="nota" style="margin:0">—</span>') + '</td>' +
+        '<td>' + (x.nota ? '<span class="nota" style="margin:0">' + e(x.nota) + '</span>' : '') + (ub ? ' <span class="lencana kuning">Diubah</span>' : '') + '</td></tr>';
+    }).join('') : '<tr><td colspan="6">' + kosongHtml('Tiada murid.', 'users') + '</td></tr>') + '</tbody></table></div>' +
+    '<div class="aksi-modal" style="padding:14px 20px;margin:0;border-top:1px solid var(--garis)"><span class="nota" style="margin-right:auto">' + nomborFormat(bil.NAIK) + ' naik · ' + nomborFormat(bil.TAMAT) + ' tamat · ' + nomborFormat(bil.KEKAL) + ' kekal</span>' +
+    (Object.keys(S.ubah.naik).length ? '<button class="btn luar" id="nkSetSemula">' + ik('refresh') + 'Set semula cadangan</button>' : '') +
+    '<button class="btn kuning" id="nkJalan"' + (bil.NAIK + bil.TAMAT ? '' : ' disabled') + '>' + ik('naik') + 'Jalankan naik tingkatan</button></div></div>';
+  // sejarah
+  h += '<div class="kad rapat"><div class="kepala-kad"><h3>' + ik('clock') + 'Sejarah naik tingkatan</h3><span class="nota" style="margin:0">Hanya proses terakhir yang aktif boleh dibatalkan.</span></div><div class="jadual-skrol" style="margin-top:12px"><table><thead><tr><th>Masa</th><th>Oleh</th><th>Tahun</th><th class="n">Naik</th><th class="n">Tamat</th><th>Status</th><th></th></tr></thead><tbody>' +
+    (r.proses.length ? r.proses.map(function (x, i) {
+      var bolehBatal = x.status === 'AKTIF' && r.proses.slice(0, i).every(function (y) { return y.status !== 'AKTIF'; });
+      return '<tr><td>' + e(x.masa) + '</td><td>' + e(x.oleh) + '</td><td>' + e(x.tahun) + '</td><td class="n">' + x.naik + '</td><td class="n">' + x.tamat + '</td><td>' +
+        (x.status === 'AKTIF' ? '<span class="lencana hijau">Aktif</span>' : '<span class="lencana">Dibatalkan</span>') + '</td><td>' +
+        (bolehBatal ? '<button class="btn luar kecil" data-batal="' + e(x.id) + '">' + ik('undo', 'kecil') + 'Batal proses ini</button>' : '') + '</td></tr>';
+    }).join('') : '<tr><td colspan="7">' + kosongHtml('Belum pernah dijalankan.', 'clock') + '</td></tr>') + '</tbody></table></div></div>';
+  kandungan(h);
+  pasangNaik();
+}
+
+function pasangNaik() {
+  var r = S.data.naik;
+  var cadangan = {};
+  r.senarai.forEach(function (x) { cadangan[x.tingkatan] = x; });
+  var ubah = function (t, medan, nilai) {
+    var u = Object.assign({}, petaNaik()[t]);
+    u[medan] = nilai;
+    if (medan === 'tindakan' && nilai === 'NAIK' && !u.baru) u.baru = cadangan[t].baru || '';
+    if (u.tindakan === cadangan[t].tindakan && (u.tindakan !== 'NAIK' || u.baru === cadangan[t].baru)) delete S.ubah.naik[t]; else S.ubah.naik[t] = u;
+  };
+  semua('[data-nkt]').forEach(function (el) { el.onchange = function () { S.data.naikTahun = nilaiEl('nkTahun'); ubah(el.getAttribute('data-nkt'), 'tindakan', el.value); lukisNaik(); }; });
+  semua('[data-nkb]').forEach(function (el) { el.onchange = function () { S.data.naikTahun = nilaiEl('nkTahun'); ubah(el.getAttribute('data-nkb'), 'baru', el.value.trim().toUpperCase()); lukisNaik(); }; });
+  if ($('nkSetSemula')) $('nkSetSemula').onclick = function () { S.ubah.naik = {}; lukisNaik(); };
+  $('nkTahun').onchange = function () { S.data.naikTahun = this.value; };
+  $('nkJalan').onclick = function () {
+    var peta = petaNaik(), bil = { NAIK: 0, TAMAT: 0 }, baris = [];
+    r.senarai.forEach(function (x) {
+      var p = peta[x.tingkatan];
+      if (p.tindakan === 'KEKAL') return;
+      bil[p.tindakan] += x.bil;
+      baris.push('<tr><td><b>' + e(x.tingkatan || '(kosong)') + '</b></td><td>' + (p.tindakan === 'NAIK' ? ik('kanan', 'kecil') + ' <b>' + e(p.baru) + '</b>' : '<span class="lencana merah">Tamat → arkib</span>') + '</td><td class="n">' + x.bil + '</td></tr>');
+    });
+    var tahun = nilaiEl('nkTahun');
+    var m = bukaModal('<h3>' + ik('naik') + 'Sahkan Naik Tingkatan</h3>' +
+      kotak('amaran', '<b>' + nomborFormat(bil.NAIK) + ' murid</b> akan dinaikkan tingkatan dan <b>' + nomborFormat(bil.TAMAT) + ' murid</b> (tahun tamat ' + e(tahun) + ') akan dipindahkan ke arkib serta tidak lagi boleh log masuk. Proses ini boleh dibatalkan selepas dijalankan.', 'alert') +
+      '<div class="jadual-skrol" style="max-height:240px;border:1px solid var(--garis);border-radius:10px"><table><thead><tr><th>Tingkatan</th><th>Menjadi</th><th class="n">Murid</th></tr></thead><tbody>' + baris.join('') + '</tbody></table></div>' +
+      '<div class="medan" style="margin-top:14px"><label>Taip <b>NAIK TINGKATAN</b> untuk mengesahkan</label><input id="nkSah" autocomplete="off" placeholder="NAIK TINGKATAN"></div>' +
+      '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn kuning" data-x="s" disabled>' + ik('naik') + 'Jalankan sekarang</button></div>', true);
+    var btn = m.querySelector('[data-x=s]');
+    $('nkSah').oninput = function () { btn.disabled = this.value.trim().toUpperCase() !== 'NAIK TINGKATAN'; };
+    m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+    btn.onclick = function () {
+      api('apiJalankanNaik', { peta: peta, tahun: tahun, sah: nilaiEl('nkSah') }).then(function (x) {
+        tutupModal(m);
+        toast('Naik tingkatan selesai: ' + x.naik + ' murid naik, ' + x.tamat + ' murid diarkibkan.', 'jaya');
+        S.data.naikTahun = '';
+        HALAMAN.naik();
+      }).catch(gagal);
+    };
+    setTimeout(function () { try { $('nkSah').focus(); } catch (x) { /* abaikan */ } }, 50);
+  };
+  semua('[data-batal]').forEach(function (b) {
+    b.onclick = function () {
+      sahkan('Batalkan proses naik tingkatan ini?\n\nTingkatan semua murid dipulihkan kepada nilai sebelum proses, dan murid yang diarkibkan dikembalikan ke senarai murid.', function () {
+        api('apiBatalNaik', { id: b.getAttribute('data-batal') }).then(function (x) {
+          toast('Proses dibatalkan: ' + x.dipulih + ' tingkatan dipulihkan, ' + x.dikembali + ' murid dikembalikan.', 'jaya');
+          HALAMAN.naik();
+        }).catch(gagal);
+      }, 'Batalkan proses');
+    };
+  });
+}
+
+/* ================================ ARKIB ================================ */
+HALAMAN.arkib = function (tab) {
+  api('apiArkib', {}, { segar: true }).then(function (r) {
+    S.data.arkib = r;
+    var tabSah = r.admin ? ['kejohanan', 'murid', 'tahun'] : ['kejohanan'];
+    S.data.arkibTab = tabSah.indexOf(tab) !== -1 ? tab : (tabSah.indexOf(S.data.arkibTab) !== -1 ? S.data.arkibTab : 'kejohanan');
+    lukisArkib();
+  }).catch(ralatHalaman);
+};
+
+function lukisArkib() {
+  var r = S.data.arkib, tab = S.data.arkibTab;
+  var h = kepalaHalaman('Arkib', 'Rekod kejohanan tahun-tahun lepas' + (r.admin ? ', murid lepasan dan permulaan kejohanan tahun baharu.' : '.'), 'archive');
+  if (r.admin) h += '<div class="tab-bar">' + [['kejohanan', 'trophy', 'Kejohanan lepas'], ['murid', 'users', 'Murid lepasan (' + r.murid.length + ')'], ['tahun', 'calendar', 'Tahun baharu']].map(function (t) {
+    return '<button data-tab="' + t[0] + '" class="' + (tab === t[0] ? 'aktif' : '') + '">' + ik(t[1], 'kecil') + e(t[2]) + '</button>';
+  }).join('') + '</div>';
+  h += '<div id="arkibIsi"></div>';
+  kandungan(h);
+  semua('[data-tab]').forEach(function (b) { b.onclick = function () { S.data.arkibTab = b.getAttribute('data-tab'); lukisArkib(); }; });
+  if (tab === 'murid') lukisArkibMurid(); else if (tab === 'tahun') lukisTahunBaharu(); else lukisArkibKejohanan();
+}
+
+/* ---------- Kejohanan lepas ---------- */
+function lukisArkibKejohanan() {
+  var r = S.data.arkib;
+  if (!r.tahunKejohanan.length) { $('arkibIsi').innerHTML = '<div class="kad">' + kosongHtml('Belum ada rekod kejohanan.', 'trophy') + '</div>'; return; }
+  var lepas = r.tahunKejohanan.filter(function (x) { return x.tahun !== r.tahunSemasa; });
+  var tahun = S.data.arkibTahun && r.tahunKejohanan.some(function (x) { return x.tahun === S.data.arkibTahun; }) ? S.data.arkibTahun : (lepas[0] || r.tahunKejohanan[0]).tahun;
+  S.data.arkibTahun = tahun;
+  $('arkibIsi').innerHTML = '<div class="baris-alat"><select id="akTahun" style="min-width:220px">' + pilihan(r.tahunKejohanan.map(function (x) {
+    return { v: x.tahun, l: 'Kejohanan ' + x.tahun + (x.tahun === r.tahunSemasa ? ' (semasa)' : '') + ' · ' + x.bilAcara + ' acara' };
+  }), tahun) + '</select><div class="rapat"><button class="btn luar" id="akCetak" disabled>' + ik('printer') + 'Cetak keputusan</button></div></div><div id="akIsi">' + rangkaHalaman() + '</div>';
+  $('akTahun').onchange = function () { S.data.arkibTahun = Number(this.value); lukisArkibKejohanan(); };
+  api('apiArkibKejohanan', { tahun: tahun }).then(function (k) {
+    if (S.data.arkibTahun !== tahun || !$('akIsi')) return;
+    S.data.arkibKj = k;
+    var adaMata = k.kedudukan.some(function (x) { return x.jumlah > 0; });
+    var h = (k.semasa ? kotak('info', 'Ini kejohanan <b>tahun semasa</b> — keputusan masih boleh berubah.', 'info') : '') +
+      '<div class="grid auto blok">' + kpi('Johan keseluruhan', adaMata ? k.kedudukan[0].nama : '-', 'trophy', 'kuning', adaMata ? k.kedudukan[0].jumlah + ' mata' : 'tiada keputusan') +
+      kpi('Acara selesai', k.selesai + '/' + k.bilAcara, 'timer', 'hijau', k.bilAcara ? Math.round(k.selesai / k.bilAcara * 100) + '% selesai' : '') +
+      kpi('Rekod baharu', k.rekodBaharu, 'star', 'ungu', 'dipecahkan pada ' + k.tahun) +
+      kpi('Olahragawan/wati', k.olahragawan.length, 'crown', 'biru', 'gelaran mengikut kategori') + '</div>';
+    h += '<div class="grid k-1-1 blok"><div class="kad"><h3>' + ik('trophy') + 'Kedudukan Akhir ' + k.tahun + '</h3>' +
+      (adaMata ? podiumHtml(k.kedudukan.slice(0, 3).map(function (x) { return { nama: x.nama, nilai: x.jumlah + ' mata', warna: x.warna }; })) +
+        '<div style="margin-top:14px">' + cartaHbar(k.kedudukan.map(function (x) { return { label: x.nama, nilai: x.jumlah, warna: x.warna, prefix: pingat(x.kedudukan) + ' ' }; })) + '</div>' : kosongHtml('Tiada mata direkodkan.', 'trophy')) + '</div>' +
+      '<div class="kad rapat"><div class="kepala-kad"><h3>' + ik('medal') + 'Jadual Pingat</h3></div><div class="jadual-skrol" style="margin-top:12px"><table><thead><tr><th>#</th><th>Rumah</th><th class="c">Emas</th><th class="c">Perak</th><th class="c">Gangsa</th><th class="n">Mata</th></tr></thead><tbody>' +
+      k.kedudukan.map(function (x) { return '<tr' + (x.kedudukan === 1 && adaMata ? ' class="emas"' : '') + '><td>' + pingat(x.kedudukan) + '</td><td>' + lencanaRumah({ nama: x.nama, warna: x.warna }) + '</td><td class="c">' + x.emas + '</td><td class="c">' + x.perak + '</td><td class="c">' + x.gangsa + '</td><td class="n papan" style="font-size:18px">' + x.jumlah + '</td></tr>'; }).join('') +
+      '</tbody></table></div></div></div>';
+    if (k.olahragawan.length) h += '<div class="kad"><h3>' + ik('crown') + 'Olahragawan & Olahragawati ' + k.tahun + '</h3><div class="grid auto">' + k.olahragawan.map(function (o) {
+      var c = o.calon[0];
+      return '<div class="kad-acara"><span class="jalur" style="background:' + (o.jantina === 'L' ? '#1f5fd6' : '#db2777') + '"></span><div class="nm">' + ik('crown', 'kecil') + ' ' + e(o.gelaran) + '</div><div><b>' + e(c.nama) + '</b></div>' +
+        '<div class="mt"><span>' + e(c.kelas) + '</span>' + (c.rumah ? lencanaRumah({ nama: c.rumah, warna: c.warna }) : '') + '<span><b>' + c.mata + '</b> mata · ' + c.emas + ' emas</span></div></div>';
+    }).join('') + '</div></div>';
+    h += '<div class="kad rapat"><div class="kepala-kad"><h3>' + ik('list') + 'Keputusan Setiap Acara</h3><div class="cari">' + ik('search', 'kecil') + '<input id="akCari" placeholder="Cari acara atau nama…" style="min-width:240px"></div></div>' +
+      '<div class="jadual-skrol" style="margin-top:12px"><table><thead><tr><th>Acara</th><th>' + pingat(1) + ' Johan</th><th>' + pingat(2) + ' Naib johan</th><th>' + pingat(3) + ' Ketiga</th></tr></thead><tbody id="akAcara"></tbody></table></div></div>';
+    if (k.mataLain.length) h += '<div class="kad rapat"><div class="kepala-kad"><h3>' + ik('plus') + 'Mata Lain-lain</h3></div><div class="jadual-skrol" style="margin-top:12px"><table><thead><tr><th>Perkara</th><th>Rumah</th><th class="n">Mata</th><th>Catatan</th></tr></thead><tbody>' +
+      k.mataLain.map(function (m) { return '<tr><td>' + e(m.perkara) + '</td><td>' + e(m.rumah) + '</td><td class="n">' + m.mata + '</td><td>' + e(m.catatan) + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
+    $('akIsi').innerHTML = h;
+    kesanHalaman($('akIsi'));
+    var lukisAcaraArkib = function () {
+      var cari = nilaiEl('akCari').toUpperCase();
+      var s = k.acara.filter(function (a) { return !cari || labelAcaraArkib(a).toUpperCase().indexOf(cari) !== -1 || a.podium.some(function (p) { return String(p.nama).toUpperCase().indexOf(cari) !== -1; }); });
+      $('akAcara').innerHTML = s.length ? s.map(function (a) {
+        var sel = [1, 2, 3].map(function (n) {
+          var p = a.podium.filter(function (x) { return x.kedudukan === n; });
+          return '<td>' + (p.length ? p.map(function (x) { return '<div><b>' + e(x.nama) + '</b> <span class="papan" style="font-size:14px">' + e(x.keputusan) + '</span>' + (x.rekodBaharu ? ' <span class="lencana kuning">' + ik('star', 'kecil') + 'Rekod</span>' : '') + '<div class="nota" style="margin:0">' + e([x.kelas, x.rumah].filter(Boolean).join(' · ')) + '</div></div>'; }).join('') : '<span class="nota">-</span>') + '</td>';
+        }).join('');
+        return '<tr><td><b>' + e(labelAcaraArkib(a)) + '</b>' + (a.status !== 'SELESAI' ? ' <span class="lencana">' + e(STATUS_KJ[a.status] ? STATUS_KJ[a.status][0] : a.status) + '</span>' : '') + '</td>' + sel + '</tr>';
+      }).join('') : '<tr><td colspan="4">' + kosongHtml('Tiada acara sepadan.', 'search') + '</td></tr>';
+    };
+    $('akCari').oninput = lukisAcaraArkib;
+    lukisAcaraArkib();
+    $('akCetak').disabled = false;
+    $('akCetak').onclick = function () { cetakArkibKejohanan(k); };
+  }).catch(function (er) { if ($('akIsi')) $('akIsi').innerHTML = kotak('amaran', e(er.message)); });
+}
+function labelAcaraArkib(a) { return a.nama + ' · ' + (a.kategori || 'Terbuka') + ' ' + namaJantina(a.jantina); }
+function cetakArkibKejohanan(k) {
+  cetak('Keputusan Kejohanan Olahraga ' + k.tahun,
+    '<h2>Kedudukan Keseluruhan</h2><table><thead><tr><th>Kedudukan</th><th>Rumah</th><th>Emas</th><th>Perak</th><th>Gangsa</th><th>Mata</th></tr></thead><tbody>' +
+    k.kedudukan.map(function (x) { return '<tr><td>' + x.kedudukan + '</td><td><b>' + e(x.nama) + '</b></td><td>' + x.emas + '</td><td>' + x.perak + '</td><td>' + x.gangsa + '</td><td><b>' + x.jumlah + '</b></td></tr>'; }).join('') + '</tbody></table>' +
+    (k.olahragawan.length ? '<h2>Olahragawan & Olahragawati</h2><table><thead><tr><th>Gelaran</th><th>Nama</th><th>Kelas</th><th>Rumah</th><th>Mata</th></tr></thead><tbody>' +
+      k.olahragawan.map(function (o) { var c = o.calon[0]; return '<tr><td>' + e(o.gelaran) + '</td><td><b>' + e(c.nama) + '</b></td><td>' + e(c.kelas) + '</td><td>' + e(c.rumah) + '</td><td>' + c.mata + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
+    '<h2>Pemenang Setiap Acara</h2><table><thead><tr><th>Acara</th><th>Johan</th><th>Naib Johan</th><th>Ketiga</th></tr></thead><tbody>' +
+    k.acara.map(function (a) {
+      return '<tr><td><b>' + e(labelAcaraArkib(a)) + '</b></td>' + [1, 2, 3].map(function (n) { return '<td>' + a.podium.filter(function (x) { return x.kedudukan === n; }).map(function (x) { return e(x.nama + (x.rumah ? ' (' + x.rumah + ')' : '') + ' ' + x.keputusan) + (x.rekodBaharu ? ' ★' : ''); }).join('<br>') + '</td>'; }).join('') + '</tr>';
+    }).join('') + '</tbody></table>');
+}
+
+/* ---------- Murid lepasan ---------- */
+function lukisArkibMurid() {
+  var r = S.data.arkib;
+  S.data.akPilih = S.data.akPilih || {};
+  var tahunTamat = unik(r.murid.map(function (m) { return m.tahunTamat; })).sort().reverse();
+  var ikutTahun = ikutKunci(r.murid, function (m) { return m.tahunTamat || '-'; });
+  var h = '<div class="grid auto blok">' + kpi('Jumlah murid lepasan', nomborFormat(r.murid.length), 'archive', 'biru', tahunTamat.length + ' tahun tamat') +
+    tahunTamat.slice(0, 3).map(function (t) { return kpi('Tamat ' + t, nomborFormat(ikutTahun[t].length), 'users', 'kuning', ikutTahun[t].filter(function (m) { return m.jantina === 'LELAKI' || m.jantina === 'L'; }).length + ' L · ' + ikutTahun[t].filter(function (m) { return m.jantina === 'PEREMPUAN' || m.jantina === 'P'; }).length + ' P'); }).join('') + '</div>';
+  h += kotak('info', 'Murid lepasan disimpan di sini selepas <b>Naik Tingkatan</b>. Nama mereka kekal dipaparkan dalam keputusan kejohanan lama. <b>Pulihkan</b> mengembalikan murid ke senarai murid aktif (cth. jika diarkibkan secara silap).', 'info');
+  h += '<div class="baris-alat"><div class="cari">' + ik('search', 'kecil') + '<input id="amCari" placeholder="Cari nama / No. KP…" value="' + e(S.data.amCari || '') + '"></div>' +
+    '<select id="amTahun">' + pilihan(tahunTamat.map(function (t) { return { v: t, l: 'Tamat ' + t }; }), S.data.amTahun || '', 'Semua tahun tamat') + '</select>' +
+    '<div class="rapat"><button class="btn luar" id="amPulih" disabled>' + ik('undo') + 'Pulihkan</button><button class="btn merah" id="amPadam" disabled>' + ik('trash') + 'Padam kekal</button></div></div>' +
+    '<div class="kad rapat"><div class="jadual-skrol"><table><thead><tr><th class="c"><input type="checkbox" id="amSemua"></th><th>Nama / No. KP</th><th>Tingkatan akhir</th><th>Rumah</th><th>Tahun tamat</th><th>Diarkibkan</th></tr></thead><tbody id="amJadual"></tbody></table></div><div class="pager" id="amPager"></div></div>';
+  $('arkibIsi').innerHTML = h;
+  kesanHalaman($('arkibIsi'));
+  var tapis = function () {
+    var cari = nilaiEl('amCari').toUpperCase(), t = nilaiEl('amTahun');
+    S.data.amCari = nilaiEl('amCari'); S.data.amTahun = t;
+    return r.murid.filter(function (m) { return (!t || m.tahunTamat === t) && (!cari || m.nama.toUpperCase().indexOf(cari) !== -1 || m.nokp.indexOf(cari.replace(/\D/g, '') || '~') !== -1); });
+  };
+  var kemasButang = function () {
+    var n = Object.keys(S.data.akPilih).length;
+    $('amPulih').disabled = $('amPadam').disabled = !n;
+    $('amPulih').innerHTML = ik('undo') + 'Pulihkan' + (n ? ' (' + n + ')' : '');
+    $('amPadam').innerHTML = ik('trash') + 'Padam kekal' + (n ? ' (' + n + ')' : '');
+  };
+  var lukis = function () {
+    var s = tapis(), papar = s.slice(0, 300);
+    $('amJadual').innerHTML = papar.length ? papar.map(function (m) {
+      return '<tr><td class="c"><input type="checkbox" data-am="' + e(m.nokp) + '"' + (S.data.akPilih[m.nokp] ? ' checked' : '') + '></td><td><b>' + e(m.nama) + '</b><div class="nota" style="margin:0">' + e(kpPapar(m.nokp)) + '</div></td>' +
+        '<td>' + e((m.tingkatan + ' ' + m.kelas).trim()) + '</td><td>' + (m.rumah ? lencanaRumah({ nama: m.rumah, warna: m.warna }) : '-') + '</td><td><b>' + e(m.tahunTamat || '-') + '</b></td><td class="nota">' + e(m.tarikh) + '</td></tr>';
+    }).join('') : '<tr><td colspan="6">' + kosongHtml(r.murid.length ? 'Tiada murid sepadan.' : 'Arkib murid masih kosong. Murid lepasan dipindahkan ke sini semasa Naik Tingkatan.', 'archive') + '</td></tr>';
+    $('amPager').innerHTML = '<span>' + s.length + ' murid' + (s.length > papar.length ? ' (300 pertama dipaparkan — gunakan carian)' : '') + '</span>';
+    semua('[data-am]').forEach(function (c) { c.onchange = function () { if (c.checked) S.data.akPilih[c.getAttribute('data-am')] = true; else delete S.data.akPilih[c.getAttribute('data-am')]; kemasButang(); }; });
+    $('amSemua').checked = papar.length > 0 && papar.every(function (m) { return S.data.akPilih[m.nokp]; });
+    kemasButang();
+  };
+  $('amCari').oninput = lukis; $('amTahun').onchange = lukis;
+  $('amSemua').onchange = function () { var on = this.checked; tapis().slice(0, 300).forEach(function (m) { if (on) S.data.akPilih[m.nokp] = true; else delete S.data.akPilih[m.nokp]; }); lukis(); };
+  $('amPulih').onclick = function () {
+    var ids = Object.keys(S.data.akPilih);
+    sahkan('Pulihkan ' + ids.length + ' murid ke senarai murid aktif? Mereka akan boleh log masuk semula.', function () {
+      api('apiPulihkanArkib', { nokp: ids }).then(function (x) { S.data.akPilih = {}; toast(x.bil + ' murid dipulihkan.' + (x.wujud ? ' ' + x.wujud + ' sudah wujud dalam senarai aktif.' : ''), 'jaya'); HALAMAN.arkib('murid'); }).catch(gagal);
+    }, 'Pulihkan', 'biasa');
+  };
+  $('amPadam').onclick = function () {
+    var ids = Object.keys(S.data.akPilih);
+    var m = bukaModal('<h3>' + ik('trash') + 'Padam Kekal Rekod Arkib</h3>' + kotak('amaran', '<b>' + ids.length + ' rekod murid</b> akan dipadam kekal daripada arkib dan tidak boleh dipulihkan. Nama mereka dalam keputusan kejohanan lama akan dipaparkan sebagai No. KP.', 'alert') +
+      '<div class="medan"><label>Taip <b>PADAM</b> untuk mengesahkan</label><input id="amSah" autocomplete="off"></div><div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn merah" data-x="s" disabled>' + ik('trash') + 'Padam kekal</button></div>', true);
+    var b = m.querySelector('[data-x=s]');
+    $('amSah').oninput = function () { b.disabled = this.value.trim().toUpperCase() !== 'PADAM'; };
+    m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+    b.onclick = function () { api('apiPadamArkib', { nokp: ids, sah: nilaiEl('amSah') }).then(function (x) { tutupModal(m); S.data.akPilih = {}; toast(x.bil + ' rekod dipadam.', 'jaya'); HALAMAN.arkib('murid'); }).catch(gagal); };
+  };
+  lukis();
+}
+
+/* ---------- Mula kejohanan tahun baharu ---------- */
+function lukisTahunBaharu() {
+  var r = S.data.arkib, baru = r.tahunSemasa + 1;
+  var tahunIni = r.tahunKejohanan.filter(function (x) { return x.tahun === r.tahunSemasa; })[0];
+  $('arkibIsi').innerHTML = '<div class="grid k-2-1"><div class="kad"><h3>' + ik('calendar') + 'Mula Kejohanan ' + baru + '</h3>' +
+    '<p style="margin:0 0 14px;color:var(--teks-2);line-height:1.6">Kejohanan <b>' + r.tahunSemasa + '</b>' + (tahunIni ? ' (' + tahunIni.bilAcara + ' acara)' : '') + ' akan disimpan dalam arkib dan kekal boleh dilihat di tab <b>Kejohanan lepas</b>. Sistem kemudian bertukar ke tahun <b>' + baru + '</b>:</p>' +
+    '<ul style="margin:0 0 16px;padding-left:20px;color:var(--teks-2);line-height:1.9;font-size:13.5px"><li>Tarikh kejohanan dikosongkan, pendaftaran atlet <b>ditutup</b> dan keputusan <b>tidak diterbitkan</b>.</li>' +
+    '<li>Rekod kejohanan terbaik dibawa ke tahun baharu sebagai garis asas.</li><li>Ahli rumah sukan, AJK, mata dan keputusan tahun ' + r.tahunSemasa + ' tidak diubah.</li></ul>' +
+    '<div class="medan"><label>Tahun kejohanan baharu</label><input id="tbTahun" type="number" min="' + (r.tahunSemasa + 1) + '" max="' + (r.tahunSemasa + 5) + '" value="' + baru + '" style="max-width:160px"></div>' +
+    '<label class="togol"><input type="checkbox" id="tbSalin" checked> Salin semua acara (termasuk rekod) daripada ' + r.tahunSemasa + ' — jadual dijana automatik</label>' +
+    '<div class="aksi-modal" style="justify-content:flex-start"><button class="btn kuning" id="tbMula">' + ik('play') + 'Mula kejohanan baharu</button></div></div>' +
+    '<div class="kad"><h3>' + ik('info') + 'Aliran hujung tahun</h3><ol style="margin:0;padding-left:20px;line-height:1.9;font-size:13.5px;color:var(--teks-2)">' +
+    '<li>Cetak laporan akhir kejohanan</li><li>Jalankan <a href="#" onclick="pergi(\'naik\');return false">Naik Tingkatan</a> (murid tamat → arkib)</li><li>Import murid baharu (Tingkatan 1 / Peralihan) &amp; jalankan Agihan</li><li>Mula kejohanan tahun baharu (di sini)</li></ol></div></div>';
+  $('tbMula').onclick = function () {
+    var tahun = nilaiEl('tbTahun'), salin = semakEl('tbSalin');
+    sahkan('Mula Kejohanan ' + tahun + '?\n\nKejohanan ' + r.tahunSemasa + ' akan diarkibkan' + (salin ? ' dan semua acara disalin ke ' + tahun : '') + '. Tahun kejohanan boleh ditukar semula di Tetapan Rumah Sukan.', function () {
+      api('apiMulaTahunBaharu', { tahun: tahun, salinAcara: salin }).then(function (x) {
+        toast('Kejohanan ' + x.tahun + ' dimulakan.' + (x.disalin ? ' ' + x.disalin + ' acara disalin.' : ''), 'jaya');
+        S.kj = null;
+        return muatSemulaTetapan().catch(function () {}).then(function () { S.data.arkibTahun = x.tahunLama; HALAMAN.arkib('kejohanan'); });
+      }).catch(gagal);
+    }, 'Mula ' + tahun, 'biasa');
+  };
+}
+</script>

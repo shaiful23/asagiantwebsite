@@ -13,7 +13,7 @@ function kjAcara(id) { return (S.kj.acara || []).filter(function (a) { return a.
 function labelAcara(a) { return a.nama + ' · ' + (a.kategori || 'Terbuka') + ' ' + namaJantina(a.jantina); }
 function lencanaStatus(s) { var x = STATUS_KJ[s] || [s, '']; return '<span class="lencana ' + x[1] + '">' + e(x[0]) + '</span>'; }
 function ikonJenis(j) { return j === 'PADANG' ? 'ruler' : j === 'BERGANTI' ? 'users' : 'run'; }
-function warnaJenis(j) { return j === 'PADANG' ? '#1f9254' : j === 'BERGANTI' ? '#6d28d9' : '#c8462b'; }
+function warnaJenis(j) { return j === 'PADANG' ? '#138a52' : j === 'BERGANTI' ? '#6d3fd6' : '#d9532c'; }
 function rumahKj(id) { return (S.kj.rumah || []).filter(function (r) { return r.id === id; })[0] || null; }
 function lencanaRumahKj(id) { return lencanaRumah(rumahKj(id)); }
 function pilihanKategoriKj(dipilih, kosong) { return pilihan((S.kj.kategori || []).map(function (k) { return { v: k.kod, l: k.kod + ' — ' + k.nama }; }), dipilih, kosong); }
@@ -65,14 +65,15 @@ HALAMAN['kj-pusat'] = function () {
     var bil = { DIRANCANG: 0, SEDIA: 0, SARINGAN: 0, SELESAI: 0 };
     r.acara.forEach(function (a) { bil[a.status] = (bil[a.status] || 0) + 1; });
     h += '<div class="grid k-1-1 blok"><div class="kad"><h3>' + ik('target') + 'Status Acara</h3>' + cartaDonut([
-      { label: 'Dirancang', nilai: bil.DIRANCANG, warna: '#cbd5e1' }, { label: 'Senarai mula sedia', nilai: bil.SEDIA, warna: '#1d4ed8' },
-      { label: 'Saringan selesai', nilai: bil.SARINGAN, warna: '#6d28d9' }, { label: 'Selesai', nilai: bil.SELESAI, warna: '#1f9254' }], r.acara.length, 'acara') + '</div>';
+      { label: 'Dirancang', nilai: bil.DIRANCANG, warna: '#cbd5e1' }, { label: 'Senarai mula sedia', nilai: bil.SEDIA, warna: '#1f5fd6' },
+      { label: 'Saringan selesai', nilai: bil.SARINGAN, warna: '#6d3fd6' }, { label: 'Selesai', nilai: bil.SELESAI, warna: '#138a52' }], r.acara.length, 'acara') + '</div>';
     h += '<div class="kad"><h3>' + ik('bolt') + 'Tindakan Pantas</h3><div class="grid k2" style="gap:10px">' +
       (kb.admin ? '<button class="btn luar" onclick="pergi(\'kj-tetapan\')">' + ik('sliders') + 'Tetapan kejohanan</button><button class="btn luar" onclick="pergi(\'kj-acara\')">' + ik('calendar') + 'Urus acara</button>' : '') +
       (kb.rumahUrus.length ? '<button class="btn" onclick="pergi(\'kj-daftar\')">' + ik('run') + 'Daftar atlet</button>' : '') +
       (kb.keputusan ? '<button class="btn hijau" onclick="pergi(\'kj-keputusan\')">' + ik('timer') + 'Masukkan keputusan</button>' : '') +
       '<button class="btn luar" onclick="pergi(\'kj-laporan\')">' + ik('printer') + 'Laporan & cetak</button><button class="btn luar" onclick="pergi(\'kj-rekod\')">' + ik('star') + 'Rekod kejohanan</button></div>' +
       '<div class="nota" style="margin-top:12px">Akses anda: ' + (kb.admin ? 'Admin (penuh)' : [kb.keputusan ? 'keputusan & jadual' : '', kb.rumahUrus.length ? 'pendaftaran atlet rumah' : ''].filter(Boolean).join(', ') || 'lihat sahaja') + '</div></div></div>';
+    h = tickerHtml(itemTicker(adaMata ? ked : r.rumah, { selesai: selesai, jumlah: r.acara.length, penyertaan: penyertaan, tarikh: t.tarikh, rekod: rekodBaru }), adaMata ? 'LANGSUNG' : 'ARENA') + h;
     kandungan(h);
   }).catch(ralatHalaman);
 };
@@ -145,7 +146,7 @@ function lukisAcara() {
     var sel = kb.keputusan
       ? '<td><input data-j="no" data-id="' + e(a.id) + '" value="' + e(j.no) + '" style="width:62px"></td>'
       : '<td><b>' + e(a.no) + '</b></td>';
-    if (a.jadualManual) sel = sel.replace('</td>', ' <span title="Jadual disunting manual — tidak diubah oleh jadual automatik" style="color:#b7791f">' + ik('lock', 'kecil') + '</span></td>');
+    if (a.jadualManual) sel = sel.replace('</td>', ' <span title="Jadual disunting manual — tidak diubah oleh jadual automatik" style="color:#b07d00">' + ik('lock', 'kecil') + '</span></td>');
     return '<tr' + (ub ? ' class="berubah"' : '') + '>' + sel + '<td><div style="display:flex;gap:9px;align-items:center"><span class="cip-ikon" style="width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:' + warnaJenis(a.jenis) + '1f;color:' + warnaJenis(a.jenis) + '">' + ik(ikonJenis(a.jenis), 'kecil') + '</span><div><b style="white-space:nowrap">' + e(a.nama) + '</b>' +
       (a.rekod.nilai ? '<div class="nota" style="margin:0">' + ik('star', 'kecil') + ' Rekod ' + e(a.rekod.nilai) + '</div>' : '') + '</div></div></td>' +
       '<td style="white-space:nowrap">' + e(a.kategori || 'Terbuka') + ' · ' + e(namaJantina(a.jantina)) + '</td><td style="white-space:nowrap">' + e(JENIS_KJ[a.jenis] || a.jenis) + '</td>' +
@@ -418,7 +419,7 @@ function jadualPeserta(senarai, a, opt) {
     s.map(function (x) {
       var lorong = opt.sunting ? '<input data-lorong="' + e(x.id) + '" value="' + e(x.lorong) + '" inputmode="numeric" style="width:58px;text-align:center">' : (x.lorong ? '<span class="lorong-no">' + e(x.lorong) + '</span>' : '-');
       var ked = boleh ? '<div style="display:flex;gap:6px;align-items:center;justify-content:center">' + (pingat(x.kedudukan) || '') +
-          '<input data-kmid="' + e(x.id) + '" value="' + e(x.kedudukanManual) + '" placeholder="auto" title="Kosongkan untuk kedudukan automatik" inputmode="numeric" style="width:56px;text-align:center' + (x.kedudukanManual ? ';border-color:#f59f00;background:#fff8e1' : '') + '"></div>'
+          '<input data-kmid="' + e(x.id) + '" value="' + e(x.kedudukanManual) + '" placeholder="auto" title="Kosongkan untuk kedudukan automatik" inputmode="numeric" style="width:56px;text-align:center' + (x.kedudukanManual ? ';border-color:var(--kuning);background:rgba(255,210,63,.12)' : '') + '"></div>'
         : (pingat(x.kedudukan) || '-') + (x.kedudukanManual ? '<div><span class="lencana kuning">Manual</span></div>' : '');
       return '<tr' + (Number(x.kedudukan) === 1 ? ' class="emas"' : '') + '>' + (opt.saringanBoleh ? '<td class="c"><input data-sar="' + e(x.id) + '" value="' + e(x.saringan) + '" inputmode="numeric" style="width:54px;text-align:center"></td>' : '') +
         '<td class="c">' + lorong + '</td>' + (relay ? '' : '<td class="papan" style="font-size:17px">' + e(x.bib || '-') + '</td>') +
@@ -440,7 +441,7 @@ function pasangKeputusan() {
     if (a.status === 'SEDIA') sahkan('Rawak semula saringan & lorong? Senarai mula sedia ada akan ditukar.', lanjut, 'Rawak semula', 'biasa'); else lanjut();
   };
   if ($('kkMara')) $('kkMara').onclick = function () {
-    var m = bukaModal('<h3>' + ik('flag') + 'Ubah Bilangan Finalis</h3><p style="margin:0 0 12px;color:#334155">Finalis telah dipilih automatik. Pilih semula dengan bilangan lain (terbaik di lorong tengah).</p>' +
+    var m = bukaModal('<h3>' + ik('flag') + 'Ubah Bilangan Finalis</h3><p style="margin:0 0 12px;color:var(--teks-2)">Finalis telah dipilih automatik. Pilih semula dengan bilangan lain (terbaik di lorong tengah).</p>' +
       '<div class="medan"><label>Bilangan ke akhir</label><input id="mkBil" type="number" min="2" max="10" value="' + e(a.bilKeAkhir || a.bilLorong || 8) + '"></div>' +
       '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn kuning" data-x="s">' + ik('flag') + 'Pilih semula</button></div>', true);
     m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
@@ -523,7 +524,7 @@ HALAMAN['kj-mata'] = function () {
       cartaLajur(kunciKat.map(function (k) { var p = k.split('|'); return { label: p[0] + ' ' + p[1], siri: ked.map(function (x) { return x.kat[k] || 0; }) }; }), ked.map(function (x) { return { nama: x.nama, warna: x.warna }; })) + '</div>';
     // olahragawan
     h += '<div class="kad blok"><h3>' + ik('crown') + 'Olahragawan & Olahragawati</h3>' + (r.olahragawan.length ? '<div class="grid auto">' + r.olahragawan.map(function (o) {
-      return '<div class="kad-acara"><span class="jalur" style="background:' + (o.jantina === 'L' ? '#1d4ed8' : '#d92d27') + '"></span><div class="nm">' + ik('crown', 'kecil') + ' ' + e(o.gelaran) + '</div>' +
+      return '<div class="kad-acara"><span class="jalur" style="background:' + (o.jantina === 'L' ? '#1f5fd6' : '#db2777') + '"></span><div class="nm">' + ik('crown', 'kecil') + ' ' + e(o.gelaran) + '</div>' +
         o.calon.map(function (c, i) { return '<div style="display:flex;gap:8px;align-items:center;font-size:13px">' + pingat(i + 1) + '<div style="flex:1"><b>' + e(c.nama) + '</b><div class="nota" style="margin:0">' + e(c.kelas) + ' · ' + e((rumahKj(c.rumahId) || {}).nama || '') + ' · ' + c.emas + 'E ' + c.perak + 'P ' + c.gangsa + 'G</div></div><b class="papan" style="font-size:20px">' + c.mata + '</b></div>'; }).join('') + '</div>';
     }).join('') + '</div>' : kosongHtml('Akan dipaparkan selepas keputusan acara individu disimpan.', 'crown')) + '</div>';
     // mata lain-lain
@@ -674,12 +675,12 @@ HALAMAN['kj-tetapan'] = function () {
       '<div class="medan penuh"><label class="togol"><input type="checkbox" id="ktTerbit"' + (t.terbit ? ' checked' : '') + '> Terbitkan keputusan & papan mata di Portal Murid</label></div>' +
       '</div><div class="nota">Nama & tahun kejohanan serta kategori ditetapkan di <a href="#" onclick="pergi(\'tetapan\');return false">Tetapan Rumah Sukan</a>. Mata semua acara selesai dikira semula secara automatik jika jadual mata diubah.</div>' +
       '<div class="aksi-modal"><button class="btn" id="ktSimpan">' + ik('check') + 'Simpan Tetapan</button></div></div>';
-    h += '<div><div class="kad"><h3>' + ik('bolt') + 'Dibuat Automatik oleh Sistem</h3><ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:#334155">' +
+    h += '<div><div class="kad"><h3>' + ik('bolt') + 'Dibuat Automatik oleh Sistem</h3><ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:var(--teks-2)">' +
       '<li><b>Jadual</b> — no. acara, tarikh & masa: padang 1 hari, balapan 2 hari (tidak serentak)</li><li><b>No. Bib</b> — sebaik atlet didaftarkan</li>' +
       '<li><b>Senarai mula</b> — saringan & lorong / giliran sebaik pendaftaran ditutup</li><li><b>Kedudukan & mata</b> — sebaik keputusan disimpan (seri berkongsi kedudukan)</li>' +
       '<li><b>Mara ke akhir</b> — sebaik semua saringan lengkap</li><li><b>Rekod kejohanan</b>, pingat, papan mata & olahragawan/olahragawati</li></ul>' +
       '<div style="margin-top:10px">' + kotak('amaran', '<b>Kawalan manual mengatasi automasi.</b> Admin & guru berakses boleh menyunting jadual, No. Bib, lorong / saringan, finalis, kedudukan dan rekod — suntingan itu dikunci dan tidak diubah oleh fungsi automatik.', 'lock') + '</div></div>' +
-      '<div class="kad"><h3>' + ik('info') + 'Aliran Kerja Kejohanan</h3><ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:#334155">' +
+      '<div class="kad"><h3>' + ik('info') + 'Aliran Kerja Kejohanan</h3><ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:var(--teks-2)">' +
       '<li>Tetapkan tarikh, lokasi & mata (halaman ini)</li><li>Jana acara standard (jadual dijana automatik)</li><li>Lantik AJK & beri akses keputusan</li><li>Buka pendaftaran — guru rumah daftar atlet</li><li>Tutup pendaftaran (senarai mula & bib automatik)</li>' +
       '<li>Hari kejohanan: masukkan keputusan sahaja</li><li>Masukkan mata lain-lain (perbarisan, sorakan)</li><li>Terbitkan keputusan & cetak laporan</li></ol></div></div></div>';
     kandungan(h);

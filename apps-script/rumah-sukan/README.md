@@ -82,10 +82,31 @@ setiap kelas (L/P bagi setiap rumah + beza maksimum) sebelum apa-apa disimpan.
 
 ## Reka bentuk (UI)
 
-Tema **olahraga balapan & padang** dengan warna logo sekolah (biru tua, merah, kuning, ungu) serta merah bata
-balapan & hijau padang: skrin log masuk berstadium, *hero* berjalur lorong & garisan penamat, kad KPI berikon,
-carta (lajur, bar mendatar, donut, podium) dan jadual moden. Semua carta & ikon dilukis terus dalam SVG/CSS
-(tiada pustaka luar) supaya ringan. Responsif: menu laci (*drawer*) pada telefon/tablet.
+Konsep **bersih & profesional** (sama seperti Sistem SMART): kepala biru tua dengan tab navigasi mendatar
+(*Kejohanan Olahraga* dan *Pentadbiran* sebagai senarai jatuh), latar kelabu cerah, kad putih bergaris halus,
+fon **Figtree** (teks) + **Inter Tight** (tajuk & nombor). Identiti SMK Asajaya dikekalkan: logo, biru tua,
+kuning (butang aksi utama), merah, ungu dan warna rumah sukan.
+
+- **Log masuk dua panel:** panel biru tua dengan logo, tajuk besar dan arena trek animasi; borang di sebelah kanan.
+- **Intro ringkas** selepas log masuk, **jam digital** di kepala, **ticker papan skor langsung** di Dashboard & Pusat Kejohanan.
+- Nombor KPI mengira naik, *hero* dengan lorong trek bergerak, podium & carta beranimasi (SVG/CSS tanpa pustaka luar).
+- Telefon: tab menjadi menu laci. Animasi dimatikan jika peranti ditetapkan *kurangkan gerakan*; laporan cetak hitam-putih.
+
+## Naik Tingkatan & Arkib
+
+- **Naik Tingkatan** (*Pentadbiran → Naik Tingkatan*, Admin): pratonton mengikut tingkatan semasa dengan cadangan
+  automatik (Peralihan → 1, 1 → 2 … 4 → 5, 6 Rendah → 6 Atas; Tingkatan 5 & 6 Atas → **tamat**). Setiap tindakan
+  boleh diubah (Naik / Tamat / Kekal, nama tingkatan baharu). Dijalankan dengan pengesahan bertaip
+  `NAIK TINGKATAN`; murid tamat dipindahkan ke **arkib** (tidak boleh log masuk lagi). Rumah sukan, kelas,
+  kata laluan & No. Bib kekal. Amaran dipaparkan jika sudah dijalankan pada tahun yang sama, dan proses
+  terakhir boleh **dibatalkan sepenuhnya** (tingkatan dipulihkan, murid dikembalikan daripada arkib).
+- **Arkib** (*Kejohanan Olahraga → Arkib*):
+  - *Kejohanan lepas* (semua guru): pilih tahun → johan keseluruhan, jadual pingat, olahragawan/olahragawati,
+    pemenang setiap acara (boleh dicari) dan cetak keputusan. Nama murid lepasan kekal dipaparkan.
+  - *Murid lepasan* (Admin): cari / tapis mengikut tahun tamat, **pulihkan** ke senarai murid atau **padam kekal**.
+  - *Tahun baharu* (Admin): mula kejohanan tahun berikutnya — tarikh dikosongkan, pendaftaran ditutup,
+    acara & rekod terbaik disalin dan jadual dijana automatik; kejohanan lama kekal dalam arkib.
+- Sheet baharu `ARKIB_MURID` dan `SEJARAH_NAIK` dicipta automatik pada log masuk pertama (skema versi 5).
 
 ## Kejohanan Olahraga Tahunan (mula hingga akhir)
 
@@ -173,9 +194,9 @@ Jangan ubah nama header. Suntingan manual dalam Sheet dikesan oleh `onEdit` (cac
 Menu Sheet **2. Tambah / Pulihkan Admin** boleh digunakan jika Admin terlupa kata laluan
 (kata laluan di-set semula kepada lalai).
 
-**Naik taraf daripada versi lama:** salin semula semua fail (termasuk fail HTML baharu), kemudian
+**Naik taraf daripada versi lama:** salin semula semua fail (termasuk fail baharu `ArkibService.gs` dan `JsArkib.html`), kemudian
 **Deploy → Manage deployments → Edit → New version**. Sheet `ACARA`, `PESERTA`, `MATA_LAIN` dan lajur baharu
-(`MURID.NoBib`, `AJK.AksesKeputusan`, `ACARA.JadualManual/AkhirManual/RekodManual`, `PESERTA.KedudukanManual`) dicipta secara automatik pada log masuk pertama.
+(`MURID.NoBib`, `AJK.AksesKeputusan`, `ACARA.JadualManual/AkhirManual/RekodManual`, `PESERTA.KedudukanManual`, Sheet `ARKIB_MURID` & `SEJARAH_NAIK`) dicipta secara automatik pada log masuk pertama.
 
 ## Penyelesaian masalah
 

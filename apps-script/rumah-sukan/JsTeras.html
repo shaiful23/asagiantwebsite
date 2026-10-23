@@ -10,7 +10,8 @@
 var S = { token: null, user: null, portal: PORTAL_AWAL, tet: null, mula: null, halaman: '', data: {}, ubah: {}, kj: null };
 var NAMA_PERANAN_RUMAH = { KETUA_GURU_RUMAH: 'Ketua Guru Rumah', PENOLONG_KETUA_GURU_RUMAH: 'Penolong Ketua Guru Rumah', GURU_RUMAH: 'Guru Rumah' };
 var NAMA_PERANAN_AJK = { KETUA_AJK: 'Ketua AJK', AHLI_AJK: 'Ahli AJK' };
-var WARNA_SIRI = ['#1d4ed8', '#d92d27', '#fcc419', '#6d28d9', '#1f9254', '#c8462b', '#0891b2', '#db2777'];
+var WARNA_SIRI = ['#1f5fd6', '#d6312b', '#f5b301', '#6d3fd6', '#138a52', '#d9532c', '#0e7490', '#db2777'];
+var KURANG_GERAK = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 /* ---------- Utiliti ---------- */
 function e(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -18,7 +19,7 @@ function $(id) { return document.getElementById(id); }
 function semua(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
 function nilaiEl(id) { var el = $(id); return el ? el.value : ''; }
 function semakEl(id) { var el = $(id); return !!(el && el.checked); }
-function kandungan(html) { $('kandungan').innerHTML = html; }
+function kandungan(html) { $('kandungan').innerHTML = html; kesanHalaman($('kandungan')); }
 function kpPapar(kp) { kp = String(kp || ''); return kp.length === 12 ? kp.slice(0, 6) + '-' + kp.slice(6, 8) + '-' + kp.slice(8) : kp; }
 function jantinaPendek(j) { return j === 'PEREMPUAN' || j === 'P' ? 'P' : (j === 'LELAKI' || j === 'L' ? 'L' : '-'); }
 function namaJantina(j) { return j === 'P' ? 'Perempuan' : j === 'L' ? 'Lelaki' : j === 'C' ? 'Campuran' : '-'; }
@@ -98,6 +99,11 @@ var IKON = {
   layers: '<path d="m12 2 10 5-10 5L2 7l10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
   copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   play: '<polygon points="6 3 20 12 6 21 6 3"/>',
+  archive: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+  naik: '<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/><path d="M5 21h14"/>',
+  bawah: '<path d="m6 9 6 6 6-6"/>',
+  undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>',
+  login: '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>',
   ruler: '<path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/>'
 };
 function ik(nama, kelas) { return '<svg class="ik' + (kelas ? ' ' + kelas : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (IKON[nama] || IKON.info) + '</svg>'; }
@@ -148,7 +154,7 @@ function cartaLajur(data, siri, opts) {
   var g = '';
   for (var v = 0; v <= atasY + 1e-9; v += langkahY) {
     var y = atas + (H - atas - bawah) * (1 - v / atasY);
-    g += '<line x1="' + kiri + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" stroke="#e4e9f2" stroke-dasharray="3 4"/><text x="' + (kiri - 6) + '" y="' + (y + 4) + '" text-anchor="end">' + Math.round(v) + '</text>';
+    g += '<line x1="' + kiri + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" style="stroke:#e4e8ef" stroke-dasharray="3 5"/><text x="' + (kiri - 6) + '" y="' + (y + 4) + '" text-anchor="end">' + Math.round(v) + '</text>';
   }
   data.forEach(function (d, i) {
     var x = kiri + i * lebar + (lebar - bar) / 2, yAsas = H - bawah;
@@ -157,29 +163,29 @@ function cartaLajur(data, siri, opts) {
       if (h > 0) g += '<rect class="lajur" x="' + x + '" y="' + (yAsas - h) + '" width="' + bar + '" height="' + h + '" rx="' + (j === d.siri.length - 1 ? 6 : 0) + '" fill="' + e(siri[j].warna) + '" style="animation-delay:' + (i * 60) + 'ms"><title>' + e(d.label + ' · ' + siri[j].nama + ': ' + n) + '</title></rect>';
       yAsas -= h;
     });
-    g += '<text x="' + (x + bar / 2) + '" y="' + (yAsas - 5) + '" text-anchor="middle" style="font-weight:800;fill:#0b1b4d;font-size:12px">' + jumlah[i] + '</text>';
-    g += '<text x="' + (x + bar / 2) + '" y="' + (H - 8) + '" text-anchor="middle" style="font-weight:700;fill:#334155">' + e(String(d.label).slice(0, 12)) + '</text>';
+    g += '<text x="' + (x + bar / 2) + '" y="' + (yAsas - 5) + '" text-anchor="middle" style="font-weight:800;fill:var(--navy);font-size:12px;font-family:var(--fon-papan)">' + jumlah[i] + '</text>';
+    g += '<text x="' + (x + bar / 2) + '" y="' + (H - 8) + '" text-anchor="middle" style="font-weight:700;fill:var(--teks-2);letter-spacing:.04em">' + e(String(d.label).slice(0, 12)) + '</text>';
   });
   return '<svg class="carta" viewBox="0 0 ' + W + ' ' + H + '" style="max-width:' + Math.round(W * 1.5) + 'px;margin:0 auto" role="img">' + g + '</svg>' +
     (siri.length > 1 ? '<div class="legenda">' + siri.map(function (s) { return '<span><i style="background:' + e(s.warna) + '"></i>' + e(s.nama) + '</span>'; }).join('') + '</div>' : '');
 }
 function cartaDonut(segmen, tengah, label) {
   var jumlah = segmen.reduce(function (a, s) { return a + s.nilai; }, 0);
-  var r = 52, c = 2 * Math.PI * r, off = 0, g = '<circle cx="70" cy="70" r="' + r + '" fill="none" stroke="#eef2f8" stroke-width="20"/>';
+  var r = 52, c = 2 * Math.PI * r, off = 0, g = '<circle cx="70" cy="70" r="' + r + '" fill="none" style="stroke:#eef1f6" stroke-width="20"/>';
   segmen.forEach(function (s) {
     var p = jumlah ? s.nilai / jumlah : 0;
-    if (p > 0) g += '<circle cx="70" cy="70" r="' + r + '" fill="none" stroke="' + e(s.warna) + '" stroke-width="20" stroke-dasharray="' + (p * c) + ' ' + c + '" stroke-dashoffset="' + (-off * c) + '" transform="rotate(-90 70 70)"><title>' + e(s.label + ': ' + s.nilai) + '</title></circle>';
+    if (p > 0) g += '<circle class="segmen" cx="70" cy="70" r="' + r + '" fill="none" stroke="' + e(s.warna) + '" stroke-width="20" stroke-dasharray="' + (p * c) + ' ' + c + '" stroke-dashoffset="' + (-off * c) + '" transform="rotate(-90 70 70)"><title>' + e(s.label + ': ' + s.nilai) + '</title></circle>';
     off += p;
   });
-  g += '<text x="70" y="70" text-anchor="middle" style="font-family:\'Barlow Condensed\',sans-serif;font-size:30px;font-weight:700;fill:#0b1b4d">' + e(tengah !== undefined ? tengah : jumlah) + '</text>' +
-    '<text x="70" y="88" text-anchor="middle" style="font-size:10px;fill:#64748b;letter-spacing:.1em">' + e((label || 'JUMLAH').toUpperCase()) + '</text>';
+  g += '<text x="70" y="70" text-anchor="middle" style="font-family:var(--fon-papan);font-size:26px;font-weight:800;fill:var(--navy)">' + e(tengah !== undefined ? tengah : jumlah) + '</text>' +
+    '<text x="70" y="88" text-anchor="middle" style="font-size:9.5px;fill:var(--kelabu);letter-spacing:.14em">' + e((label || 'JUMLAH').toUpperCase()) + '</text>';
   return '<div class="donut-wrap"><svg viewBox="0 0 140 140">' + g + '</svg><div class="legenda">' + segmen.map(function (s) {
     return '<span><i style="background:' + e(s.warna) + '"></i>' + e(s.label) + ' — <b>' + nomborFormat(s.nilai) + '</b>' + (jumlah ? ' (' + Math.round(s.nilai / jumlah * 100) + '%)' : '') + '</span>';
   }).join('') + '</div></div>';
 }
 function cincin(pct, warna) {
   var r = 22, c = 2 * Math.PI * r;
-  return '<div class="cincin"><svg viewBox="0 0 54 54"><circle cx="27" cy="27" r="' + r + '" fill="none" stroke="#eef2f8" stroke-width="6"/><circle cx="27" cy="27" r="' + r + '" fill="none" stroke="' + (warna || '#1f9254') + '" stroke-width="6" stroke-linecap="round" stroke-dasharray="' + (c * pct / 100) + ' ' + c + '"/></svg><b>' + Math.round(pct) + '%</b></div>';
+  return '<div class="cincin"><svg viewBox="0 0 54 54"><circle cx="27" cy="27" r="' + r + '" fill="none" style="stroke:#eef1f6" stroke-width="6"/><circle cx="27" cy="27" r="' + r + '" fill="none" stroke="' + (warna || '#138a52') + '" stroke-width="6" stroke-linecap="round" stroke-dasharray="' + (c * pct / 100) + ' ' + c + '"/></svg><b>' + Math.round(pct) + '%</b></div>';
 }
 function podiumHtml(tiga) {
   var susun = [tiga[1], tiga[0], tiga[2]], kls = ['t2', 't1', 't3'], no = [2, 1, 3];
@@ -188,18 +194,62 @@ function podiumHtml(tiga) {
     return '<div class="tiang ' + kls[i] + '"><div class="nm">' + e(r.nama) + '</div><div class="mt">' + e(r.nilai) + '</div><div class="blok-p" style="background:' + e(r.warna) + ';color:' + warnaTeks(r.warna) + '">' + no[i] + '</div></div>';
   }).join('') + '</div>';
 }
-/* Stadium balapan (SVG) untuk skrin log masuk. */
+/* Arena hologram (SVG) untuk skrin log masuk: trek neon perspektif, jalur cahaya pelari,
+   logo terapung dalam cincin berputar, menara lampu & HUD. Animasi SVG/CSS sahaja (ringan). */
 function svgStadium() {
-  var g = '<rect x="6" y="6" width="588" height="328" rx="164" fill="#c8462b"/>';
-  for (var i = 1; i <= 7; i++) g += '<rect x="' + (6 + i * 11) + '" y="' + (6 + i * 11) + '" width="' + (588 - i * 22) + '" height="' + (328 - i * 22) + '" rx="' + (164 - i * 11) + '" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="1.6"/>';
-  g += '<rect x="94" y="94" width="412" height="152" rx="76" fill="#1f9254"/>' +
-    '<rect x="94" y="94" width="412" height="152" rx="76" fill="url(#jalurRumput)"/>' +
-    '<line x1="300" y1="94" x2="300" y2="246" stroke="rgba(255,255,255,.55)" stroke-width="2"/><circle cx="300" cy="170" r="30" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2"/>' +
-    '<rect x="380" y="6" width="10" height="88" fill="url(#penamat)"/>' +
-    '<circle cx="300" cy="170" r="46" fill="#fff"/><image href="' + LOGO + '" x="258" y="128" width="84" height="84"/>';
-  return '<svg class="stadium" viewBox="0 0 600 340" aria-hidden="true"><defs>' +
-    '<pattern id="jalurRumput" width="40" height="152" patternUnits="userSpaceOnUse"><rect width="20" height="152" fill="rgba(255,255,255,.06)"/></pattern>' +
-    '<pattern id="penamat" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#fff"/><rect x="5" y="5" width="5" height="5" fill="#fff"/><rect x="5" width="5" height="5" fill="#0b1b4d"/><rect y="5" width="5" height="5" fill="#0b1b4d"/></pattern>' +
+  var cx = 300, cy = 312, lorong = '', laluan = [], i;
+  var elips = function (rx, ry) { return 'M' + (cx - rx) + ',' + cy + ' a' + rx + ',' + ry + ' 0 1,0 ' + (2 * rx) + ',0 a' + rx + ',' + ry + ' 0 1,0 ' + (-2 * rx) + ',0'; };
+  for (i = 0; i <= 8; i++) {
+    var rx = 278 - i * 13, ry = 96 - i * 5.2;
+    lorong += '<path d="' + elips(rx, ry) + '" fill="none" stroke="rgba(255,255,255,' + (i === 0 || i === 8 ? .75 : .32) + ')" stroke-width="' + (i === 0 || i === 8 ? 1.6 : 1) + '"/>';
+    if (i === 1 || i === 4 || i === 7) laluan.push(elips(rx - 6, ry - 2.6));
+  }
+  var warna = ['#22e3ff', '#ffd23f', '#ff3cc7'], masa = [3.2, 4.1, 5.3], streak = '';
+  laluan.forEach(function (d, k) {
+    var mula = '-' + (k * 1.3).toFixed(1) + 's';   // kepala jalur cahaya = kedudukan bola (offset 0 -> -1000)
+    streak += '<path d="' + d + '" fill="none" stroke="' + warna[k] + '" stroke-width="4" stroke-linecap="round" pathLength="1000" stroke-dasharray="0 910 90 0" filter="url(#sinar)">' +
+      '<animate attributeName="stroke-dashoffset" from="0" to="-1000" dur="' + masa[k] + 's" begin="' + mula + '" repeatCount="indefinite"/></path>' +
+      '<circle r="4.5" fill="#fff" filter="url(#sinar)"><animateMotion dur="' + masa[k] + 's" begin="' + mula + '" repeatCount="indefinite" path="' + d + '"/></circle>';
+  });
+  var menara = function (x, flip) {
+    return '<g opacity=".9"><polygon points="' + x + ',70 ' + (x + (flip ? -150 : 150)) + ',300 ' + (x + (flip ? -40 : 40)) + ',318" fill="url(#kon)" class="denyut"/>' +
+      '<line x1="' + x + '" y1="70" x2="' + x + '" y2="300" stroke="rgba(120,160,255,.45)" stroke-width="2"/>' +
+      '<rect x="' + (x - 14) + '" y="56" width="28" height="14" rx="3" fill="#0b1640" stroke="#22e3ff" stroke-width="1.2"/>' +
+      '<g filter="url(#sinar)">' + [0, 1, 2].map(function (j) { return '<circle cx="' + (x - 8 + j * 8) + '" cy="63" r="2.4" fill="#e9fbff"/>'; }).join('') + '</g></g>';
+  };
+  var g = '<ellipse cx="300" cy="318" rx="300" ry="110" fill="url(#cahayaLantai)"/>' +
+    menara(40, false) + menara(560, true) +
+    // jalur trek & padang
+    '<path d="' + elips(278, 96) + ' ' + elips(174, 42) + '" fill="url(#trekGrad)" fill-rule="evenodd"/>' +
+    '<path d="' + elips(170, 40) + '" fill="url(#padangGrad)"/>' +
+    '<g clip-path="url(#klipPadang)" stroke="rgba(29,233,164,.35)" stroke-width="1">' +
+      [-3, -2, -1, 0, 1, 2, 3].map(function (j) { return '<line x1="' + (300 + j * 45) + '" y1="270" x2="' + (300 + j * 62) + '" y2="356"/>'; }).join('') +
+      '<line x1="120" y1="312" x2="480" y2="312"/></g>' +
+    lorong +
+    '<path d="M' + (cx + 70) + ',' + (cy + 41) + ' l12,0 l3,55 l-12,0 z" fill="url(#penamatPola)" opacity=".9"/>' +
+    streak +
+    // tiang hologram + logo
+    '<path d="M262,312 L238,150 L362,150 L338,312 Z" fill="url(#alurCahaya)" class="denyut"/>' +
+    '<ellipse cx="300" cy="312" rx="44" ry="12" fill="none" stroke="#22e3ff" stroke-width="1.5" filter="url(#sinar)" class="denyut"/>' +
+    '<g class="cincin-putar"><circle cx="300" cy="150" r="78" fill="none" stroke="#22e3ff" stroke-width="1.4" stroke-dasharray="4 10 40 10" opacity=".85"/></g>' +
+    '<g class="cincin-putar balik"><circle cx="300" cy="150" r="66" fill="none" stroke="#ff3cc7" stroke-width="2" stroke-dasharray="70 30 8 30" opacity=".85"/></g>' +
+    '<circle cx="300" cy="150" r="91" fill="none" stroke="rgba(120,160,255,.25)" stroke-width="1"/>' +
+    '<circle cx="300" cy="150" r="54" fill="#fff" filter="url(#sinarBesar)"/><image href="' + LOGO + '" x="250" y="100" width="100" height="100"/>' +
+    // HUD
+    '<g font-family="Orbitron, sans-serif" font-size="9" letter-spacing="2" fill="#22e3ff">' +
+      '<path d="M392,96 l26,-26 h86" fill="none" stroke="#22e3ff" stroke-width="1" class="alur"/><text x="424" y="64">SMK ASAJAYA</text>' +
+      '<path d="M226,196 l-30,-26 h-92" fill="none" stroke="#ffd23f" stroke-width="1" class="alur"/><text x="104" y="162" fill="#ffd23f">LORONG 1–8</text>' +
+    '</g>';
+  return '<svg class="stadium" viewBox="0 0 600 420" aria-hidden="true"><defs>' +
+    '<filter id="sinar" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
+    '<filter id="sinarBesar" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#22e3ff" flood-opacity=".9"/></filter>' +
+    '<radialGradient id="cahayaLantai"><stop offset="0" stop-color="rgba(34,227,255,.28)"/><stop offset="1" stop-color="rgba(34,227,255,0)"/></radialGradient>' +
+    '<linearGradient id="trekGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6a3d" stop-opacity=".35"/><stop offset="1" stop-color="#ff3d5e" stop-opacity=".75"/></linearGradient>' +
+    '<radialGradient id="padangGrad"><stop offset="0" stop-color="#1de9a4" stop-opacity=".4"/><stop offset="1" stop-color="#0a5c49" stop-opacity=".55"/></radialGradient>' +
+    '<linearGradient id="alurCahaya" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#22e3ff" stop-opacity=".45"/><stop offset="1" stop-color="#22e3ff" stop-opacity="0"/></linearGradient>' +
+    '<linearGradient id="kon" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bff6ff" stop-opacity=".28"/><stop offset="1" stop-color="#22e3ff" stop-opacity="0"/></linearGradient>' +
+    '<clipPath id="klipPadang"><path d="' + elips(170, 40) + '"/></clipPath>' +
+    '<pattern id="penamatPola" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#040816"/><rect width="3" height="3" fill="#fff"/><rect x="3" y="3" width="3" height="3" fill="#fff"/></pattern>' +
     '</defs>' + g + '</svg>';
 }
 function kiraDetik(tarikh) {
@@ -214,6 +264,93 @@ function kiraanHtml(tarikh) {
   if (!k) return '';
   if (k.lepas) return k.hari < 2 ? '<div class="kiraan"><div><b>HARI</b><span>Kejohanan</span></div></div>' : '';
   return '<div class="kiraan"><div><b>' + k.hari + '</b><span>Hari</span></div><div><b>' + k.jam + '</b><span>Jam</span></div><div><b>' + k.minit + '</b><span>Minit</span></div></div>';
+}
+
+/* ---------- Kesan visual NEO ARENA ----------
+   Semua kesan bersifat hiasan: dimatikan jika pengguna memilih "kurangkan gerakan". */
+function kesanHalaman(root) {
+  semua('.hero', root).forEach(function (h) { if (!h.querySelector('.pelari-cahaya')) h.insertAdjacentHTML('beforeend', '<span class="pelari-cahaya"></span>'); });
+  if (KURANG_GERAK) return;
+  semua('.kpi .nilai, [data-kira]', root).forEach(kiraNaik);
+}
+/* Nombor "mengira naik" ke nilai sebenar (cth. 220, 2/20, 1,234). Teks asal dipulihkan tepat pada akhirnya. */
+function kiraNaik(el) {
+  var asal = el.textContent, nombor = asal.match(/\d[\d,]*/g);
+  if (!nombor || asal.length > 16) return;
+  var sasaran = nombor.map(function (n) { return Number(n.replace(/,/g, '')); });
+  if (!sasaran.some(function (n) { return n > 0; })) return;
+  var mula = null, tempoh = 900;
+  function langkah(t) {
+    if (!el.isConnected) return;
+    if (mula === null) mula = t;
+    var p = Math.min(1, (t - mula) / tempoh), e2 = 1 - Math.pow(1 - p, 3), k = 0;
+    el.textContent = p >= 1 ? asal : asal.replace(/\d[\d,]*/g, function () { var v = Math.round(sasaran[k++] * e2); return v.toLocaleString('ms-MY'); });
+    if (p < 1) requestAnimationFrame(langkah);
+  }
+  requestAnimationFrame(langkah);
+}
+/* Kad condong 3D & sorotan cahaya mengikut kursor (peranti tetikus sahaja). */
+function pasangKesanKursor() {
+  if (KURANG_GERAK || !(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches)) return;
+  var sasaranCondong = null, bingkai = 0, ev = null;
+  document.addEventListener('pointermove', function (e) {
+    ev = e;
+    if (bingkai) return;
+    bingkai = requestAnimationFrame(function () {
+      bingkai = 0;
+      var t = ev.target && ev.target.closest ? ev.target : null;
+      if (!t) return;
+      var sorot = t.closest('.kad, .kpi, .kad-rumah');
+      if (sorot) { var r = sorot.getBoundingClientRect(); sorot.style.setProperty('--mx', (ev.clientX - r.left) + 'px'); sorot.style.setProperty('--my', (ev.clientY - r.top) + 'px'); }
+      var c = t.closest('.kpi, .kad-rumah, .kad-acara, .bib');
+      if (sasaranCondong && sasaranCondong !== c) { sasaranCondong.style.transform = ''; }
+      sasaranCondong = c;
+      if (c) {
+        var b = c.getBoundingClientRect(), x = (ev.clientX - b.left) / b.width - .5, y = (ev.clientY - b.top) / b.height - .5;
+        c.style.transform = 'perspective(900px) rotateX(' + (-y * 4).toFixed(2) + 'deg) rotateY(' + (x * 5).toFixed(2) + 'deg) translateY(-2px)';
+      }
+    });
+  }, { passive: true });
+  document.addEventListener('pointerleave', function () { if (sasaranCondong) { sasaranCondong.style.transform = ''; sasaranCondong = null; } });
+}
+/* Intro "warp" sebaik log masuk (bukan semasa muat semula halaman). */
+function mainIntro() {
+  if (KURANG_GERAK || $('introArena')) return;
+  var d = document.createElement('div');
+  d.id = 'introArena';
+  d.innerHTML = '<div class="garis-laju"></div><div class="teras"><img alt="" src="' + LOGO + '"><b>RUMAH SUKAN SMK ASAJAYA</b><div class="bar"><i></i></div></div>';
+  document.body.appendChild(d);
+  setTimeout(function () { d.remove(); }, 1600);
+}
+/* Jam digital (bar atas). */
+var pemasaJam = null;
+function mulaJam() {
+  var el = $('jamDigital');
+  if (!el || pemasaJam) return;
+  var dua = function (n) { return (n < 10 ? '0' : '') + n; };
+  var kemas = function () { var d = new Date(); el.textContent = dua(d.getHours()) + ':' + dua(d.getMinutes()) + ':' + dua(d.getSeconds()); };
+  kemas(); pemasaJam = setInterval(kemas, 1000);
+}
+/* Ticker papan skor langsung. item = [{warna, html}] — kandungan diulang dua kali supaya gelungan lancar. */
+function tickerHtml(item, label) {
+  if (!item.length) return '';
+  var isi = item.map(function (x) { return '<span>' + (x.warna ? '<i style="background:' + e(x.warna) + ';"></i>' : '') + x.html + '</span>'; }).join('');
+  return '<div class="ticker" aria-label="Papan skor langsung"><div class="tag">' + e(label || 'LANGSUNG') + '</div><div class="landasan"><div class="gerak" style="--tempoh:' + Math.max(18, item.length * 5) + 's">' + isi + isi + '</div></div></div>';
+}
+/* Item ticker standard daripada kedudukan rumah + maklumat kejohanan. */
+function itemTicker(ked, info) {
+  var adaMata = (ked || []).some(function (x) { return x.jumlah > 0; });
+  var item = (ked || []).map(function (x, i) {
+    return { warna: x.warna, html: adaMata ? '<b>#' + (x.kedudukan || i + 1) + '</b> ' + e(x.nama) + ' <b>' + nomborFormat(x.jumlah) + '</b> mata'
+      : 'RUMAH ' + e(x.nama) + (x.murid !== undefined ? ' <b>' + nomborFormat(x.murid) + '</b> ahli' : '') };
+  });
+  if (info.selesai !== undefined) item.push({ warna: '#1f5fd6', html: 'ACARA SELESAI <b>' + info.selesai + '/' + info.jumlah + '</b>' });
+  if (info.penyertaan) item.push({ warna: '#d9532c', html: 'PENYERTAAN <b>' + nomborFormat(info.penyertaan) + '</b>' });
+  var k = kiraDetik(info.tarikh);
+  if (k && !k.lepas) item.push({ warna: '#f5b301', html: 'KEJOHANAN DALAM <b>' + k.hari + '</b> HARI <b>' + k.jam + '</b> JAM' });
+  else if (k && k.lepas && k.hari < 3) item.push({ warna: '#f5b301', html: '<b>HARI KEJOHANAN</b> — SELAMAT BERTANDING!' });
+  if (info.rekod) item.push({ warna: '#6d3fd6', html: 'REKOD BAHARU <b>' + info.rekod + '</b>' });
+  return item;
 }
 
 /* ---------- Toast, sibuk, bar pemuat ---------- */
@@ -235,7 +372,7 @@ function bebanAtas(hidup) {
 }
 
 /* ---------- Panggilan pelayan (dengan cache bacaan) ---------- */
-var API_TULIS = /^api(Simpan|Import|Padam|Reset|Tetapkan|Agih|Kunci|Tukar|Login|Jana|Salin|Mara|Sahkan|SetSemula)/;
+var API_TULIS = /^api(Simpan|Import|Padam|Reset|Tetapkan|Agih|Kunci|Tukar|Login|Jana|Salin|Mara|Sahkan|SetSemula|Jalankan|Batal|Pulihkan|MulaTahun)/;
 var CACHE_API = {}, TTL_CACHE_MS = 60000;
 function kosongkanCacheApi() { CACHE_API = {}; }
 function api(fn, param, pilihan) {
@@ -288,7 +425,7 @@ function bukaModal(html, kecil) {
 }
 function tutupModal(el) { var m = el && el.closest ? el.closest('.latar-modal') : el; if (m) m.remove(); }
 function sahkan(mesej, ok, labelOk, jenis) {
-  var m = bukaModal('<h3>' + ik(jenis === 'biasa' ? 'info' : 'alert') + 'Pengesahan</h3><p style="white-space:pre-line;margin:0;color:#334155">' + e(mesej) + '</p><div class="aksi-modal"><button class="btn luar" data-x="batal">Batal</button><button class="btn ' + (jenis === 'biasa' ? '' : 'merah') + '" data-x="ok">' + e(labelOk || 'Teruskan') + '</button></div>', true);
+  var m = bukaModal('<h3>' + ik(jenis === 'biasa' ? 'info' : 'alert') + 'Pengesahan</h3><p style="white-space:pre-line;margin:0;color:var(--teks-2)">' + e(mesej) + '</p><div class="aksi-modal"><button class="btn luar" data-x="batal">Batal</button><button class="btn ' + (jenis === 'biasa' ? '' : 'merah') + '" data-x="ok">' + e(labelOk || 'Teruskan') + '</button></div>', true);
   m.querySelector('[data-x=batal]').onclick = function () { tutupModal(m); };
   m.querySelector('[data-x=ok]').onclick = function () { tutupModal(m); ok(); };
 }
@@ -324,6 +461,7 @@ function terimaSesi(r) {
 
 function pasangLogMasuk() {
   $('stadiumLogin').innerHTML = svgStadium();
+  pasangKesanKursor();
   semua('img[data-logo]').forEach(function (i) { i.src = LOGO; });
   semua('.tab-portal button').forEach(function (b) { b.onclick = function () { setPortal(b.getAttribute('data-portal')); }; });
   setPortal(S.portal);
@@ -336,9 +474,9 @@ function pasangLogMasuk() {
       S.token = r.token;
       terimaSesi(r);
       $('lgKW').value = '';
-      if (r.mestiTukarPassword) paparSkrin('skrinTukar'); else mulaAplikasi();
+      if (r.mestiTukarPassword) paparSkrin('skrinTukar'); else { mainIntro(); mulaAplikasi(); }
     }).catch(function (er) { $('ralatLogin').textContent = er.message; }).then(function () {
-      $('btnLogin').disabled = false; $('btnLogin').innerHTML = ik('logout') + ' Log Masuk';
+      $('btnLogin').disabled = false; $('btnLogin').innerHTML = ik('login', 'kecil') + ' Log masuk';
     });
   });
   $('borangTukar').addEventListener('submit', function (ev) {
@@ -349,7 +487,7 @@ function pasangLogMasuk() {
       ['tkLama', 'tkBaru', 'tkSah'].forEach(function (i) { $(i).value = ''; });
       toast('Kata laluan berjaya ditukar.', 'jaya');
       return api('apiMula', {}, { segar: true });
-    }).then(function (r) { terimaSesi(r); mulaAplikasi(); })
+    }).then(function (r) { terimaSesi(r); mainIntro(); mulaAplikasi(); })
       .catch(function (er) { $('ralatTukar').textContent = er.message; });
   });
   $('btnTukarKeluar').onclick = logKeluar;
@@ -417,7 +555,8 @@ function senaraiMenu() {
     { id: 'kj-keputusan', label: 'Saringan & Keputusan', ikon: 'timer' },
     { id: 'kj-mata', label: 'Papan Mata & Pingat', ikon: 'medal' },
     { id: 'kj-rekod', label: 'Rekod Kejohanan', ikon: 'star' },
-    { id: 'kj-laporan', label: 'Laporan & Cetak', ikon: 'printer' }
+    { id: 'kj-laporan', label: 'Laporan & Cetak', ikon: 'printer' },
+    { id: 'arkib', label: 'Arkib', ikon: 'archive' }
   ];
   if (S.user.admin) m = m.concat([
     { kumpulan: 'Pentadbiran' },
@@ -426,16 +565,38 @@ function senaraiMenu() {
     { id: 'staf', label: 'Guru & Staf AKP', ikon: 'user' },
     { id: 'murid', label: 'Murid & Atlet', ikon: 'users' },
     { id: 'agihan', label: 'Agihan Murid', ikon: 'shuffle' },
+    { id: 'naik', label: 'Naik Tingkatan', ikon: 'naik' },
     { id: 'audit', label: 'Log Audit', ikon: 'file' }
   ]);
   return m;
 }
+/* Menu tab mendatar (gaya SMART): kumpulan "Utama"/"Portal Murid" sebagai tab terus,
+   kumpulan lain sebagai tab dengan senarai jatuh. Pada telefon, CSS menukarnya menjadi laci. */
+var IKON_KUMPULAN = { 'Kejohanan Olahraga': 'trophy', 'Pentadbiran': 'shield' };
 function binaMenu() {
-  $('menuNav').innerHTML = senaraiMenu().map(function (m) {
-    return m.kumpulan ? '<div class="label-nav">' + e(m.kumpulan) + '</div>' : '<button class="item-nav" data-h="' + m.id + '">' + ik(m.ikon) + '<span>' + e(m.label) + '</span></button>';
+  var kumpulan = [], semasa = null;
+  senaraiMenu().forEach(function (m) {
+    if (m.kumpulan) { semasa = { nama: m.kumpulan, item: [] }; kumpulan.push(semasa); } else if (semasa) semasa.item.push(m);
+  });
+  var butang = function (m) { return '<button class="item-nav" data-h="' + m.id + '">' + ik(m.ikon) + '<span>' + e(m.label) + '</span></button>'; };
+  $('menuNav').innerHTML = kumpulan.map(function (k, i) {
+    if (i === 0) return k.item.map(butang).join('');   // kumpulan pertama: tab terus
+    return '<div class="kumpulan-menu" data-kumpulan="' + e(k.nama) + '"><button class="btn-kumpulan" type="button" aria-haspopup="true" aria-expanded="false">' + ik(IKON_KUMPULAN[k.nama] || 'list') + '<span>' + e(k.nama) + '</span>' + ik('bawah', 'anak-panah') + '</button>' +
+      '<div class="panel" role="menu">' + k.item.map(butang).join('') + '</div></div>';
   }).join('');
-  semua('#menuNav .item-nav').forEach(function (b) { b.onclick = function () { pergi(b.getAttribute('data-h')); }; });
+  semua('#menuNav .item-nav').forEach(function (b) { b.onclick = function () { tutupKumpulan(); pergi(b.getAttribute('data-h')); }; });
+  semua('#menuNav .kumpulan-menu > .btn-kumpulan').forEach(function (b) {
+    b.onclick = function (ev) {
+      ev.stopPropagation();
+      var k = b.parentNode, buka = !k.classList.contains('buka');
+      tutupKumpulan();
+      k.classList.toggle('buka', buka); b.setAttribute('aria-expanded', buka ? 'true' : 'false');
+    };
+  });
 }
+function tutupKumpulan() { semua('#menuNav .kumpulan-menu.buka').forEach(function (k) { k.classList.remove('buka'); k.firstChild.setAttribute('aria-expanded', 'false'); }); }
+document.addEventListener('click', function (ev) { if (!ev.target.closest || !ev.target.closest('.kumpulan-menu')) tutupKumpulan(); });
+document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') tutupKumpulan(); });
 function adaPerubahan() { return Object.keys(S.ubah).some(function (k) { return S.ubah[k] && Object.keys(S.ubah[k]).length; }); }
 function pergi(h, arg) {
   if (adaPerubahan() && h !== S.halaman) {
@@ -447,6 +608,7 @@ function pergi(h, arg) {
   var item = senaraiMenu().filter(function (m) { return m.id === h; })[0];
   $('tajukHalaman').textContent = item ? item.label : '';
   semua('#menuNav .item-nav').forEach(function (b) { b.classList.toggle('aktif', b.getAttribute('data-h') === h); });
+  semua('#menuNav .kumpulan-menu').forEach(function (k) { var b = k.querySelector('.btn-kumpulan'); if (b) b.classList.toggle('aktif', !!k.querySelector('.item-nav[data-h="' + h + '"]')); });
   kandungan(rangkaHalaman());
   window.scrollTo(0, 0);
   var f = HALAMAN[h];
@@ -456,12 +618,14 @@ function pergi(h, arg) {
 function mulaAplikasi() {
   paparSkrin('aplikasi');
   var u = S.user;
-  $('labelPortal').textContent = u.jenis === 'MURID' ? 'Portal Murid' : 'Portal Guru & Staf';
+  $('labelPortal').textContent = u.jenis === 'MURID' ? ' · Portal Murid' : ' · Portal Guru & Staf';
   var warna = u.jenis === 'MURID' && S.mula && S.mula.portal && S.mula.portal.rumah ? S.mula.portal.rumah.warna
     : (S.mula && S.mula.dashboard && S.mula.dashboard.saya.rumah ? S.mula.dashboard.saya.rumah.warna : '#1d4ed8');
-  $('cipPengguna').innerHTML = '<span class="avatar" style="background:' + e(warna) + ';color:' + warnaTeks(warna) + '">' + e(inisial(u.nama)) + '</span><span class="teks" title="' + e(u.nama) + '"><div class="nm">' + e(u.nama) + '</div><div class="pr">' +
-    (u.jenis === 'MURID' ? 'Murid' : (u.admin ? 'Admin' : (u.peranan === 'AKP' ? 'Staf AKP' : 'Guru'))) + '</div></span>';
+  var peranan = u.jenis === 'MURID' ? 'Murid' : (u.admin ? 'Admin' : (u.peranan === 'AKP' ? 'Staf AKP' : 'Guru'));
+  $('cipPengguna').innerHTML = '<span class="avatar" title="' + e(u.nama + ' · ' + peranan) + '" style="background:' + e(warna) + ';color:' + warnaTeks(warna) + '">' + e(inisial(u.nama)) + '</span>';
+  $('cipNama').textContent = u.nama + ' · ' + peranan;
   binaMenu();
+  mulaJam();
   pergi(u.jenis === 'MURID' ? 'portalmurid' : 'dashboard');
 }
 
