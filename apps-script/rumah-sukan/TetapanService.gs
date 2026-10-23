@@ -11,7 +11,21 @@ function tetapanLalai() {
     [TET_MOD_KATEGORI, 'UMUR', 'UMUR = ikut tahun lahir (No. KP); TINGKATAN = ikut tingkatan'],
     [TET_KATEGORI, JSON.stringify(KATEGORI_LALAI), 'Senarai kategori (JSON) — ubah melalui UI'],
     [TET_KRITERIA, JSON.stringify(KRITERIA_LALAI), 'Kriteria agihan murid (JSON) — ubah melalui UI'],
-    [TET_AGIHAN_TERAKHIR, '', 'Ringkasan agihan terakhir']
+    [TET_AGIHAN_TERAKHIR, '', 'Ringkasan agihan terakhir'],
+    [TET_TARIKH_KEJOHANAN, '', 'Tarikh kejohanan olahraga (YYYY-MM-DD)'],
+    [TET_LOKASI, 'Padang SMK Asajaya', 'Lokasi kejohanan'],
+    [TET_MATA_INDIVIDU, '7,5,4,3,2,1', 'Mata acara individu mengikut kedudukan'],
+    [TET_MATA_BERGANTI, '14,10,8,6,4,2', 'Mata acara berganti-ganti mengikut kedudukan'],
+    [TET_HAD_INDIVIDU, '3', 'Maksimum acara individu seorang atlet'],
+    [TET_HAD_BERGANTI, '2', 'Maksimum acara berganti-ganti seorang atlet'],
+    [TET_PENDAFTARAN, 'TUTUP', 'BUKA / TUTUP pendaftaran atlet oleh guru rumah'],
+    [TET_TERBIT, 'TIDAK', 'YA = papan mata & keputusan dipaparkan di Portal Murid'],
+    [TET_MASA_MULA, '07:30', 'Jadual automatik: masa acara pertama'],
+    [TET_SELANG_BALAPAN, '10', 'Jadual automatik: minit antara acara balapan'],
+    [TET_SELANG_PADANG, '30', 'Jadual automatik: minit antara acara padang'],
+    [TET_TARIKH_PADANG, '', 'Hari acara padang (kosong = tarikh kejohanan)'],
+    [TET_TARIKH_BALAPAN1, '', 'Hari balapan 1 (kosong = tarikh kejohanan + 1)'],
+    [TET_TARIKH_BALAPAN2, '', 'Hari balapan 2 (kosong = tarikh kejohanan + 2)']
   ];
 }
 
@@ -102,8 +116,11 @@ function petaRumah() {
 function apiTetapan(p) {
   const sesi = wajibStaf(p.token);
   if (sesi.success === false) return sesi;
-  const tet = bacaTetapan();
-  return jaya({
+  return jaya(dataTetapan(bacaTetapan()));
+}
+
+function dataTetapan(tet) {
+  return ({
     tahun: tahunKejohanan(tet), namaKejohanan: tet[TET_NAMA_KEJOHANAN],
     kategori: konfigKategori(tet), kriteria: kriteriaAgihan(tet), rumah: senaraiRumah(),
     perananRumah: NAMA_PERANAN_RUMAH, perananAjk: NAMA_PERANAN_AJK, hadRumah: HAD_RUMAH

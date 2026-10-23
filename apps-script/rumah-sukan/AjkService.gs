@@ -7,7 +7,7 @@
 
 function senaraiAjk() {
   return bacaSheetSebagaiObjek(SHEET_AJK).filter(a => a.AjkId)
-    .map(a => ({ id: String(a.AjkId), nama: String(a.Nama || ''), tugas: String(a.Tugas || ''), susunan: nombor(a.Susunan, 99) }))
+    .map(a => ({ id: String(a.AjkId), nama: String(a.Nama || ''), tugas: String(a.Tugas || ''), susunan: nombor(a.Susunan, 99), akses: aksesKeputusanAjk(a) }))
     .sort((a, b) => a.susunan - b.susunan || a.nama.localeCompare(b.nama));
 }
 
@@ -59,10 +59,10 @@ function apiSimpanAjk(p) {
     if (d.id) {
       const r = cariBarisMengikutId(SHEET_AJK, 'AjkId', d.id);
       if (!r) return ralat('AJK tidak dijumpai.');
-      r.Nama = nama; r.Tugas = teksBersih(d.tugas);
+      r.Nama = nama; r.Tugas = teksBersih(d.tugas); r.AksesKeputusan = d.akses ? 'YA' : 'TIDAK';
       kemaskiniBaris(SHEET_AJK, r.__row, r);
     } else {
-      tambahBaris(SHEET_AJK, { AjkId: janaId('AJK'), Nama: nama, Tugas: teksBersih(d.tugas), Susunan: semua.length + 1 });
+      tambahBaris(SHEET_AJK, { AjkId: janaId('AJK'), Nama: nama, Tugas: teksBersih(d.tugas), Susunan: semua.length + 1, AksesKeputusan: d.akses ? 'YA' : 'TIDAK' });
     }
     catatAudit(sesi, d.id ? 'KEMASKINI_AJK' : 'TAMBAH_AJK', 'AJK', d.id || '', nama);
     return jaya({});

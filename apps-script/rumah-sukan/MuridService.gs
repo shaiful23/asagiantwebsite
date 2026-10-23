@@ -14,7 +14,7 @@ function muridKeKlien(m, rumah, cfg) {
     tingkatan: String(m.Tingkatan || ''), kelas: String(m.Kelas || ''), kunciKelas: kunciKelas(m),
     kaum: m.Kaum || '', agama: m.Agama || '', tarikhLahir: String(m.TarikhLahir || ''), noTelPenjaga: String(m.NoTelPenjaga || ''),
     atlet: ya(m.Atlet), acara: m.Acara || '', kategori: kategoriMurid(m, cfg),
-    rumahId: r ? r.id : '', kunciRumah: ya(m.KunciRumah), status: m.Status || 'AKTIF',
+    rumahId: r ? r.id : '', kunciRumah: ya(m.KunciRumah), status: m.Status || 'AKTIF', noBib: String(m.NoBib || ''),
     mestiTukar: ya(m.MestiTukarPassword) || !String(m.Password || '')
   };
 }
@@ -47,6 +47,10 @@ function apiSimpanMurid(p) {
     const sedia = bacaSheetSebagaiObjek(SHEET_MURID).find(m => normalKP(m.NoKP) === nokp);
     if (d.baharu && sedia) return ralat('No. KP ini sudah didaftarkan (' + sedia.NamaPenuh + ').');
     const rumahId = rumah[d.rumahId] ? d.rumahId : '';
+    // No. Bib boleh disunting manual oleh Admin (mengatasi bib automatik); mesti unik
+    const bib = d.noBib === undefined ? String((sedia && sedia.NoBib) || '') : String(d.noBib || '').trim();
+    if (bib && !/^\d{1,6}$/.test(bib)) return ralat('No. Bib mesti nombor (maks. 6 digit).');
+    if (bib && bacaSheetSebagaiObjek(SHEET_MURID).some(m => String(m.NoBib || '') === bib && normalKP(m.NoKP) !== nokp)) return ralat('No. Bib ' + bib + ' sudah digunakan oleh murid lain.');
     // rumah yang diubah secara manual dikunci supaya agihan automatik tidak memindahkannya
     const rumahBerubah = rumahId !== String((sedia && sedia.RumahId) || '');
     const objek = Object.assign({}, sedia || { Password: '', MestiTukarPassword: 'YA' }, {
@@ -55,7 +59,7 @@ function apiSimpanMurid(p) {
       Kaum: banding(d.kaum), Agama: banding(d.agama), TarikhLahir: teksBersih(d.tarikhLahir), NoTelPenjaga: teksBersih(d.noTelPenjaga),
       Atlet: d.atlet ? 'YA' : 'TIDAK', Acara: d.atlet ? banding(d.acara) : '',
       RumahId: rumahId, KunciRumah: rumahId && (d.kunciRumah || rumahBerubah) ? 'YA' : '',
-      Status: banding(d.status) === 'TIDAK AKTIF' ? 'TIDAK AKTIF' : 'AKTIF', Dikemaskini: sekarangTeks()
+      Status: banding(d.status) === 'TIDAK AKTIF' ? 'TIDAK AKTIF' : 'AKTIF', NoBib: bib, Dikemaskini: sekarangTeks()
     });
     if (sedia) kemaskiniBaris(SHEET_MURID, sedia.__row, objek); else tambahBaris(SHEET_MURID, objek);
     catatAudit(sesi, sedia ? 'KEMASKINI_MURID' : 'TAMBAH_MURID', 'MURID', nokp, nama + ' | ' + objek.Tingkatan + ' ' + objek.Kelas +

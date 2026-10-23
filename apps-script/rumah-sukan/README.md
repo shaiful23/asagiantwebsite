@@ -80,6 +80,65 @@ Seri dipecahkan secara rawak berbiji (*seed*), jadi **Pratonton** dan **Sahkan &
 agihan yang sama. Pratonton memaparkan taburan setiap rumah (jumlah, L/P, atlet, kategori×jantina) dan
 setiap kelas (L/P bagi setiap rumah + beza maksimum) sebelum apa-apa disimpan.
 
+## Reka bentuk (UI)
+
+Tema **olahraga balapan & padang** dengan warna logo sekolah (biru tua, merah, kuning, ungu) serta merah bata
+balapan & hijau padang: skrin log masuk berstadium, *hero* berjalur lorong & garisan penamat, kad KPI berikon,
+carta (lajur, bar mendatar, donut, podium) dan jadual moden. Semua carta & ikon dilukis terus dalam SVG/CSS
+(tiada pustaka luar) supaya ringan. Responsif: menu laci (*drawer*) pada telefon/tablet.
+
+## Kejohanan Olahraga Tahunan (mula hingga akhir)
+
+Menu **Kejohanan Olahraga** — semua kerja dibuat terus dalam Web App, tanpa membuka Google Sheet:
+
+| Halaman | Fungsi |
+| --- | --- |
+| **Pusat Kejohanan** | Kiraan detik, 5 fasa (Persediaan → Pendaftaran → Jadual & Senarai Mula → Pertandingan → Keputusan Rasmi) dengan peratus siap, papan mata langsung, keputusan terkini, status acara |
+| **Acara & Jadual** | Jana **acara standard** (100m–1500m, 4×100m, 4×400m, lompat jauh/kijang/tinggi, lontar peluru, lempar cakera, rejam lembing) bagi setiap kategori × jantina, **salin acara & rekod tahun lepas**, tambah/sunting acara, ubah no./tarikh/masa terus dalam jadual, cetak jadual |
+| **Pendaftaran Atlet** | Ketua/Penolong Ketua Guru Rumah mendaftar atlet rumah sendiri bagi setiap acara (semakan automatik: kategori, jantina, had per rumah, had acara per atlet, pasukan berganti 4–6 orang) |
+| **Saringan & Keputusan** | Guru/AJK hanya **memasukkan keputusan** — masa larian dengan milisaat (`12.345`, `1:05.321`), jarak (`4.35`), atau DNS/DNF/DQ. Senarai mula (saringan & lorong untuk balapan dengan atlet serumah disebar dan lorong tengah dahulu; giliran untuk padang), kedudukan (seri berkongsi kedudukan), mata, **mara ke akhir** dan **rekod** dikira automatik. Senarai mula / keputusan boleh dicetak |
+| **Papan Mata & Pingat** | Johan keseluruhan (podium), jadual mata, kutipan pingat emas/perak/gangsa, sumbangan mata mengikut kategori, **olahragawan/olahragawati** setiap kategori, mata lain-lain (perbarisan, sorakan, khemah) |
+| **Rekod Kejohanan** | Rekod setiap acara dikemas kini **automatik** apabila dipecahkan, dan dipulihkan sendiri jika keputusan dibetulkan (rekod sebelum kejohanan disimpan sebagai garis asas) |
+| **Laporan & Cetak** | Jadual acara, senarai mula semua acara, buku keputusan, senarai pemenang, papan mata & olahragawan, senarai atlet ikut rumah (Cetak / PDF) + eksport CSV |
+| **Tetapan Kejohanan** (Admin) | Tarikh, lokasi, jadual mata individu & berganti, had acara per atlet, tarikh hari padang & hari balapan 1/2, masa mula & selang jadual automatik, buka/tutup pendaftaran, terbitkan keputusan ke Portal Murid |
+
+**Automatik sepenuhnya (tiada proses manual oleh guru):**
+- **Jadual** — no. acara, tarikh & masa. Acara padang dan balapan **tidak serentak**: semua acara **padang pada 1 hari**,
+  acara **balapan dibahagi kepada 2 hari** (jarak menaik, berganti-ganti di akhir). Lalai: padang = tarikh kejohanan,
+  balapan = hari ke-2 & ke-3; ketiga-tiga tarikh, masa mula dan selang boleh diubah di Tetapan Kejohanan
+  (jadual disusun semula sendiri apabila tetapan ini diubah).
+- **No. Bib** — diberi sebaik atlet didaftarkan (`<no. rumah><3 digit>`, cth. 1001).
+- **Senarai mula** — dijana apabila pendaftaran ditutup (atau sebaik acara dibuka di halaman keputusan).
+- **Kedudukan, mata, pingat, papan mata, olahragawan/olahragawati** — sebaik keputusan disimpan; dikira semula jika jadual mata ditukar.
+- **Mara ke akhir** — finalis terbaik merentasi semua saringan dipilih sebaik semua saringan lengkap.
+- **Rekod kejohanan** — dikemas kini sendiri (tiada pengesahan diperlukan).
+
+**Kawalan manual mengatasi automasi.** Admin dan guru/AJK yang mempunyai akses boleh menyunting apa sahaja hasil
+automatik; suntingan itu **dikunci** dan tidak ditimpa oleh fungsi automatik:
+
+| Perkara | Cara sunting | Kembali automatik |
+|---|---|---|
+| Jadual (no., tarikh, masa) | Terus dalam jadual *Acara & Jadual* atau borang acara (ikon 🔒) | Kosongkan tarikh & masa, atau *Jana jadual automatik* → tanda "termasuk acara disunting manual" |
+| Senarai mula (saringan, lorong / giliran) | *Saringan & Keputusan* → **Sunting lorong / saringan** | *Rawak semula lorong* / *Set semula* |
+| Finalis ke akhir | Tanda lajur **Ke akhir** → **Simpan pilihan finalis** | *Set semula* |
+| Kedudukan (photo-finish / keputusan hakim) | Isi lajur **Kedudukan** (mata ikut kedudukan manual) | Kosongkan lajur (auto) |
+| Rekod semasa | Borang acara → **Tetapkan rekod semasa secara manual** (lencana *Manual*) | Nyahtanda pilihan itu |
+| No. Bib | *Murid & Atlet* → sunting murid → No. Bib | Kosongkan medan |
+
+**Kebenaran:** Admin (semua) · AJK yang ditanda *Akses keputusan* (jadual, senarai mula, keputusan) ·
+Ketua/Penolong Ketua Guru Rumah (pendaftaran atlet rumah sendiri semasa pendaftaran dibuka) · staf lain (lihat).
+Portal Murid memaparkan **kad bib atlet**, acara sendiri (saringan, lorong, keputusan) dan papan mata selepas
+keputusan diterbitkan.
+
+## Prestasi & kestabilan
+
+- **Satu panggilan pelayan** semasa log masuk / muat semula (profil + tetapan + dashboard sekaligus).
+- Data permulaan disimpan dalam `sessionStorage` — muat semula halaman dipaparkan serta-merta.
+- Cache memori klien bagi bacaan (60 saat; dikosongkan oleh setiap simpanan) + cache pelayan (CacheService).
+- Rangka pemuat (*skeleton*) & bar kemajuan; bacaan yang gagal sementara dicuba semula secara automatik.
+- **Migrasi skema automatik** (`Migrasi.gs`): Sheet/lajur baharu dicipta sendiri pada log masuk pertama
+  selepas naik taraf — tidak perlu membuka Google Sheet.
+
 ## Struktur Sheet (database)
 
 | Sheet | Kandungan |
@@ -90,15 +149,18 @@ setiap kelas (L/P bagi setiap rumah + beza maksimum) sebelum apa-apa disimpan.
 | `AJK` / `AJK_AHLI` | Senarai AJK; lantikan (AjkId, NoKP, Peranan KETUA_AJK/AHLI_AJK, Tahun) |
 | `TETAPAN` | Tahun & nama kejohanan, mod & senarai kategori, kriteria agihan, ringkasan agihan terakhir |
 | `LOG_AUDIT` | Log tindakan |
+| `ACARA` | Acara setiap tahun: jenis, kategori, jantina, unit, had, lorong, tarikh/masa, status, rekod |
+| `PESERTA` | Penyertaan + pusingan/saringan/lorong + keputusan, kedudukan, mata, pecah rekod |
+| `MATA_LAIN` | Mata bukan acara (perbarisan, sorakan, …) |
 
 Jangan ubah nama header. Suntingan manual dalam Sheet dikesan oleh `onEdit` (cache dikosongkan).
 
 ## Cara pasang
 
 1. Cipta Google Sheet baharu (cth. *Sistem Rumah Sukan SMK Asajaya*) → **Extensions → Apps Script**.
-2. Salin semua fail dalam folder ini ke projek Apps Script (fail `.gs` sebagai *Script*, `Index.html` dan
-   `Logo.html` sebagai *HTML*; nama fail mesti sama tanpa sambungan). Gantikan `appsscript.json`
-   (Project Settings → *Show "appsscript.json"*).
+2. Salin semua fail dalam folder ini ke projek Apps Script — fail `.gs` sebagai *Script*; `Index.html`,
+   `Css.html`, `JsTeras.html`, `JsPortal.html`, `JsAdmin.html`, `JsKejohanan.html` dan `Logo.html` sebagai *HTML*
+   (nama fail mesti sama, tanpa sambungan). Gantikan `appsscript.json` (Project Settings → *Show "appsscript.json"*).
 3. Muat semula Sheet → menu **Sistem Rumah Sukan → 1. Sediakan Sistem**. Benarkan akses, kemudian
    masukkan No. KP & nama Admin pertama.
 4. **Deploy → New deployment → Web app**: *Execute as: Me*, *Who has access: Anyone*. Salin URL `/exec`.
@@ -110,6 +172,10 @@ Jangan ubah nama header. Suntingan manual dalam Sheet dikesan oleh `onEdit` (cac
 `Logo.html` mengandungi logo sekolah (PNG base64) yang dipaparkan pada skrin log masuk dan menu.
 Menu Sheet **2. Tambah / Pulihkan Admin** boleh digunakan jika Admin terlupa kata laluan
 (kata laluan di-set semula kepada lalai).
+
+**Naik taraf daripada versi lama:** salin semula semua fail (termasuk fail HTML baharu), kemudian
+**Deploy → Manage deployments → Edit → New version**. Sheet `ACARA`, `PESERTA`, `MATA_LAIN` dan lajur baharu
+(`MURID.NoBib`, `AJK.AksesKeputusan`, `ACARA.JadualManual/AkhirManual/RekodManual`, `PESERTA.KedudukanManual`) dicipta secara automatik pada log masuk pertama.
 
 ## Penyelesaian masalah
 

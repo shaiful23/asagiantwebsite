@@ -67,6 +67,7 @@ function wajibStaf(token) { return wajibSesi(token, { jenis: JENIS_STAF }); }
 
 /* ------------------------- LOG MASUK / KELUAR ------------------------- */
 function apiLogin(p) {
+  pastikanSkema();
   const nokp = normalKP(p.nokp);
   const kataLaluan = String(p.kataLaluan || '');
   const jenis = p.portal === JENIS_MURID ? JENIS_MURID : JENIS_STAF;
@@ -91,7 +92,9 @@ function apiLogin(p) {
   const token = ciptaSesi(jenis, rekod);
   const sesi = wajibSesi(token);
   catatAudit(sesi, 'LOGIN', jenis, nokp, 'Log masuk berjaya');
-  return jaya(Object.assign({ token }, profilSesi(sesi)));
+  const profil = profilSesi(sesi);
+  // data permulaan dihantar bersama (jimat satu panggilan pelayan)
+  return jaya(Object.assign({ token }, profil, { mula: profil.mestiTukarPassword ? null : dataMula(sesi) }));
 }
 
 function profilSesi(sesi) {

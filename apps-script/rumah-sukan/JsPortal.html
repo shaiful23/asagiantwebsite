@@ -1,0 +1,268 @@
+<script>
+/* =========================================================================
+ * JsPortal — Dashboard guru, Rumah Sukan, AJK Kejohanan, Portal Murid.
+ * ========================================================================= */
+
+/* ================================ DASHBOARD ================================ */
+HALAMAN.dashboard = function () {
+  // kali pertama: guna data bootstrap (tiada panggilan pelayan tambahan)
+  var awal = S.mula && S.mula.dashboard && !S.data.dashboardDilihat;
+  S.data.dashboardDilihat = true;
+  (awal ? Promise.resolve(S.mula.dashboard) : api('apiDashboard')).then(lukisDashboard).catch(ralatHalaman);
+  // panaskan cache modul kejohanan di latar belakang
+  setTimeout(function () { if (S.token && S.user && S.user.jenis === 'STAF') api('apiKejohanan').catch(function () {}); }, 1500);
+};
+
+function lukisDashboard(r) {
+  if (S.halaman !== 'dashboard') return;
+  var s = r.saya, st = r.statistik, kj = r.kejohanan || {};
+  var jam = new Date().getHours(), salam = jam < 12 ? 'Selamat pagi' : jam < 15 ? 'Selamat tengah hari' : jam < 19 ? 'Selamat petang' : 'Selamat malam';
+  var h = '<div class="hero"><div class="baris-hero"><div><div class="salam">' + e(salam) + '</div><h1>' + e(s.nama) + '</h1>' +
+    '<p>' + e(kj.nama || r.namaKejohanan) + ' · Tahun ' + e(r.tahun) + '</p>' +
+    '<span class="cip">' + ik('calendar', 'kecil') + e(kj.tarikh ? tarikhPapar(kj.tarikh) : 'Tarikh belum ditetapkan') + '</span>' +
+    (kj.lokasi ? '<span class="cip">' + ik('pin', 'kecil') + e(kj.lokasi) + '</span>' : '') +
+    '<span class="cip">' + ik(kj.pendaftaran === 'BUKA' ? 'check' : 'lock', 'kecil') + 'Pendaftaran ' + (kj.pendaftaran === 'BUKA' ? 'dibuka' : 'ditutup') + '</span></div>' +
+    kiraanHtml(kj.tarikh) + '</div></div>';
+
+  h += '<div class="grid auto blok">' +
+    kpi('Murid Aktif', nomborFormat(st.muridAktif), 'users', 'biru', st.muridTanpaRumah ? '<b style="color:#d92d27">' + st.muridTanpaRumah + '</b> belum ada rumah' : 'Semua sudah ada rumah') +
+    kpi('Atlet', nomborFormat(st.atlet), 'run', 'trek', st.muridAktif ? Math.round(st.atlet / st.muridAktif * 100) + '% daripada murid' : '') +
+    kpi('Guru & Staf', nomborFormat(st.stafAktif), 'user', 'ungu', st.stafTanpaRumah ? '<b style="color:#d92d27">' + st.stafTanpaRumah + '</b> belum ada rumah' : 'Semua sudah ada rumah') +
+    kpi('Acara Selesai', (kj.acaraSelesai || 0) + '/' + (kj.bilAcara || 0), 'timer', 'hijau', nomborFormat(kj.bilPenyertaan || 0) + ' penyertaan atlet') + '</div>';
+
+  // peranan saya + kedudukan semasa
+  var ked = (kj.kedudukan || []).slice();
+  var adaMata = ked.some(function (x) { return x.jumlah > 0; });
+  h += '<div class="grid k-2-1 blok"><div class="kad"><div class="kepala-kad"><h3>' + ik('trophy') + 'Kedudukan Semasa Rumah Sukan</h3>' +
+    '<button class="btn luar kecil" onclick="pergi(\'kj-mata\')">' + ik('medal', 'kecil') + 'Papan mata</button></div>' +
+    (adaMata ? podiumHtml(ked.slice(0, 3).map(function (x) { return { nama: x.nama, nilai: x.jumlah + ' mata', warna: x.warna }; })) +
+      '<div style="margin-top:14px">' + cartaHbar(ked.map(function (x) { return { label: x.nama, nilai: x.jumlah, warna: x.warna, prefix: pingat(x.kedudukan) + ' ' }; })) + '</div>'
+      : kosongHtml('Belum ada mata. Kedudukan dipaparkan sebaik keputusan acara pertama disimpan.', 'trophy')) + '</div>';
+  h += '<div class="kad"><h3>' + ik('user') + 'Peranan Saya</h3><dl class="profil">' +
+    '<dt>Rumah Sukan</dt><dd>' + lencanaRumah(s.rumah) + '</dd>' +
+    '<dt>Peranan</dt><dd>' + e(NAMA_PERANAN_RUMAH[s.perananRumah] || '-') + '</dd>' +
+    '<dt>AJK</dt><dd>' + (s.ajk.length ? s.ajk.map(function (a) { return '<div><span class="lencana ' + (a.peranan === 'KETUA_AJK' ? 'kuning' : 'biru') + '">' + e(NAMA_PERANAN_AJK[a.peranan]) + '</span> ' + e(a.ajk) + '</div>'; }).join('') : '-') + '</dd>' +
+    '<dt>Akses</dt><dd>' + (s.admin ? '<span class="lencana merah">' + ik('shield', 'kecil') + 'Admin</span> ' : '') +
+    (r.kebenaran && r.kebenaran.keputusan ? '<span class="lencana hijau">' + ik('timer', 'kecil') + 'Keputusan</span> ' : '') +
+    (r.kebenaran && r.kebenaran.rumahUrus.length && !s.admin ? '<span class="lencana ungu">' + ik('run', 'kecil') + 'Daftar atlet</span>' : '') + (!s.admin && !(r.kebenaran && (r.kebenaran.keputusan || r.kebenaran.rumahUrus.length)) ? 'Lihat sahaja' : '') + '</dd></dl>' +
+    '<div style="display:grid;gap:8px;margin-top:16px">' +
+    (r.kebenaran && r.kebenaran.rumahUrus.length ? '<button class="btn" onclick="pergi(\'kj-daftar\')">' + ik('run') + 'Daftar atlet rumah</button>' : '') +
+    (r.kebenaran && r.kebenaran.keputusan ? '<button class="btn hijau" onclick="pergi(\'kj-keputusan\')">' + ik('timer') + 'Masukkan keputusan</button>' : '') +
+    '<button class="btn luar" onclick="pergi(\'kj-pusat\')">' + ik('trophy') + 'Pusat Kejohanan</button></div></div></div>';
+
+  // carta ahli rumah
+  h += '<div class="grid k-2-1 blok"><div class="kad"><h3>' + ik('chart') + 'Ahli Rumah Sukan (Lelaki / Perempuan)</h3>' +
+    cartaLajur(st.rumah.map(function (x) { return { label: x.nama, siri: [x.L, x.P] }; }), [{ nama: 'Lelaki', warna: '#1d4ed8' }, { nama: 'Perempuan', warna: '#d92d27' }]) + '</div>' +
+    '<div class="kad"><h3>' + ik('target') + 'Taburan Murid</h3>' +
+    cartaDonut(st.rumah.map(function (x) { return { label: x.nama, nilai: x.murid, warna: x.warna }; }).concat(st.muridTanpaRumah ? [{ label: 'Tiada rumah', nilai: st.muridTanpaRumah, warna: '#cbd5e1' }] : []), st.muridAktif, 'murid') + '</div></div>';
+
+  if (r.admin) {
+    var amaran = [];
+    if (st.muridTanpaRumah) amaran.push('<b>' + st.muridTanpaRumah + '</b> murid belum mempunyai rumah — <a href="#" onclick="pergi(\'agihan\');return false">jalankan Agihan</a>.');
+    if (st.stafTanpaRumah) amaran.push('<b>' + st.stafTanpaRumah + '</b> guru/staf belum ditetapkan rumah — <a href="#" onclick="pergi(\'staf\');return false">tetapkan</a>.');
+    if (r.admin.belumTukarMurid + r.admin.belumTukarStaf) amaran.push('<b>' + (r.admin.belumTukarMurid + r.admin.belumTukarStaf) + '</b> akaun masih menggunakan kata laluan lalai.');
+    if (amaran.length) h += kotak('amaran', amaran.join('<br>'));
+    if (r.admin.agihanTerakhir) h += kotak('info', '<b>Agihan terakhir:</b> ' + e(r.admin.agihanTerakhir), 'shuffle');
+  }
+
+  h += '<div class="kepala-hal" style="margin-top:6px"><div><h2 style="font-size:18px">' + ik('flag') + 'Rumah Sukan</h2></div></div><div class="grid auto">' + st.rumah.map(function (x, i) {
+    var w = warnaTeks(x.warna);
+    return '<div class="kad-rumah"><div class="kepala" style="background:' + e(x.warna) + ';color:' + w + '"><span class="nombor">' + (i + 1) + '</span><b>' + e(x.nama) + '</b><span>' + (x.moto ? '“' + e(x.moto) + '”' : x.murid + ' ahli') + '</span></div><div class="badan">' +
+      baris('Murid (L / P)', x.murid + ' (' + x.L + ' / ' + x.P + ')') + baris('Atlet', x.atlet) + baris('Guru / AKP', x.guru + ' / ' + x.akp) +
+      '<div style="margin-top:8px;font-size:12px;color:var(--kelabu)">Ketua: <b style="color:var(--teks)">' + e(x.ketua.join(', ') || '-') + '</b><br>Penolong: <b style="color:var(--teks)">' + e(x.penolong.join(', ') || '-') + '</b></div></div></div>';
+  }).join('') + '</div>';
+  kandungan(h);
+}
+function baris(a, b) { return '<div class="baris"><span>' + e(a) + '</span><span>' + e(b) + '</span></div>'; }
+
+/* ================================ RUMAH SUKAN ================================ */
+HALAMAN.rumahsaya = function (rumahId) {
+  api('apiRumahSaya', { rumahId: rumahId || S.data.rumahPilih || '' }).then(function (r) {
+    var pilihRumah = S.user.admin ? '<select id="pilihRumahSaya" style="min-width:180px">' + pilihan(r.senaraiRumah.map(function (x) { return { v: x.id, l: 'Rumah ' + x.nama }; }), r.rumah ? r.rumah.id : '', '— pilih rumah —') + '</select>' : '';
+    var h = kepalaHalaman('Rumah Sukan', 'Senarai guru dan ahli rumah sukan.', 'users', pilihRumah);
+    if (!r.rumah) { kandungan(h + kotak('info', 'Pilih rumah sukan untuk dipaparkan.')); pasangPilihRumah(); return; }
+    S.data.rumahSaya = r;
+    var ru = r.rumah, w = warnaTeks(ru.warna), atlet = r.murid.filter(function (m) { return m.atlet; }).length;
+    var L = r.murid.filter(function (m) { return m.jantina === 'LELAKI'; }).length;
+    h += '<div class="rumah-besar blok" style="background:linear-gradient(135deg,' + e(ru.warna) + ',' + e(ru.warna) + 'cc);color:' + w + '"><div class="kecil">Rumah Sukan</div><div class="nama">' + e(ru.nama) + '</div>' +
+      (ru.moto ? '<div class="moto">“' + e(ru.moto) + '”</div>' : '') + '</div>';
+    h += '<div class="grid auto blok">' + kpi('Ahli', r.murid.length, 'users', 'biru') + kpi('Lelaki / Perempuan', L + ' / ' + (r.murid.length - L), 'user', 'ungu') +
+      kpi('Atlet', atlet, 'run', 'trek') + kpi('Guru & Staf', r.guru.length, 'clipboard', 'hijau') + '</div>';
+    h += '<div class="kad rapat"><div class="kepala-kad"><h3>' + ik('clipboard') + 'Guru & Staf Rumah</h3></div><div class="jadual-skrol"><table><thead><tr><th>#</th><th>Nama</th><th>Kategori</th><th>Peranan Rumah</th><th>AJK Kejohanan</th><th>Telefon</th></tr></thead><tbody>' +
+      (r.guru.length ? r.guru.map(function (g, i) {
+        return '<tr><td>' + (i + 1) + '</td><td><b>' + e(g.nama) + '</b>' + (g.jawatan ? '<div class="nota" style="margin:0">' + e(g.jawatan) + '</div>' : '') + '</td><td>' + e(g.kategori) + '</td><td>' +
+          '<span class="lencana ' + (g.perananRumah === 'KETUA_GURU_RUMAH' ? 'kuning' : g.perananRumah === 'PENOLONG_KETUA_GURU_RUMAH' ? 'biru' : '') + '">' + e(NAMA_PERANAN_RUMAH[g.perananRumah]) + '</span></td><td>' +
+          g.ajk.map(function (a) { return '<span class="lencana ' + (a.peranan === 'KETUA_AJK' ? 'kuning' : 'biru') + '">' + e(a.ajk) + (a.peranan === 'KETUA_AJK' ? ' (Ketua)' : '') + '</span>'; }).join(' ') + '</td><td>' + e(g.telefon) + '</td></tr>';
+      }).join('') : '<tr><td colspan="6">' + kosongHtml('Belum ada guru ditetapkan.', 'users') + '</td></tr>') + '</tbody></table></div></div>';
+    var kelas = unik(r.murid.map(function (m) { return m.kunciKelas; })).sort(susunKelas);
+    h += '<div class="kad"><div class="kepala-kad"><h3>' + ik('users') + 'Ahli Rumah (Murid)</h3><button class="btn luar kecil tiada-cetak" onclick="window.print()">' + ik('printer', 'kecil') + 'Cetak</button></div><div class="baris-alat">' +
+      '<div class="cari">' + ik('search', 'kecil') + '<input id="rsCari" placeholder="Cari nama…"></div><select id="rsKelas">' + pilihan(kelas, '', 'Semua kelas') + '</select>' +
+      '<select id="rsKat">' + pilihan(r.kategori.map(function (k) { return { v: k.kod, l: k.nama }; }), '', 'Semua kategori') + '</select>' +
+      '<select id="rsJan">' + pilihan([{ v: 'LELAKI', l: 'Lelaki' }, { v: 'PEREMPUAN', l: 'Perempuan' }], '', 'Semua jantina') + '</select>' +
+      '<select id="rsAtlet">' + pilihan([{ v: 'YA', l: 'Atlet sahaja' }, { v: 'TIDAK', l: 'Bukan atlet' }], '', 'Atlet & bukan') + '</select></div><div id="rsJadual"></div></div>';
+    kandungan(h);
+    pasangPilihRumah();
+    ['rsCari', 'rsKelas', 'rsKat', 'rsJan', 'rsAtlet'].forEach(function (id) { $(id).oninput = lukisMuridRumah; });
+    lukisMuridRumah();
+  }).catch(ralatHalaman);
+};
+function pasangPilihRumah() { if ($('pilihRumahSaya')) $('pilihRumahSaya').onchange = function () { S.data.rumahPilih = this.value; HALAMAN.rumahsaya(this.value); }; }
+function lukisMuridRumah() {
+  var r = S.data.rumahSaya, cari = nilaiEl('rsCari').toUpperCase(), kl = nilaiEl('rsKelas'), kat = nilaiEl('rsKat'), jan = nilaiEl('rsJan'), at = nilaiEl('rsAtlet');
+  var s = r.murid.filter(function (m) {
+    return (!cari || m.nama.toUpperCase().indexOf(cari) !== -1) && (!kl || m.kunciKelas === kl) && (!kat || m.kategori === kat) &&
+      (!jan || m.jantina === jan) && (!at || (at === 'YA') === m.atlet);
+  });
+  $('rsJadual').innerHTML = '<div class="nota" style="margin-bottom:8px">' + s.length + ' murid (L ' + s.filter(function (m) { return m.jantina === 'LELAKI'; }).length +
+    ', P ' + s.filter(function (m) { return m.jantina === 'PEREMPUAN'; }).length + ')</div><div class="jadual-skrol"><table><thead><tr><th>#</th><th>Nama</th><th>Kelas</th><th class="c">J</th><th>Kategori</th><th>Atlet / Acara</th></tr></thead><tbody>' +
+    (s.length ? s.map(function (m, i) {
+      return '<tr><td>' + (i + 1) + '</td><td><b>' + e(m.nama) + '</b></td><td>' + e(m.kunciKelas) + '</td><td class="c">' + jantinaPendek(m.jantina) + '</td><td>' + e(m.kategori || '-') + '</td><td>' +
+        (m.atlet ? '<span class="lencana hijau">' + ik('run', 'kecil') + 'ATLET</span> ' + e(m.acara) : '') + '</td></tr>';
+    }).join('') : '<tr><td colspan="6">' + kosongHtml('Tiada murid.', 'users') + '</td></tr>') + '</tbody></table></div>';
+}
+
+/* ================================ AJK KEJOHANAN ================================ */
+HALAMAN.ajk = function () {
+  var pStaf = S.user.admin ? api('apiSenaraiStaf') : Promise.resolve({ senarai: [] });
+  Promise.all([api('apiSenaraiAjk'), pStaf]).then(function (hasil) {
+    var r = hasil[0];
+    S.data.ajk = r.senarai; S.data.stafAjk = hasil[1].senarai.filter(function (s) { return s.status === 'AKTIF'; });
+    var h = kepalaHalaman('AJK Kejohanan Olahraga ' + r.tahun, 'Peranan tambahan guru & staf AKP sebagai Ketua AJK / Ahli AJK. AJK bertanda <b>Akses keputusan</b> boleh mengurus jadual, senarai mula & keputusan.', 'clipboard',
+      S.user.admin ? '<button class="btn" id="btnTambahAjk">' + ik('plus') + 'Tambah AJK</button>' : '');
+    if (!r.senarai.length) h += '<div class="kad">' + kosongHtml('Belum ada AJK.', 'clipboard') + '</div>';
+    h += '<div class="grid auto" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">' + r.senarai.map(function (a, i) {
+      var ketua = a.ahli.filter(function (x) { return x.peranan === 'KETUA_AJK'; });
+      var ahli = a.ahli.filter(function (x) { return x.peranan !== 'KETUA_AJK'; });
+      return '<div class="kad" style="margin:0;border-top:4px solid ' + WARNA_SIRI[i % WARNA_SIRI.length] + '"><div class="kepala-kad"><h3>' + e(a.nama) + '</h3>' + (a.akses ? '<span class="lencana hijau">' + ik('timer', 'kecil') + 'Akses keputusan</span>' : '') + '</div>' +
+        (a.tugas ? '<div class="nota" style="margin:-6px 0 10px">' + e(a.tugas) + '</div>' : '') +
+        '<div style="font-size:13px;display:flex;gap:8px;align-items:center"><span class="avatar" style="width:28px;height:28px;font-size:11px;background:var(--kuning);color:var(--navy)">' + e(ketua[0] ? inisial(ketua[0].nama) : '–') + '</span><div><div class="nota" style="margin:0">Ketua</div><b>' + e(ketua.map(function (x) { return x.nama; }).join(', ') || '-') + '</b></div></div>' +
+        '<div style="font-size:13px;margin-top:10px"><b>Ahli (' + ahli.length + ')</b><ol style="margin:4px 0 0;padding-left:20px;color:#334155">' + ahli.map(function (x) { return '<li>' + e(x.nama) + (x.kategori === 'AKP' ? ' <span class="lencana">AKP</span>' : '') + '</li>'; }).join('') + '</ol></div>' +
+        (S.user.admin ? '<div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap"><button class="btn kecil" data-ahli="' + e(a.id) + '">' + ik('users', 'kecil') + 'Urus Ahli</button><button class="btn luar kecil" data-sunting="' + e(a.id) + '">' + ik('edit', 'kecil') + 'Sunting</button><button class="btn hantu kecil" data-padam="' + e(a.id) + '" style="color:var(--merah)">' + ik('trash', 'kecil') + '</button></div>' : '') +
+        '</div>';
+    }).join('') + '</div>';
+    kandungan(h);
+    if (!S.user.admin) return;
+    $('btnTambahAjk').onclick = function () { borangAjk(null); };
+    semua('[data-ahli]').forEach(function (b) { b.onclick = function () { borangAhliAjk(b.getAttribute('data-ahli')); }; });
+    semua('[data-sunting]').forEach(function (b) { b.onclick = function () { borangAjk(b.getAttribute('data-sunting')); }; });
+    semua('[data-padam]').forEach(function (b) {
+      b.onclick = function () {
+        var a = cariAjk(b.getAttribute('data-padam'));
+        sahkan('Padam ' + a.nama + '? Semua lantikan ahli AJK ini turut dipadam.', function () {
+          api('apiPadamAjk', { id: a.id }).then(function () { toast('AJK dipadam.', 'jaya'); HALAMAN.ajk(); }).catch(gagal);
+        }, 'Padam');
+      };
+    });
+  }).catch(ralatHalaman);
+};
+function cariAjk(id) { return S.data.ajk.filter(function (a) { return a.id === id; })[0]; }
+function borangAjk(id) {
+  var a = id ? cariAjk(id) : { nama: '', tugas: '', akses: false };
+  var m = bukaModal('<h3>' + ik('clipboard') + (id ? 'Sunting' : 'Tambah') + ' AJK</h3><div class="medan"><label>Nama AJK</label><input id="ajkNama" value="' + e(a.nama) + '" placeholder="cth. AJK TEKNIK"></div>' +
+    '<div class="medan"><label>Tugas / keterangan</label><input id="ajkTugas" value="' + e(a.tugas) + '"></div>' +
+    '<label class="togol"><input type="checkbox" id="ajkAkses"' + (a.akses ? ' checked' : '') + '> Akses keputusan (jadual, senarai mula & keputusan acara)</label>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">' + ik('check') + 'Simpan</button></div>', true);
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    api('apiSimpanAjk', { data: { id: id || '', nama: nilaiEl('ajkNama'), tugas: nilaiEl('ajkTugas'), akses: semakEl('ajkAkses') } })
+      .then(function () { tutupModal(m); toast('AJK disimpan.', 'jaya'); HALAMAN.ajk(); }).catch(gagal);
+  };
+}
+function borangAhliAjk(id) {
+  var a = cariAjk(id), staf = S.data.stafAjk;
+  var ketua = (a.ahli.filter(function (x) { return x.peranan === 'KETUA_AJK'; })[0] || {}).nokp || '';
+  var ahli = {};
+  a.ahli.forEach(function (x) { if (x.peranan !== 'KETUA_AJK') ahli[x.nokp] = true; });
+  var m = bukaModal('<h3>' + ik('users') + 'Ahli ' + e(a.nama) + '</h3>' +
+    '<div class="medan"><label>Ketua AJK</label><select id="ajkKetua">' + pilihan(staf.map(function (s) { return { v: s.nokp, l: s.nama + (s.kategori === 'AKP' ? ' (AKP)' : '') }; }), ketua, '— tiada —') + '</select></div>' +
+    '<div class="medan"><label>Ahli AJK <span class="nota" id="ajkBil"></span></label><div class="cari" style="margin-bottom:6px">' + ik('search', 'kecil') + '<input id="ajkCari" placeholder="Cari nama…"></div><div class="senarai-semak" id="ajkSenarai">' +
+    staf.map(function (s) { return '<label data-n="' + e(s.nama.toUpperCase()) + '"><input type="checkbox" value="' + e(s.nokp) + '"' + (ahli[s.nokp] ? ' checked' : '') + '>' + e(s.nama) + ' <span class="nota" style="margin:0">' + e(s.kategori) + (s.rumah ? ' · ' + e(s.rumah) : '') + '</span></label>'; }).join('') +
+    '</div></div><div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn" data-x="s">' + ik('check') + 'Simpan</button></div>');
+  var kira = function () { $('ajkBil').textContent = '(' + m.querySelectorAll('#ajkSenarai input:checked').length + ' dipilih)'; };
+  kira();
+  m.querySelector('#ajkSenarai').onchange = kira;
+  $('ajkCari').oninput = function () {
+    var q = this.value.toUpperCase();
+    semua('#ajkSenarai label', m).forEach(function (l) { l.style.display = l.getAttribute('data-n').indexOf(q) !== -1 ? '' : 'none'; });
+  };
+  m.querySelector('[data-x=b]').onclick = function () { tutupModal(m); };
+  m.querySelector('[data-x=s]').onclick = function () {
+    var dipilih = semua('#ajkSenarai input:checked', m).map(function (i) { return i.value; });
+    api('apiSimpanAhliAjk', { ajkId: id, ketua: nilaiEl('ajkKetua'), ahli: dipilih })
+      .then(function () { tutupModal(m); toast('Keahlian AJK disimpan.', 'jaya'); HALAMAN.ajk(); }).catch(gagal);
+  };
+}
+
+/* ================================ PORTAL MURID ================================ */
+function dataPortalMurid() {
+  var awal = S.mula && S.mula.portal && !S.data.portalDilihat;
+  S.data.portalDilihat = true;
+  return awal ? Promise.resolve(S.mula.portal) : api('apiPortalMurid');
+}
+HALAMAN.portalmurid = function () {
+  dataPortalMurid().then(function (r) {
+    var p = r.profil, ru = r.rumah, kj = r.kejohanan || {};
+    var h = '';
+    if (ru) {
+      var w = warnaTeks(ru.warna);
+      h += '<div class="grid k-2-1 blok"><div class="rumah-besar" style="background:linear-gradient(135deg,' + e(ru.warna) + ',' + e(ru.warna) + 'bb);color:' + w + '">' +
+        '<div class="kecil">Anda ahli Rumah Sukan</div><div class="nama">' + e(ru.nama) + '</div>' + (ru.moto ? '<div class="moto">“' + e(ru.moto) + '”</div>' : '') +
+        '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:1"><span class="lencana" style="background:rgba(255,255,255,.22);color:inherit">' + ik('users', 'kecil') + (r.ahli ? r.ahli.jumlah : 0) + ' ahli</span>' +
+        '<span class="lencana" style="background:rgba(255,255,255,.22);color:inherit">' + ik('run', 'kecil') + (r.ahli ? r.ahli.atlet : 0) + ' atlet</span></div></div>' +
+        bibHtml(p, ru, kj) + '</div>';
+    } else {
+      h += kotak('amaran', 'Anda belum ditetapkan kepada mana-mana rumah sukan. Sila semak semula selepas pihak sekolah membuat agihan.');
+    }
+    h += '<div class="grid k-1-1 blok"><div class="kad"><h3>' + ik('user') + 'Maklumat Saya</h3><dl class="profil">' +
+      '<dt>Nama</dt><dd>' + e(p.nama) + '</dd><dt>No. KP</dt><dd>' + e(kpPapar(p.nokp)) + '</dd>' +
+      '<dt>Jantina</dt><dd>' + e(p.jantina) + '</dd><dt>Kelas</dt><dd>' + e(p.tingkatan + ' ' + p.kelas) + '</dd>' +
+      '<dt>Kategori</dt><dd>' + e(p.kategori) + '</dd><dt>Atlet</dt><dd>' + (p.atlet ? '<span class="lencana hijau">' + ik('run', 'kecil') + 'YA</span> ' + e(p.acara) : 'Tidak') + '</dd></dl></div>';
+    h += '<div class="kad"><h3>' + ik('clipboard') + 'Guru Rumah Sukan</h3>';
+    h += r.guru.length ? '<div style="display:grid;gap:8px">' + r.guru.map(function (g) {
+      return '<div style="display:flex;gap:10px;align-items:center"><span class="avatar" style="background:' + e(ru ? ru.warna : '#1d4ed8') + ';color:' + warnaTeks(ru ? ru.warna : '#1d4ed8') + '">' + e(inisial(g.nama)) + '</span><div><b>' + e(g.nama) + '</b><div class="nota" style="margin:0">' + e(NAMA_PERANAN_RUMAH[g.perananRumah] || '') + (g.kategori === 'AKP' ? ' · AKP' : '') + '</div></div></div>';
+    }).join('') + '</div>' : kosongHtml('Belum ada guru ditetapkan.', 'users');
+    h += '</div></div>';
+    if (r.ahli) {
+      h += '<div class="kad"><h3>' + ik('users') + 'Rakan Sekelas Serumah (' + r.ahli.sekelas.length + ')</h3>' +
+        (r.ahli.sekelas.length ? '<div style="columns:3 200px;font-size:13px">' + r.ahli.sekelas.map(function (n) { return '<div style="padding:4px 0;break-inside:avoid">' + ik('user', 'kecil') + ' ' + e(n) + '</div>'; }).join('') + '</div>' : kosongHtml('Tiada.', 'users')) + '</div>';
+    }
+    kandungan(kepalaHalaman('Rumah Sukan Saya', e(kj.nama || '') + ' · ' + e(kj.tahun || ''), 'home') + h);
+  }).catch(ralatHalaman);
+};
+function bibHtml(p, ru, kj) {
+  return '<div style="display:flex;align-items:center;justify-content:center"><div class="bib" style="width:100%"><div class="atas">' + e(kj.nama || 'Kejohanan Olahraga') + '</div>' +
+    '<div class="no">' + e(kj.bib || '----') + '</div><div class="nm">' + e(p.nama) + '</div><div class="nota" style="text-align:center;margin:2px 0 0">' + e(p.kategori) + '</div>' +
+    '<div class="bawah" style="background:' + e(ru.warna) + ';color:' + warnaTeks(ru.warna) + '">RUMAH ' + e(ru.nama) + '</div></div></div>';
+}
+
+HALAMAN.muridkj = function () {
+  dataPortalMurid().then(function (r) {
+    var kj = r.kejohanan || {}, saya = kj.acaraSaya || [];
+    var h = '<div class="hero"><div class="baris-hero"><div><div class="salam">Kejohanan Olahraga ' + e(kj.tahun) + '</div><h1>' + e(kj.nama) + '</h1>' +
+      '<span class="cip">' + ik('calendar', 'kecil') + e(kj.tarikh ? tarikhPapar(kj.tarikh) : 'Tarikh akan dimaklumkan') + '</span>' + (kj.lokasi ? '<span class="cip">' + ik('pin', 'kecil') + e(kj.lokasi) + '</span>' : '') +
+      (kj.bib ? '<span class="cip">' + ik('hash', 'kecil') + 'No. Bib ' + e(kj.bib) + '</span>' : '') + '</div>' + kiraanHtml(kj.tarikh) + '</div></div>';
+    h += '<div class="kad rapat"><div class="kepala-kad"><h3>' + ik('run') + 'Acara Saya</h3></div>';
+    if (!saya.length) h += kosongHtml('Anda belum didaftarkan dalam mana-mana acara.', 'run');
+    else h += '<div class="jadual-skrol"><table><thead><tr><th>Acara</th><th>Tarikh / Masa</th><th>Pusingan</th><th class="c">Saringan</th><th class="c">Lorong / Giliran</th><th>Keputusan</th><th class="c">Kedudukan</th></tr></thead><tbody>' +
+      saya.map(function (a) {
+        return '<tr' + (a.kedudukan === 1 ? ' class="emas"' : '') + '><td><b>' + e(a.acara) + '</b><div class="nota" style="margin:0">' + e(a.kategori) + ' · ' + e(namaJantina(a.jantina)) + (a.no ? ' · Acara ' + e(a.no) : '') + '</div></td>' +
+          '<td>' + e(a.tarikh ? tarikhPapar(a.tarikh) : '-') + (a.masa ? '<div class="nota" style="margin:0">' + ik('clock', 'kecil') + ' ' + e(a.masa) + '</div>' : '') + '</td>' +
+          '<td>' + (a.pusingan ? '<span class="lencana ' + (a.pusingan === 'AKHIR' ? 'kuning' : 'biru') + '">' + e(a.pusingan === 'AKHIR' ? 'Akhir' : 'Saringan') + '</span>' : '<span class="lencana">Berdaftar</span>') + '</td>' +
+          '<td class="c">' + e(a.saringan || '-') + '</td><td class="c">' + (a.lorong ? '<span class="lorong-no">' + e(a.lorong) + '</span>' : '-') + '</td>' +
+          '<td class="papan" style="font-size:18px">' + (a.status !== 'OK' ? '<span class="lencana merah">' + e(a.status) + '</span>' : e(a.keputusan || '-')) + (a.rekodBaharu ? ' <span class="lencana kuning">' + ik('star', 'kecil') + 'Rekod!</span>' : '') + '</td>' +
+          '<td class="c">' + (pingat(a.kedudukan) || '-') + (a.mata ? '<div class="nota" style="margin:0">' + a.mata + ' mata</div>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    h += '</div>';
+    if (kj.kedudukan) {
+      var ked = kj.kedudukan;
+      h += '<div class="kad"><h3>' + ik('trophy') + 'Kedudukan Rumah Sukan</h3>' +
+        (ked.some(function (x) { return x.jumlah > 0; }) ? podiumHtml(ked.slice(0, 3).map(function (x) { return { nama: x.nama, nilai: x.jumlah + ' mata', warna: x.warna }; })) +
+          '<div style="margin-top:14px">' + cartaHbar(ked.map(function (x) { return { label: x.nama, nilai: x.jumlah, warna: x.warna, prefix: pingat(x.kedudukan) + ' ' }; })) + '</div>'
+          : kosongHtml('Belum ada keputusan.', 'trophy')) + '</div>';
+    } else {
+      h += kotak('info', 'Keputusan dan papan mata akan dipaparkan di sini selepas diterbitkan oleh pihak sekolah.', 'megaphone');
+    }
+    kandungan(h);
+  }).catch(ralatHalaman);
+};
+</script>

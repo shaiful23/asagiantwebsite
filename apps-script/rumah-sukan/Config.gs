@@ -12,23 +12,35 @@ const SHEET_AJK = 'AJK';                   // senarai jawatankuasa kejohanan
 const SHEET_AJK_AHLI = 'AJK_AHLI';         // lantikan ketua/ahli AJK
 const SHEET_TETAPAN = 'TETAPAN';
 const SHEET_AUDIT = 'LOG_AUDIT';
+const SHEET_ACARA = 'ACARA';               // acara kejohanan olahraga (setiap tahun)
+const SHEET_PESERTA = 'PESERTA';           // penyertaan, saringan/lorong & keputusan
+const SHEET_MATA_LAIN = 'MATA_LAIN';       // mata bukan acara (perbarisan, sorakan, khemah, ...)
 
 /* ------------------------- HEADER SHEET ------------------------- */
 // Lajur pertama setiap Sheet ialah KUNCI baris (disemak sebelum menulis).
 const HEADER_STAF = ['NoKP', 'Password', 'NamaPenuh', 'Kategori', 'Jantina', 'Jawatan', 'Telefon', 'Emel',
   'Admin', 'RumahId', 'PerananRumah', 'MestiTukarPassword', 'Status', 'Dikemaskini'];
 const HEADER_MURID = ['NoKP', 'Password', 'NamaPenuh', 'Jantina', 'Tingkatan', 'Kelas', 'Kaum', 'Agama',
-  'TarikhLahir', 'NoTelPenjaga', 'Atlet', 'Acara', 'RumahId', 'KunciRumah', 'MestiTukarPassword', 'Status', 'Dikemaskini'];
+  'TarikhLahir', 'NoTelPenjaga', 'Atlet', 'Acara', 'RumahId', 'KunciRumah', 'MestiTukarPassword', 'Status', 'Dikemaskini', 'NoBib'];
 const HEADER_RUMAH = ['RumahId', 'Nama', 'Warna', 'Moto', 'Susunan'];
-const HEADER_AJK = ['AjkId', 'Nama', 'Tugas', 'Susunan'];
+const HEADER_AJK = ['AjkId', 'Nama', 'Tugas', 'Susunan', 'AksesKeputusan'];
 const HEADER_AJK_AHLI = ['Id', 'AjkId', 'NoKP', 'Peranan', 'Tahun'];
 const HEADER_TETAPAN = ['Kunci', 'Nilai', 'Keterangan'];
 const HEADER_AUDIT = ['Tarikh', 'NoKP', 'Nama', 'Peranan', 'Tindakan', 'Modul', 'RujukanId', 'Butiran'];
+const HEADER_ACARA = ['AcaraId', 'Tahun', 'NoAcara', 'Nama', 'Jenis', 'Kategori', 'Jantina', 'Unit', 'HadPerRumah',
+  'BilLorong', 'BilKeAkhir', 'Tarikh', 'Masa', 'Status', 'RekodNilai', 'RekodPemegang', 'RekodRumah', 'RekodTahun', 'Susunan', 'Dikemaskini',
+  'RekodAsalNilai', 'RekodAsalPemegang', 'RekodAsalRumah', 'RekodAsalTahun',   // RekodAsal* = rekod sebelum kejohanan tahun ini
+  'JadualManual', 'AkhirManual', 'RekodManual'];   // YA = disunting manual -> automasi tidak menimpa
+const HEADER_PESERTA = ['Id', 'Tahun', 'AcaraId', 'RumahId', 'NoKP', 'Ahli', 'Pusingan', 'Saringan', 'Lorong',
+  'Keputusan', 'Nilai', 'Kedudukan', 'Mata', 'Status', 'RekodBaharu', 'Dikemaskini', 'KedudukanManual'];
+const HEADER_MATA_LAIN = ['Id', 'Tahun', 'RumahId', 'Perkara', 'Mata', 'Catatan', 'Dikemaskini'];
 
 /* Lajur yang mesti disimpan sebagai TEKS (No. KP bermula 0, hash kata laluan, no. telefon). */
 const LAJUR_TEKS = {
   STAF: ['NoKP', 'Password', 'Telefon'],
-  MURID: ['NoKP', 'Password', 'Tingkatan', 'Kelas', 'TarikhLahir', 'NoTelPenjaga'],
+  MURID: ['NoKP', 'Password', 'Tingkatan', 'Kelas', 'TarikhLahir', 'NoTelPenjaga', 'NoBib'],
+  ACARA: ['NoAcara', 'Tarikh', 'Masa', 'RekodNilai', 'RekodAsalNilai'],
+  PESERTA: ['NoKP', 'Ahli', 'Keputusan'],
   AJK_AHLI: ['NoKP'],
   TETAPAN: ['Nilai'],
   LOG_AUDIT: ['NoKP']
@@ -98,3 +110,44 @@ const TEMPOH_SESI_SAAT = 6 * 60 * 60;       // 6 jam
 const HAD_GAGAL_LOGIN = 5;                  // kunci sementara selepas 5 cubaan gagal
 const TEMPOH_KUNCI_LOGIN_SAAT = 10 * 60;    // 10 minit
 const PREFIKS_CACHE = 'rs_';
+
+/* ------------------------- KEJOHANAN OLAHRAGA ------------------------- */
+const VERSI_SKEMA = 4;   // naikkan apabila Sheet/lajur baharu ditambah (Migrasi.gs menyelaras secara automatik)
+
+const TET_TARIKH_KEJOHANAN = 'TARIKH_KEJOHANAN';
+const TET_LOKASI = 'LOKASI_KEJOHANAN';
+const TET_MATA_INDIVIDU = 'MATA_INDIVIDU';         // mata mengikut kedudukan (1,2,3,...)
+const TET_MATA_BERGANTI = 'MATA_BERGANTI';
+const TET_HAD_INDIVIDU = 'HAD_ACARA_INDIVIDU';     // maksimum acara individu bagi seorang atlet
+const TET_HAD_BERGANTI = 'HAD_ACARA_BERGANTI';
+const TET_PENDAFTARAN = 'PENDAFTARAN_ATLET';       // BUKA | TUTUP
+const TET_TERBIT = 'TERBIT_KEPUTUSAN';             // YA = keputusan & papan mata dipaparkan di Portal Murid
+const TET_MASA_MULA = 'MASA_MULA_ACARA';           // jadual automatik: masa acara pertama (HH:MM)
+const TET_SELANG_BALAPAN = 'SELANG_BALAPAN';       // minit antara acara balapan
+const TET_SELANG_PADANG = 'SELANG_PADANG';         // minit antara acara padang
+const TET_TARIKH_PADANG = 'TARIKH_PADANG';         // hari acara padang (kosong = tarikh kejohanan)
+const TET_TARIKH_BALAPAN1 = 'TARIKH_BALAPAN_1';    // hari balapan pertama (kosong = tarikh kejohanan + 1)
+const TET_TARIKH_BALAPAN2 = 'TARIKH_BALAPAN_2';    // hari balapan kedua (kosong = tarikh kejohanan + 2)
+
+const JENIS_ACARA = { BALAPAN: 'Balapan', PADANG: 'Padang', BERGANTI: 'Lari Berganti-ganti' };
+const UNIT_ACARA = { MASA: 'Masa (saat)', JARAK: 'Jarak (meter)', TINGGI: 'Ketinggian (meter)' };
+const STATUS_ACARA = { DIRANCANG: 'Dirancang', SEDIA: 'Senarai mula sedia', SARINGAN: 'Saringan selesai', SELESAI: 'Selesai' };
+const STATUS_PESERTA = ['OK', 'DNS', 'DNF', 'DQ'];   // tidak hadir / tidak tamat / batal
+
+/* Senarai acara standard olahraga sekolah — "Jana Acara Standard" di UI menciptanya bagi setiap
+   kategori × jantina (acara yang sudah wujud tidak diduplikasi). */
+const ACARA_STANDARD = [
+  { nama: '100 METER', jenis: 'BALAPAN', unit: 'MASA' },
+  { nama: '200 METER', jenis: 'BALAPAN', unit: 'MASA' },
+  { nama: '400 METER', jenis: 'BALAPAN', unit: 'MASA' },
+  { nama: '800 METER', jenis: 'BALAPAN', unit: 'MASA' },
+  { nama: '1500 METER', jenis: 'BALAPAN', unit: 'MASA' },
+  { nama: '4 X 100 METER', jenis: 'BERGANTI', unit: 'MASA' },
+  { nama: '4 X 400 METER', jenis: 'BERGANTI', unit: 'MASA' },
+  { nama: 'LOMPAT JAUH', jenis: 'PADANG', unit: 'JARAK' },
+  { nama: 'LOMPAT KIJANG', jenis: 'PADANG', unit: 'JARAK' },
+  { nama: 'LOMPAT TINGGI', jenis: 'PADANG', unit: 'TINGGI' },
+  { nama: 'LONTAR PELURU', jenis: 'PADANG', unit: 'JARAK' },
+  { nama: 'LEMPAR CAKERA', jenis: 'PADANG', unit: 'JARAK' },
+  { nama: 'REJAM LEMBING', jenis: 'PADANG', unit: 'JARAK' }
+];

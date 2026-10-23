@@ -34,10 +34,13 @@ function statistikRumah(rumah) {
 function apiDashboard(p) {
   const sesi = wajibStaf(p.token);
   if (sesi.success === false) return sesi;
+  return jaya(dataDashboard(sesi, bacaTetapan()));
+}
+
+function dataDashboard(sesi, tet) {
   const rumah = senaraiRumah();
   const peta = {};
   rumah.forEach(r => { peta[r.id] = r; });
-  const tet = bacaTetapan();
   const tahun = tahunKejohanan(tet);
   const r = peta[sesi.rekod.RumahId];
   const hasil = {
@@ -47,7 +50,9 @@ function apiDashboard(p) {
       rumah: r || null, perananRumah: r ? (sesi.rekod.PerananRumah || PERANAN_RUMAH.GURU) : '',
       ajk: ajkMengikutKP(tahun)[sesi.nokp] || []
     },
-    statistik: statistikRumah(rumah)
+    statistik: statistikRumah(rumah),
+    kejohanan: ringkasanKejohanan(tet),
+    kebenaran: kebenaranKejohanan(sesi, tahun)
   };
   if (sesi.admin) {
     hasil.admin = {
@@ -56,7 +61,7 @@ function apiDashboard(p) {
       agihanTerakhir: tet[TET_AGIHAN_TERAKHIR] || ''
     };
   }
-  return jaya(hasil);
+  return hasil;
 }
 
 /* Senarai guru & murid sesebuah rumah. Guru biasa hanya boleh melihat rumah sendiri; Admin semua rumah. */
@@ -89,8 +94,11 @@ function apiRumahSaya(p) {
 function apiPortalMurid(p) {
   const sesi = wajibSesi(p.token, { jenis: JENIS_MURID });
   if (sesi.success === false) return sesi;
+  return jaya(dataPortalMurid(sesi, bacaTetapan()));
+}
+
+function dataPortalMurid(sesi, tet) {
   const m = sesi.rekod;
-  const tet = bacaTetapan();
   const cfg = konfigKategori(tet);
   const kod = kategoriMurid(m, cfg);
   const kat = cfg.senarai.find(x => x.kod === kod);
@@ -122,5 +130,23 @@ function apiPortalMurid(p) {
     ahli.sekelas.sort();
     hasil.ahli = ahli;
   }
-  return jaya(hasil);
+  hasil.kejohanan = kejohananMurid(sesi);
+  return hasil;
+}
+
+/* ------------------------- BOOTSTRAP (satu panggilan) -------------------------
+   Semua data permulaan dalam SATU panggilan pelayan supaya portal dibuka pantas:
+   profil + tetapan + dashboard (guru) atau profil + portal (murid). */
+function dataMula(sesi) {
+  const tet = bacaTetapan();
+  if (sesi.jenis === JENIS_MURID) return { portal: dataPortalMurid(sesi, tet) };
+  return { tet: dataTetapan(tet), dashboard: dataDashboard(sesi, tet) };
+}
+
+function apiMula(p) {
+  pastikanSkema();
+  const sesi = wajibSesi(p.token);
+  if (sesi.success === false) return sesi;
+  const profil = profilSesi(sesi);
+  return jaya(Object.assign(profil, { mula: profil.mestiTukarPassword ? null : dataMula(sesi) }));
 }
