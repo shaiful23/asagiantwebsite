@@ -342,6 +342,10 @@
     .kotak-ta .ta-bawah { margin-top: 10px; font-size: 13px; }
     .kotak-ta .ta-bawah ul { margin: 6px 0 0; padding-left: 18px; }
     .lencana-menu { display: inline-block; min-width: 18px; padding: 0 6px; margin-left: 6px; border-radius: 999px; background: #facc15; color: #0f172a; font-size: 11px; font-weight: 700; text-align: center; }
+    .nota-pukal { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--kelabu); }
+    .nota-pukal .ikon { width: 15px; height: 15px; }
+    .nota-pukal.sedia { color: var(--hijau); font-weight: 600; }
+    .nota-pukal.amaran { color: var(--merah); font-weight: 600; }
     .gembok { font-size: 12px; font-weight: 700; color: var(--merah); }
 
     @media (max-width: 1100px) {
@@ -1599,7 +1603,7 @@ function renderIsiUnit() {
     '<select id="iuTapis" aria-label="Status"><option value="SEMUA">Semua status</option><option value="BELUM_SIAP">Belum lengkap</option><option value="BELUM_MULA">Belum mula</option><option value="DALAM_PROSES">Dalam proses</option><option value="LENGKAP">Lengkap</option></select>' +
     '<select id="iuTing" aria-label="Tingkatan"><option value="">Semua tingkatan</option>' + [1, 2, 3, 4, 5].map(function (t) { return '<option value="' + t + '">Tingkatan ' + t + '</option>'; }).join('') + '</select>' +
     '<input id="iuCari" placeholder="Cari nama / kelas…" style="max-width:220px">' +
-    '<div class="rapat"><button class="btn luar" id="btnIuPukal" disabled>Isi pukal (0)</button></div></div>' +
+    '<div class="rapat" style="align-items:center"><span class="nota-pukal" id="iuNotaPukal"></span><button class="btn luar" id="btnIuPukal" disabled>Isi pukal (0)</button></div></div>' +
     '<div id="iuInfoUnit" class="nota" style="margin-bottom:8px"></div><div id="iuJadual"></div>';
   $('kandungan').innerHTML = h;
   $('iuTapis').value = st.tapis; $('iuTing').value = st.ting; $('iuCari').value = st.cari;
@@ -1661,8 +1665,21 @@ function renderJadualIsiUnit() {
 }
 
 function kemasButangPukal() {
-  var n = Object.keys(S.iuPilih || {}).length, b = $('btnIuPukal');
-  if (b) { b.disabled = !n; b.textContent = 'Isi pukal (' + n + ')'; }
+  var dipilih = Object.keys(S.iuPilih || {}), n = dipilih.length, b = $('btnIuPukal'), nota = $('iuNotaPukal');
+  var unit = {}; dipilih.forEach(function (k) { unit[k.split('::')[0]] = true; });
+  var banyakUnit = Object.keys(unit).length > 1;
+  if (b) {
+    b.disabled = !n || banyakUnit;
+    b.textContent = 'Isi pukal (' + n + ')';
+    b.classList.toggle('luar', b.disabled);   // butang penuh (menonjol) apabila sedia digunakan
+    b.title = !n ? 'Tandakan murid dahulu (kotak di sebelah kiri nama)' : banyakUnit ? 'Pilih murid daripada satu unit sahaja' : 'Isi medan yang sama bagi ' + n + ' murid dipilih';
+  }
+  if (nota) {
+    nota.className = 'nota-pukal' + (banyakUnit ? ' amaran' : n ? ' sedia' : '');
+    nota.innerHTML = !n ? ik('isi') + 'Tandakan murid (kotak ☐ di sebelah kiri nama) untuk isi pukal'
+      : banyakUnit ? ik('amaran') + 'Murid dipilih daripada lebih satu unit — pilih satu unit sahaja'
+      : ik('semak') + n + ' murid dipilih — tekan <b>Isi pukal</b>';
+  }
 }
 
 /* Borang satu murid, satu aspek. */
