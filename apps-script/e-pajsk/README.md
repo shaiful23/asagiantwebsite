@@ -43,7 +43,7 @@ mengikut nama header, bukan kedudukan.
 
 | Sheet e-Kokurikulum | Digunakan untuk |
 | --- | --- |
-| `MURID` | Senarai murid, tingkatan, kelas, unit PBB/KP/SP (+ jawatan jika diisi). Jantina diteka daripada digit akhir No. KP (ganjil = lelaki) |
+| `MURID` | Senarai murid, tingkatan, kelas, unit PBB/KP/SP dan **jawatan** (dikemas kini automatik apabila berubah). Jantina diteka daripada digit akhir No. KP (ganjil = lelaki) |
 | `KEHADIRAN_PASUKAN_BADAN_BERUNIF`, `KEHADIRAN_KELAB_&_PERSATUAN`, `KEHADIRAN_SUKAN_&_PERMAINAN` | **Skor Kehadiran** automatik: bilangan perjumpaan unik (TARIKH + PERJUMPAAN) dengan STATUS `HADIR` pada tahun pentaksiran, maksimum 12 |
 | `PENCAPAIAN` | **Cadangan** Pelibatan/Pencapaian (guru tingkatan semak & tekan *Guna*; tidak disimpan automatik) |
 | `PENGGUNA` | Import akaun guru (kata laluan e-Kokurikulum **tidak** disalin) |
@@ -56,7 +56,12 @@ Syarat: akaun Gmail yang men-*deploy* e-PAJSK mesti pemilik/editor/viewer Sheet 
 - **Tingkatan tidak pernah dinaikkan oleh segerak** (hanya *Naik Tingkatan*). Kelas dikemaskini hanya jika tingkatan di kedua-dua sistem **sama**;
   jika berbeza, murid dilaporkan dan dibiarkan.
 - Murid yang tiada lagi dalam e-Kokurikulum dilaporkan, **tidak dipadam**. Murid `TAMAT` tidak disentuh.
-- Data yang guru isi (jawatan, pelibatan, komitmen, kehadiran manual, dll.) **tidak ditimpa** oleh segerak.
+- **Jawatan mengikut e-Kokurikulum:**
+  - **Diubah di e-Kokurikulum:** apabila jawatan murid diubah di e-Kokurikulum, medan Jawatan dalam e-PAJSK dikemas kini secara automatik pada segerak seterusnya, dan markah serta rumusan dikira semula.
+  - **Disunting KGP:** jika KGP menyunting jawatan dalam e-PAJSK, suntingan itu kekal sehingga jawatan di e-Kokurikulum diubah lagi. Sistem menyimpan jawatan e-Kokurikulum yang terakhir dilihat dalam lajur `JawatanKoko` (Sheet `PENTAKSIRAN_ASPEK`), dan lajur ini dicipta automatik.
+  - **Dikosongkan di e-Kokurikulum:** jawatan dalam e-PAJSK dikosongkan juga, tetapi hanya jika ia masih sama dengan nilai e-Kokurikulum sebelumnya.
+  - **Tidak wujud dalam jadual skor JAWATAN:** jawatan itu diabaikan dan dilaporkan dalam keputusan segerak. Tambah pilihan itu di *Tetapan & Penyelenggaraan → Jadual skor*.
+- Data lain yang diisi guru (pelibatan, pencapaian, komitmen, khidmat, kehadiran manual dan lain-lain) **tidak ditimpa** oleh segerak.
 
 ## Reka bentuk & identiti SMK Asajaya
 - **Warna logo sekolah:** biru diraja, merah, kuning dan ungu. Ia digunakan pada menu sisi, butang, kad, carta dan jalur tiga warna.

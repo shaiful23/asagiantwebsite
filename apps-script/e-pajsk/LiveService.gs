@@ -17,7 +17,7 @@ const TET_AUTO_STATUS = 'SEGERAK_AUTO_STATUS';
 const MINIT_AUTO_DIBENARKAN = [1, 5, 10, 15, 30];
 const PENGENDALI_AUTO = 'segerakAutoBerjadual';
 // Naikkan nombor ini apabila logik segerak berubah: semua fail e-Kokurikulum akan diproses semula sekali pada semakan seterusnya.
-const VERSI_LOGIK_SEGERAK = '2';
+const VERSI_LOGIK_SEGERAK = '3';   // 3: jawatan e-Kokurikulum dikemas kini apabila berubah
 function penandaKoko(ts) { return String(ts) + ':' + VERSI_LOGIK_SEGERAK; }
 
 function versiData() {
