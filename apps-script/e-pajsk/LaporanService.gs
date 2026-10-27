@@ -14,6 +14,10 @@ function dalamSkop(skop, kunciKelas) {
 function apiDashboard(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
+  return jaya(binaDashboard(sesi));
+}
+
+function binaDashboard(sesi) {
   const skop = skopKelas(sesi);
   const rumusan = {};
   bacaSheetSebagaiObjek(SHEET_RUMUSAN).forEach(r => { rumusan[normalKP(r.NoKP)] = r; });
@@ -54,10 +58,12 @@ function apiDashboard(p) {
     hasil.pengisian = { kira: pengisian.kira, unitTanpaKgp: pengisian.unitTanpaKgp.length };
     hasil.arkibTahunIni = !!bacaSheetSebagaiObjek(SHEET_ARKIB).find(a => Number(a.TAHUN) === tahunSemasa());
   }
-  return jaya(hasil);
+  if (senarai.length) hasil.kelengkapan = kelengkapanIkutKelas(skop);   // status pengisian terperinci setiap kelas
+  return hasil;
 }
 
-/* Analisa Ringkas: taburan gred A-E bagi setiap aspek dan keseluruhan.
+/* (Lama) Analisa ringkas — kekal untuk keserasian; UI kini menggunakan apiAnalisis (AnalisisService.gs).
+   Taburan gred A-E bagi setiap aspek dan keseluruhan.
    Gred aspek: >79 A, >59 B, >39 C, >19 D, >0 E (markah aspek). Peratus dikira ke atas jumlah murid dalam skop;
    Gred Purata = purata gred bernombor (A=1 ... E=5) murid yang bergred; %GPS = ((5 - GredPurata) / 4) x 100. */
 function apiAnalisa(p) {
