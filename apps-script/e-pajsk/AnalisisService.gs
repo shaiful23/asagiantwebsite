@@ -268,7 +268,7 @@ function apiKosongkanCache(p) {
   if (sesi.success === false) return sesi;
   [SHEET_PENGGUNA, SHEET_MURID, SHEET_ASPEK, SHEET_EKSTRA, SHEET_RUMUSAN, SHEET_REFERENSI, SHEET_TETAPAN, SHEET_ARKIB, SHEET_PERMOHONAN].forEach(tandaKotor);
   kosongkanCacheRujukan();
-  CacheService.getScriptCache().remove('struktur_epajsk_v5');
+  CacheService.getScriptCache().remove('struktur_epajsk_v6');
   catatAudit(sesi, 'KOSONGKAN_CACHE', 'SISTEM', '', 'Semua cache dikosongkan melalui UI');
   return jaya({});
 }
@@ -294,6 +294,7 @@ function apiBaikiStruktur(p) {
     });
     const lajur = LAJUR_PENGGUNA_UNIT.filter(l => tambahLajurJikaTiada(SHEET_PENGGUNA, l));
     if (tambahLajurJikaTiada(SHEET_ASPEK, 'JawatanKoko')) lajur.push('JawatanKoko');
+    if (tambahLajurJikaTiada(SHEET_ASPEK, 'PencapaianKoko')) lajur.push('PencapaianKoko');
     kosongkanCacheRujukan();
     catatAudit(sesi, 'BAIKI_STRUKTUR', 'SISTEM', '', (dicipta.join(', ') || 'tiada Sheet baharu') + (lajur.length ? '; lajur: ' + lajur.join(', ') : ''));
     return jaya({ dicipta, lajur });

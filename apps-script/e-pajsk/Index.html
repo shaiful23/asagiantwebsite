@@ -1410,6 +1410,8 @@ function segerakKoko(kelas, selesai, paksa) {
     if (l.tiadaDiKoko) h += '<div class="info-kotak">' + l.tiadaDiKoko + ' murid aktif dalam e-PAJSK tiada lagi dalam e-Kokurikulum (pindah/tamat) — tidak dipadam; Admin boleh menandakannya PINDAH di menu Murid.</div>';
     if (l.tingkatanBeza.length) h += '<div class="amaran-kotak"><b>Tingkatan berbeza (tidak diubah):</b><br>' + l.tingkatanBeza.slice(0, 15).map(e).join('<br>') + (l.tingkatanBeza.length > 15 ? '<br>… dan ' + (l.tingkatanBeza.length - 15) + ' lagi' : '') + '</div>';
     if (l.jawatanDikemaskini) h += '<div class="info-kotak"><b>' + l.jawatanDikemaskini + ' jawatan</b> dikemas kini mengikut e-Kokurikulum.</div>';
+    if (l.pencapaianDiisi) h += '<div class="info-kotak"><b>' + l.pencapaianDiisi + ' rekod pelibatan/pencapaian</b> dikemas kini daripada PENCAPAIAN e-Kokurikulum (ikut unit berdaftar murid).</div>';
+    if (l.pencapaianTiadaUnit && l.pencapaianTiadaUnit.length) h += '<details class="amaran-kotak"><summary>' + l.pencapaianTiadaUnit.length + ' pencapaian tidak diisi automatik (unit tidak sepadan)</summary><ul>' + l.pencapaianTiadaUnit.map(function (x) { return '<li>' + e(x) + '</li>'; }).join('') + '</ul></details>';
     if (l.jawatanTidakDikenali && l.jawatanTidakDikenali.length) h += '<div class="amaran-kotak"><b>Jawatan e-Kokurikulum tidak dikenali dalam jadual skor (diabaikan):</b><br>' + l.jawatanTidakDikenali.slice(0, 10).map(e).join('<br>') + (l.jawatanTidakDikenali.length > 10 ? '<br>…' : '') + '<br>Tambah pilihan ini di <b>Tetapan &amp; Penyelenggaraan → Jadual skor (JAWATAN)</b> jika perlu.</div>';
     if (l.amaran.length) h += '<div class="amaran-kotak">' + l.amaran.map(e).join('<br>') + '</div>';
     h += '<div class="aksi-modal"><button class="btn" data-x="o">OK</button></div>';
@@ -1537,16 +1539,24 @@ function kemasPratonton(m) {
   $('prev_R').innerHTML = '<span>PBB <b>' + fmt(markah.PBB) + '</b></span><span>KP <b>' + fmt(markah.KP) + '</b></span><span>SP <b>' + fmt(markah.SP) + '</b></span><span>Purata 2 tertinggi <b>' + fmt(r.Purata2Tertinggi) + '</b></span><span>GPA <b>' + fmt(r.GPA) + '</b></span><span>CGPA <b>' + fmt(r.CGPA) + '</b></span><span>Gred <b>' + e(r.Gred || '–') + '</b> ' + e(r.Label) + '</span>';
 }
 
+/* Unit yang menerima pencapaian (UNIT_PAJSK; rekod lama: unit yang merekod) + status padanan. */
+function infoUnitCapai(c) {
+  var t = e(c.unitPelibatan || '-') + (c.aspekCadangan ? ' <span class="nota">(' + e(c.aspekCadangan) + ')</span>' : '');
+  if (c.unitRekod && c.unitPelibatan && c.unitRekod !== c.unitPelibatan) t += '<div class="nota">mewakili ' + e(c.unitRekod) + '</div>';
+  t += c.padanUnit ? '<div class="nota" style="color:#15803d">diisi automatik</div>' : '<div class="nota" style="color:#b45309">unit tidak sepadan — isi manual</div>';
+  return t;
+}
+
 function muatCadangan(m) {
   var k = $('kotakCadangan');
   k.innerHTML = '<div class="nota">Memuatkan…</div>';
   api('apiCadanganKoko', { nokp: m.nokp }, true).then(function (r) {
     if (!r.senarai.length) { k.innerHTML = '<div class="info-kotak" style="margin-top:10px">Tiada rekod pencapaian untuk murid ini dalam e-Kokurikulum bagi tahun ' + e(S.tetapan.tahun) + '.</div>'; return; }
     var pilihanSasaran = ASPEK.map(function (a) { return [1, 2].map(function (n) { return '<option value="' + a + '|' + n + '">' + a + ' · aktiviti ' + n + '</option>'; }).join(''); }).join('');
-    k.innerHTML = '<div class="nota" style="margin:10px 0 6px">Cadangan sahaja — semak dan tekan <b>Guna</b> untuk mengisi borang (belum disimpan sehingga anda tekan Simpan).</div><div class="jadual-skrol"><table><thead><tr><th>Pertandingan</th><th>Peringkat</th><th>Pencapaian</th><th>Cadangan PAJSK</th><th>Isi ke</th><th></th></tr></thead><tbody>' +
+    k.innerHTML = '<div class="nota" style="margin:10px 0 6px">Pencapaian yang unitnya sepadan dengan unit berdaftar murid diisi <b>automatik</b> semasa segerak. Untuk yang lain, semak dan tekan <b>Guna</b> untuk mengisi borang (belum disimpan sehingga anda tekan Simpan).</div><div class="jadual-skrol"><table><thead><tr><th>Pertandingan</th><th>Unit pelibatan</th><th>Peringkat</th><th>Pencapaian</th><th>Cadangan PAJSK</th><th>Isi ke</th><th></th></tr></thead><tbody>' +
       r.senarai.map(function (c, i) {
         var def = (c.aspekCadangan || 'SP') + '|1';
-        return '<tr><td>' + e(c.pertandingan) + '<div class="nota">' + e(c.tarikh) + '</div></td><td>' + e(c.peringkat) + '</td><td>' + e(c.pencapaian) + '</td><td>' + (c.cadanganLibat ? 'Libat: ' + e(c.cadanganLibat) + '<br>' : '') + (c.cadanganCapai ? 'Capai: ' + e(c.cadanganCapai) : '') + (!c.cadanganLibat && !c.cadanganCapai ? '<span class="nota">tiada padanan</span>' : '') + '</td>' +
+        return '<tr><td>' + e(c.pertandingan) + '<div class="nota">' + e(c.tarikh) + '</div></td><td>' + infoUnitCapai(c) + '</td><td>' + e(c.peringkat) + '</td><td>' + e(c.pencapaian) + '</td><td>' + (c.cadanganLibat ? 'Libat: ' + e(c.cadanganLibat) + '<br>' : '') + (c.cadanganCapai ? 'Capai: ' + e(c.cadanganCapai) : '') + (!c.cadanganLibat && !c.cadanganCapai ? '<span class="nota">tiada padanan</span>' : '') + '</td>' +
           '<td><select id="cs' + i + '">' + pilihanSasaran.replace('value="' + def + '"', 'value="' + def + '" selected') + '</select></td>' +
           '<td><button type="button" class="btn kecil" data-i="' + i + '"' + (!c.cadanganLibat && !c.cadanganCapai ? ' disabled' : '') + '>Guna</button></td></tr>';
       }).join('') + '</tbody></table></div>';
@@ -1743,7 +1753,7 @@ function bukaIsiAspek(indeks) {
     api('apiCadanganKoko', { nokp: b.nokp }, true).then(function (res) {
       if (!res.senarai.length) { k.innerHTML = '<div class="info-kotak" style="margin-top:8px">Tiada rekod pencapaian dalam e-Kokurikulum bagi tahun ini.</div>'; return; }
       k.innerHTML = '<div class="jadual-skrol" style="margin-top:8px"><table><thead><tr><th>Pertandingan</th><th>Cadangan</th><th></th></tr></thead><tbody>' + res.senarai.map(function (c, i) {
-        return '<tr><td>' + e(c.pertandingan) + '<div class="nota">' + e(c.peringkat + ' · ' + c.pencapaian) + '</div></td><td>' + e([c.cadanganLibat, c.cadanganCapai].filter(Boolean).join(' / ') || 'tiada padanan') + '</td><td style="white-space:nowrap">' +
+        return '<tr><td>' + e(c.pertandingan) + '<div class="nota">' + e(c.peringkat + ' · ' + c.pencapaian) + '</div><div class="nota">' + infoUnitCapai(c) + '</div></td><td>' + e([c.cadanganLibat, c.cadanganCapai].filter(Boolean).join(' / ') || 'tiada padanan') + '</td><td style="white-space:nowrap">' +
           [1, 2].map(function (n) { return '<button type="button" class="btn kecil luar" data-c="' + i + '" data-n="' + n + '"' + (!c.cadanganLibat && !c.cadanganCapai ? ' disabled' : '') + '>Aktiviti ' + n + '</button>'; }).join(' ') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
       Array.prototype.forEach.call(k.querySelectorAll('[data-c]'), function (bt) {

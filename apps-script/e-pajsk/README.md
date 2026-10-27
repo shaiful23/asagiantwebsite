@@ -45,7 +45,7 @@ mengikut nama header, bukan kedudukan.
 | --- | --- |
 | `MURID` | Senarai murid, tingkatan, kelas, unit PBB/KP/SP dan **jawatan** (dikemas kini automatik apabila berubah). Jantina diteka daripada digit akhir No. KP (ganjil = lelaki) |
 | `KEHADIRAN_PASUKAN_BADAN_BERUNIF`, `KEHADIRAN_KELAB_&_PERSATUAN`, `KEHADIRAN_SUKAN_&_PERMAINAN` | **Skor Kehadiran** automatik: bilangan perjumpaan unik (TARIKH + PERJUMPAAN) dengan STATUS `HADIR` pada tahun pentaksiran, maksimum 12 |
-| `PENCAPAIAN` | **Cadangan** Pelibatan/Pencapaian (guru tingkatan semak & tekan *Guna*; tidak disimpan automatik) |
+| `PENCAPAIAN` | **Pelibatan/Pencapaian** diisi automatik ke unit berdaftar murid (lajur `UNIT_PAJSK`); rekod yang unitnya tidak sepadan dipaparkan sebagai cadangan untuk diisi manual |
 | `PENGGUNA` | Import akaun guru (kata laluan e-Kokurikulum **tidak** disalin) |
 
 Syarat: akaun Gmail yang men-*deploy* e-PAJSK mesti pemilik/editor/viewer Sheet e-Kokurikulum
@@ -61,7 +61,15 @@ Syarat: akaun Gmail yang men-*deploy* e-PAJSK mesti pemilik/editor/viewer Sheet 
   - **Disunting KGP:** jika KGP menyunting jawatan dalam e-PAJSK, suntingan itu kekal sehingga jawatan di e-Kokurikulum diubah lagi. Sistem menyimpan jawatan e-Kokurikulum yang terakhir dilihat dalam lajur `JawatanKoko` (Sheet `PENTAKSIRAN_ASPEK`), dan lajur ini dicipta automatik.
   - **Dikosongkan di e-Kokurikulum:** jawatan dalam e-PAJSK dikosongkan juga, tetapi hanya jika ia masih sama dengan nilai e-Kokurikulum sebelumnya.
   - **Tidak wujud dalam jadual skor JAWATAN:** jawatan itu diabaikan dan dilaporkan dalam keputusan segerak. Tambah pilihan itu di *Tetapan & Penyelenggaraan → Jadual skor*.
-- Data lain yang diisi guru (pelibatan, pencapaian, komitmen, khidmat, kehadiran manual dan lain-lain) **tidak ditimpa** oleh segerak.
+- **Pencapaian mengikut unit murid sendiri (Sheet `PENCAPAIAN`):**
+  - **Unit pelibatan** = lajur `UNIT_PAJSK` (Q), iaitu unit berdaftar murid. Jika kosong (rekod lama), lajur `UNIT` (K) digunakan. Jika Q ada nilai, K tidak digunakan (K hanya unit yang merekod). Contoh: murid unit BOLA SEPAK yang bermain RAGBI, pencapaiannya masuk ke unit BOLA SEPAK.
+  - **Aspek** = lajur `KATEGORI` (J): Badan Beruniform → PBB, Kelab & Persatuan → KP, Sukan & Permainan → SP. Murid dipadankan ikut No. KP (C). Hanya pencapaian tahun pentaksiran (ikut `TARIKH`) diambil.
+  - **Peringkat lama:** ZON / DAERAH = ZON/DAERAH, BAHAGIAN = BAHAGIAN (SABAH/SARAWAK).
+  - **Dua pencapaian terbaik** (skor tertinggi) diisi ke Aktiviti 1 dan 2. Lajur `PencapaianKoko` (Sheet `PENTAKSIRAN_ASPEK`, dicipta automatik) mencatat ID (A) setiap baris yang diisi, jadi segerak berulang tidak menghasilkan rekod berganda dan baris dengan ID sama hanya dikira sekali.
+  - **Isian guru dihormati:** aktiviti yang diisi atau diubah sendiri oleh guru tidak ditimpa, dan pencapaian yang sama dengannya tidak diisi sekali lagi. Jika rekod dipadam di e-Kokurikulum, aktiviti yang diisi automatik dikosongkan.
+  - Jika unit pelibatan tidak sama dengan unit murid dalam e-PAJSK (cth. `TIADA_UNIT`), pencapaian tidak diisi dan dilaporkan dalam keputusan segerak.
+  - Sheet dibaca keseluruhan (semua lajur hingga R), dan lajur dicari ikut nama tajuk.
+- Data lain yang diisi guru (komitmen, khidmat, kehadiran manual dan lain-lain) **tidak ditimpa** oleh segerak.
 
 ## Reka bentuk & identiti SMK Asajaya
 - **Warna logo sekolah:** biru diraja, merah, kuning dan ungu. Ia digunakan pada menu sisi, butang, kad, carta dan jalur tiga warna.
@@ -215,7 +223,7 @@ Menu **Data Kelas** atau **Rumusan Kelas** → **PDF rujukan idME** (Admin & Gur
 5. **Slip**: tajuk lajur *Kelab/Persatuan* dan *Badan Beruniform* dalam sheet `SLIP` template tertukar dengan data; di sini dipaparkan betul.
 6. **Analisis Terperinci (Ringkasan)**: formula *Gred Purata* template mempunyai ralat keutamaan operator; di sini Gred Purata = Σ(bil × nilai gred) ÷ murid bergred, %GPS = (5 − gred purata) ÷ 4 × 100.
 7. **Kehadiran** dikira daripada rekod e-Kokurikulum sahaja (kosong sehingga e-Kokurikulum merekod kehadiran); guru tingkatan boleh **ganti manual** (0–12).
-8. Pelibatan/Pencapaian daripada e-Kokurikulum hanya **cadangan** kerana rekod `PENCAPAIAN` tidak mengandungi aspek (SP/KP/PBB) dan tahap *Pelibatan 1/2/3*; guru tingkatan mengesahkannya.
+8. Pelibatan daripada e-Kokurikulum diisi sebagai *Pelibatan 1* bagi peringkat berkenaan (e-Kokurikulum tidak merekod tahap *Pelibatan 1/2/3*); guru boleh mengubahnya dan suntingan itu kekal.
 
 ## Arkib & Naik Tingkatan (Admin, menu *Arkib & Naik Tingkatan*)
 
