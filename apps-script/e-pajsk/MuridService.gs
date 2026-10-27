@@ -15,7 +15,8 @@ const HEADER_MURID = ['NoKP', 'Nama', 'Jantina', 'Tingkatan', 'Kelas', 'KunciKel
 
 const HEADER_ASPEK = ['Kunci', 'NoKP', 'Aspek', 'Unit', 'Jawatan', 'Libat1', 'Capai1', 'Aktiviti2', 'Libat2', 'Capai2',
   'Komit1', 'Komit2', 'Komit3', 'Komit4', 'Khidmat', 'KehadiranAuto', 'KehadiranManual', 'Kehadiran',
-  'SkorJawatan', 'SkorLibat', 'SkorCapai', 'SkorKomit', 'SkorKhidmat', 'SkorKehadiran', 'Skor', 'Markah', 'Dikemaskini', 'OlehKP'];
+  'SkorJawatan', 'SkorLibat', 'SkorCapai', 'SkorKomit', 'SkorKhidmat', 'SkorKehadiran', 'Skor', 'Markah', 'Dikemaskini', 'OlehKP',
+  'JawatanKoko'];   // jawatan terakhir yang dilihat dalam e-Kokurikulum (untuk mengesan perubahan)
 
 const HEADER_EKSTRA = ['NoKP', 'Perkhidmatan', 'AnugerahKhas', 'KhidmatMasyarakat', 'Nilam', 'TimmsPisa', 'TugasKhas',
   'SkPerkhidmatan', 'SkAnugerah', 'SkKM', 'SkNilam', 'SkTimms', 'SkTugas', 'SkorTertinggi', 'Dikemaskini', 'OlehKP'];
@@ -32,7 +33,7 @@ function aspekKosong(nokp, aspek, unit) {
     Aktiviti2: '', Libat2: '', Capai2: '', Komit1: '', Komit2: '', Komit3: '', Komit4: '', Khidmat: '',
     KehadiranAuto: 0, KehadiranManual: '', Kehadiran: 0,
     SkorJawatan: 0, SkorLibat: 0, SkorCapai: 0, SkorKomit: 0, SkorKhidmat: 0, SkorKehadiran: 0, Skor: 0, Markah: 0,
-    Dikemaskini: '', OlehKP: ''
+    Dikemaskini: '', OlehKP: '', JawatanKoko: ''
   };
 }
 
@@ -109,7 +110,7 @@ function laksanakanSegerak(kunciKelas, paksa) {
   bacaSheetSebagaiObjek(SHEET_EKSTRA).forEach(r => { ekstraMap[normalKP(r.NoKP)] = r; });
   bacaSheetSebagaiObjek(SHEET_RUMUSAN).forEach(r => { rumusanAda[normalKP(r.NoKP)] = true; });
 
-  const laporan = { baharu: 0, dikemaskini: 0, kelasBerubah: 0, tingkatanBeza: [], tiadaDiKoko: 0, amaran: hadir.amaran.slice(), diubah: 0, dariCache: !!koko.dariCache };
+  const laporan = { baharu: 0, dikemaskini: 0, jawatanDikemaskini: 0, jawatanTidakDikenali: [], kelasBerubah: 0, tingkatanBeza: [], tiadaDiKoko: 0, amaran: hadir.amaran.slice(), diubah: 0, dariCache: !!koko.dariCache };
   const kokoMap = {};
   const muridUbah = [];
   const proses = [];     // murid (objek akhir) dalam skop, untuk semakan aspek/rumusan
@@ -170,16 +171,30 @@ function laksanakanSegerak(kunciKelas, paksa) {
       const unit = m[a + '_Unit'];
       const kunci = kunciAspek(m.NoKP, a);
       let rec = aspekMap[kunci];
-      const jawKoko = k && k.jawatan[a] && ref.peta.JAWATAN[k.jawatan[a]] !== undefined ? k.jawatan[a] : '';
+      const jawMentah = k ? k.jawatan[a] : '';
+      const jawKoko = labelJawatanKoko(jawMentah, ref);
+      if (jawMentah && !jawKoko && laporan.jawatanTidakDikenali.length < 30) laporan.jawatanTidakDikenali.push(m.Nama + ' (' + a + '): "' + jawMentah + '"');
       if (!rec && !unit && !jawKoko) return;
       const hadirAuto = Math.min(KEHADIRAN_MAKSIMUM, hadir.kira[a][m.NoKP] || 0);
       const baharu = !rec;
       if (baharu) { rec = aspekKosong(m.NoKP, a, unit); aspekMap[kunci] = rec; }
-      const sebelum = [rec.Unit, rec.Jawatan, rec.KehadiranAuto].join('|');
+      const sebelum = [rec.Unit, rec.Jawatan, rec.KehadiranAuto, rec.JawatanKoko].join('|');
       rec.Unit = unit || rec.Unit;
-      if (!rec.Jawatan && jawKoko) rec.Jawatan = jawKoko;
+      // Jawatan: e-Kokurikulum menjadi sumber. Apabila jawatan di e-Kokurikulum BERUBAH sejak segerak lepas, ia
+      // menggantikan jawatan dalam e-PAJSK. Jika tidak berubah, suntingan KGP dalam e-PAJSK dikekalkan.
+      // Jawatan yang tidak dikenali dalam jadual skor diabaikan (dilaporkan).
+      if (k && !(jawMentah && !jawKoko)) {
+        const lepas = String(rec.JawatanKoko || '');
+        if (jawKoko !== lepas) {
+          const asal = rec.Jawatan;
+          if (jawKoko) rec.Jawatan = jawKoko;
+          else if (lepas && rec.Jawatan === lepas) rec.Jawatan = '';   // dikosongkan di e-Kokurikulum
+          rec.JawatanKoko = jawKoko;
+          if (rec.Jawatan !== asal) laporan.jawatanDikemaskini++;
+        } else if (!rec.Jawatan && jawKoko) { rec.Jawatan = jawKoko; laporan.jawatanDikemaskini++; }
+      }
       rec.KehadiranAuto = hadirAuto;
-      if (baharu || sebelum !== [rec.Unit, rec.Jawatan, rec.KehadiranAuto].join('|')) {
+      if (baharu || sebelum !== [rec.Unit, rec.Jawatan, rec.KehadiranAuto, rec.JawatanKoko].join('|')) {
         rec.Dikemaskini = masa;
         kiraSemulaAspek(rec, ref);
         aspekUbah.push(rec);
@@ -205,6 +220,16 @@ function laksanakanSegerak(kunciKelas, paksa) {
   laporan.masa = masa;
   laporan.ts = koko.ts;
   return laporan;
+}
+
+/* Padankan jawatan e-Kokurikulum dengan label dalam jadual skor JAWATAN (tidak peka huruf besar/ruang). '' jika tiada. */
+function labelJawatanKoko(teks, ref) {
+  const t = banding(teks);
+  if (!t) return '';
+  const peta = ref.peta.JAWATAN || {};
+  if (peta[t] !== undefined) return t;
+  const jumpa = Object.keys(peta).find(l => banding(l) === t);
+  return jumpa || '';
 }
 
 /* Kemas kini PENGGUNA.UnitKoko (unit yang dipimpin sebagai Ketua Guru Penasihat dalam e-Kokurikulum) dan cipta

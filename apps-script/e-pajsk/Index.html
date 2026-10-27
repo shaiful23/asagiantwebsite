@@ -1409,6 +1409,8 @@ function segerakKoko(kelas, selesai, paksa) {
     var h = '<h3>Segerak e-Kokurikulum selesai</h3><p>' + l.jumlahDiproses + ' murid disemak · <b>' + l.diubah + ' rekod dikemaskini</b> · ' + l.baharu + ' murid baharu · ' + l.kelasBerubah + ' bertukar kelas.' + (l.dariCache && !l.diubah ? ' <span class="nota">(e-Kokurikulum tiada perubahan sejak segerak terakhir)</span>' : '') + '</p>';
     if (l.tiadaDiKoko) h += '<div class="info-kotak">' + l.tiadaDiKoko + ' murid aktif dalam e-PAJSK tiada lagi dalam e-Kokurikulum (pindah/tamat) — tidak dipadam; Admin boleh menandakannya PINDAH di menu Murid.</div>';
     if (l.tingkatanBeza.length) h += '<div class="amaran-kotak"><b>Tingkatan berbeza (tidak diubah):</b><br>' + l.tingkatanBeza.slice(0, 15).map(e).join('<br>') + (l.tingkatanBeza.length > 15 ? '<br>… dan ' + (l.tingkatanBeza.length - 15) + ' lagi' : '') + '</div>';
+    if (l.jawatanDikemaskini) h += '<div class="info-kotak"><b>' + l.jawatanDikemaskini + ' jawatan</b> dikemas kini mengikut e-Kokurikulum.</div>';
+    if (l.jawatanTidakDikenali && l.jawatanTidakDikenali.length) h += '<div class="amaran-kotak"><b>Jawatan e-Kokurikulum tidak dikenali dalam jadual skor (diabaikan):</b><br>' + l.jawatanTidakDikenali.slice(0, 10).map(e).join('<br>') + (l.jawatanTidakDikenali.length > 10 ? '<br>…' : '') + '<br>Tambah pilihan ini di <b>Tetapan &amp; Penyelenggaraan → Jadual skor (JAWATAN)</b> jika perlu.</div>';
     if (l.amaran.length) h += '<div class="amaran-kotak">' + l.amaran.map(e).join('<br>') + '</div>';
     h += '<div class="aksi-modal"><button class="btn" data-x="o">OK</button></div>';
     var m = bukaModal(h, true);
@@ -1687,6 +1689,7 @@ function bukaIsiAspek(indeks) {
   var b = S.iuPaparan[indeks]; if (!b) return;
   var a = b.aspek, r = b.rec, kunci = dikunciUnit(b.kunciUnit);
   var h = '<h3>' + e(b.nama) + '</h3><div class="nota" style="margin:-8px 0 10px">' + e(paparKelasJs(b.kunciKelas)) + ' · ' + e(b.nokp) + ' · <b>' + e(a + ' · ' + b.unit) + '</b> · ' + (indeks + 1) + ' / ' + S.iuPaparan.length + '</div>' +
+    (r.JawatanKoko ? '<div class="info-kotak" style="margin-bottom:10px">' + ik('segerak') + ' Jawatan dalam e-Kokurikulum: <b>' + e(r.JawatanKoko) + '</b>. Jika jawatan diubah di e-Kokurikulum, e-PAJSK dikemas kini secara automatik.</div>' : '') +
     '<div class="grid-borang"><div class="medan penuh"><label>Tambahan aktiviti (nama, jika ada)</label><input id="ia_Aktiviti2" maxlength="120" value="' + e(r.Aktiviti2) + '"></div>' +
     FIELD_ASPEK.map(function (f) { return '<div class="medan' + (f[0] === 'Jawatan' || f[0] === 'Khidmat' ? ' penuh' : '') + '"><label>' + f[2] + '</label>' + selHtml('ia_' + f[0], f[1], r[f[0]]) + '</div>'; }).join('') +
     '<div class="medan"><label>Kehadiran daripada e-Kokurikulum</label><input value="' + e(r.KehadiranAuto) + ' perjumpaan" disabled></div>' +
