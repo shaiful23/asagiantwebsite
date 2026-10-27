@@ -58,7 +58,7 @@ function unitMuridAspek(murid, aspek, rec) {
 /* Simpan pentaksiran seorang murid.
    - Medan aspek (PBB/KP/SP): Admin, atau Ketua Guru Penasihat (KGP) unit murid bagi aspek itu.
    - Ekstra kurikulum, CGPA tahun sebelum & sejarah CGPA: Admin sahaja.
-   - Guru Kelas: lihat sahaja (tiada hak menulis kecuali jika dia juga KGP unit berkenaan). */
+   - Guru Tingkatan: lihat sahaja (tiada hak menulis kecuali jika dia juga KGP unit berkenaan). */
 function apiSimpanPentaksiran(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;

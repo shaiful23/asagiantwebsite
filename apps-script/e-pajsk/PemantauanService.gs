@@ -1,5 +1,5 @@
 /* =========================================================================
- * PemantauanService.gs — Status pengisian pentaksiran oleh Guru Kelas.
+ * PemantauanService.gs — Status pengisian pentaksiran oleh Guru Tingkatan.
  *
  * Status seorang murid:
  *   LENGKAP      — semua medan wajib (MEDAN_WAJIB_ASPEK, Config.gs) diisi bagi setiap aspek yang
@@ -77,7 +77,7 @@ function ringkasanKelas(kunci, murid, aspekMap, ekstraMap) {
   return k;
 }
 
-/* Admin: semua guru kelas. Guru Kelas: kelas sendiri sahaja. */
+/* Admin: semua guru tingkatan. Guru Tingkatan: kelas sendiri sahaja. */
 function apiStatusPengisian(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;

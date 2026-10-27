@@ -1,9 +1,9 @@
 /* =========================================================================
  * RujukanIdmeService.gs — Dokumen rujukan (PDF / cetak) semua medan PAJSK yang telah
- * diisi bagi satu kelas, untuk kegunaan Guru Kelas semasa memasukkan PAJSK ke dalam idME.
+ * diisi bagi satu kelas, untuk kegunaan Guru Tingkatan semasa memasukkan PAJSK ke dalam idME.
  * Susunan aspek ikut borang PAJSK: Sukan & Permainan, Kelab & Persatuan, Badan Beruniform,
  * kemudian Ekstra Kurikulum. Medan wajib yang masih kosong ditanda "BELUM DIISI".
- * Akses: Admin, atau Guru Kelas bagi kelasnya sendiri.
+ * Akses: Admin, atau Guru Tingkatan bagi kelasnya sendiri.
  * ========================================================================= */
 
 const SUSUNAN_ASPEK_IDME = [ASPEK_SP, ASPEK_KP, ASPEK_PBB];
@@ -83,7 +83,7 @@ function binaHtmlRujukanIdme(kelas, senarai, bilKelas) {
   return gaya + '<div class="rujukan-idme">' +
     '<h1>RUJUKAN PENGISIAN PAJSK (idME) — ' + escHtml(t[TET_NAMA_SEKOLAH] || '') + '</h1>' +
     '<div class="sub">' + escHtml(paparKelas(kelas)) + ' · Tahun ' + escHtml(tahunSemasa()) + (t[TET_KOD_SEKOLAH] ? ' · ' + escHtml(t[TET_KOD_SEKOLAH]) : '') +
-    (guru.length ? ' · Guru Kelas: ' + escHtml(guru.join(', ')) : '') + '</div>' +
+    (guru.length ? ' · Guru Tingkatan: ' + escHtml(guru.join(', ')) : '') + '</div>' +
     '<div class="nota">Dijana daripada e-PAJSK pada ' + escHtml(masa) + '. ' + senarai.length + (senarai.length !== bilKelas ? ' daripada ' + bilKelas : '') +
     ' murid. Medan bertanda <span class="kosong-wajib">BELUM DIISI</span> ialah medan wajib yang masih kosong dalam e-PAJSK. Dokumen ini mengandungi maklumat peribadi murid — simpan dengan selamat.</div>' +
     (senarai.length > 1 ? '<h1 style="font-size:11pt;text-align:left;margin-top:6px">Senarai semak</h1>' + ringkas + '<div class="putus"></div>' : '') +

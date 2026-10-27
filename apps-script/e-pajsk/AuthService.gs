@@ -73,6 +73,13 @@ function wajibAksesKelas(sesi, kunciKelas) {
 }
 
 /* ------------------------- LOG MASUK / KELUAR ------------------------- */
+/* Dipanggil semasa halaman log masuk dibuka: memanaskan pelayan & cache PENGGUNA supaya log masuk lebih pantas.
+   Tiada data dipulangkan. */
+function apiPanaskan() {
+  try { bacaSheetSebagaiObjek(SHEET_PENGGUNA); muatRujukan(); } catch (e) { /* abaikan */ }
+  return jaya({});
+}
+
 function apiLogin(p) {
   const nokp = normalKP(p.nokp);
   const kataLaluan = String(p.kataLaluan || '');
@@ -93,7 +100,11 @@ function apiLogin(p) {
 
   const token = ciptaSesi(pengguna);
   catatAudit({ nokp, nama: pengguna.NamaPenuh, peranan: pengguna.Peranan }, 'LOGIN', 'PENGGUNA', nokp, 'Log masuk berjaya');
+  const mesti = String(pengguna.MestiTukarPassword).toUpperCase() === 'YA';
+  let mula = null;   // data permulaan (dashboard dsb.) dalam jawapan yang sama — jimat satu panggilan pelayan
+  if (!mesti) { try { const m = apiMula({ token }); if (m.success) mula = m; } catch (e) { /* klien akan memanggil apiMula sendiri */ } }
   return jaya({
+    mula,
     token,
     nama: pengguna.NamaPenuh,
     peranan: pengguna.Peranan,

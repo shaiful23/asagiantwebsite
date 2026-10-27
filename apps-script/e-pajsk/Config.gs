@@ -69,7 +69,7 @@ const TEMPOH_KUNCI_LOGIN_SAAT = 10 * 60;    // 10 minit
 const NAMA_FOLDER_ARKIB = 'e-PAJSK SMK Asajaya - Arkib';
 
 /* ------------------------- KELENGKAPAN PENGISIAN (menu Status Pengisian) ------------------------- */
-// Medan yang WAJIB diisi guru kelas bagi setiap aspek yang murid sertai (ada unit). Pencapaian, tambahan
+// Medan yang WAJIB diisi guru tingkatan bagi setiap aspek yang murid sertai (ada unit). Pencapaian, tambahan
 // aktiviti, khidmat sumbangan dan ekstra kurikulum adalah PILIHAN (tidak semua murid layak).
 // Bentuk: [medan, label]; medan 'KOMITMEN' = sekurang-kurangnya satu daripada Komitmen 1-4.
 const MEDAN_WAJIB_ASPEK = [['Jawatan', 'Jawatan'], ['Libat1', 'Pelibatan'], ['KOMITMEN', 'Komitmen']];
@@ -78,7 +78,7 @@ const WAJIB_CGPA_SEBELUM = true;
 
 /* ------------------------- KETUA GURU PENASIHAT (KGP) — PENGISI DATA ------------------------- */
 // Medan pentaksiran aspek (Jawatan, Pelibatan, Pencapaian, Komitmen, Khidmat, Kehadiran manual) diisi oleh
-// KGP unit masing-masing; Guru Kelas hanya MELIHAT data kelasnya. KGP sesuatu unit ditentukan oleh:
+// KGP unit masing-masing; Guru Tingkatan hanya MELIHAT data kelasnya. KGP sesuatu unit ditentukan oleh:
 //   1. e-Kokurikulum (Sheet PENGGUNA, lajur UNITn_JAWATAN = "KETUA GURU PENASIHAT") -> lajur PENGGUNA.UnitKoko (auto)
 //   2. Tetapan manual Admin (menu Pengguna)                                              -> lajur PENGGUNA.UnitDijaga
 // Format setiap unit: "<ASPEK>|<NAMA UNIT>" (cth. "PBB|PASUKAN KADET REMAJA SEKOLAH"); beberapa unit dipisah ";".

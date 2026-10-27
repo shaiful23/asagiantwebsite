@@ -5,7 +5,7 @@
  *  - Admin menetapkan TARIKH_AKHIR_PENGISIAN (Sheet TETAPAN, "yyyy-MM-dd HH:mm", zon masa skrip).
  *  - Selepas tarikh akhir, KGP tidak boleh menyimpan pentaksiran (apiSimpanPentaksiran / apiSimpanPukal)
  *    kecuali permohonan buka semulanya DILULUSKAN dan masih dalam tempoh "BukaHingga".
- *  - Admin tidak pernah dikunci. Guru Kelas sememangnya lihat sahaja.
+ *  - Admin tidak pernah dikunci. Guru Tingkatan sememangnya lihat sahaja.
  *  - Permohonan disimpan dalam Sheet PERMOHONAN_BUKA (satu baris setiap permohonan).
  * ========================================================================= */
 

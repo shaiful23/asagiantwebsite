@@ -11,12 +11,12 @@ Google Apps Script (satu Web App SPA, `Index.html`), mengikut corak projek lain 
 | --- | --- |
 | `ADMIN` | Semua: urus pengguna & murid, segerak, tetapan, Arkib & Naik Tingkatan, log audit; boleh mengisi SEMUA unit, serta **ekstra kurikulum & CGPA tahun sebelum** |
 | **Ketua Guru Penasihat (KGP)** | **Mengisi** medan pentaksiran (Jawatan, Pelibatan, Pencapaian, Komitmen, Khidmat sumbangan, Kehadiran manual) bagi murid **unit yang dipimpinnya sahaja**, melalui menu *Pengisian Unit (KGP)* |
-| **Guru Kelas** | **Melihat sahaja** data kelasnya (Data Kelas, Rumusan, Slip, Analisis Terperinci) untuk rujukan |
+| **Guru Tingkatan** | **Melihat sahaja** data kelasnya (Data Kelas, Rumusan, Slip, Analisis Terperinci) untuk rujukan |
 
 Peranan dalam Sheet tetap `ADMIN` atau `GURU_KELAS` ("Guru"); keupayaan ditentukan oleh data:
-- **Guru Kelas** = lajur `PENGGUNA.KelasDijaga` berisi.
+- **Guru Tingkatan** = lajur `PENGGUNA.KelasDijaga` berisi.
 - **KGP** = unit dalam `PENGGUNA.UnitKoko` (auto daripada e-Kokurikulum: Sheet PENGGUNA, `UNITn_JAWATAN = "KETUA GURU PENASIHAT"`) **atau** `PENGGUNA.UnitDijaga` (ditanda manual oleh Admin di menu Pengguna). Format: `ASPEK|NAMA UNIT`, dipisah `;`.
-- Seorang guru boleh menjadi Guru Kelas dan KGP serentak. KGP yang belum ada akaun dicipta automatik semasa segerak (kata laluan lalai = 6 digit terakhir No. KP).
+- Seorang guru boleh menjadi Guru Tingkatan dan KGP serentak. KGP yang belum ada akaun dicipta automatik semasa segerak (kata laluan lalai = 6 digit terakhir No. KP).
 - Lajur `UnitDijaga` dan `UnitKoko` ditambah automatik pada Sheet PENGGUNA sedia ada.
 
 ### Menu Pengisian Unit (KGP)
@@ -45,7 +45,7 @@ mengikut nama header, bukan kedudukan.
 | --- | --- |
 | `MURID` | Senarai murid, tingkatan, kelas, unit PBB/KP/SP (+ jawatan jika diisi). Jantina diteka daripada digit akhir No. KP (ganjil = lelaki) |
 | `KEHADIRAN_PASUKAN_BADAN_BERUNIF`, `KEHADIRAN_KELAB_&_PERSATUAN`, `KEHADIRAN_SUKAN_&_PERMAINAN` | **Skor Kehadiran** automatik: bilangan perjumpaan unik (TARIKH + PERJUMPAAN) dengan STATUS `HADIR` pada tahun pentaksiran, maksimum 12 |
-| `PENCAPAIAN` | **Cadangan** Pelibatan/Pencapaian (guru kelas semak & tekan *Guna*; tidak disimpan automatik) |
+| `PENCAPAIAN` | **Cadangan** Pelibatan/Pencapaian (guru tingkatan semak & tekan *Guna*; tidak disimpan automatik) |
 | `PENGGUNA` | Import akaun guru (kata laluan e-Kokurikulum **tidak** disalin) |
 
 Syarat: akaun Gmail yang men-*deploy* e-PAJSK mesti pemilik/editor/viewer Sheet e-Kokurikulum
@@ -67,12 +67,24 @@ Syarat: akaun Gmail yang men-*deploy* e-PAJSK mesti pemilik/editor/viewer Sheet 
   - Ikon SVG moden pada menu (dikumpul: Utama, Pentaksiran, Laporan, Pentadbiran), tajuk halaman, kad ringkas dan butang.
   - Carta (donut, bar, lajur) dilukis dengan SVG ringan **tanpa pustaka luar/CDN**, jadi pantas dan stabil.
 
+## Unit Saya (KGP) & Kelas Saya (Guru Tingkatan)
+- **Unit Saya**: untuk Ketua Guru Penasihat (bukan Admin). Boleh dipaparkan bagi semua unit sekali atau satu unit sahaja.
+  - Kad ringkas: ahli, lengkap, dalam proses, belum mula, purata markah dan purata kehadiran.
+  - Carta: status pengisian ahli, medan diisi (wajib & pilihan) dan taburan gred.
+  - Ringkasan setiap unit, dan senarai ahli dengan **semua medan** (Jawatan, Pelibatan, Pencapaian, Komitmen, Khidmat, Hadir, Markah, Gred, Status serta medan yang belum diisi).
+  - Penapis status dan carian, CSV, dan butang *Pergi isi*.
+- **Kelas Saya**: untuk Guru Tingkatan, mengikut kelas yang dijaga.
+  - Kad ringkas, carta status, kelengkapan ikut jenis data dan taburan gred.
+  - Senarai murid dengan setiap aspek (unit, markah, ✓ lengkap atau medan yang belum diisi), ekstra, CGPA tahun lepas, CGPA, gred dan status pengisian.
+  - Butang *Lihat* membuka semua medan seorang murid. Ada juga pautan ke PDF rujukan idME dan Slip PAJSK, serta eksport CSV.
+- Istilah **Guru Kelas** kini dipaparkan sebagai **Guru Tingkatan**. Kod peranan dalam Sheet kekal `GURU_KELAS`, jadi data sedia ada tidak perlu diubah.
+
 ## Dashboard
 - **Sepanduk dan kad ringkas berikon:**
   - jumlah murid
   - murid lengkap semua bahagian, dalam proses dan belum mula
   - purata CGPA
-  - guru kelas dan kelas tanpa guru
+  - guru tingkatan dan kelas tanpa guru
   - unit tanpa KGP
 - **Carta:**
   - status pengisian murid
@@ -112,14 +124,16 @@ Menu **Tetapan & Penyelenggaraan** (Admin):
 Menu Sheet hanya diperlukan **sekali** semasa pemasangan pertama (benarkan OAuth dan cipta Admin pertama).
 
 ## Pantas & stabil
-- **`apiMula` membawa data Dashboard:** paparan pertama selepas log masuk hanya memerlukan **satu** panggilan pelayan.
+- **Log masuk satu panggilan:** `apiLogin` turut memulangkan data permulaan (termasuk Dashboard), jadi tiada panggilan kedua selepas log masuk.
+- **Pelayan dipanaskan awal:** semasa halaman log masuk dibuka, `apiPanaskan` menyediakan cache PENGGUNA dan jadual skor supaya log masuk lebih pantas.
+- **`apiMula` membawa data Dashboard:** sesi yang disambung semula juga hanya memerlukan **satu** panggilan pelayan.
 - **Muat semula halaman:** data permulaan terakhir (dalam `sessionStorage` tab itu sahaja) dipaparkan serta-merta sementara data terkini dimuat. Data ini dipadam semasa log keluar.
 - **Saiz halaman:** logo baharu lebih kecil daripada logo lama dan tiada pustaka carta luar.
 
 ## Status Pengisian (menu *Status Pengisian*)
 
 - **Mengikut Ketua Guru Penasihat (pengisi)** — paparan utama Admin: setiap KGP dengan status *Belum mula / Dalam proses / Lengkap*, peratus, aktiviti terakhir; bagi yang dalam proses, butiran setiap unit (bilangan murid belum lengkap mengikut medan) dan senarai murid. Unit tanpa KGP disenaraikan. Salin senarai peringatan & CSV. KGP melihat unitnya sendiri.
-- **Mengikut kelas (rujukan)** — Admin & Guru Kelas: kelengkapan data setiap kelas (termasuk CGPA tahun sebelum) untuk rujukan.
+- **Mengikut kelas (rujukan)** — Admin & Guru Tingkatan: kelengkapan data setiap kelas (termasuk CGPA tahun sebelum) untuk rujukan.
 
 Peraturan "lengkap" (`Config.gs`: `MEDAN_WAJIB_ASPEK`, `WAJIB_CGPA_SEBELUM`): bagi setiap aspek yang murid sertai, **Jawatan**, **Pelibatan** dan sekurang-kurangnya satu **Komitmen**; CGPA tahun sebelum wajib bagi Tingkatan 2 ke atas (paparan kelas). *Dalam proses* = sudah ada rekod disimpan oleh pengisi tetapi medan wajib masih kosong.
 
@@ -135,7 +149,7 @@ Peraturan "lengkap" (`Config.gs`: `MEDAN_WAJIB_ASPEK`, `WAJIB_CGPA_SEBELUM`): ba
   - pelayan menolak sebarang simpanan
 - Skrin yang sedang terbuka dikunci sendiri sebaik sahaja kiraan detik tamat.
 - Kiraan detik menggunakan jam pelayan (zon masa skrip), bukan jam peranti.
-- Admin tidak pernah dikunci. Guru Kelas sememangnya lihat sahaja.
+- Admin tidak pernah dikunci. Guru Tingkatan sememangnya lihat sahaja.
 - **Permohonan buka semula:**
   - KGP menekan **Mohon buka semula**, kemudian memilih satu unit atau semua unitnya dan menulis sebab.
   - Admin menerima permohonan dengan lencana bilangan menunggu pada menu.
@@ -145,7 +159,7 @@ Peraturan "lengkap" (`Config.gs`: `MEDAN_WAJIB_ASPEK`, `WAJIB_CGPA_SEBELUM`): ba
 
 ## Rujukan pengisian idME (PDF / cetak)
 
-Menu **Data Kelas** atau **Rumusan Kelas** → **PDF rujukan idME** (Admin & Guru Kelas bagi kelas sendiri):
+Menu **Data Kelas** atau **Rumusan Kelas** → **PDF rujukan idME** (Admin & Guru Tingkatan bagi kelas sendiri):
 - Pilih seluruh kelas atau seorang murid → **Muat turun PDF** (dijana di pelayan, fail A4) atau **Cetak / Simpan PDF** (dialog cetak pelayar).
 - Kandungan: senarai semak kelas (CGPA, gred, medan wajib yang belum diisi), kemudian setiap murid (2 murid / halaman): Unit, Jawatan, Pelibatan & Pencapaian (aktiviti 1 dan tambahan), Komitmen, Khidmat sumbangan, Kehadiran, markah aspek — mengikut susunan **Sukan & Permainan, Kelab & Persatuan, Badan Beruniform** — serta Ekstra kurikulum, CGPA tahun sebelum dan GPA/CGPA/Gred.
 - Medan wajib yang masih kosong ditanda **BELUM DIISI**. Dokumen mengandungi No. KP murid — simpan dengan selamat.
@@ -195,8 +209,8 @@ Menu **Data Kelas** atau **Rumusan Kelas** → **PDF rujukan idME** (Admin & Gur
 4. **Tugas Khas**: dua pilihan "Sukarelawan program … antarabangsa yang dianjurkan dalam negara" berlabel sama (skor 5 dan 3) dalam template; yang kedua ditambah `(B)` supaya boleh dipilih.
 5. **Slip**: tajuk lajur *Kelab/Persatuan* dan *Badan Beruniform* dalam sheet `SLIP` template tertukar dengan data; di sini dipaparkan betul.
 6. **Analisis Terperinci (Ringkasan)**: formula *Gred Purata* template mempunyai ralat keutamaan operator; di sini Gred Purata = Σ(bil × nilai gred) ÷ murid bergred, %GPS = (5 − gred purata) ÷ 4 × 100.
-7. **Kehadiran** dikira daripada rekod e-Kokurikulum sahaja (kosong sehingga e-Kokurikulum merekod kehadiran); guru kelas boleh **ganti manual** (0–12).
-8. Pelibatan/Pencapaian daripada e-Kokurikulum hanya **cadangan** kerana rekod `PENCAPAIAN` tidak mengandungi aspek (SP/KP/PBB) dan tahap *Pelibatan 1/2/3*; guru kelas mengesahkannya.
+7. **Kehadiran** dikira daripada rekod e-Kokurikulum sahaja (kosong sehingga e-Kokurikulum merekod kehadiran); guru tingkatan boleh **ganti manual** (0–12).
+8. Pelibatan/Pencapaian daripada e-Kokurikulum hanya **cadangan** kerana rekod `PENCAPAIAN` tidak mengandungi aspek (SP/KP/PBB) dan tahap *Pelibatan 1/2/3*; guru tingkatan mengesahkannya.
 
 ## Arkib & Naik Tingkatan (Admin, menu *Arkib & Naik Tingkatan*)
 
@@ -206,7 +220,7 @@ Turutan wajib akhir tahun:
    - CGPA tahun ini → *CGPA Tahun Sebelum* tahun hadapan + ditambah pada **Sejarah CGPA** (dicetak pada slip);
    - Tingkatan 1–4 → +1 (ditanda **Perlu semak** sehingga kelas disahkan melalui segerak); Tingkatan 5 → status **TAMAT**;
    - data pentaksiran tahun lepas dikosongkan; **Tahun Pentaksiran** dinaikkan;
-   - (pilihan) penetapan kelas Guru Kelas dikosongkan untuk ditetapkan semula.
+   - (pilihan) penetapan kelas Guru Tingkatan dikosongkan untuk ditetapkan semula.
 3. Naikkan tingkatan di e-Kokurikulum, kemudian **Segerak SEMUA** supaya kelas baharu disahkan.
 
 Fail arkib mengandungi nama & No. KP murid — kekal peribadi dalam Drive pemilik deployment; jangan kongsi sembarangan.
@@ -222,7 +236,7 @@ Fail arkib mengandungi nama & No. KP murid — kekal peribadi dalam Drive pemili
 6. **Deploy → New deployment → Web app**: *Execute as* **Me**, *Who has access* **Anyone**. Salin URL `/exec`.
 7. Buka URL, log masuk (kata laluan = 6 digit terakhir No. KP, kemudian tukar).
 8. Menu **Tetapan**: semak Tahun Pentaksiran, kod/nama sekolah dan ID Sheet e-Kokurikulum.
-9. Menu **Pengguna → Import guru daripada e-Kokurikulum**; menu **Murid → Segerak SEMUA**; kemudian tetapkan **kelas yang dijaga** bagi setiap Guru Kelas (sunting pengguna).
+9. Menu **Pengguna → Import guru daripada e-Kokurikulum**; menu **Murid → Segerak SEMUA**; kemudian tetapkan **kelas yang dijaga** bagi setiap Guru Tingkatan (sunting pengguna).
 10. (Pilihan) letak URL `/exec` dalam `epajsk.html` di akar repo untuk dibenam pada laman web sekolah.
 
 Selepas mengemas kini kod, buat **Deploy → Manage deployments → Edit → New version**.
@@ -237,4 +251,4 @@ Lajur No. KP diformat teks (sistem juga melapik sifar di hadapan jika No. KP ter
 - Cache data 30 minit (dinaikkan versi serta-merta apabila ditulis); untuk data lapuk akibat pengubahsuaian struktur Sheet gunakan menu *Kosongkan Semua Cache*.
 - Cold start Apps Script (permintaan pertama selepas lama tidak digunakan) mengambil 1–3 saat — had platform.
 - Cetakan slip/rumusan menggunakan *Print* pelayar (pilih *Save as PDF* untuk PDF).
-- Tiada notifikasi e-mel dan tiada portal murid (di luar skop: hanya Admin & Guru Kelas).
+- Tiada notifikasi e-mel dan tiada portal murid (di luar skop: hanya Admin & Guru Tingkatan).
