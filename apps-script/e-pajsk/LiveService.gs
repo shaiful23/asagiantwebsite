@@ -183,6 +183,7 @@ function apiMula(p) {
     },
     kelasSenarai: senaraiKelasSesi(sesi),
     tarikhAkhir: infoTarikhAkhir(sesi),
+    dashboard: binaDashboard(sesi),   // paparan pertama tanpa panggilan kedua
     versi: versiData()
   });
 }

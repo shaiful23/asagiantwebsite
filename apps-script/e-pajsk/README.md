@@ -11,7 +11,7 @@ Google Apps Script (satu Web App SPA, `Index.html`), mengikut corak projek lain 
 | --- | --- |
 | `ADMIN` | Semua: urus pengguna & murid, segerak, tetapan, Arkib & Naik Tingkatan, log audit; boleh mengisi SEMUA unit, serta **ekstra kurikulum & CGPA tahun sebelum** |
 | **Ketua Guru Penasihat (KGP)** | **Mengisi** medan pentaksiran (Jawatan, Pelibatan, Pencapaian, Komitmen, Khidmat sumbangan, Kehadiran manual) bagi murid **unit yang dipimpinnya sahaja**, melalui menu *Pengisian Unit (KGP)* |
-| **Guru Kelas** | **Melihat sahaja** data kelasnya (Data Kelas, Rumusan, Slip, Analisa) untuk rujukan |
+| **Guru Kelas** | **Melihat sahaja** data kelasnya (Data Kelas, Rumusan, Slip, Analisis Terperinci) untuk rujukan |
 
 Peranan dalam Sheet tetap `ADMIN` atau `GURU_KELAS` ("Guru"); keupayaan ditentukan oleh data:
 - **Guru Kelas** = lajur `PENGGUNA.KelasDijaga` berisi.
@@ -57,6 +57,64 @@ Syarat: akaun Gmail yang men-*deploy* e-PAJSK mesti pemilik/editor/viewer Sheet 
   jika berbeza, murid dilaporkan dan dibiarkan.
 - Murid yang tiada lagi dalam e-Kokurikulum dilaporkan, **tidak dipadam**. Murid `TAMAT` tidak disentuh.
 - Data yang guru isi (jawatan, pelibatan, komitmen, kehadiran manual, dll.) **tidak ditimpa** oleh segerak.
+
+## Reka bentuk & identiti SMK Asajaya
+- **Warna logo sekolah:** biru diraja, merah, kuning dan ungu. Ia digunakan pada menu sisi, butang, kad, carta dan jalur tiga warna.
+- **Logo dan moto:**
+  - Logo sekolah **dibenamkan terus dalam kod** (PNG ±18 KB). Tiada fail luar perlu dimuat.
+  - Moto *Berazam · Berusaha · Berjaya* dipaparkan di halaman log masuk dan menu.
+- **Antara muka:**
+  - Ikon SVG moden pada menu (dikumpul: Utama, Pentaksiran, Laporan, Pentadbiran), tajuk halaman, kad ringkas dan butang.
+  - Carta (donut, bar, lajur) dilukis dengan SVG ringan **tanpa pustaka luar/CDN**, jadi pantas dan stabil.
+
+## Dashboard
+- **Sepanduk dan kad ringkas berikon:**
+  - jumlah murid
+  - murid lengkap semua bahagian, dalam proses dan belum mula
+  - purata CGPA
+  - guru kelas dan kelas tanpa guru
+  - unit tanpa KGP
+- **Carta:**
+  - status pengisian murid
+  - kelengkapan ikut jenis data
+  - taburan gred keseluruhan
+- **Kemajuan mengikut kelas (terperinci):** peratus dikira **berasingan bagi setiap jenis data**, dalam lajur berikut:
+  - **Jawatan / Pelibatan / Komitmen**: penyertaan aspek (murid × aspek yang disertai) yang medan itu diisi ÷ jumlah penyertaan. Komitmen dikira diisi jika sekurang-kurangnya satu Komitmen 1–4 dipilih.
+  - **PBB / KP / SP**: murid yang rekod aspek itu lengkap (semua medan wajib) ÷ murid yang menyertai aspek itu.
+  - **CGPA thn lepas**: murid Tingkatan 2 ke atas yang CGPA tahun sebelum diisi.
+  - **Lengkap semua**: murid yang **semua** bahagian lengkap (peraturan sama seperti Status Pengisian).
+- **Jadual kemajuan:**
+  - Ditapis ikut tingkatan dan disusun ikut peratus lengkap.
+  - Boleh dimuat turun sebagai CSV.
+  - Butang butiran membuka matriks aspek × medan bagi setiap kelas.
+- **Warna:** hijau ≥ 80%, kuning 50–79%, merah < 50%.
+
+## Analisis Terperinci (menggantikan Analisa Ringkas)
+- **Penapis:** tingkatan (Admin) dan kelas. Setiap paparan boleh dimuat turun sebagai CSV.
+- **Kategori:**
+  - **Ringkasan**: murid, telah dinilai, purata CGPA, gred purata, %GPS, taburan gred akhir dan purata markah setiap aspek.
+  - **Ikut Aspek**: peserta, purata, taburan gred dan purata skor 6 komponen (% daripada maksimum), serta perbandingan antara aspek.
+  - **Ikut Unit**: 10 unit purata tertinggi, unit terbesar, dan jadual semua unit (ahli, purata, purata hadir, % rekod lengkap, taburan gred, %GPS).
+  - **Ikut Tingkatan / Kelas / Jantina**: purata CGPA dan taburan gred bertindan.
+  - **Pencapaian & Kehadiran**: pencapaian mengikut peringkat (sekolah hingga antarabangsa), taburan kehadiran dan jawatan paling banyak.
+  - **Ekstra Kurikulum**: bilangan diisi dan pilihan teratas setiap medan.
+  - **Kelengkapan Data**: status murid dan kelengkapan ikut jenis data serta aspek.
+
+## Semua fungsi dari UI (tanpa membuka Google Sheet)
+Menu **Tetapan & Penyelenggaraan** (Admin):
+- **Jadual skor:** tambah, sunting atau padam pilihan dropdown dan markahnya (Sheet `REFERENSI`) terus dari UI. Pilihan baharu terus muncul dalam borang.
+- **Kira semula markah:** guna jadual skor semasa.
+- **Kosongkan cache:** setara menu Sheet *4*.
+- **Baiki struktur Sheet:** cipta Sheet atau lajur yang hilang tanpa mengubah data. Setara menu *1* tanpa dialog.
+- **Tambah / pulihkan Admin:** melalui menu Pengguna (peranan Admin, set semula kata laluan).
+- **Auto-segerak:** dipasang dari UI.
+
+Menu Sheet hanya diperlukan **sekali** semasa pemasangan pertama (benarkan OAuth dan cipta Admin pertama).
+
+## Pantas & stabil
+- **`apiMula` membawa data Dashboard:** paparan pertama selepas log masuk hanya memerlukan **satu** panggilan pelayan.
+- **Muat semula halaman:** data permulaan terakhir (dalam `sessionStorage` tab itu sahaja) dipaparkan serta-merta sementara data terkini dimuat. Data ini dipadam semasa log keluar.
+- **Saiz halaman:** logo baharu lebih kecil daripada logo lama dan tiada pustaka carta luar.
 
 ## Status Pengisian (menu *Status Pengisian*)
 
@@ -128,7 +186,7 @@ Menu **Data Kelas** atau **Rumusan Kelas** → **PDF rujukan idME** (Admin & Gur
 - **Skor aspek (PBB/KP/SP)** = Jawatan + Pelibatan (tertinggi antara 2 aktiviti) + Pencapaian (tertinggi) + Komitmen 1–4 + Khidmat Sumbangan + Kehadiran (maks **110**); **Markah** = Skor ÷ 110 × 100.
 - **Ekstra Kurikulum** = skor tertinggi antara Perkhidmatan, Anugerah Khas, Khidmat Masyarakat, NILAM, TIMSS & PISA, Tugas-tugas Khas (maks 10).
 - **Rumusan** = purata 2 markah aspek tertinggi + Ekstra = *GPA*; jika ada *CGPA tahun sebelum*: (GPA + CGPA lepas) ÷ 2. **Gred**: A ≥ 80, B ≥ 60, C ≥ 40, D ≥ 20, E ≥ 1.
-- Jadual skor berada dalam Sheet **REFERENSI** (disemai daripada sheet `DATA` template) — sunting terus di Sheet, kemudian *Tetapan → Kira semula semua markah*.
+- Jadual skor berada dalam Sheet **REFERENSI** (disemai daripada sheet `DATA` template). Sunting melalui **Tetapan & Penyelenggaraan → Jadual skor**, kemudian tekan **Kira semula**.
 
 ### Perbezaan / andaian berbanding template (sila semak)
 1. **Komitmen**: pilihan yang sama dipilih dua kali dikira **sekali** (template menjumlahkan pendua).
@@ -136,7 +194,7 @@ Menu **Data Kelas** atau **Rumusan Kelas** → **PDF rujukan idME** (Admin & Gur
 3. **Jawatan Bela Diri** (7 baris terakhir senarai jawatan) tiada skor dalam template; ditetapkan **10, 8, 7, 6, 5, 4, 2** (mengikut pola jawatan lain). Sunting dalam `REFERENSI` jika berbeza.
 4. **Tugas Khas**: dua pilihan "Sukarelawan program … antarabangsa yang dianjurkan dalam negara" berlabel sama (skor 5 dan 3) dalam template; yang kedua ditambah `(B)` supaya boleh dipilih.
 5. **Slip**: tajuk lajur *Kelab/Persatuan* dan *Badan Beruniform* dalam sheet `SLIP` template tertukar dengan data; di sini dipaparkan betul.
-6. **Analisa Ringkas**: formula *Gred Purata* template mempunyai ralat keutamaan operator; di sini Gred Purata = Σ(bil × nilai gred) ÷ murid bergred, %GPS = (5 − gred purata) ÷ 4 × 100.
+6. **Analisis Terperinci (Ringkasan)**: formula *Gred Purata* template mempunyai ralat keutamaan operator; di sini Gred Purata = Σ(bil × nilai gred) ÷ murid bergred, %GPS = (5 − gred purata) ÷ 4 × 100.
 7. **Kehadiran** dikira daripada rekod e-Kokurikulum sahaja (kosong sehingga e-Kokurikulum merekod kehadiran); guru kelas boleh **ganti manual** (0–12).
 8. Pelibatan/Pencapaian daripada e-Kokurikulum hanya **cadangan** kerana rekod `PENCAPAIAN` tidak mengandungi aspek (SP/KP/PBB) dan tahap *Pelibatan 1/2/3*; guru kelas mengesahkannya.
 
@@ -157,7 +215,7 @@ Fail arkib mengandungi nama & No. KP murid — kekal peribadi dalam Drive pemili
 
 1. Cipta **Google Sheet baharu** (cth. "DATA e-PAJSK SMK ASAJAYA") menggunakan akaun Gmail anda. Ini database — **jangan** guna Sheet e-Kokurikulum.
 2. **Extensions → Apps Script**. Cipta fail Script (nama tanpa `.gs`) untuk setiap fail `.gs` dalam folder ini, salin-tampal kandungan:
-   `Code`, `Config`, `Utils`, `Scoring`, `ReferensiLalai`, `TetapanService`, `AuditService`, `AuthService`, `UserService`, `KokoService`, `MuridService`, `PentaksiranService`, `LaporanService`, `ArkibService`, `LiveService`, `PemantauanService`, `RujukanIdmeService`, `TarikhAkhirService`.
+   `Code`, `Config`, `Utils`, `Scoring`, `ReferensiLalai`, `TetapanService`, `AuditService`, `AuthService`, `UserService`, `KokoService`, `MuridService`, `PentaksiranService`, `LaporanService`, `ArkibService`, `LiveService`, `PemantauanService`, `RujukanIdmeService`, `TarikhAkhirService`, `AnalisisService`.
 3. Cipta fail HTML bernama **Index**, salin-tampal `Index.html`.
 4. **Project Settings → Show "appsscript.json"**, salin-tampal `appsscript.json` (skop: `spreadsheets`, `drive`, `script.scriptapp` — yang terakhir diperlukan untuk pencetus auto-segerak; selepas menampal, buat **New version** dan benarkan skop baharu).
 5. Refresh Sheet → menu **Sistem e-PAJSK → 1. Sediakan Sistem**; benarkan kebenaran (OAuth). Isi **No. KP & nama Admin pertama** apabila diminta. (Menu *2. Tambah / Pulihkan Admin* boleh digunakan kemudian.)
