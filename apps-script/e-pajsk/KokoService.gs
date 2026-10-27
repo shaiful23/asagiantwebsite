@@ -7,7 +7,8 @@
  * Data yang ditarik:
  *   MURID       -> senarai murid, tingkatan, kelas, unit PBB/KP/SP (+ jawatan jika diisi)
  *   KEHADIRAN_* -> bilangan perjumpaan dihadiri setiap murid (skor Kehadiran PAJSK)
- *   PENCAPAIAN  -> cadangan Pelibatan/Pencapaian (guru tingkatan sahkan sebelum simpan)
+ *   PENCAPAIAN  -> Pelibatan/Pencapaian diisi automatik ke unit berdaftar murid (UNIT_PAJSK; jika kosong, UNIT)
+ *                  + cadangan untuk diisi secara manual
  *   PENGGUNA    -> senarai guru (import akaun)
  * ========================================================================= */
 
@@ -238,29 +239,74 @@ function labelPencapaian(peringkat, kedudukan, ref) {
   if (!k || !rank) return '';
   const senarai = ref.peta.PENCAPAIAN || {};
   const calon = [];
-  if (k === 'BAHAGIAN') calon.push(rank + ' BAHAGIAN (SABAH/SARAWAK)');
-  else if (k === 'DAERAH' || k === 'ZON') calon.push(rank + ' ' + k, rank + ' ZON/DAERAH');
+  // Peringkat lama dipadankan dengan yang baharu: ZON / DAERAH = ZON/DAERAH, BAHAGIAN = BAHAGIAN (SABAH/SARAWAK).
+  if (k === 'BAHAGIAN') calon.push(rank + ' BAHAGIAN (SABAH/SARAWAK)', rank + ' BAHAGIAN');
+  else if (k === 'DAERAH' || k === 'ZON') calon.push(rank + ' ZON/DAERAH', rank + ' ' + k, rank + (k === 'ZON' ? ' DAERAH' : ' ZON'));
   else calon.push(rank + ' ' + k);
   return calon.find(c => senarai[c] !== undefined) || '';
 }
 
+/* Kategori e-Kokurikulum (lajur KATEGORI) -> aspek PAJSK. '' jika tidak dikenali. */
+function aspekDaripadaKategori(teks) {
+  const s = banding(teks);
+  if (!s) return '';
+  if (/BERUNIFORM|BADAN BERUNIFORM|\bPBB\b/.test(s)) return ASPEK_PBB;
+  if (/KELAB|PERSATUAN|\bKP\b/.test(s)) return ASPEK_KP;
+  if (/SUKAN|PERMAINAN|\bSP\b/.test(s)) return ASPEK_SP;
+  return '';
+}
+
+/* Banding nama unit tanpa peka huruf besar, ruang dan tanda baca ("&" = "DAN"). */
+function samaUnit(a, b) {
+  const n = (x) => banding(x).replace(/&/g, ' DAN ').replace(/[^A-Z0-9]+/g, '');
+  const x = n(a), y = n(b);
+  return !!x && x === y;
+}
+
+/* Unit pelibatan bagi satu rekod pencapaian: UNIT_PAJSK (unit berdaftar murid) jika ada; jika kosong (rekod lama)
+   guna UNIT (unit yang merekod). */
+function unitPelibatanKoko(r) { return r.unitPajsk || r.unit || ''; }
+
+/* Tentukan aspek PAJSK bagi rekod pencapaian seorang murid -> {aspek, padan}.
+   padan = unit pelibatan sama dengan unit berdaftar murid dalam e-PAJSK bagi aspek itu (boleh diisi automatik). */
+function tentukanAspekPencapaian(r, murid) {
+  const unit = unitPelibatanKoko(r);
+  const unitMurid = (a) => murid[a + '_Unit'] || '';
+  let aspek = aspekDaripadaKategori(r.kategori);
+  if (aspek) return { aspek, padan: samaUnit(unit, unitMurid(aspek)) };
+  aspek = SEMUA_ASPEK.find(a => samaUnit(unit, unitMurid(a))) || '';   // tiada kategori: cari aspek yang unitnya sama
+  if (aspek) return { aspek, padan: true };
+  return { aspek: tekaAspekPertandingan(r.pertandingan, murid), padan: false };
+}
+
 function bacaPencapaianKokoSemua() {
   const ts = masaKemaskiniKoko();
-  const kunci = 'kokopencapaian_' + ts;
+  const kunci = 'kokopencapaian2_' + ts;
   if (ts) { const teks = cacheGetBesar(kunci); if (teks) return JSON.parse(teks); }
+  // getDataRange: semua lajur dibaca (A hingga lajur terakhir, termasuk Q UNIT_PAJSK dan R STATUS_UNIT_PAJSK);
+  // lajur dicari ikut nama header, bukan kedudukan.
   const data = bacaSheetKoko(bukaKoko(), KOKO_SHEET_PENCAPAIAN);
   const hasil = [];
   if (data) {
     const h = data.header;
-    const iTarikh = cariLajur(h, 'TARIKH'), iKp = cariLajur(h, /^NO\.? ?_?KP$/), iNama = cariLajur(h, /^NAMA/);
+    const iId = cariLajur(h, 'ID'), iTarikh = cariLajur(h, 'TARIKH'), iKp = cariLajur(h, /^NO\.? ?_?KP$/), iNama = cariLajur(h, /^NAMA/);
     const iPert = cariLajur(h, 'PERTANDINGAN'), iPering = cariLajur(h, 'PERINGKAT'), iCapai = cariLajur(h, 'PENCAPAIAN');
-    data.baris.forEach(b => {
-      const pertandingan = iPert >= 0 ? banding(b[iPert]) : '';
+    const iKat = cariLajur(h, 'KATEGORI'), iUnit = cariLajur(h, 'UNIT');
+    const iUnitPajsk = cariLajur(h, /^UNIT[ _]PAJSK$/), iStatus = cariLajur(h, /^STATUS[ _]UNIT[ _]PAJSK$/);
+    const dilihat = {};
+    const sel = (b, i) => i >= 0 ? banding(b[i]) : '';
+    data.baris.forEach((b, n) => {
+      const pertandingan = sel(b, iPert);
       if (!pertandingan) return;
+      // ID (lajur A) = kunci unik setiap baris; baris dengan ID yang sama hanya diambil sekali.
+      const id = iId >= 0 && String(b[iId]).trim() ? String(b[iId]).trim() : 'BARIS' + (n + 2);
+      if (dilihat[id]) return;
+      dilihat[id] = true;
       hasil.push({
-        kp: iKp >= 0 ? normalKP(b[iKp]) : '', nama: iNama >= 0 ? banding(b[iNama]) : '',
+        id, kp: iKp >= 0 ? normalKP(b[iKp]) : '', nama: sel(b, iNama),
         tahun: iTarikh >= 0 ? tahunDaripadaTarikh(b[iTarikh]) : null, tarikh: iTarikh >= 0 ? String(nilaiSelSebagaiTeks(b[iTarikh])) : '',
-        pertandingan, peringkat: iPering >= 0 ? banding(b[iPering]) : '', pencapaian: iCapai >= 0 ? banding(b[iCapai]) : ''
+        pertandingan, peringkat: sel(b, iPering), pencapaian: sel(b, iCapai),
+        kategori: sel(b, iKat), unit: sel(b, iUnit), unitPajsk: sel(b, iUnitPajsk), statusUnit: sel(b, iStatus)
       });
     });
   }
@@ -268,22 +314,38 @@ function bacaPencapaianKokoSemua() {
   return hasil;
 }
 
+function padanMuridPencapaian(r, murid) {
+  return r.kp ? r.kp === normalKP(murid.NoKP) : (!!r.nama && r.nama === banding(murid.Nama));
+}
+
 /* Pencapaian e-Kokurikulum bagi seorang murid (padanan No. KP; jika No. KP kosong pada rekod,
    padanan nama penuh). Tapis ikut tahun pentaksiran. */
 function bacaPencapaianKokoMurid(murid, tahun, ref) {
   const hasil = [];
   bacaPencapaianKokoSemua().forEach(r => {
-    const padan = r.kp ? r.kp === murid.NoKP : (r.nama && r.nama === banding(murid.Nama));
-    if (!padan) return;
+    if (!padanMuridPencapaian(r, murid)) return;
     if (r.tahun !== null && r.tahun !== tahun) return;
+    const t = tentukanAspekPencapaian(r, murid);
     hasil.push({
-      tarikh: r.tarikh, pertandingan: r.pertandingan, peringkat: r.peringkat, pencapaian: r.pencapaian,
+      id: r.id, tarikh: r.tarikh, pertandingan: r.pertandingan, peringkat: r.peringkat, pencapaian: r.pencapaian,
+      kategori: r.kategori, unitRekod: r.unit, unitPelibatan: unitPelibatanKoko(r), statusUnit: r.statusUnit,
       cadanganLibat: labelPelibatan(r.peringkat, ref),
       cadanganCapai: labelPencapaian(r.peringkat, r.pencapaian, ref),
-      aspekCadangan: tekaAspekPertandingan(r.pertandingan, murid)
+      aspekCadangan: t.aspek, padanUnit: t.padan
     });
   });
   return hasil;
+}
+
+/* Kumpul pencapaian tahun semasa ikut No. KP -> {kp: [rekod]} (untuk segerak automatik). */
+function petaPencapaianKokoTahun(tahun) {
+  const peta = {};
+  bacaPencapaianKokoSemua().forEach(r => {
+    if (r.tahun !== tahun) return;
+    const k = r.kp || ('NAMA:' + r.nama);
+    (peta[k] = peta[k] || []).push(r);
+  });
+  return peta;
 }
 
 /* Teka aspek berdasarkan nama pertandingan vs nama unit murid (cth. "KEJOHANAN MEMANAH ..." <-> unit SP "MEMANAH"). */

@@ -16,7 +16,8 @@ const HEADER_MURID = ['NoKP', 'Nama', 'Jantina', 'Tingkatan', 'Kelas', 'KunciKel
 const HEADER_ASPEK = ['Kunci', 'NoKP', 'Aspek', 'Unit', 'Jawatan', 'Libat1', 'Capai1', 'Aktiviti2', 'Libat2', 'Capai2',
   'Komit1', 'Komit2', 'Komit3', 'Komit4', 'Khidmat', 'KehadiranAuto', 'KehadiranManual', 'Kehadiran',
   'SkorJawatan', 'SkorLibat', 'SkorCapai', 'SkorKomit', 'SkorKhidmat', 'SkorKehadiran', 'Skor', 'Markah', 'Dikemaskini', 'OlehKP',
-  'JawatanKoko'];   // jawatan terakhir yang dilihat dalam e-Kokurikulum (untuk mengesan perubahan)
+  'JawatanKoko',    // jawatan terakhir yang dilihat dalam e-Kokurikulum (untuk mengesan perubahan)
+  'PencapaianKoko']; // aktiviti 1/2 yang diisi automatik daripada PENCAPAIAN e-Kokurikulum (JSON: ID + label)
 
 const HEADER_EKSTRA = ['NoKP', 'Perkhidmatan', 'AnugerahKhas', 'KhidmatMasyarakat', 'Nilam', 'TimmsPisa', 'TugasKhas',
   'SkPerkhidmatan', 'SkAnugerah', 'SkKM', 'SkNilam', 'SkTimms', 'SkTugas', 'SkorTertinggi', 'Dikemaskini', 'OlehKP'];
@@ -33,7 +34,7 @@ function aspekKosong(nokp, aspek, unit) {
     Aktiviti2: '', Libat2: '', Capai2: '', Komit1: '', Komit2: '', Komit3: '', Komit4: '', Khidmat: '',
     KehadiranAuto: 0, KehadiranManual: '', Kehadiran: 0,
     SkorJawatan: 0, SkorLibat: 0, SkorCapai: 0, SkorKomit: 0, SkorKhidmat: 0, SkorKehadiran: 0, Skor: 0, Markah: 0,
-    Dikemaskini: '', OlehKP: '', JawatanKoko: ''
+    Dikemaskini: '', OlehKP: '', JawatanKoko: '', PencapaianKoko: ''
   };
 }
 
@@ -110,11 +111,13 @@ function laksanakanSegerak(kunciKelas, paksa) {
   bacaSheetSebagaiObjek(SHEET_EKSTRA).forEach(r => { ekstraMap[normalKP(r.NoKP)] = r; });
   bacaSheetSebagaiObjek(SHEET_RUMUSAN).forEach(r => { rumusanAda[normalKP(r.NoKP)] = true; });
 
-  const laporan = { baharu: 0, dikemaskini: 0, jawatanDikemaskini: 0, jawatanTidakDikenali: [], kelasBerubah: 0, tingkatanBeza: [], tiadaDiKoko: 0, amaran: hadir.amaran.slice(), diubah: 0, dariCache: !!koko.dariCache };
+  const laporan = { baharu: 0, dikemaskini: 0, jawatanDikemaskini: 0, jawatanTidakDikenali: [], pencapaianDiisi: 0, pencapaianTiadaUnit: [], kelasBerubah: 0, tingkatanBeza: [], tiadaDiKoko: 0, amaran: hadir.amaran.slice(), diubah: 0, dariCache: !!koko.dariCache };
   const kokoMap = {};
   const muridUbah = [];
   const proses = [];     // murid (objek akhir) dalam skop, untuk semakan aspek/rumusan
   const masa = sekarangTeks();
+  let capaiPeta = {};
+  try { capaiPeta = petaPencapaianKokoTahun(tahun); } catch (e) { laporan.amaran.push('Sheet PENCAPAIAN e-Kokurikulum tidak dapat dibaca: ' + e.message); }
 
   koko.murid.forEach(k => {
     kokoMap[k.nokp] = k;
@@ -167,6 +170,7 @@ function laksanakanSegerak(kunciKelas, paksa) {
   proses.forEach(m => {
     const k = kokoMap[m.NoKP];
     let aspekBerubah = false;
+    const capaiAspek = kumpulPencapaianMurid(m, capaiPeta, ref, laporan);
     SEMUA_ASPEK.forEach(a => {
       const unit = m[a + '_Unit'];
       const kunci = kunciAspek(m.NoKP, a);
@@ -175,10 +179,11 @@ function laksanakanSegerak(kunciKelas, paksa) {
       const jawKoko = labelJawatanKoko(jawMentah, ref);
       if (jawMentah && !jawKoko && laporan.jawatanTidakDikenali.length < 30) laporan.jawatanTidakDikenali.push(m.Nama + ' (' + a + '): "' + jawMentah + '"');
       if (!rec && !unit && !jawKoko) return;
+      const medanCapai = () => [rec.Libat1, rec.Capai1, rec.Libat2, rec.Capai2, rec.PencapaianKoko].join('|');
       const hadirAuto = Math.min(KEHADIRAN_MAKSIMUM, hadir.kira[a][m.NoKP] || 0);
       const baharu = !rec;
       if (baharu) { rec = aspekKosong(m.NoKP, a, unit); aspekMap[kunci] = rec; }
-      const sebelum = [rec.Unit, rec.Jawatan, rec.KehadiranAuto, rec.JawatanKoko].join('|');
+      const sebelum = [rec.Unit, rec.Jawatan, rec.KehadiranAuto, rec.JawatanKoko].join('|') + '|' + medanCapai();
       rec.Unit = unit || rec.Unit;
       // Jawatan: e-Kokurikulum menjadi sumber. Apabila jawatan di e-Kokurikulum BERUBAH sejak segerak lepas, ia
       // menggantikan jawatan dalam e-PAJSK. Jika tidak berubah, suntingan KGP dalam e-PAJSK dikekalkan.
@@ -194,7 +199,10 @@ function laksanakanSegerak(kunciKelas, paksa) {
         } else if (!rec.Jawatan && jawKoko) { rec.Jawatan = jawKoko; laporan.jawatanDikemaskini++; }
       }
       rec.KehadiranAuto = hadirAuto;
-      if (baharu || sebelum !== [rec.Unit, rec.Jawatan, rec.KehadiranAuto, rec.JawatanKoko].join('|')) {
+      const capaiSebelum = medanCapai();
+      isiPencapaianAuto(rec, capaiAspek[a] || []);
+      if (medanCapai() !== capaiSebelum) laporan.pencapaianDiisi++;
+      if (baharu || sebelum !== [rec.Unit, rec.Jawatan, rec.KehadiranAuto, rec.JawatanKoko].join('|') + '|' + medanCapai()) {
         rec.Dikemaskini = masa;
         kiraSemulaAspek(rec, ref);
         aspekUbah.push(rec);
@@ -220,6 +228,57 @@ function laksanakanSegerak(kunciKelas, paksa) {
   laporan.masa = masa;
   laporan.ts = koko.ts;
   return laporan;
+}
+
+/* Pencapaian e-Kokurikulum seorang murid, dikumpul ikut aspek -> {PBB:[calon], KP:[...], SP:[...]}.
+   Unit pelibatan = UNIT_PAJSK (jika kosong: UNIT); aspek = KATEGORI. Hanya rekod yang unitnya sama dengan unit
+   berdaftar murid dalam e-PAJSK diambil (yang lain dilaporkan). calon: {id, l (label pelibatan), c (label pencapaian), skor}. */
+function kumpulPencapaianMurid(m, capaiPeta, ref, laporan) {
+  const hasil = {};
+  const rekod = (capaiPeta[m.NoKP] || []).concat(capaiPeta['NAMA:' + banding(m.Nama)] || []);
+  rekod.forEach(r => {
+    const t = tentukanAspekPencapaian(r, m);
+    if (!t.aspek || !t.padan) {
+      if (laporan.pencapaianTiadaUnit.length < 30) {
+        laporan.pencapaianTiadaUnit.push(m.Nama + ': ' + r.pertandingan + ' (unit ' + (unitPelibatanKoko(r) || '-') +
+          (t.aspek ? '; unit ' + t.aspek + ' murid: ' + (m[t.aspek + '_Unit'] || 'tiada') : '; kategori tidak dikenali') + ')');
+      }
+      return;
+    }
+    const l = labelPelibatan(r.peringkat, ref), c = labelPencapaian(r.peringkat, r.pencapaian, ref);
+    if (!l && !c) return;
+    const skor = skorCari(ref.peta.PELIBATAN, l) + skorCari(ref.peta.PENCAPAIAN, c);
+    (hasil[t.aspek] = hasil[t.aspek] || []).push({ id: r.id, l, c, skor, tarikh: r.tarikh });
+  });
+  Object.keys(hasil).forEach(a => {
+    hasil[a].sort((x, y) => (y.skor - x.skor) || String(x.tarikh).localeCompare(String(y.tarikh)) || String(x.id).localeCompare(String(y.id)));
+  });
+  return hasil;
+}
+
+/* Isi Libat/Capai aktiviti 1 & 2 dengan pencapaian terbaik (calon sudah disusun). Idempoten: slot yang diisi
+   automatik dicatat (PencapaianKoko) dan diisi semula dengan hasil yang sama setiap kali segerak, jadi tiada rekod
+   berganda. Slot yang diisi/diubah sendiri oleh guru tidak disentuh, dan calon yang sama dengan slot itu dilangkau. */
+function isiPencapaianAuto(rec, calon) {
+  let simpan = [];
+  try { simpan = JSON.parse(rec.PencapaianKoko || '[]') || []; } catch (e) { simpan = []; }
+  // ZON, DAERAH dan ZON/DAERAH dianggap peringkat yang sama semasa mengesan pendua.
+  const kunci = (L, C) => (L + '|' + C).replace(/ (ZON\/DAERAH|DAERAH|ZON)\b/g, ' ZD');
+  const slotAuto = [], manual = [];
+  [1, 2].forEach(n => {
+    const L = String(rec['Libat' + n] || ''), C = String(rec['Capai' + n] || ''), s = simpan[n - 1];
+    if ((!L && !C) || (s && s.l === L && s.c === C)) slotAuto.push(n);
+    else manual.push(kunci(L, C));
+  });
+  const guna = calon.filter(x => manual.indexOf(kunci(x.l, x.c)) === -1);
+  const baharu = [null, null];
+  slotAuto.forEach((n, i) => {
+    const x = guna[i];
+    rec['Libat' + n] = x ? x.l : '';
+    rec['Capai' + n] = x ? x.c : '';
+    if (x) baharu[n - 1] = { id: x.id, l: x.l, c: x.c };
+  });
+  rec.PencapaianKoko = baharu[0] || baharu[1] ? JSON.stringify(baharu) : '';
 }
 
 /* Padankan jawatan e-Kokurikulum dengan label dalam jadual skor JAWATAN (tidak peka huruf besar/ruang). '' jika tiada. */
