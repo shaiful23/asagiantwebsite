@@ -111,7 +111,7 @@ function peringkatDaripadaLabel(label) {
   return 'LAIN';
 }
 
-/* Analisis terperinci bagi skop pengguna (Admin: semua; Guru Kelas: kelas sendiri), ditapis tingkatan/kelas. */
+/* Analisis terperinci bagi skop pengguna (Admin: semua; Guru Tingkatan: kelas sendiri), ditapis tingkatan/kelas. */
 function apiAnalisis(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;

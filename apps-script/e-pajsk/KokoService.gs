@@ -7,7 +7,7 @@
  * Data yang ditarik:
  *   MURID       -> senarai murid, tingkatan, kelas, unit PBB/KP/SP (+ jawatan jika diisi)
  *   KEHADIRAN_* -> bilangan perjumpaan dihadiri setiap murid (skor Kehadiran PAJSK)
- *   PENCAPAIAN  -> cadangan Pelibatan/Pencapaian (guru kelas sahkan sebelum simpan)
+ *   PENCAPAIAN  -> cadangan Pelibatan/Pencapaian (guru tingkatan sahkan sebelum simpan)
  *   PENGGUNA    -> senarai guru (import akaun)
  * ========================================================================= */
 

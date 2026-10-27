@@ -12,7 +12,7 @@
  *          e-Kokurikulum yang telah dinaikkan disegerakkan semula);
  *        - Tingkatan 5 ditanda TAMAT (data kekal dalam arkib);
  *        - Data pentaksiran tahun lepas dikosongkan; tahun pentaksiran dinaikkan;
- *        - (pilihan) penetapan kelas guru kelas dikosongkan.
+ *        - (pilihan) penetapan kelas guru tingkatan dikosongkan.
  * ========================================================================= */
 
 const HEADER_ARKIB = ['ID', 'TAHUN', 'TARIKH_ARKIB', 'OLEH_KP', 'OLEH_NAMA', 'ID_FAIL', 'URL_ARKIB',
@@ -161,7 +161,7 @@ function apiNaikTingkatan(p) {
     arkib.NAIK_TINGKATAN = 'YA';
     arkib.TARIKH_NAIK = sekarangTeks();
     kemaskiniBaris(SHEET_ARKIB, arkib.__row, arkib);
-    catatAudit(sesi, 'NAIK_TINGKATAN', 'ARKIB', arkib.ID, tahun + ' -> ' + tahunBaharu + ': naik ' + naik + ', tamat ' + tamat + ', guru kelas dikosongkan ' + guruDikosongkan);
+    catatAudit(sesi, 'NAIK_TINGKATAN', 'ARKIB', arkib.ID, tahun + ' -> ' + tahunBaharu + ': naik ' + naik + ', tamat ' + tamat + ', guru tingkatan dikosongkan ' + guruDikosongkan);
     return jaya({ naik, tamat, guruDikosongkan, tahunBaharu });
   });
 }
