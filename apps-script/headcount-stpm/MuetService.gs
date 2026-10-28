@@ -106,6 +106,10 @@ function petaRekodMuet(tahunSTPM) {
 
 function bundar2(n) { return Number(n.toFixed(2)); }
 
+/* Nilai purata/GPMP yang dihantar ke pelayar MESTI nombor sah atau null — elak
+   undefined/NaN yang menyebabkan ralat "reading 'toFixed'" di paparan. */
+function nomborAtauNull(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
+
 /* Analisis sekumpulan calon bagi satu sumber. TH (Tidak Hadir) hanya dikecualikan
    bagi Keputusan Sebenar; calon tanpa markah dikira "belum" (tidak masuk GPMP). */
 function analisisMuetKumpulan(senarai, bands, sumber) {
@@ -133,7 +137,7 @@ function analisisMuetKumpulan(senarai, bands, sumber) {
 
   return {
     jumlahPelajar: senarai.length, bilKeputusan, belum, tidakHadir, taburan, capai, tidakCapai,
-    gpmp: bilKeputusan ? bundar2(jumlahNilai / bilKeputusan) : null,
+    gpmp: bilKeputusan ? nomborAtauNull(bundar2(jumlahNilai / bilKeputusan)) : null,
     rendah, tinggi
   };
 }
@@ -182,10 +186,16 @@ function apiMuetRoster(p) {
     return baris;
   });
 
+  // GPMP kelas bagi SETIAP sumber (Trial 1, Trial 2, Keputusan Sebenar) untuk kad ringkasan.
+  const ikutSumber = {};
+  SUMBER_MUET.forEach(sm => {
+    const x = analisisMuetKumpulan(kumpulan, bands, sm);
+    ikutSumber[sm] = { gpmp: nomborAtauNull(x.gpmp), bilKeputusan: x.bilKeputusan, capai: x.capai, tidakCapai: x.tidakCapai };
+  });
   const a = analisisMuetKumpulan(kumpulan, bands, 'A');
   return jaya({
     bands, senarai, bolehIsi,
-    ringkasan: { jumlah: kumpulan.length, hadir: kumpulan.length - a.tidakHadir, tidakHadir: a.tidakHadir, gpmp: a.gpmp }
+    ringkasan: { jumlah: kumpulan.length, hadir: kumpulan.length - a.tidakHadir, tidakHadir: a.tidakHadir, gpmp: nomborAtauNull(a.gpmp), ikutSumber }
   });
 }
 
@@ -257,12 +267,15 @@ function apiMuetAnalisis(p) {
   if (sesi.success === false) return sesi;
   if (!bolehAksesMuet(sesi)) return ralat('Anda tiada kebenaran untuk MUET.');
   const tahunSTPM = String(p.tahunSTPM || '').trim();
-  const sumber = SUMBER_MUET.indexOf(p.sumber) !== -1 ? p.sumber : 'A';
   if (!tahunSTPM) return ralat('Sila pilih Tahun STPM dahulu.');
 
   const bands = dapatkanBandMUET();
   const petaRekod = petaRekodMuet(tahunSTPM);
   const semua = pelajarMuet(tahunSTPM).map(s => ({ pelajar: s, rekod: petaRekod[String(s.ID_Pelajar)] || {} }));
+  /* Sumber tidak dipilih (buka tab kali pertama): guna sumber TERKINI yang ada markah —
+     Keputusan Sebenar, jika tiada Trial 2, jika tiada Trial 1. */
+  let sumber = SUMBER_MUET.indexOf(p.sumber) !== -1 ? p.sumber : '';
+  if (!sumber) sumber = ['A', 'T2', 'T1'].find(sm => analisisMuetKumpulan(semua, bands, sm).bilKeputusan > 0) || 'A';
   const ikutKelas = {};
   semua.forEach(x => { const k = String(x.pelajar.Kelas); (ikutKelas[k] = ikutKelas[k] || []).push(x); });
 

@@ -150,7 +150,18 @@ sepenuhnya seperti diminta.
    Kemaskini Struktur (MUET)** — mencipta Sheet `MUET`, `MUET_BAND` (julat
    band lalai) dan `MUET_GPS_SEJARAH`. Rujuk **"MUET (800)"** di bawah.
 
-   **Kemaskini terkini (Log Keluar kembali ke skrin log masuk):** **gantikan**
+   **Kemaskini terkini (MUET: ralat Analisis, kad GPMP & status ETR):** **gantikan**
+   `MuetService.gs` dan `Index`, kemudian deploy semula. Tiada migrasi Sheet.
+   - Tab **Analisis GPMP & ETR** tidak lagi ralat "reading 'toFixed'" dan kini
+     dibuka pada sumber terkini yang ada markah (Sebenar → Trial 2 → Trial 1).
+   - Tab **Kelas & Markah** ada kad GPMP Trial 1, Trial 2 dan Keputusan Sebenar
+     (dengan bilangan calon yang ada markah).
+   - Lajur **Status ETR** (kini di sebelah lajur ETR) sentiasa memaparkan status
+     kemajuan berdasarkan keputusan terkini: Capai / Hampir (kurang 0.5 band) /
+     Belum Capai, band & sumbernya, arah perubahan (↑/↓) dan jarak dari ETR —
+     walaupun baru Trial 1 diisi.
+
+   **Kemaskini (Log Keluar kembali ke skrin log masuk):** **gantikan**
    `Index` sahaja, kemudian deploy semula. Log Keluar kini terus memaparkan
    skrin log masuk (tanpa muat semula halaman) — sebelum ini `location.reload()`
    dalam iframe Apps Script / portal smkasajaya.my boleh meninggalkan halaman
