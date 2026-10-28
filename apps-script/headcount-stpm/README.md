@@ -150,7 +150,37 @@ sepenuhnya seperti diminta.
    Kemaskini Struktur (MUET)** — mencipta Sheet `MUET`, `MUET_BAND` (julat
    band lalai) dan `MUET_GPS_SEJARAH`. Rujuk **"MUET (800)"** di bawah.
 
-   **Kemaskini terkini (MUET: ralat Analisis, kad GPMP & status ETR):** **gantikan**
+   **Kemaskini terkini (UI Pra-Universiti, Tetapan Sistem, prestasi & paparan nama):**
+   tambah fail Script baharu **`SettingsService`** (salin `SettingsService.gs`),
+   **gantikan** SEMUA fail `.gs` lain dan `Index`, deploy semula (Deploy → New
+   version), dan gantikan `headcountstpm.html` di laman web. Kemudian buka menu
+   **Tetapan Sistem → Semak & Kemaskini Struktur** dalam sistem (tidak perlu buka
+   Google Sheet).
+   - **Reka bentuk baharu** berkonsepkan Pra-Universiti dengan warna logo sekolah
+     (biru tua, biru, merah, kuning emas, ungu): log masuk dua panel, sidebar
+     berkumpulan dengan ikon, topbar bersapaan, kad KPI berikon, carta dan jadual
+     moden. Dashboard Admin: GPS ikut subjek & kelas (vs ETR & sasaran), status gap
+     ETR, taburan risiko, taburan gred, subjek kritikal dan GPS MUET. Dashboard guru:
+     ringkasan pelajar seliaan, taburan risiko dan rekod berisiko ikut subjek.
+   - **Tetapan Sistem** (Admin) — urus semuanya dari UI: ringkasan pangkalan data,
+     **Semak & Kemaskini Struktur** (cipta Sheet/lajur yang tiada & tukar peranan
+     lama — menggantikan menu migrasi dalam Sheet), **Konfigurasi** (identiti
+     sekolah, tahun/semester aktif, sasaran GPS/PNGK, ambang gap & risiko),
+     **Jadual Gred**, **Band MUET** dan **Log Audit**. Sistem baharu dicipta
+     automatik semasa log masuk pertama jika Sheet belum wujud.
+   - **Nama, bukan No. KP / ID**: Tugas Saya (nama guru), Ulangan, Intervensi,
+     Arkib, Pelajar, Laporan dan What-If memaparkan nama pelajar & nama subjek;
+     borang kini guna pemilih nama pelajar (dikumpul ikut kelas), nama subjek dan
+     nama guru — tiada lagi menaip ID Pelajar / No. KP / kod subjek.
+   - **Lebih pantas & stabil**: cache bacaan Sheet dalam setiap panggilan pelayan,
+     senarai tahun dihantar bersama log masuk (satu panggilan kurang), cache 60 s
+     di pelayar untuk senarai rujukan, `doGet` tanpa templat, skrin pembuka dalam
+     sistem, dan halaman portal `headcountstpm.html` dengan sambungan awal ke
+     pelayan Google serta butang **Cuba Semula** jika sambungan perlahan.
+   - Pembetulan: nombor baris (`__row`) kini tepat walaupun ada baris kosong di
+     tengah Sheet (sebelum ini kemas kini boleh tersasar ke baris lain).
+
+   **Kemaskini (MUET: ralat Analisis, kad GPMP & status ETR):** **gantikan**
    `MuetService.gs` dan `Index`, kemudian deploy semula. Tiada migrasi Sheet.
    - Tab **Analisis GPMP & ETR** tidak lagi ralat "reading 'toFixed'" dan kini
      dibuka pada sumber terkini yang ada markah (Sebenar → Trial 2 → Trial 1).

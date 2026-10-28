@@ -3,10 +3,28 @@
  * supaya cara baca/tulis Sheet konsisten (rujuk MODUL 30: PRESTASI).
  * ========================================================================= */
 
-function dapatkanSheet(nama) {
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nama);
-  if (!sh) throw new Error('Sheet "' + nama + '" tidak wujud. Jalankan menu "Sediakan Sistem" dahulu.');
+/* ---------- Cache bacaan PER-PELAKSANAAN (MODUL 30: PRESTASI) ----------
+   Satu panggilan API sering membaca Sheet yang sama berulang kali (cth. USERS,
+   STUDENTS, GRADES). Nilai disimpan dalam memori untuk tempoh SATU pelaksanaan
+   sahaja (global Apps Script ditetapkan semula setiap panggilan), dan dibuang
+   serta-merta setiap kali Sheet itu ditulis — jadi tiada risiko data basi. */
+let _ssAktif = null;
+const _cacheBaca = {};
+const _sheetDitulis = {}; // Sheet yang sudah ditulis dalam pelaksanaan ini — sentiasa dibaca terus
+function _spreadsheet() { return _ssAktif || (_ssAktif = SpreadsheetApp.getActiveSpreadsheet()); }
+function _sheetMentah(nama) {
+  const sh = _spreadsheet().getSheetByName(nama);
+  if (!sh) throw new Error('Sheet "' + nama + '" tidak wujud. Buka menu Tetapan Sistem → "Semak & Kemaskini Struktur".');
   return sh;
+}
+function buangCacheBaca(nama) { if (nama) delete _cacheBaca[nama]; else Object.keys(_cacheBaca).forEach(k => delete _cacheBaca[k]); }
+
+/* Untuk OPERASI TULIS (deleteRow/setValue dsb.) — cache Sheet itu dibuang, dan Sheet itu
+   tidak dicache lagi bagi baki pelaksanaan (elak bacaan basi selepas deleteRow terus). */
+function dapatkanSheet(nama) {
+  buangCacheBaca(nama);
+  _sheetDitulis[nama] = true;
+  return _sheetMentah(nama);
 }
 
 /* Google Sheets format "Automatic" secara senyap tukar sel yang ditulis sebagai
@@ -25,19 +43,28 @@ function nilaiSelSebagaiTeks(nilai) {
   return nilai;
 }
 
-/* Baca keseluruhan sheet sebagai array objek {header: nilai}, satu panggilan getValues(). */
+/* Baca keseluruhan sheet sebagai array objek {header: nilai}, satu panggilan getValues()
+   (dicache per-pelaksanaan). Setiap panggilan memulangkan objek BAHARU (selamat diubah).
+   __row dikira SEBELUM baris kosong ditapis, supaya sentiasa sama dengan nombor baris
+   sebenar walaupun ada baris kosong di tengah Sheet. */
 function bacaSheetSebagaiObjek(namaSheet) {
-  const sh = dapatkanSheet(namaSheet);
-  const nilai = sh.getDataRange().getValues();
-  const header = nilai.shift() || [];
-  return nilai
-    .filter(baris => baris.some(sel => sel !== '' && sel !== null))
-    .map((baris, idx) => {
-      const obj = {};
-      header.forEach((h, i) => { obj[h] = nilaiSelSebagaiTeks(baris[i]); });
-      obj.__row = idx + 2; // nombor baris sebenar dalam Sheet (1 = header)
-      return obj;
-    });
+  let c = _sheetDitulis[namaSheet] ? null : _cacheBaca[namaSheet];
+  if (!c) {
+    const nilai = _sheetMentah(namaSheet).getDataRange().getValues();
+    const header = nilai.shift() || [];
+    c = {
+      header,
+      baris: nilai.map((baris, idx) => ({ baris: baris.map(nilaiSelSebagaiTeks), row: idx + 2 }))
+        .filter(x => x.baris.some(sel => sel !== '' && sel !== null))
+    };
+    if (!_sheetDitulis[namaSheet]) _cacheBaca[namaSheet] = c;
+  }
+  return c.baris.map(x => {
+    const obj = {};
+    c.header.forEach((h, i) => { obj[h] = x.baris[i]; });
+    obj.__row = x.row; // nombor baris sebenar dalam Sheet (1 = header)
+    return obj;
+  });
 }
 
 function tambahBaris(namaSheet, objek, header) {
@@ -92,4 +119,29 @@ function jaya(data) {
 
 function includeFile(nama) {
   return HtmlService.createHtmlOutputFromFile(nama).getContent();
+}
+
+/* ---------- Peta nama untuk paparan (nama guru & nama pelajar, bukan No. KP / ID) ---------- */
+function petaPelajar() {
+  const peta = {};
+  bacaSheetSebagaiObjek(SHEET_STUDENTS).forEach(s => { peta[String(s.ID_Pelajar)] = s; });
+  return peta;
+}
+function petaNamaGuru() {
+  const peta = {};
+  bacaSheetSebagaiObjek(SHEET_USERS).forEach(u => { peta[normalNoKP(u.NoKP)] = u.NamaPenuh; });
+  return peta;
+}
+function petaNamaSubjek() {
+  const peta = { [KOD_SUBJEK_MUET]: 'MUET' };
+  bacaSheetSebagaiObjek(SHEET_SUBJECTS).forEach(s => { peta[String(s.KodSubjek)] = s.NamaSubjek; });
+  return peta;
+}
+/* Tambah NamaPelajar, Kelas & NamaSubjek pada rekod yang ada ID_Pelajar / KodSubjek. */
+function lampirNama(senarai) {
+  const pel = petaPelajar(), sub = petaNamaSubjek();
+  return senarai.map(r => Object.assign({}, r, {
+    NamaPelajar: (pel[String(r.ID_Pelajar)] || {}).Nama || '', Kelas: (pel[String(r.ID_Pelajar)] || {}).Kelas || '',
+    NamaSubjek: sub[String(r.KodSubjek)] || ''
+  }));
 }

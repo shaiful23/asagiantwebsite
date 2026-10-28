@@ -28,6 +28,9 @@ function apiSenaraiTugasan(p) {
   if (p.kodSubjek) senarai = senarai.filter(t => String(t.KodSubjek) === String(p.kodSubjek));
   if (p.tahunSTPM) senarai = senarai.filter(t => String(t.TahunSTPM) === String(p.tahunSTPM));
 
+  const guru = petaNamaGuru(), sub = petaNamaSubjek();
+  senarai = senarai.map(t => Object.assign({}, t, { NamaGuru: guru[normalNoKP(t.NoKP)] || '', NamaSubjek: sub[String(t.KodSubjek)] || '' }))
+    .sort((a, b) => String(a.NamaGuru).localeCompare(String(b.NamaGuru)) || String(a.KodSubjek).localeCompare(String(b.KodSubjek)));
   return jaya({ senarai });
 }
 

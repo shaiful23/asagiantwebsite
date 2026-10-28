@@ -17,7 +17,7 @@ function apiSenaraiUlangan(p) {
 
   const hasil = senarai.map(r => Object.assign({}, r, { statusPerubahan: statusPerubahanUlangan(mapGred, r) }));
 
-  return jaya({ senarai: hasil });
+  return jaya({ senarai: lampirNama(hasil) });
 }
 
 function apiSimpanUlangan(p) {

@@ -60,6 +60,7 @@ function apiSimulasiWhatIf(p) {
     simulasi: true,
     label: 'SIMULASI — tidak mengubah data sebenar',
     idPelajar, semester, kodSubjek,
+    namaPelajar: (petaPelajar()[idPelajar] || {}).Nama || '', namaSubjek: petaNamaSubjek()[kodSubjek] || '',
     markahSemasa: markahSemasaSubjekIni, gredSemasa: gredSemasaSubjekIni,
     markahBaru, gredBaru,
     pngkSemasa, pngkSelepasSimulasi: pngkSimulasi,

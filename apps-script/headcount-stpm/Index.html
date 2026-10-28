@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistem Headcount STPM - SMK Asajaya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --biru: #1e3a8a; --biru-terang: #2563eb; --hijau: #16a34a; --kuning: #ca8a04;
@@ -257,6 +260,7 @@
   .slip th { position: static; background: var(--slip-biru); color: #fff; font-size: 8pt; text-transform: uppercase; letter-spacing: .06em; padding: 1.6mm 3mm; text-align: left; white-space: nowrap; }
   .slip td { padding: 1.3mm 3mm; border-bottom: .25mm solid #e5e7eb; white-space: nowrap; }
   .slip tbody tr:hover { background: transparent; }
+  .slip tbody tr:nth-child(even) { background: transparent; }
   .slip td.kod { color: var(--slip-biru); font-weight: 700; width: 17mm; }
   .slip td.komp small { color: #6b7280; font-style: italic; }
   .slip td.mk { text-align: right; width: 22mm; font-variant-numeric: tabular-nums; }
@@ -334,15 +338,211 @@
     table { font-size: 12px; }
     th, td { padding: 6px 8px; }
   }
+  /* =====================================================================
+     TEMA PRA-UNIVERSITI SMK ASAJAYA — warna logo sekolah:
+     biru tua #141A6E · biru #2433C4 · merah #D7141B · kuning emas #F4E21B · ungu #6B1F9A
+     Blok ini menggayakan semula semua komponen sedia ada (kad, panel, jadual,
+     butang, tab, borang, sidebar, topbar) tanpa mengubah logik halaman.
+     ===================================================================== */
+  :root {
+    --biru: #141A6E; --biru-terang: #2433C4; --biru-lembut: #EEF0FF; --navy: #0C1048;
+    --merah: #D7141B; --merah-lembut: #FDECEC; --emas: #F4E21B; --emas-gelap: #B89A00; --ungu: #6B1F9A;
+    --hijau: #15803D; --kuning: #B45309; --abu: #5B6178; --teks: #121633;
+    --bg: #F4F5FB; --kad: #FFFFFF; --garis: #E4E7F2;
+    --bayang: 0 1px 2px rgba(20,26,110,.05), 0 6px 18px rgba(20,26,110,.06);
+    --jejari: 16px;
+    --fon: "Plus Jakarta Sans", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --fon-tajuk: "Playfair Display", Georgia, "Times New Roman", serif;
+  }
+  body { font-family: var(--fon); color: var(--teks); background: var(--bg);
+    background-image: radial-gradient(circle at 100% 0, rgba(36,51,196,.06), transparent 40%), radial-gradient(circle at 0 100%, rgba(107,31,154,.05), transparent 40%);
+    background-attachment: fixed; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--emas); color: var(--navy); }
+
+  /* ---------- Skrin pembuka (semasa semak sesi) ---------- */
+  #skrinMula { position: fixed; inset: 0; z-index: 9998; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    color: #fff; background: radial-gradient(circle at 30% 20%, #2A2F9C, #0C1048 60%, #3A1675); transition: opacity .3s; }
+  #skrinMula.hilang { opacity: 0; pointer-events: none; }
+  #skrinMula .logo-sekolah { width: 96px; height: 96px; animation: denyutLogo 1.6s ease-in-out infinite; filter: drop-shadow(0 10px 24px rgba(0,0,0,.35)); }
+  #skrinMula b { font-family: var(--fon-tajuk); font-size: 20px; letter-spacing: .02em; }
+  #skrinMula small { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--emas); }
+  .bar-warna { width: 170px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.15); overflow: hidden; }
+  .bar-warna::after { content: ''; display: block; height: 100%; width: 40%; border-radius: 4px; animation: gelongsor 1.1s ease-in-out infinite;
+    background: linear-gradient(90deg, #D7141B 0 25%, #F4E21B 25% 50%, #2433C4 50% 75%, #6B1F9A 75% 100%); }
+  @keyframes denyutLogo { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  @keyframes gelongsor { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
+
+  /* ---------- Log masuk: panel jenama + borang ---------- */
+  #loginBox { max-width: 980px; margin: 6vh auto; padding: 0 16px; background: none; box-shadow: none; }
+  .login-kad { display: grid; grid-template-columns: 1.05fr 1fr; background: var(--kad); border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(12,16,72,.18); }
+  .login-jenama { position: relative; color: #fff; padding: 40px 36px; background: linear-gradient(150deg, #0C1048 0%, #141A6E 45%, #3A1675 100%); overflow: hidden; }
+  .login-jenama::before { content: ''; position: absolute; right: -90px; top: -90px; width: 280px; height: 280px; border-radius: 50%; background: rgba(244,226,27,.10); }
+  .login-jenama::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 6px;
+    background: linear-gradient(90deg, #D7141B 0 25%, #F4E21B 25% 50%, #2433C4 50% 75%, #6B1F9A 75% 100%); }
+  #loginBox .login-jenama .logo-sekolah { width: 84px; height: 84px; margin: 0 0 18px; filter: drop-shadow(0 8px 18px rgba(0,0,0,.3)); }
+  .login-jenama .kicker { font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--emas); font-weight: 700; }
+  #loginBox .login-jenama h1 { font-family: var(--fon-tajuk); font-size: 30px; line-height: 1.15; margin: 8px 0 10px; color: #fff; text-align: left; }
+  #loginBox .login-jenama p { color: rgba(255,255,255,.78); font-size: 13.5px; line-height: 1.6; margin: 0 0 22px; }
+  .login-ciri { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .login-ciri li { display: flex; gap: 12px; align-items: center; font-size: 13px; color: rgba(255,255,255,.9); }
+  .login-ciri .ikon { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: rgba(255,255,255,.1); color: var(--emas); flex: none; }
+  .login-borang { padding: 40px 36px; display: flex; flex-direction: column; justify-content: center; }
+  .login-borang h2 { font-family: var(--fon-tajuk); font-size: 24px; margin: 0 0 4px; color: var(--biru); }
+  #loginBox .login-borang .sub { color: var(--abu); font-size: 13px; margin: 0 0 22px; text-align: left; }
+  @media (max-width: 760px) {
+    #loginBox { margin: 0 auto; padding: 0; }
+    .login-kad { grid-template-columns: 1fr; grid-template-rows: auto 1fr; border-radius: 0; min-height: 100vh; }
+    .login-jenama { padding: 28px 22px 26px; } .login-jenama h1 { font-size: 24px; } .login-ciri { display: none; }
+    #loginBox .login-jenama p { display: none; } .login-borang { padding: 26px 22px 40px; }
+    .login-jenama { display: grid; grid-template-columns: 60px 1fr; column-gap: 14px; align-items: center; align-content: center; }
+    .login-jenama .kicker { grid-column: 2; grid-row: 1; } #loginBox .login-jenama h1 { grid-column: 2; grid-row: 2; }
+    #loginBox .login-jenama .logo-sekolah { width: 56px; height: 56px; margin: 0; grid-column: 1; grid-row: 1 / span 2; }
+    .login-borang { justify-content: flex-start; }
+    #loginBox .login-jenama h1 { margin: 2px 0 0; }
+  }
+  #tukarKataLaluanBox { border-radius: 22px; box-shadow: 0 24px 60px rgba(12,16,72,.16); border-top: 6px solid var(--emas); }
+  #tukarKataLaluanBox h1 { font-family: var(--fon-tajuk); }
+
+  /* ---------- Borang & butang ---------- */
+  input, select, textarea { border-radius: 10px; border: 1px solid #D6DAEA; background: #fff; padding: 10px 12px; color: var(--teks); transition: border-color .15s, box-shadow .15s; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--biru-terang); box-shadow: 0 0 0 3px rgba(36,51,196,.15); }
+  label { color: #3D4466; font-size: 12px; letter-spacing: .01em; }
+  button { border-radius: 10px; padding: 10px 18px; font-weight: 700; letter-spacing: .01em; background: linear-gradient(135deg, #2433C4, #141A6E);
+    box-shadow: 0 4px 12px rgba(36,51,196,.22); transition: transform .12s, box-shadow .12s, filter .12s; }
+  button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(36,51,196,.28); }
+  button:active:not(:disabled) { transform: translateY(0); }
+  button.sekunder { background: #fff; color: var(--biru-terang); border: 1px solid #C9CEF2; box-shadow: none; }
+  button.sekunder:hover:not(:disabled) { background: var(--biru-lembut); box-shadow: none; }
+  button.bahaya { background: linear-gradient(135deg, #E0262D, #A80F15); box-shadow: 0 4px 12px rgba(215,20,27,.25); }
+  button.emas { background: linear-gradient(135deg, #F8E84A, #E8C900); color: var(--navy); box-shadow: 0 4px 12px rgba(232,201,0,.3); }
+
+  /* ---------- Sidebar ---------- */
+  #sidebar { width: 248px; background: linear-gradient(180deg, #0C1048 0%, #141A6E 55%, #2A1662 100%); padding: 22px 0 16px; box-shadow: 4px 0 24px rgba(12,16,72,.18);
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.2) transparent; }
+  #sidebar .logo-sekolah { width: 64px; height: 64px; margin: 0 auto 10px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.35)); }
+  #sidebar h2 { font-family: var(--fon-tajuk); font-size: 17px; letter-spacing: .03em; margin: 0 0 2px; }
+  #sidebar .sub-jenama { text-align: center; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--emas); font-weight: 700; margin-bottom: 16px; }
+  #sidebar .kumpulan-nav { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: rgba(255,255,255,.45); font-weight: 700; padding: 14px 22px 6px; }
+  #sidebar .nav-item { display: flex; align-items: center; gap: 11px; margin: 2px 12px; padding: 9px 12px; border-radius: 10px; border-left: none; font-size: 13.5px;
+    opacity: .82; transition: background .15s, opacity .15s; position: relative; }
+  #sidebar .nav-item .ikon-nav { width: 18px; height: 18px; flex: none; opacity: .9; }
+  #sidebar .nav-item .ikon-nav svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #sidebar .nav-item:hover { background: rgba(255,255,255,.08); opacity: 1; }
+  #sidebar .nav-item.aktif { background: rgba(255,255,255,.13); opacity: 1; font-weight: 700; box-shadow: inset 3px 0 0 var(--emas); }
+  #sidebar .nav-item.aktif .ikon-nav { color: var(--emas); }
+  #sidebar .pengguna-info { margin: 16px 12px 0; padding: 14px; border-radius: 14px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.08); opacity: 1; }
+  #sidebar .pengguna-info #infoNama { font-weight: 700; font-size: 12.5px; line-height: 1.35; }
+  #sidebar .pengguna-info #infoPeranan { color: var(--emas); opacity: .95; font-size: 11px; margin-top: 2px; }
+  #sidebar .pengguna-info button { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.16); box-shadow: none; font-size: 12px; padding: 8px 10px; }
+  #sidebar .pengguna-info button:hover:not(:disabled) { background: rgba(255,255,255,.18); transform: none; }
+  #main { margin-left: 248px; padding: 0 30px 30px; }
+
+  /* ---------- Topbar ---------- */
+  #topbar { position: sticky; top: 0; z-index: 50; margin: 0 -30px 20px; padding: 16px 30px; background: rgba(244,245,251,.82);
+    backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid rgba(228,231,242,.8); }
+  #topbar h1 { font-family: var(--fon-tajuk); font-size: 25px; color: var(--biru); letter-spacing: .005em; }
+  #topbar .salam { font-size: 12px; color: var(--abu); margin-top: 2px; }
+  .kawalan select, .kawalan input { border-radius: 999px; padding: 8px 14px; font-weight: 600; font-size: 13px; background: #fff; }
+
+  /* ---------- Kad, panel, grid ---------- */
+  .grid-kad { gap: 14px; }
+  .kad { border-radius: var(--jejari); border: 1px solid var(--garis); box-shadow: var(--bayang); padding: 18px; position: relative; overflow: hidden; }
+  .kad .nilai { font-size: 28px; color: var(--biru); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .kad .label { font-size: 12px; color: var(--abu); font-weight: 500; }
+  .kad.hijau .nilai { color: var(--hijau); } .kad.kuning .nilai { color: var(--kuning); } .kad.merah .nilai { color: var(--merah); }
+  .panel { border-radius: var(--jejari); border: 1px solid var(--garis); box-shadow: var(--bayang); padding: 20px 22px; }
+  .panel h3 { font-family: var(--fon-tajuk); font-size: 17px; color: var(--biru); display: flex; align-items: center; gap: 10px; }
+  .panel h3::before { content: ''; width: 4px; height: 18px; border-radius: 3px; background: linear-gradient(180deg, var(--emas), var(--merah)); flex: none; }
+  .lp-carta .panel h4 { font-family: var(--fon-tajuk); font-size: 15px; color: var(--biru); }
+
+  /* ---------- Jadual ---------- */
+  .tbl-scroll { border: 1px solid var(--garis); border-radius: 12px; }
+  table { font-size: 13px; }
+  th { background: #F6F7FD; color: #3D4466; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; border-bottom: 1px solid var(--garis); }
+  td { border-bottom: 1px solid #EEF0F7; }
+  tbody tr:nth-child(even) { background: #FBFBFE; }
+  tbody tr:hover { background: #F1F3FF; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ---------- Tab, lencana, mesej, toast ---------- */
+  .tab-link { background: #fff; border: 1px solid #DCE0F5; color: var(--biru); font-weight: 600; padding: 7px 15px; transition: all .15s; }
+  .tab-link:hover { border-color: var(--biru-terang); }
+  .tab-link.aktif { background: linear-gradient(135deg, #2433C4, #141A6E); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(36,51,196,.25); }
+  .lencana { border-radius: 999px; padding: 3px 9px; font-size: 10.5px; letter-spacing: .02em; }
+  .mesej { border-radius: 12px; padding: 12px 16px; border: 1px solid transparent; }
+  .mesej.jaya { background: #ECFDF3; color: #166534; border-color: #BBF7D0; }
+  .mesej.ralat { background: var(--merah-lembut); color: #9F1239; border-color: #FBCFD2; }
+  .mesej.amaran { background: #FFFBEA; color: #854D0E; border-color: #F8E58C; }
+  .toast { border-radius: 12px; }
+  .toast.jaya { background: linear-gradient(135deg, #16A34A, #15803D); }
+  .toast.ralat { background: linear-gradient(135deg, #E0262D, #A80F15); }
+  .muatan { padding: 36px 0; }
+  .muatan::before { content: ''; display: block; width: 28px; height: 28px; margin: 0 auto 10px; border-radius: 50%;
+    border: 3px solid #DCE0F5; border-top-color: var(--biru-terang); animation: pusing .8s linear infinite; }
+  @keyframes pusing { to { transform: rotate(360deg); } }
+  .aksi-link { font-weight: 600; }
+
+  /* ---------- Banner sapaan (dashboard) ---------- */
+  .banner-salam { position: relative; overflow: hidden; border-radius: 20px; padding: 24px 26px; margin-bottom: 18px; color: #fff;
+    background: linear-gradient(120deg, #0C1048 0%, #141A6E 45%, #2433C4 80%, #3A1675 100%); box-shadow: 0 14px 34px rgba(20,26,110,.25); }
+  .banner-salam::before { content: ''; position: absolute; right: -50px; top: -70px; width: 240px; height: 240px; border-radius: 50%; background: rgba(244,226,27,.12); }
+  .banner-salam::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 5px;
+    background: linear-gradient(90deg, #D7141B 0 25%, #F4E21B 25% 50%, #2433C4 50% 75%, #6B1F9A 75% 100%); }
+  .banner-salam .kicker { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--emas); font-weight: 700; }
+  .banner-salam h2 { font-family: var(--fon-tajuk); font-size: 26px; margin: 6px 0 6px; position: relative; }
+  .banner-salam p { margin: 0; opacity: .85; font-size: 13.5px; position: relative; max-width: 640px; }
+  .banner-salam .cip svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--emas); }
+  .banner-salam .cip { display: inline-flex; align-items: center; gap: 6px; margin: 12px 8px 0 0; padding: 5px 12px; border-radius: 999px;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); font-size: 12px; position: relative; }
+
+  /* ---------- Tetapan Sistem ---------- */
+  .jadual-sunting input, .jadual-sunting select { margin: 0; padding: 7px 9px; min-width: 70px; }
+  .stat-mini { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .stat-mini div { background: #F6F7FD; border: 1px solid var(--garis); border-radius: 12px; padding: 12px; }
+  .stat-mini b { display: block; font-size: 22px; color: var(--biru); font-variant-numeric: tabular-nums; }
+  .stat-mini span { font-size: 11.5px; color: var(--abu); }
+
+  @media (max-width: 820px) {
+    #sidebar { width: 100%; position: sticky; top: 0; z-index: 60; padding: 8px 0; box-shadow: 0 4px 18px rgba(12,16,72,.25); }
+    #sidebar .sub-jenama, #sidebar .kumpulan-nav { display: none; }
+    #sidebar .nav-item { margin: 0 2px; padding: 9px 12px; white-space: nowrap; }
+    #sidebar .nav-item.aktif { box-shadow: inset 0 -3px 0 var(--emas); }
+    #sidebar .pengguna-info { margin: 6px 10px 0; padding: 6px; background: none; border: none; }
+    #main { margin-left: 0; padding: 0 16px 24px; }
+    #topbar { margin: 0 -16px 16px; padding: 12px 16px; position: static; }
+    #topbar h1 { font-size: 21px; }
+    .banner-salam { padding: 20px; } .banner-salam h2 { font-size: 21px; }
+  }
+  @media print { #skrinMula { display: none !important; } }
 </style>
 </head>
 <body>
 
-<!-- ======================= LOGIN ======================= -->
-<div id="loginBox">
+<!-- ======================= SKRIN PEMBUKA ======================= -->
+<div id="skrinMula" role="status" aria-live="polite">
   <div class="logo-sekolah" role="img" aria-label="Logo SMK Asajaya"></div>
-  <h1>SISTEM HEADCOUNT STPM</h1>
-  <p class="sub">SMK Asajaya</p>
+  <small>Tingkatan Enam · Pra-Universiti</small>
+  <b>Sistem Headcount STPM</b>
+  <div class="bar-warna"></div>
+</div>
+
+<!-- ======================= LOGIN ======================= -->
+<div id="loginBox" style="display:none">
+ <div class="login-kad">
+  <div class="login-jenama">
+    <div class="logo-sekolah" role="img" aria-label="Logo SMK Asajaya"></div>
+    <div class="kicker">SMK Asajaya · Tingkatan Enam</div>
+    <h1>Sistem Headcount STPM</h1>
+    <p>Platform pemantauan akademik Pra-Universiti — sasaran ETR, markah ujian, MUET, intervensi dan analisis GPS dalam satu tempat.</p>
+    <ul class="login-ciri">
+      <li><span class="ikon" data-ikon="sasaran"></span>Headcount ETR & pemantauan gap setiap pelajar</li>
+      <li><span class="ikon" data-ikon="carta"></span>Analisis GPS, trend & laporan berinteraktif</li>
+      <li><span class="ikon" data-ikon="anugerah"></span>MUET: markah, GPMP & slip keputusan</li>
+    </ul>
+  </div>
+  <div class="login-borang">
+  <h2>Log Masuk</h2>
+  <p class="sub">Selamat datang kembali. Sila log masuk untuk meneruskan.</p>
   <div id="mesejLogin"></div>
   <label>No. Kad Pengenalan</label>
   <input id="inNoKP" placeholder="cth. 900101011234" inputmode="numeric" autocomplete="username">
@@ -350,6 +550,8 @@
   <input id="inPIN" type="password" placeholder="Kata laluan anda" autocomplete="current-password">
   <p class="nota-login">Log masuk kali pertama: kata laluan ialah <b>6 digit akhir No. KP</b> anda. Anda akan diminta menukarnya selepas itu.</p>
   <button id="btnLogin" style="width:100%">Log Masuk</button>
+  </div>
+ </div>
 </div>
 
 <!-- ======================= TUKAR KATA LALUAN ======================= -->
@@ -374,9 +576,12 @@
 <div id="app">
   <div id="sidebar">
     <div class="logo-sekolah" role="img" aria-label="Logo SMK Asajaya"></div>
-    <h2>HEADCOUNT<br>STPM</h2>
+    <h2>Headcount STPM</h2>
+    <div class="sub-jenama">Tingkatan Enam · Pra-U</div>
     <div class="nav-container">
+      <div class="kumpulan-nav">Utama</div>
       <div class="nav-item" data-halaman="dashboard">Dashboard</div>
+      <div class="kumpulan-nav">Akademik</div>
       <div class="nav-item" data-halaman="pelajar">Pelajar</div>
       <div class="nav-item" data-halaman="arkib">Arkib</div>
       <div class="nav-item" data-halaman="subjek">Mata Pelajaran</div>
@@ -385,12 +590,16 @@
       <div class="nav-item" data-halaman="ujian">Markah Ujian</div>
       <div class="nav-item" data-halaman="muet">MUET</div>
       <div class="nav-item" data-halaman="tugassaya">Tugas Saya</div>
+      <div class="kumpulan-nav">Sokongan Pelajar</div>
       <div class="nav-item" data-halaman="ulangan">Ulangan</div>
       <div class="nav-item" data-halaman="intervensi">Intervensi</div>
+      <div class="kumpulan-nav">Analisis &amp; Laporan</div>
       <div class="nav-item" data-halaman="analisis">Analisis</div>
       <div class="nav-item" data-halaman="laporan">Laporan</div>
+      <div class="kumpulan-nav">Pentadbiran</div>
       <div class="nav-item" data-halaman="kunci">Kunci Markah</div>
       <div class="nav-item" data-halaman="pengguna">Pengguna</div>
+      <div class="nav-item" data-halaman="tetapan">Tetapan Sistem</div>
     </div>
     <div class="pengguna-info">
       <div id="infoNama"></div>
@@ -402,7 +611,7 @@
 
   <div id="main">
     <div id="topbar">
-      <h1 id="tajukHalaman">Dashboard</h1>
+      <div><h1 id="tajukHalaman">Dashboard</h1><div class="salam" id="salamTopbar"></div></div>
       <div class="kawalan" id="kawalanGlobal"></div>
     </div>
     <div id="content"><div class="muatan">Memuatkan...</div></div>
@@ -444,8 +653,23 @@ const S = {
    cukup kerap dalam persekitaran sebenar sehingga tidak munasabah suruh pengguna
    klik "cuba semula" setiap kali — jadi panggil() sendiri cuba semula secara senyap
    (sehingga 2 kali, dengan sedikit kelewatan) sebelum akhirnya lapor ralat. */
+/* Cache klien (60 s) bagi senarai rujukan yang jarang berubah — elak panggilan pelayan
+   berulang setiap kali bertukar halaman. Mana-mana panggilan yang MENGUBAH data
+   (bukan dalam senarai baca) mengosongkan cache serta-merta. */
+const API_CACHE_KLIEN = ['apiSenaraiPelajar', 'apiSenaraiSubjek', 'apiSenaraiKelasSekolah', 'apiSenaraiTahunSTPM', 'apiSenaraiGred', 'apiMuetTetapanSlip'];
+const API_BACA_SAHAJA = /^api(Senarai|Dapatkan|Dashboard|Roster|Jana|Semak|Muet(Kelas|Roster|Analisis|Trend|Slip|Tetapan|PenetapanGuru)$|Impak|Top|Simulasi|Aggregate|Tetapan(Sistem)?$|Audit)/;
+const _cacheKlien = {};
 function panggil(fn) {
-  return panggilCubaSemula(fn, Array.prototype.slice.call(arguments, 1), 0);
+  const args = Array.prototype.slice.call(arguments, 1);
+  if (!API_BACA_SAHAJA.test(fn) || fn === 'apiSemakStruktur') Object.keys(_cacheKlien).forEach(k => delete _cacheKlien[k]);
+  if (API_CACHE_KLIEN.indexOf(fn) === -1) return panggilCubaSemula(fn, args, 0);
+  const kunci = fn + JSON.stringify(Object.assign({}, args[0] || {}, { token: undefined }));
+  const c = _cacheKlien[kunci];
+  if (c && Date.now() - c.masa < 60000) return c.janji;
+  const janji = panggilCubaSemula(fn, args, 0);
+  _cacheKlien[kunci] = { masa: Date.now(), janji };
+  janji.catch(() => { delete _cacheKlien[kunci]; });
+  return janji;
 }
 
 function panggilCubaSemula(fn, args, percubaan) {
@@ -487,6 +711,33 @@ function tunjukMesej(teks, jenis) {
   }, 4500);
 }
 function escapeHtml(s) { return String(s === undefined || s === null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+/* ---------- Pemilih NAMA pelajar & NAMA subjek (nilai = ID / Kod; paparan = nama) ---------- */
+function pilihanPelajarHtml(id, senarai, labelKosong) {
+  const ikutKelas = {};
+  (senarai || []).slice().sort((a, b) => String(a.Nama).localeCompare(String(b.Nama)))
+    .forEach(x => { const k = x.Kelas || '(Tiada kelas)'; (ikutKelas[k] = ikutKelas[k] || []).push(x); });
+  return '<select id="' + id + '"><option value="">' + (labelKosong || '— Pilih pelajar —') + '</option>' +
+    Object.keys(ikutKelas).sort().map(k => '<optgroup label="' + escapeHtml(k) + '">' +
+      ikutKelas[k].map(x => '<option value="' + escapeHtml(x.ID_Pelajar) + '">' + escapeHtml(x.Nama) + '</option>').join('') + '</optgroup>').join('') +
+    '</select>';
+}
+function pilihanSubjekHtml(id, senarai, labelKosong) {
+  return '<select id="' + id + '">' + (labelKosong ? '<option value="">' + labelKosong + '</option>' : '') +
+    (senarai || []).map(x => '<option value="' + escapeHtml(x.KodSubjek) + '">' + escapeHtml(x.NamaSubjek || x.KodSubjek) + ' (' + escapeHtml(x.KodSubjek) + ')</option>').join('') +
+    '</select>';
+}
+function namaSubjek(kod) {
+  const x = (S.cacheSubjek || []).find(z => String(z.KodSubjek) === String(kod));
+  return x ? x.NamaSubjek : (String(kod) === KOD_SUBJEK_MUET ? 'MUET' : kod);
+}
+/* Pelajar AKTIF Tahun STPM semasa dalam skop pengguna (dicache klien). */
+function muatPelajarAktif() {
+  return panggil('apiSenaraiPelajar', { token: S.token, tahunSTPM: S.tahunSTPM }).then(r => r.senarai.filter(x => String(x.Status).toUpperCase() === 'AKTIF'));
+}
+function muatSubjekSkop() {
+  return panggil('apiSenaraiSubjek', { token: S.token }).then(r => { S.cacheSubjek = r.senarai; return r.senarai; });
+}
+
 function lencana(nilai) { return nilai ? '<span class="lencana ' + nilai + '">' + nilai.replace(/_/g,' ') + '</span>' : ''; }
 
 /* ======================= PAGINASI (client-side) =======================
@@ -625,6 +876,7 @@ function login() {
   panggil('apiLogin', { nokp, pin }).then(res => {
     S.token = res.token; S.nama = res.nama; S.peranan = res.peranan;
     S.perananSemua = senaraiDaripada(res.perananSemua || res.peranan);
+    S.dataTahun = res.tahun || null;
     S.skopSubjek = senaraiDaripada(res.skopSubjek);
     S.unitKetua = senaraiDaripada(res.unitKetua);
     S.skopKelas = senaraiDaripada(res.skopKelas, true);
@@ -637,16 +889,18 @@ function login() {
 }
 
 function semakSesiSediaAda() {
-  if (!S.token) { document.getElementById('loginBox').style.display = 'block'; return; }
+  if (!S.token) { sembunyiSkrinMula(); document.getElementById('loginBox').style.display = 'block'; return; }
   panggil('apiSemakSesi', { token: S.token }).then(res => {
     S.nama = res.nama; S.peranan = res.peranan;
     S.perananSemua = senaraiDaripada(res.perananSemua || res.peranan);
+    S.dataTahun = res.tahun || null;
     S.skopSubjek = senaraiDaripada(res.skopSubjek);
     S.unitKetua = senaraiDaripada(res.unitKetua);
     S.skopKelas = senaraiDaripada(res.skopKelas, true);
     if (res.perluTukarKataLaluan) paparTukarKataLaluan(true); else mulakanApp();
   }).catch(() => {
     localStorage.removeItem('hcstpm_token'); S.token = '';
+    sembunyiSkrinMula();
     document.getElementById('loginBox').style.display = 'block';
   });
 }
@@ -702,6 +956,7 @@ function paparTukarKataLaluan(wajib) {
   document.getElementById('loginBox').style.display = 'none';
   document.getElementById('app').style.display = 'none';
   document.getElementById('tukarKataLaluanBox').style.display = 'block';
+  sembunyiSkrinMula();
   document.getElementById(wajib ? 'inKLBaru' : 'inKLSemasa').focus();
 }
 
@@ -745,12 +1000,20 @@ function mulakanApp() {
   if (!bolehUrus()) document.querySelector('.nav-item[data-halaman="pengguna"]').style.display = 'none';
   if (!bolehUrusBLD()) document.querySelector('.nav-item[data-halaman="bld"]').style.display = 'none';
   if (!bolehUrus()) document.querySelector('.nav-item[data-halaman="arkib"]').style.display = 'none';
+  if (!bolehUrus()) document.querySelector('.nav-item[data-halaman="tetapan"]').style.display = 'none';
   const aksesMuet = bolehUrus() || S.skopSubjek.indexOf(KOD_SUBJEK_MUET) !== -1 || (adaPeranan('GURU_TINGKATAN') && S.skopKelas.length);
   if (!aksesMuet) document.querySelector('.nav-item[data-halaman="muet"]').style.display = 'none';
-  panggil('apiSenaraiTahunSTPM', { token: S.token }).then(res => {
-    S.senaraiTahun = res.senarai;
-    S.tahunSTPM = (res.tahunAktif && res.senarai.indexOf(res.tahunAktif) !== -1) ? res.tahunAktif : (res.senarai[0] || '');
-  }).catch(() => {}).finally(() => tukarHalaman('dashboard'));
+  kemaskiniKumpulanNav();
+  sembunyiSkrinMula();
+  const sl = teksSalam();
+  document.getElementById('salamTopbar').textContent = sl.salam + ', ' + S.nama + ' · ' + sl.tarikh;
+  // Senarai tahun biasanya sudah tiba bersama log masuk/semak sesi (jimat satu panggilan).
+  const tetapkanTahun = res => {
+    S.senaraiTahun = res.senarai || [];
+    S.tahunSTPM = (res.tahunAktif && S.senaraiTahun.indexOf(res.tahunAktif) !== -1) ? res.tahunAktif : (S.senaraiTahun[0] || '');
+  };
+  if (S.dataTahun) { tetapkanTahun(S.dataTahun); tukarHalaman('dashboard'); return; }
+  panggil('apiSenaraiTahunSTPM', { token: S.token }).then(tetapkanTahun).catch(() => {}).finally(() => tukarHalaman('dashboard'));
 }
 
 // Pendengar navigasi dipasang SEKALI sahaja (bukan dalam mulakanApp) — elak pendengar
@@ -764,13 +1027,13 @@ function tukarHalaman(nama) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('aktif', el.dataset.halaman === nama));
   const tajuk = { dashboard:'Dashboard', pelajar:'Pelajar', arkib:'Arkib (Tamat Belajar)', subjek:'Mata Pelajaran', bld:'Skema Gred (BLD)', headcount:'Headcount',
     ujian:'Markah Ujian', muet:'MUET', tugassaya:'Tugas Saya', ulangan:'Ulangan Semester', intervensi:'Intervensi', analisis:'Analisis', laporan:'Laporan',
-    kunci:'Kunci Markah', pengguna:'Pengguna & Peranan' };
+    kunci:'Kunci Markah', pengguna:'Pengguna & Peranan', tetapan:'Tetapan Sistem' };
   document.getElementById('tajukHalaman').textContent = tajuk[nama] || nama;
   document.getElementById('content').innerHTML = '<div class="muatan">Memuatkan...</div>';
   document.getElementById('kawalanGlobal').innerHTML = '';
   const fn = { dashboard: muatDashboard, pelajar: muatPelajar, arkib: muatArkib, subjek: muatSubjek, bld: muatBLD, headcount: muatHeadcount,
     ujian: muatUjian, muet: muatMuet, tugassaya: muatTugasSaya, ulangan: muatUlangan, intervensi: muatIntervensi, analisis: muatAnalisis, laporan: muatLaporan,
-    kunci: muatKunciMarkah, pengguna: muatPengguna }[nama];
+    kunci: muatKunciMarkah, pengguna: muatPengguna, tetapan: muatTetapan }[nama];
   if (fn) fn();
 }
 
@@ -804,45 +1067,78 @@ function muatDashboard() {
   document.getElementById('kawalanGlobal').innerHTML = pilihanSemesterHtml() + pilihanTahunHtml();
   pasangPilihanSemester(muatDashboard);
   pasangPilihanTahun(muatDashboard);
+  pasangTooltipCarta();
 
   const fn = bolehUrus() ? 'apiDashboardGPK' : 'apiDashboardGuru';
-  panggil(fn, { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }).then(res => {
+  Promise.all([panggil(fn, { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }), muatSubjekSkop().catch(() => [])]).then(([res]) => {
     if (bolehUrus()) renderDashboardGPK(res); else renderDashboardGuru(res);
   }).catch(err => renderRalat(err));
 }
 
+/* Banner sapaan di atas dashboard. */
+function bannerSalam(teksKecil, cip) {
+  const sl = teksSalam();
+  return '<div class="banner-salam"><div class="kicker">' + escapeHtml(sl.tarikh) + '</div><h2>' + escapeHtml(sl.salam) + ', ' + escapeHtml(S.nama) + '</h2>' +
+    '<p>' + teksKecil + '</p>' + (cip || []).map(c => '<span class="cip">' + c + '</span>').join('') + '</div>';
+}
+
 function renderDashboardGPK(d) {
-  document.getElementById('content').innerHTML = `
-    <div class="grid-kad">
-      <div class="kad"><div class="nilai">${d.jumlahCalon}</div><div class="label">Jumlah Calon</div></div>
-      <div class="kad"><div class="nilai">${d.jumlahSubjek}</div><div class="label">Jumlah Subjek</div></div>
-      <div class="kad"><div class="nilai">${d.gpsSemasa ?? '-'}</div><div class="label">GPS Semasa (sasaran ${d.sasaranGPS})</div></div>
-      <div class="kad"><div class="nilai">${d.gapGPS ?? '-'}</div><div class="label">Gap GPS</div></div>
-      <div class="kad"><div class="nilai">${d.pngkPurata ?? '-'}</div><div class="label">PNGK Purata</div></div>
-      <div class="kad hijau"><div class="nilai">${d.bilanganHijau}</div><div class="label">Pelajar Hijau</div></div>
-      <div class="kad kuning"><div class="nilai">${d.bilanganKuning}</div><div class="label">Pelajar Kuning</div></div>
-      <div class="kad merah"><div class="nilai">${d.bilanganMerah}</div><div class="label">Pelajar Merah</div></div>
-      <div class="kad"><div class="nilai">${d.bilanganUlanganS1}</div><div class="label">Ulangan S1</div></div>
-      <div class="kad"><div class="nilai">${d.bilanganUlanganS2}</div><div class="label">Ulangan S2</div></div>
-    </div>
-    <div class="panel">
-      <h3>Subjek Kritikal (peratus status Merah tertinggi)</h3>
-      <div class="tbl-scroll"><table><thead><tr><th>Subjek</th><th>% Merah</th></tr></thead><tbody>
-        ${d.subjekKritikal.map(s => '<tr><td>'+escapeHtml(s.kodSubjek)+'</td><td>'+s.peratusMerah+'%</td></tr>').join('') || '<tr><td colspan=2 class="kecil">Tiada data.</td></tr>'}
-      </tbody></table></div>
-    </div>`;
+  const f2 = v => typeof v === 'number' && isFinite(v) ? v.toFixed(2) : '-';
+  const capai = d.sasaranGPS && typeof d.gpsSemasa === 'number' ? (d.gpsSemasa >= d.sasaranGPS ? 'hijau' : 'merah') : '';
+  const jumlahStatus = d.bilanganHijau + d.bilanganKuning + d.bilanganMerah;
+  const muet = d.muet ? kadKPI('dunia', 'ungu', f2(d.muet.gpmp), 'GPS MUET', LABEL_SUMBER_MUET[d.muet.sumber] + ' · ' + d.muet.bilKeputusan + ' calon') : '';
+  document.getElementById('content').innerHTML = bannerSalam(
+    'Ringkasan prestasi akademik calon STPM ' + escapeHtml(S.tahunSTPM || '') + ' bagi Semester ' + S.semester.slice(1) + '. Klik kad atau menu di sisi untuk butiran lanjut.',
+    [ikon('topi') + d.jumlahCalon + ' calon aktif', ikon('buku') + d.jumlahSubjek + ' mata pelajaran', ikon('sasaran') + 'Sasaran GPS ' + f2(d.sasaranGPS)]) +
+    '<div class="lp-kpi">' +
+      kadKPI('carta', capai, f2(d.gpsSemasa), 'GPS Semasa', 'Gap ' + (typeof d.gapGPS === 'number' ? (d.gapGPS > 0 ? '+' : '') + d.gapGPS.toFixed(2) : '-') + ' daripada sasaran') +
+      kadKPI('anugerah', '', f2(d.pngkPurata), 'PNGK Purata', 'Berdasarkan keputusan sebenar') +
+      kadKPI('semak', 'hijau', d.bilanganHijau, 'Status Hijau', jumlahStatus ? Math.round(d.bilanganHijau * 100 / jumlahStatus) + '% rekod' : '') +
+      kadKPI('amaran', 'merah', d.bilanganMerah, 'Status Merah', d.bilanganKuning + ' kuning') +
+      kadKPI('ulang', 'kuning', d.bilanganUlanganS1 + d.bilanganUlanganS2, 'Ulangan', 'S1: ' + d.bilanganUlanganS1 + ' · S2: ' + d.bilanganUlanganS2) +
+      muet +
+    '</div><div class="lp-carta">' +
+      panelCarta('Status Gap ETR', 'Gred semasa berbanding ETR bagi setiap rekod subjek.', cartaDonut({ HIJAU: d.bilanganHijau, KUNING: d.bilanganKuning, MERAH: d.bilanganMerah }, ['HIJAU', 'KUNING', 'MERAH'], 'rekod')) +
+      panelCarta('Taburan Risiko', '"Tiada data" = ETR atau keputusan belum diisi.', cartaDonut(d.risiko || {}, ['SELAMAT', 'PERLU_PEMANTAUAN', 'BERISIKO', 'TIADA_DATA'], 'rekod')) +
+      panelCarta('GPS Mengikut Subjek', '<span style="color:#2a78d6">■</span> GPS semasa · <span style="color:#eb6834">▬</span> GPS ETR' + (d.sasaranGPS ? ' · ┆ sasaran ' + f2(d.sasaranGPS) : ''),
+        cartaBar((d.gpsIkutSubjek || []).map(x => ({ label: x.nama, nama: x.label, nilai: x.gps, etr: x.gpsETR })), { maks: 4, format: f2, sasaran: d.sasaranGPS })) +
+      panelCarta('GPS Mengikut Kelas', '', cartaBar((d.gpsIkutKelas || []).map(x => ({ label: x.label, nilai: x.gps, etr: x.gpsETR })), { maks: 4, format: f2, sasaran: d.sasaranGPS })) +
+      panelCarta('Taburan Gred Semasa', 'Bilangan rekod bagi setiap gred (keputusan terkini).', cartaLajur([{ nama: 'Bilangan rekod', data: d.taburanGred || [] }])) +
+      panelCarta('Subjek Kritikal', 'Peratus rekod berstatus Merah tertinggi.', (d.subjekKritikalNama || []).length
+        ? cartaBar(d.subjekKritikalNama.map(x => ({ label: x.nama, nama: x.kodSubjek, nilai: x.peratusMerah })), { maks: 100, format: v => v + '%' }) : '<p class="kecil">Tiada data.</p>') +
+    '</div>';
 }
 
 function renderDashboardGuru(d) {
-  document.getElementById('content').innerHTML = `
+  const senarai = d.senarai || [];
+  const pelajarUnik = new Set(senarai.map(r => r.ID_Pelajar)).size;
+  const risiko = {};
+  senarai.forEach(r => { const k = (r.ETR_Gred && (r.SEBENAR_Gred || r.AR2_Gred || r.AR1_Gred)) ? r.risiko : 'TIADA_DATA'; risiko[k] = (risiko[k] || 0) + 1; });
+  const status = { HIJAU: 0, KUNING: 0, MERAH: 0 };
+  senarai.forEach(r => { if (status[r.statusGapETR] !== undefined) status[r.statusGapETR]++; });
+  const ikutSubjek = {};
+  senarai.forEach(r => { const k = namaSubjek(r.KodSubjek); ikutSubjek[k] = (ikutSubjek[k] || 0) + (r.risiko === 'BERISIKO' ? 1 : 0); });
+  const peranan = (S.perananSemua.length ? S.perananSemua : [S.peranan]).map(r => LABEL_PERANAN[r] || r).join(' + ');
+  document.getElementById('content').innerHTML = bannerSalam(
+    'Pelajar di bawah seliaan anda bagi Semester ' + S.semester.slice(1) + ' — semak status ETR, trend dan risiko, kemudian isi markah di menu Headcount / Markah Ujian.',
+    [ikon('kumpulan') + escapeHtml(peranan), ikon('topi') + pelajarUnik + ' pelajar', ikon('buku') + Object.keys(ikutSubjek).length + ' mata pelajaran']) +
+    '<div class="lp-kpi">' +
+      kadKPI('topi', '', pelajarUnik, 'Pelajar Seliaan', senarai.length + ' rekod subjek') +
+      kadKPI('semak', 'hijau', status.HIJAU, 'Status Hijau', 'Capai / atas ETR') +
+      kadKPI('lapisan', 'kuning', status.KUNING, 'Status Kuning', 'Hampir ETR') +
+      kadKPI('amaran', 'merah', risiko.BERISIKO || 0, 'Berisiko', 'Perlu intervensi') +
+    '</div>' + (senarai.length ? '<div class="lp-carta">' +
+      panelCarta('Taburan Risiko', '', cartaDonut(risiko, ['SELAMAT', 'PERLU_PEMANTAUAN', 'BERISIKO', 'TIADA_DATA'], 'rekod')) +
+      panelCarta('Rekod Berisiko Mengikut Subjek', '', cartaBar(Object.keys(ikutSubjek).map(k => ({ label: k, nilai: ikutSubjek[k] })).sort((a, b) => b.nilai - a.nilai))) +
+    '</div>' : '') + `
     <div class="panel">
       <h3>Pelajar Bawah Seliaan — Semester ${S.semester.slice(1)}</h3>
       <p class="kecil">Format paparan: Markah (Gred).</p>
       <div class="tbl-scroll"><table><thead><tr>
-        <th>Pelajar</th><th>Kelas</th><th>Subjek</th><th>TOV</th><th>OTR1</th><th>AR1</th><th>OTR2</th><th>AR2</th><th>ETR</th><th>Sebenar</th><th>Status</th><th>Trend</th><th>Risiko</th><th>Intervensi</th>
+        <th>Pelajar</th><th>Kelas</th><th>Mata Pelajaran</th><th>TOV</th><th>OTR1</th><th>AR1</th><th>OTR2</th><th>AR2</th><th>ETR</th><th>Sebenar</th><th>Status</th><th>Trend</th><th>Risiko</th><th>Intervensi</th>
       </tr></thead><tbody>
-        ${d.senarai.map(r => `<tr>
-          <td>${escapeHtml(r.namaPelajar)}</td><td>${escapeHtml(r.kelas)}</td><td>${escapeHtml(r.KodSubjek)}</td>
+        ${senarai.slice().sort((a, b) => String(a.kelas).localeCompare(String(b.kelas)) || String(a.namaPelajar).localeCompare(String(b.namaPelajar))).map(r => `<tr>
+          <td><b>${escapeHtml(r.namaPelajar)}</b></td><td>${escapeHtml(r.kelas)}</td><td>${escapeHtml(namaSubjek(r.KodSubjek))}</td>
           <td>${formatMG(r.TOV_Markah, r.TOV_Gred)}</td><td>${formatMG(r.OTR1_Markah, r.OTR1_Gred)}</td><td>${formatMG(r.AR1_Markah, r.AR1_Gred)}</td>
           <td>${formatMG(r.OTR2_Markah, r.OTR2_Gred)}</td><td>${formatMG(r.AR2_Markah, r.AR2_Gred)}</td><td>${formatMG(r.ETR_Markah, r.ETR_Gred)}</td><td>${formatMG(r.SEBENAR_Markah, r.SEBENAR_Gred)}</td>
           <td>${lencana(r.statusGapETR)}</td><td>${lencana(r.trend)}</td><td>${lencana(r.risiko)}</td><td>${r.bilanganIntervensi}</td>
@@ -900,11 +1196,10 @@ function renderPelajar(senarai) {
       <h3>Pendaftaran Subjek — Individu</h3>
       <p class="kecil">Untuk daftar/batal satu pelajar bagi satu subjek sahaja (cth. pelajar ambil subjek tambahan berbeza daripada kelasnya).</p>
       <div class="borang-grid">
-        <div><label>ID Pelajar</label><input id="rIdPelajar" placeholder="cth. P001" list="senaraiIdPelajar"></div>
+        <div><label>Pelajar</label>${pilihanPelajarHtml('rIdPelajar', senarai.filter(x => String(x.Status).toUpperCase() === 'AKTIF'))}</div>
         <div><label>Kod Subjek</label><select id="rKodSubjek">${S.cacheSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('')}</select></div>
         <div><label>Tahun STPM</label><input id="rTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
       </div>
-      <datalist id="senaraiIdPelajar">${senarai.map(s=>'<option value="'+escapeHtml(s.ID_Pelajar)+'">'+escapeHtml(s.Nama)+'</option>').join('')}</datalist>
       <button id="btnDaftarIndividu">Daftar</button>
       <div id="senaraiPendaftaranIndividu" style="margin-top:12px"></div>
     </div>
@@ -933,10 +1228,10 @@ function renderPelajar(senarai) {
       (anggap satu kelas = satu aliran/set subjek sama). Rekod headcount/markah sejarah bagi subjek lama TIDAK disentuh.
       ${adaPeranan('GURU_TINGKATAN') ? '<br>Sebagai Guru Tingkatan, anda hanya boleh urus pelajar yang KELAS SEMASANYA dalam kelas jagaan anda: <b>'+escapeHtml((S.skopKelas||[]).join(', ') || '(tiada)')+'</b>.' : ''}</p>
       <div class="borang-grid">
-        <div><label>ID Pelajar</label><input id="tkIdPelajar" placeholder="cth. P001" list="senaraiIdPelajarTK"></div>
-        <div><label>Kelas Baharu</label><input id="tkKelasBaharu" placeholder="cth. 6A ALAMANDA"></div>
+        <div><label>Pelajar</label>${pilihanPelajarHtml('tkIdPelajar', senarai.filter(x => String(x.Status).toUpperCase() === 'AKTIF'))}</div>
+        <div><label>Kelas Baharu</label><input id="tkKelasBaharu" placeholder="cth. 6A ALAMANDA" list="senaraiKelasTK"></div>
       </div>
-      <datalist id="senaraiIdPelajarTK">${senarai.map(s=>'<option value="'+escapeHtml(s.ID_Pelajar)+'">'+escapeHtml(s.Nama)+' ('+escapeHtml(s.Kelas)+')</option>').join('')}</datalist>
+      <datalist id="senaraiKelasTK">${Array.from(new Set(senarai.map(x => x.Kelas).filter(Boolean))).sort().map(k => '<option value="' + escapeHtml(k) + '">').join('')}</datalist>
       <label>Sebab (opsyenal)</label><input id="tkSebab" placeholder="cth. Tukar aliran">
       <button id="btnTukarKelas">Tukar Kelas</button>
       <div id="hasilTukarKelas" style="margin-top:12px"></div>
@@ -945,8 +1240,8 @@ function renderPelajar(senarai) {
   document.getElementById('content').innerHTML = borang + borangTukarKelas + `
     <div class="panel">
       <h3>Senarai Pelajar (${senarai.length})</h3>
-      <input id="carianPelajar" placeholder="Cari nama / No. KP / ID..." style="max-width:280px">
-      <div class="tbl-scroll"><table><thead><tr><th>ID</th><th>Nama</th><th>Kelas</th><th>Tahun</th><th>Status</th>${bolehUrus()?'<th></th>':''}</tr></thead>
+      <input id="carianPelajar" placeholder="Cari nama pelajar / kelas..." style="max-width:280px">
+      <div class="tbl-scroll"><table><thead><tr><th>Bil</th><th>Nama Pelajar</th><th>Kelas</th><th>Tahun</th><th>Status</th>${bolehUrus()?'<th></th>':''}</tr></thead>
       <tbody id="tbodyPelajar"></tbody></table></div>
       <div id="paginasiPelajar"></div>
     </div>`;
@@ -954,7 +1249,7 @@ function renderPelajar(senarai) {
   isiJadualPelajar(senarai);
   document.getElementById('carianPelajar').addEventListener('input', e => {
     const k = e.target.value.toLowerCase();
-    isiJadualPelajar(senarai.filter(s => s.Nama.toLowerCase().includes(k) || String(s.NoKP).includes(k) || s.ID_Pelajar.toLowerCase().includes(k)));
+    isiJadualPelajar(senarai.filter(s => s.Nama.toLowerCase().includes(k) || String(s.Kelas).toLowerCase().includes(k) || String(s.NoKP).includes(k)));
   });
 
   if (bolehTukarKelas()) {
@@ -1076,12 +1371,13 @@ function muatArkib() {
       <div class="panel">
         <h3>Pelajar Diarkibkan — Tamat Belajar (${res.senarai.length})</h3>
         <p class="kecil">Pelajar di sini TIDAK dipaparkan dalam senarai "Pelajar" harian. Rekod headcount/markah/intervensi sejarah kekal tidak tersentuh.</p>
-        <div class="tbl-scroll"><table><thead><tr><th>ID</th><th>Nama</th><th>Kelas</th><th>Tahun</th><th></th></tr></thead>
+        <div class="tbl-scroll"><table><thead><tr><th>Bil</th><th>Nama Pelajar</th><th>Kelas</th><th>Tahun</th><th></th></tr></thead>
         <tbody id="tbodyArkib"></tbody></table></div>
         <div id="paginasiArkib"></div>
       </div>`;
-    paparkanBerhalaman('tbodyArkib', 'paginasiArkib', res.senarai, { m: 1 }, baris => baris.map(s => `<tr>
-        <td>${escapeHtml(s.ID_Pelajar)}</td><td>${escapeHtml(s.Nama)}</td><td>${escapeHtml(s.Kelas)}</td><td>${escapeHtml(s.TahunSTPM)}</td>
+    const mukaArkib = { m: 1 };
+    paparkanBerhalaman('tbodyArkib', 'paginasiArkib', res.senarai, mukaArkib, baris => baris.map((s, i) => `<tr>
+        <td class="kecil">${(mukaArkib.m - 1) * SAIZ_MUKA_LALAI + i + 1}</td><td><b>${escapeHtml(s.Nama)}</b></td><td>${escapeHtml(s.Kelas)}</td><td>${escapeHtml(s.TahunSTPM)}</td>
         <td><span class="aksi-link" onclick="nyahArkibPelajar('${escapeHtml(s.ID_Pelajar)}')">Nyah-Arkib</span></td>
       </tr>`).join('') || '<tr><td colspan=5 class="kecil">Tiada pelajar diarkibkan.</td></tr>');
   }).catch(renderRalat);
@@ -1090,15 +1386,15 @@ function muatArkib() {
 function nyahArkibPelajar(id) {
   const s = (S.cacheArkib || []).find(x => x.ID_Pelajar === id);
   const nama = s ? s.Nama : id;
-  if (!confirm('Nyah-arkibkan pelajar "' + nama + '" (' + id + ')? Pelajar akan muncul semula dalam senarai Pelajar harian (Status -> AKTIF).')) return;
+  if (!confirm('Nyah-arkibkan pelajar "' + nama + '"? Pelajar akan muncul semula dalam senarai Pelajar harian (Status -> AKTIF).')) return;
   panggil('apiNyahArkibPelajar', { token: S.token, idPelajar: id })
     .then(() => { tunjukMesej('Pelajar dinyah-arkibkan.'); muatArkib(); }).catch(err => tunjukMesej(err, 'ralat'));
 }
 
 function isiJadualPelajar(senarai) {
   S.mukaPelajar = { m: 1 }; // senarai baharu (carian/muat semula) -> kembali ke muka 1
-  paparkanBerhalaman('tbodyPelajar', 'paginasiPelajar', senarai, S.mukaPelajar, baris => baris.map(s => `<tr>
-    <td>${escapeHtml(s.ID_Pelajar)}</td><td>${escapeHtml(s.Nama)}</td><td>${escapeHtml(s.Kelas)}</td><td>${escapeHtml(s.TahunSTPM)}</td>
+  paparkanBerhalaman('tbodyPelajar', 'paginasiPelajar', senarai, S.mukaPelajar, baris => baris.map((s, i) => `<tr>
+    <td class="kecil">${(S.mukaPelajar.m - 1) * SAIZ_MUKA_LALAI + i + 1}</td><td><b>${escapeHtml(s.Nama)}</b></td><td>${escapeHtml(s.Kelas)}</td><td>${escapeHtml(s.TahunSTPM)}</td>
     <td>${lencana(s.Status)}</td>
     ${bolehUrus() ? '<td><span class="aksi-link" onclick="isiFormPelajar(\''+s.ID_Pelajar+'\')">Edit</span>' +
       '<span class="aksi-link" onclick="arkibkanPelajarSatu(\''+s.ID_Pelajar+'\')">Arkib</span>' +
@@ -1840,7 +2136,7 @@ function muatMuetPenetapan() {
         <div class="tbl-scroll" style="max-height:none"><table>
           <thead><tr><th>Guru</th><th>Kelas Diajar</th><th></th></tr></thead>
           <tbody>${res.guru.map(g => `<tr data-nokp="${escapeHtml(g.nokp)}">
-            <td style="white-space:normal;min-width:160px"><b>${escapeHtml(g.nama)}</b><br><span class="kecil">${escapeHtml(g.nokp)} · ${escapeHtml(g.peranan)}</span></td>
+            <td style="white-space:normal;min-width:160px"><b>${escapeHtml(g.nama)}</b><br><span class="kecil">${escapeHtml(labelPeranan(g.peranan.replace(/ \+ /g, ',')))}</span></td>
             <td style="white-space:normal">${res.kelas.map(k => '<label class="cip-kelas"><input type="checkbox" value="' + escapeHtml(k.kunci) + '"' +
               (g.kelas.indexOf(k.kunci) !== -1 ? ' checked' : '') + '>' + escapeHtml(k.nama) + '</label>').join('')}</td>
             <td><button class="btn-simpan-penetapan">Simpan</button></td>
@@ -2216,10 +2512,12 @@ function muatTugasSaya() {
   if (bolehUrus()) panggilan.push(panggil('apiSenaraiSubjek', { token: S.token }));
   // apiSenaraiPengguna khas ADMIN sahaja (rujuk AuthService.gs) — untuk cadangan senarai nama.
   if (bolehUrus()) panggilan.push(panggil('apiSenaraiPengguna', { token: S.token }));
+  if (bolehUrus()) panggilan.push(panggil('apiSenaraiKelasSekolah', { token: S.token, tahunSTPM: S.tahunSTPM }));
 
   Promise.all(panggilan).then(hasil => {
     if (bolehUrus()) S.cacheSubjek = hasil[1].senarai;
     S.cachePenggunaTugasan = (bolehUrus() && hasil[2]) ? hasil[2].senarai : [];
+    S.cacheKelasTugasan = (bolehUrus() && hasil[3]) ? hasil[3].senarai : [];
     renderTugasSaya(hasil[0].senarai);
   }).catch(renderRalat);
 }
@@ -2232,12 +2530,13 @@ function renderTugasSaya(senarai) {
       subjek. Jika guru ada tugasan ditetapkan untuk satu subjek, pilihan Kelas di Isi ETR/Markah Ujian akan disempitkan kepada
       kelas yang ditugaskan sahaja; jika tiada tugasan langsung, sistem kekal guna cara lama (ikut pendaftaran pelajar).</p>
       <div class="borang-grid">
-        <div><label>Guru (No. KP)</label><input id="tgNoKP" placeholder="cth. 900101011234" list="senaraiNoKPTugasan"></div>
-        <div><label>Kod Subjek</label><select id="tgKodSubjek">${S.cacheSubjek.map(s=>'<option value="'+s.KodSubjek+'">'+escapeHtml(s.KodSubjek)+' - '+escapeHtml(s.NamaSubjek)+'</option>').join('')}</select></div>
-        <div><label>Kelas</label><input id="tgKelas" placeholder="cth. 6A AKASIA"></div>
+        <div><label>Guru</label><select id="tgNoKP"><option value="">— Pilih guru —</option>${(S.cachePenggunaTugasan || [])
+          .filter(u => String(u.status || 'AKTIF').toUpperCase() === 'AKTIF').sort((a, b) => String(a.nama).localeCompare(String(b.nama)))
+          .map(u => '<option value="' + escapeHtml(String(u.nokp).replace(/\D/g, '').padStart(12, '0')) + '">' + escapeHtml(u.nama) + '</option>').join('')}</select></div>
+        <div><label>Mata Pelajaran</label>${pilihanSubjekHtml('tgKodSubjek', S.cacheSubjek)}</div>
+        <div><label>Kelas</label><select id="tgKelas">${(S.cacheKelasTugasan || []).map(k => '<option>' + escapeHtml(k) + '</option>').join('')}</select></div>
         <div><label>Tahun STPM</label><input id="tgTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
       </div>
-      <datalist id="senaraiNoKPTugasan">${(S.cachePenggunaTugasan||[]).map(u=>'<option value="'+escapeHtml(u.nokp)+'">'+escapeHtml(u.nama)+' ('+escapeHtml(u.peranan)+')</option>').join('')}</datalist>
       <button id="btnSimpanTugasan">Tetapkan Tugasan</button>
     </div>` : '';
 
@@ -2245,7 +2544,7 @@ function renderTugasSaya(senarai) {
     <div class="panel">
       <h3>${bolehUrus() ? 'Semua Tugasan' : 'Tugas Saya'} (${senarai.length})</h3>
       <div class="tbl-scroll"><table><thead><tr>${bolehUrus()?'<th>Guru</th>':''}<th>Subjek</th><th>Kelas</th><th>Tahun</th><th>Status</th><th></th></tr></thead>
-      <tbody>${senarai.map(t => `<tr>${bolehUrus()?'<td>'+escapeHtml(t.NoKP)+'</td>':''}<td>${escapeHtml(t.KodSubjek)}</td><td>${escapeHtml(t.Kelas)}</td><td>${escapeHtml(t.TahunSTPM)}</td><td>${lencana(t.StatusAktif)}</td>
+      <tbody>${senarai.map(t => `<tr>${bolehUrus()?'<td><b>'+escapeHtml(t.NamaGuru || t.NoKP)+'</b></td>':''}<td>${escapeHtml(t.NamaSubjek || t.KodSubjek)}</td><td>${escapeHtml(t.Kelas)}</td><td>${escapeHtml(t.TahunSTPM)}</td><td>${lencana(t.StatusAktif)}</td>
       <td>${bolehUrus()?'<span class="aksi-link" style="color:var(--merah)" onclick="padamTugasan(\''+t.ID_Tugasan+'\')">Padam</span>':''}</td></tr>`).join('') ||
       '<tr><td colspan='+(bolehUrus()?6:5)+' class="kecil">Tiada tugasan ditetapkan.</td></tr>'}</tbody></table></div>
     </div>`;
@@ -2270,20 +2569,21 @@ function muatUlangan() {
   document.getElementById('kawalanGlobal').innerHTML =
     '<select id="pilihSemesterUlangan"><option value="S1">Ulangan S1</option><option value="S2">Ulangan S2</option></select>' + pilihanTahunHtml();
   if (!S.semesterUlangan) S.semesterUlangan = 'S1';
-  panggil('apiSenaraiUlangan', { token: S.token, semester: S.semesterUlangan, tahunSTPM: S.tahunSTPM }).then(renderUlangan).catch(renderRalat);
+  Promise.all([panggil('apiSenaraiUlangan', { token: S.token, semester: S.semesterUlangan, tahunSTPM: S.tahunSTPM }), muatPelajarAktif(), muatSubjekSkop()])
+    .then(([res, pelajar, subjek]) => renderUlangan(res, pelajar, subjek)).catch(renderRalat);
   pasangPilihanTahun(muatUlangan);
   const elSem = document.getElementById('pilihSemesterUlangan');
   elSem.value = S.semesterUlangan;
   elSem.addEventListener('change', () => { S.semesterUlangan = elSem.value; muatUlangan(); });
 }
 
-function renderUlangan(res) {
+function renderUlangan(res, pelajar, subjek) {
   document.getElementById('content').innerHTML = `
     <div class="panel">
       <h3>Rekod Ulangan ${S.semesterUlangan}: ASAL → INTERVENSI → ULANGAN</h3>
       <div class="borang-grid">
-        <div><label>ID Pelajar</label><input id="uIdPelajar"></div>
-        <div><label>Kod Subjek</label><input id="uKodSubjek"></div>
+        <div><label>Pelajar</label>${pilihanPelajarHtml('uIdPelajar', pelajar)}</div>
+        <div><label>Mata Pelajaran</label>${pilihanSubjekHtml('uKodSubjek', subjek)}</div>
         <div><label>Tahun STPM</label><input id="uTahun" value="${escapeHtml(S.tahunSTPM || new Date().getFullYear())}"></div>
         <div><label>Keputusan Asal</label><input id="uAsal" placeholder="cth. D"></div>
         <div><label>Sasaran Ulangan</label><input id="uSasaran" placeholder="cth. C"></div>
@@ -2294,8 +2594,8 @@ function renderUlangan(res) {
       <button id="btnSimpanUlangan">Simpan</button>
     </div>
     <div class="panel"><h3>Senarai Ulangan (${res.senarai.length})</h3>
-    <div class="tbl-scroll"><table><thead><tr><th>Pelajar</th><th>Subjek</th><th>Asal</th><th>Sasaran</th><th>Ulangan</th><th>Perubahan</th><th>Status Perubahan</th><th>Status</th></tr></thead>
-    <tbody>${res.senarai.map(r => `<tr><td>${escapeHtml(r.ID_Pelajar)}</td><td>${escapeHtml(r.KodSubjek)}</td><td>${escapeHtml(r.KeputusanAsal)}</td><td>${escapeHtml(r.SasaranUlangan)}</td><td>${escapeHtml(r.KeputusanUlangan)}</td><td>${escapeHtml(r.PerubahanGred)}</td><td>${lencana(r.statusPerubahan)}</td><td>${escapeHtml(r.Status)}</td></tr>`).join('') || '<tr><td colspan=8 class="kecil">Tiada rekod.</td></tr>'}</tbody></table></div></div>`;
+    <div class="tbl-scroll"><table><thead><tr><th>Pelajar</th><th>Kelas</th><th>Mata Pelajaran</th><th>Asal</th><th>Sasaran</th><th>Ulangan</th><th>Perubahan</th><th>Status Perubahan</th><th>Status</th></tr></thead>
+    <tbody>${res.senarai.map(r => `<tr><td><b>${escapeHtml(r.NamaPelajar || r.ID_Pelajar)}</b></td><td>${escapeHtml(r.Kelas)}</td><td>${escapeHtml(r.NamaSubjek || r.KodSubjek)}</td><td>${escapeHtml(r.KeputusanAsal)}</td><td>${escapeHtml(r.SasaranUlangan)}</td><td>${escapeHtml(r.KeputusanUlangan)}</td><td>${escapeHtml(r.PerubahanGred)}</td><td>${lencana(r.statusPerubahan)}</td><td>${escapeHtml(r.Status)}</td></tr>`).join('') || '<tr><td colspan=9 class="kecil">Tiada rekod.</td></tr>'}</tbody></table></div></div>`;
 
   document.getElementById('btnSimpanUlangan').addEventListener('click', () => {
     panggil('apiSimpanUlangan', {
@@ -2315,11 +2615,12 @@ function muatIntervensi() {
   pasangPilihanTahun(muatIntervensi);
   Promise.all([
     panggil('apiSenaraiIntervensi', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }),
-    panggil('apiImpakIntervensi', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM })
-  ]).then(([senaraiRes, impakRes]) => renderIntervensi(senaraiRes, impakRes)).catch(renderRalat);
+    panggil('apiImpakIntervensi', { token: S.token, semester: S.semester, tahunSTPM: S.tahunSTPM }),
+    muatPelajarAktif(), muatSubjekSkop()
+  ]).then(([senaraiRes, impakRes, pelajar, subjek]) => renderIntervensi(senaraiRes, impakRes, pelajar, subjek)).catch(renderRalat);
 }
 
-function renderIntervensi(senaraiRes, impakRes) {
+function renderIntervensi(senaraiRes, impakRes, pelajar, subjek) {
   document.getElementById('content').innerHTML = `
     <div class="grid-kad">
       <div class="kad hijau"><div class="nilai">${impakRes.bilanganPulih}</div><div class="label">Pelajar Dipulihkan</div></div>
@@ -2329,8 +2630,8 @@ function renderIntervensi(senaraiRes, impakRes) {
     <div class="panel">
       <h3>Tambah Rekod Intervensi</h3>
       <div class="borang-grid">
-        <div><label>ID Pelajar</label><input id="iIdPelajar"></div>
-        <div><label>Kod Subjek</label><input id="iKodSubjek"></div>
+        <div><label>Pelajar</label>${pilihanPelajarHtml('iIdPelajar', pelajar)}</div>
+        <div><label>Mata Pelajaran</label>${pilihanSubjekHtml('iKodSubjek', subjek)}</div>
         <div><label>Jenis Intervensi</label><select id="iJenis">${senaraiRes.jenisIntervensiPilihan.map(j=>'<option>'+j+'</option>').join('')}</select></div>
         <div><label>Guru/PIC</label><input id="iPIC" value="${escapeHtml(S.nama)}"></div>
         <div><label>Tempoh</label><input id="iTempoh" placeholder="cth. 2 minggu"></div>
@@ -2342,9 +2643,9 @@ function renderIntervensi(senaraiRes, impakRes) {
       <button id="btnSimpanIntervensi">Simpan Intervensi</button>
     </div>
     <div class="panel"><h3>Senarai Intervensi Semester ${S.semester.slice(1)} (${senaraiRes.senarai.length})</h3>
-    <div class="tbl-scroll"><table><thead><tr><th>Pelajar</th><th>Subjek</th><th>Jenis</th><th>PIC</th><th>Tarikh</th><th>Status</th><th></th></tr></thead>
-    <tbody>${senaraiRes.senarai.map(i => `<tr><td>${escapeHtml(i.ID_Pelajar)}</td><td>${escapeHtml(i.KodSubjek)}</td><td>${escapeHtml(i.JenisIntervensi)}</td><td>${escapeHtml(i.GuruPIC)}</td><td>${escapeHtml(i.Tarikh)}</td><td>${escapeHtml(i.Status)}</td>
-    <td><span class="aksi-link" style="color:var(--merah)" onclick="padamIntervensi('${escapeHtml(i.ID_Intervensi)}')">Padam</span></td></tr>`).join('') || '<tr><td colspan=7 class="kecil">Tiada rekod.</td></tr>'}</tbody></table></div></div>`;
+    <div class="tbl-scroll"><table><thead><tr><th>Pelajar</th><th>Kelas</th><th>Mata Pelajaran</th><th>Jenis</th><th>Guru PIC</th><th>Tarikh</th><th>Status</th><th></th></tr></thead>
+    <tbody>${senaraiRes.senarai.map(i => `<tr><td><b>${escapeHtml(i.NamaPelajar || i.ID_Pelajar)}</b></td><td>${escapeHtml(i.Kelas)}</td><td>${escapeHtml(i.NamaSubjek || i.KodSubjek)}</td><td>${escapeHtml(i.JenisIntervensi)}</td><td>${escapeHtml(i.GuruPIC)}</td><td>${escapeHtml(i.Tarikh)}</td><td>${escapeHtml(i.Status)}</td>
+    <td><span class="aksi-link" style="color:var(--merah)" onclick="padamIntervensi('${escapeHtml(i.ID_Intervensi)}')">Padam</span></td></tr>`).join('') || '<tr><td colspan=8 class="kecil">Tiada rekod.</td></tr>'}</tbody></table></div></div>`;
 
   document.getElementById('btnSimpanIntervensi').addEventListener('click', () => {
     panggil('apiSimpanIntervensi', {
@@ -2408,14 +2709,20 @@ function muatHighImpact() {
 
 /* MODUL 21 — What-If Analysis (SIMULASI sahaja, tidak ubah data sebenar) */
 function muatWhatIf() {
+  document.getElementById('subAnalisis').innerHTML = '<div class="muatan">Memuatkan...</div>';
+  Promise.all([muatPelajarAktif(), muatSubjekSkop()]).then(([pelajar, subjek]) => renderWhatIf(pelajar, subjek))
+    .catch(err => { document.getElementById('subAnalisis').innerHTML = '<div class="mesej ralat">' + escapeHtml(err) + '</div>'; });
+}
+
+function renderWhatIf(pelajar, subjek) {
   document.getElementById('subAnalisis').innerHTML = `
     <div class="panel">
       <h3>Simulasi What-If <span class="lencana KUNING">SIMULASI</span></h3>
       <p class="kecil">Anggaran sahaja — TIDAK mengubah data sebenar dalam sistem.</p>
       <div class="borang-grid">
-        <div><label>ID Pelajar</label><input id="wIdPelajar"></div>
+        <div><label>Pelajar</label>${pilihanPelajarHtml('wIdPelajar', pelajar)}</div>
         <div><label>Semester</label><select id="wSemester"><option>S1</option><option>S2</option><option>S3</option></select></div>
-        <div><label>Kod Subjek</label><input id="wKodSubjek"></div>
+        <div><label>Mata Pelajaran</label>${pilihanSubjekHtml('wKodSubjek', subjek)}</div>
         <div><label>Markah Hipotesis (0-100)</label><input id="wMarkahBaru" type="number" min="0" max="100" step="0.5" placeholder="cth. 78"></div>
       </div>
       <button id="btnSimulasi">Jana Simulasi</button>
@@ -2431,7 +2738,7 @@ function muatWhatIf() {
     }).then(res => {
       document.getElementById('hasilSimulasi').innerHTML = `
         <div class="panel">
-          <h3><span class="lencana KUNING">SIMULASI</span> ${escapeHtml(res.idPelajar)} — ${escapeHtml(res.kodSubjek)} (${escapeHtml(res.semester)})</h3>
+          <h3><span class="lencana KUNING">SIMULASI</span> ${escapeHtml(res.namaPelajar || res.idPelajar)} — ${escapeHtml(res.namaSubjek || res.kodSubjek)} (${escapeHtml(res.semester)})</h3>
           <p>Semasa: <b>${formatMG(res.markahSemasa, res.gredSemasa)}</b> &rarr; Hipotesis: <b>${formatMG(res.markahBaru, res.gredBaru)}</b></p>
           <div class="grid-kad">
             <div class="kad"><div class="nilai">${res.pngkSemasa ?? '-'}</div><div class="label">PNGK Semasa</div></div>
@@ -2465,8 +2772,51 @@ const IKON = {
   semak: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/>',
   jam: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
   cetak: '<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
-  muatTurun: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>'
+  muatTurun: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>',
+  rumah: '<path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/>',
+  topi: '<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/>',
+  arkib: '<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>',
+  skala: '<path d="M12 3v18M5 7h14M5 7l-3 7a4 4 0 0 0 6 0zM19 7l-3 7a4 4 0 0 0 6 0z"/>',
+  pensel: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  dunia: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>',
+  beg: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2M2 13h20"/>',
+  fail: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/>',
+  kunci: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  pangkalan: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/>'
 };
+const IKON_NAV = { dashboard: 'rumah', pelajar: 'topi', arkib: 'arkib', subjek: 'buku', bld: 'skala', headcount: 'papan', ujian: 'pensel', muet: 'dunia',
+  tugassaya: 'beg', ulangan: 'ulang', intervensi: 'sasaran', analisis: 'carta', laporan: 'fail', kunci: 'kunci', pengguna: 'kumpulan', tetapan: 'gear' };
+
+/* Hias antara muka sekali semasa halaman dimuat: ikon menu & ikon panel log masuk. */
+function hiasAntaraMuka() {
+  document.querySelectorAll('.nav-item[data-halaman]').forEach(el => {
+    if (el.querySelector('.ikon-nav')) return;
+    el.insertAdjacentHTML('afterbegin', '<span class="ikon-nav">' + ikon(IKON_NAV[el.dataset.halaman] || 'papan') + '</span>');
+  });
+  document.querySelectorAll('[data-ikon]').forEach(el => { if (!el.innerHTML) el.innerHTML = ikon(el.dataset.ikon); });
+}
+function sembunyiSkrinMula() {
+  const el = document.getElementById('skrinMula');
+  if (!el || el.classList.contains('hilang')) return;
+  el.classList.add('hilang');
+  setTimeout(() => { el.style.display = 'none'; }, 320);
+}
+/* Sembunyikan tajuk kumpulan menu jika semua item dalam kumpulan itu disorok. */
+function kemaskiniKumpulanNav() {
+  document.querySelectorAll('#sidebar .kumpulan-nav').forEach(k => {
+    let el = k.nextElementSibling, ada = false;
+    while (el && !el.classList.contains('kumpulan-nav')) { if (el.classList.contains('nav-item') && el.style.display !== 'none') ada = true; el = el.nextElementSibling; }
+    k.style.display = ada ? '' : 'none';
+  });
+}
+function teksSalam() {
+  const j = new Date().getHours();
+  const salam = j < 12 ? 'Selamat pagi' : j < 15 ? 'Selamat tengah hari' : j < 19 ? 'Selamat petang' : 'Selamat malam';
+  const hari = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'][new Date().getDay()];
+  const t = new Date();
+  return { salam, tarikh: hari + ', ' + t.getDate() + ' ' + BULAN_MELAYU[t.getMonth()] + ' ' + t.getFullYear() };
+}
 function ikon(nama) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + IKON[nama] + '</svg>'; }
 
 const JENIS_LAPORAN = {
@@ -2486,6 +2836,7 @@ const WARNA_STATUS = {
   SELAMAT: ['#0ca30c', '✓'], PERLU_PEMANTAUAN: ['#fab219', '!'], BERISIKO: ['#d03b3b', '✕'], TIADA_DATA: ['#c3c2b7', '–'],
   MENINGKAT: ['#0ca30c', '↑'], KONSISTEN: ['#2a78d6', '='], TIDAK_STABIL: ['#ec835a', '~'], MENURUN: ['#d03b3b', '↓'], TIDAK_CUKUP_DATA: ['#c3c2b7', '–'],
   SELESAI: ['#0ca30c', '✓'], DIJALANKAN: ['#2a78d6', '…'],
+  HIJAU: ['#0ca30c', '✓'], KUNING: ['#fab219', '!'], MERAH: ['#d03b3b', '✕'],
   BERJAYA_MENINGKAT: ['#0ca30c', '↑'], KEKAL: ['#2a78d6', '='], MASIH_GAGAL: ['#d03b3b', '✕'], BELUM_DINILAI: ['#c3c2b7', '–']
 };
 function labelStatus(k) { return String(k || '').toLowerCase().replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()); }
@@ -2927,6 +3278,137 @@ function mulaDetik() {
   }, 1000);
 }
 
+/* ======================= TETAPAN SISTEM (Admin) =======================
+   Semua yang dahulu perlu diubah dalam Google Sheet: konfigurasi, jadual gred,
+   band MUET, semakan struktur Sheet (migrasi) dan log audit. */
+function muatTetapan() {
+  if (!bolehUrus()) { renderRalat('Hanya Admin boleh membuka Tetapan Sistem.'); return; }
+  if (!S.subTetapan) S.subTetapan = 'ringkasan';
+  document.getElementById('content').innerHTML = `
+    <div class="panel" style="padding-bottom:8px">
+      ${[['ringkasan', 'Ringkasan & Struktur'], ['konfig', 'Konfigurasi'], ['gred', 'Jadual Gred'], ['band', 'Band MUET'], ['audit', 'Log Audit']]
+        .map(([k, l]) => '<span class="tab-link" data-sub="' + k + '">' + l + '</span>').join('')}
+    </div><div id="subTetapan"><div class="muatan">Memuatkan tetapan...</div></div>`;
+  document.querySelectorAll('#content .tab-link[data-sub]').forEach(el => {
+    el.classList.toggle('aktif', el.dataset.sub === S.subTetapan);
+    el.addEventListener('click', () => { S.subTetapan = el.dataset.sub; muatTetapan(); });
+  });
+  if (S.subTetapan === 'audit') { renderAudit(); return; }
+  panggil('apiTetapanSistem', { token: S.token }).then(res => {
+    S.tetapan = res;
+    ({ ringkasan: renderTetapanRingkasan, konfig: renderTetapanKonfig, gred: renderTetapanGred, band: renderTetapanBand })[S.subTetapan](res);
+  }).catch(err => { document.getElementById('subTetapan').innerHTML = '<div class="mesej ralat">' + escapeHtml(err) + '</div>'; });
+}
+
+function renderTetapanRingkasan(res) {
+  const st = res.statistik;
+  document.getElementById('subTetapan').innerHTML = `
+    <div class="lp-kpi">
+      ${kadKPI('kumpulan', '', st.pengguna, 'Pengguna Aktif')}${kadKPI('topi', 'ungu', st.pelajarAktif, 'Pelajar Aktif', st.pelajarArkib + ' diarkibkan')}
+      ${kadKPI('buku', '', st.subjek, 'Mata Pelajaran', st.pendaftaran + ' pendaftaran')}${kadKPI('papan', 'hijau', st.headcount, 'Rekod Headcount', 'S1 + S2 + S3')}
+      ${kadKPI('dunia', 'kuning', st.muet, 'Rekod MUET')}${kadKPI('fail', '', st.audit, 'Log Audit')}
+    </div>
+    <div class="panel"><h3>Struktur Pangkalan Data</h3>
+      <p class="kecil">Sistem menyemak semua Sheet dan lajur yang diperlukan. Klik <b>Semak &amp; Kemaskini Struktur</b> selepas setiap kemas kini sistem —
+      Sheet/lajur yang tiada akan dicipta dan peranan lama ditukar secara automatik. Selamat dijalankan berulang kali; tiada data dipadam.
+      Admin <b>tidak perlu membuka Google Sheet</b> untuk sebarang tetapan.</p>
+      ${res.struktur.length ? '<div class="mesej amaran"><b>Perlu dikemas kini:</b><br>' + res.struktur.map(escapeHtml).join('<br>') + '</div>'
+        : '<div class="mesej jaya">Struktur pangkalan data lengkap dan terkini.</div>'}
+      <div class="butang-baris"><button id="btnSemakStruktur">${ikon('pangkalan')} Semak &amp; Kemaskini Struktur</button>
+        <button class="sekunder" id="btnBukaSheet">${ikon('fail')} Buka Google Sheet (pilihan)</button></div>
+      <div id="hasilStruktur" style="margin-top:12px"></div>
+    </div>`;
+  document.querySelectorAll('#subTetapan button svg').forEach(x => { x.setAttribute('width', 16); x.setAttribute('height', 16); x.style.cssText = 'vertical-align:-3px;margin-right:4px;stroke:currentColor;fill:none;stroke-width:2'; });
+  document.getElementById('btnBukaSheet').addEventListener('click', () => window.open(res.urlSheet, '_blank'));
+  document.getElementById('btnSemakStruktur').addEventListener('click', () => {
+    const btn = document.getElementById('btnSemakStruktur');
+    btn.disabled = true;
+    panggil('apiSemakStruktur', { token: S.token }).then(r => {
+      tunjukMesej(r.mesej.length ? 'Struktur dikemas kini (' + r.mesej.length + ' perubahan).' : 'Struktur sudah terkini.');
+      muatTetapan();
+    }).catch(err => { tunjukMesej(err, 'ralat'); btn.disabled = false; });
+  });
+}
+
+function renderTetapanKonfig(res) {
+  const medan = k => {
+    const id = 'kf_' + k.kunci;
+    if (k.jenis === 'semester') return '<select id="' + id + '">' + ['S1', 'S2', 'S3'].map(x => '<option' + (x === k.nilai ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>';
+    if (k.jenis === 'tahun') return '<input id="' + id + '" inputmode="numeric" value="' + escapeHtml(k.nilai) + '" list="kfSenaraiTahun">';
+    return '<input id="' + id + '" value="' + escapeHtml(k.nilai) + '"' + (k.jenis === 'nilai' ? ' type="number" min="0" max="4" step="0.01"' : '') + '>';
+  };
+  const kumpulan = [['Identiti Sekolah', ['schoolName', 'namaPenuhSekolah', 'alamatSekolah', 'namaPengetua', 'namaPKT6']],
+    ['Kohort & Semester', ['tahunSTPMAktif', 'semesterAktif']], ['Sasaran & Ambang Analisis', ['sasaranGPS', 'sasaranPNGK', 'thresholdGapKuning', 'thresholdRisikoPemantauan', 'thresholdRisikoBerisiko']]];
+  document.getElementById('subTetapan').innerHTML = kumpulan.map(([tajuk, kunci]) => `<div class="panel"><h3>${tajuk}</h3><div class="borang-grid">
+      ${kunci.map(kk => res.konfig.find(x => x.kunci === kk)).filter(Boolean).map(k => '<div><label>' + escapeHtml(k.label) + '</label>' + medan(k) +
+        (k.ket ? '<div class="kecil" style="margin:-8px 0 10px">' + escapeHtml(k.ket) + '</div>' : '') + '</div>').join('')}
+    </div></div>`).join('') +
+    '<datalist id="kfSenaraiTahun">' + (S.senaraiTahun || []).map(t => '<option value="' + escapeHtml(t) + '">').join('') + '</datalist>' +
+    '<button id="btnSimpanKonfig">Simpan Konfigurasi</button>';
+  document.getElementById('btnSimpanKonfig').addEventListener('click', () => {
+    const nilai = {};
+    res.konfig.forEach(k => { const el = document.getElementById('kf_' + k.kunci); if (el) nilai[k.kunci] = el.value; });
+    panggil('apiSimpanKonfigSistem', { token: S.token, nilai })
+      .then(r => { tunjukMesej(r.diubah ? r.diubah + ' tetapan disimpan.' : 'Tiada perubahan.'); muatTetapan(); }).catch(err => tunjukMesej(err, 'ralat'));
+  });
+}
+
+/* Editor jadual umum (tambah/padam baris) — dipakai Jadual Gred & Band MUET. */
+function editorJadual(idKotak, lajur, baris, fnSimpan, nota) {
+  const kotak = document.getElementById(idKotak);
+  const barisHtml = b => '<tr>' + lajur.map(l => '<td>' + (l.pilihan
+    ? '<select data-k="' + l.k + '">' + l.pilihan.map(p => '<option' + (String(b[l.k]) === p ? ' selected' : '') + '>' + p + '</option>').join('') + '</select>'
+    : '<input data-k="' + l.k + '" value="' + escapeHtml(b[l.k] === undefined ? '' : b[l.k]) + '"' + (l.nombor ? ' type="number" step="any"' : '') + '>') + '</td>').join('') +
+    '<td><span class="aksi-link" style="color:var(--merah)" data-padam>Padam</span></td></tr>';
+  kotak.innerHTML = `<div class="panel"><h3>${nota.tajuk}</h3><p class="kecil">${nota.teks}</p>
+    <div class="tbl-scroll" style="max-height:none"><table class="jadual-sunting"><thead><tr>${lajur.map(l => '<th>' + l.label + '</th>').join('')}<th></th></tr></thead>
+    <tbody>${baris.map(barisHtml).join('')}</tbody></table></div>
+    <div class="butang-baris" style="margin-top:12px"><button id="btnSimpanJadual">Simpan Jadual</button><button class="sekunder" id="btnTambahBaris">+ Tambah Baris</button></div></div>`;
+  const tbody = kotak.querySelector('tbody');
+  const pasangPadam = () => tbody.querySelectorAll('[data-padam]').forEach(x => { x.onclick = () => x.closest('tr').remove(); });
+  pasangPadam();
+  document.getElementById('btnTambahBaris').addEventListener('click', () => { tbody.insertAdjacentHTML('beforeend', barisHtml({})); pasangPadam(); });
+  document.getElementById('btnSimpanJadual').addEventListener('click', () => {
+    const senarai = Array.from(tbody.querySelectorAll('tr')).map(tr => {
+      const o = {}; tr.querySelectorAll('[data-k]').forEach(i => { o[i.dataset.k] = i.value; }); return o;
+    });
+    fnSimpan(senarai);
+  });
+}
+
+function renderTetapanGred(res) {
+  editorJadual('subTetapan', [{ k: 'Gred', label: 'Gred' }, { k: 'NilaiGred', label: 'Nilai Gred (0 – 4)', nombor: true }, { k: 'Lulus', label: 'Lulus', pilihan: ['YA', 'TIDAK'] }],
+    res.gred, senarai => panggil('apiSimpanJadualGred', { token: S.token, senarai })
+      .then(r => { tunjukMesej('Jadual gred disimpan (' + r.bil + ' gred).'); muatTetapan(); }).catch(err => tunjukMesej(err, 'ralat')),
+    { tajuk: 'Jadual Gred & Nilai Gred', teks: 'Nilai gred dipakai untuk mengira GPS, PNGK, gap dan risiko. Gred yang masih digunakan dalam Skema Gred (BLD) tidak boleh dipadam.' });
+}
+
+function renderTetapanBand(res) {
+  editorJadual('subTetapan', [{ k: 'Band', label: 'Band' }, { k: 'MarkahMin', label: 'Markah Min', nombor: true }, { k: 'MarkahMax', label: 'Markah Max', nombor: true },
+    { k: 'NilaiBand', label: 'Nilai Band (GPMP)', nombor: true }],
+    res.bandMuet, senarai => panggil('apiSimpanBandMuet', { token: S.token, senarai })
+      .then(r => { tunjukMesej('Jadual band MUET disimpan (' + r.bil + ' band).'); muatTetapan(); }).catch(err => tunjukMesej(err, 'ralat')),
+    { tajuk: 'Band MUET (jumlah 360)', teks: 'Julat jumlah markah bagi setiap band dan nilai band untuk GPMP/GPS MUET. Julat tidak boleh bertindih. Pindaan terus berkuat kuasa pada semua rekod.' });
+}
+
+function renderAudit() {
+  const kotak = document.getElementById('subTetapan');
+  panggil('apiSenaraiAudit', { token: S.token }).then(res => {
+    kotak.innerHTML = `<div class="panel"><h3>Log Audit (500 terkini)</h3>
+      <div class="penapis" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><input id="auCari" placeholder="Cari pengguna / modul / butiran..." style="max-width:320px;margin:0"></div>
+      <div class="tbl-scroll"><table><thead><tr><th>Masa</th><th>Pengguna</th><th>Tindakan</th><th>Modul</th><th>Butiran</th></tr></thead><tbody id="tbodyAudit"></tbody></table></div>
+      <div id="paginasiAudit"></div></div>`;
+    const papar = senarai => paparkanBerhalaman('tbodyAudit', 'paginasiAudit', senarai, { m: 1 }, b => b.map(a => `<tr><td class="kecil">${escapeHtml(a.Timestamp)}</td>
+      <td><b>${escapeHtml(a.NamaPengguna)}</b><br><span class="kecil">${escapeHtml(LABEL_PERANAN[a.Peranan] || a.Peranan)}</span></td><td>${escapeHtml(a.Tindakan)}</td>
+      <td>${escapeHtml(a.Modul)}</td><td class="teks" style="white-space:normal;min-width:240px">${escapeHtml(a.Butiran)}</td></tr>`).join('') || '<tr><td colspan=5 class="kecil">Tiada log.</td></tr>');
+    papar(res.senarai);
+    document.getElementById('auCari').addEventListener('input', e => {
+      const k = e.target.value.toLowerCase();
+      papar(res.senarai.filter(a => [a.NamaPengguna, a.Modul, a.Tindakan, a.Butiran].join(' ').toLowerCase().includes(k)));
+    });
+  }).catch(err => { kotak.innerHTML = '<div class="mesej ralat">' + escapeHtml(err) + '</div>'; });
+}
+
 /* ======================= PENGGUNA (MODUL 1, ADMIN sahaja) ======================= */
 function muatPengguna() {
   if (!bolehUrus()) { renderRalat('Hanya ADMIN boleh mengurus pengguna.'); return; }
@@ -2965,11 +3447,11 @@ function renderPengguna(res) {
           : '<span class="lencana KUNING">Belum ditetapkan</span>') + '</td></tr>').join('')}
       </tbody></table></div></div>
     <div class="panel"><h3>Senarai Pengguna (${res.senarai.length})</h3>
-    <div class="tbl-scroll"><table><thead><tr><th>No. KP</th><th>Nama</th><th>Peranan</th><th>Subjek Diajar</th><th>Unit Diketuai</th><th>Kelas Jagaan</th><th>Status</th><th>Kata Laluan</th><th></th></tr></thead>
+    <div class="tbl-scroll"><table><thead><tr><th>Nama</th><th>No. KP (log masuk)</th><th>Peranan</th><th>Subjek Diajar</th><th>Unit Diketuai</th><th>Kelas Jagaan</th><th>Status</th><th>Kata Laluan</th><th></th></tr></thead>
     <tbody>${res.senarai.map(u => {
       const nokp = String(u.nokp).replace(/\D/g, '').padStart(12, '0');
       const lama = u.perananAsal && String(u.perananAsal).toUpperCase().replace(/\s/g, '') !== u.peranan ? ' <span class="kecil">(asal: ' + escapeHtml(u.perananAsal) + ')</span>' : '';
-      return `<tr><td>${escapeHtml(nokp)}</td><td>${escapeHtml(u.nama)}</td><td>${escapeHtml(labelPeranan(u.peranan))}${lama}</td><td>${escapeHtml(u.skopSubjek)}</td>
+      return `<tr><td><b>${escapeHtml(u.nama)}</b></td><td class="kecil">${escapeHtml(nokp)}</td><td>${escapeHtml(labelPeranan(u.peranan))}${lama}</td><td>${escapeHtml(u.skopSubjek)}</td>
         <td>${escapeHtml(u.unitKetua)}</td><td>${escapeHtml(u.skopKelas)}</td><td>${lencana(u.status)}</td>
         <td>${LABEL_KATA_LALUAN[u.kataLaluan] || ''}</td>
         <td><span class="aksi-link" data-edit-pengguna="${escapeHtml(nokp)}">Edit</span><span class="aksi-link" onclick="resetKataLaluan('${nokp}')">Set Semula</span></td></tr>`;
@@ -3025,6 +3507,7 @@ function resetKataLaluan(nokp) {
 }
 
 /* ======================= MULA ======================= */
+hiasAntaraMuka();
 semakSesiSediaAda();
 </script>
 </body>

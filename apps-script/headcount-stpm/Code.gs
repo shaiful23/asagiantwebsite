@@ -19,6 +19,8 @@ function onOpen() {
     .addItem('3. Kemaskini Struktur (Guru Kelas, Tugas Saya, Kunci Markah)', 'kemaskiniStrukturFasa3')
     .addItem('4. Kemaskini Struktur (MUET)', 'kemaskiniStrukturMuet')
     .addItem('5. Kemaskini Peranan & Ulasan MUET', 'kemaskiniPerananDanUlasan')
+    .addSeparator()
+    .addItem('Semak & Kemaskini Struktur (Semua)', 'menuSemakStruktur')
     .addToUi();
 }
 
@@ -208,8 +210,8 @@ function kemaskiniStrukturFasa3() {
 
 /* ============================== doGet ================================ */
 function doGet(e) {
-  const tpl = HtmlService.createTemplateFromFile('Index');
-  return tpl.evaluate()
+  // Index tiada scriptlet — createHtmlOutputFromFile lebih pantas daripada templat.
+  return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('Sistem Headcount STPM - SMK Asajaya')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -290,4 +292,10 @@ function kemaskiniPerananDanUlasan() {
        '\n\nSeterusnya (menu Pengguna dalam sistem): pastikan setiap mata pelajaran (termasuk MUET ' + KOD_SUBJEK_MUET +
        ') ada SEORANG Ketua Unit, dan setiap Guru Tingkatan ada Kelas Jagaan.')
     : 'Tiada migrasi diperlukan — struktur sudah terkini.');
+}
+
+/* Sama seperti butang "Semak & Kemaskini Struktur" di menu Tetapan Sistem (UI). */
+function menuSemakStruktur() {
+  const mesej = pastikanStrukturSistem(false);
+  SpreadsheetApp.getUi().alert(mesej.length ? 'Struktur dikemas kini:\n\n- ' + mesej.join('\n- ') : 'Struktur sudah terkini — tiada perubahan.');
 }

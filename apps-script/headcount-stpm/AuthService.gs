@@ -161,6 +161,8 @@ function wajibPeranan(token, perananDibenarkan) {
 }
 
 function apiLogin(p) {
+  // Sistem baharu: cipta struktur Sheet secara automatik (tidak perlu buka Google Sheet).
+  try { pastikanSistemSedia(); } catch (e) { /* teruskan — ralat sebenar dilaporkan di bawah */ }
   const nokp = String(p.nokp || '').trim();
   const kataLaluan = String(p.pin || '').trim();
   if (!nokp || !kataLaluan) return ralat('Sila isi No. KP dan Kata Laluan.');
@@ -176,7 +178,7 @@ function apiLogin(p) {
     semakan.perluTukar ? 'Log masuk (kata laluan lalai/lama — wajib tukar)' : 'Log masuk berjaya');
   return jaya({
     token, nama: pengguna.NamaPenuh, peranan: data.peranan, perananSemua: data.perananSemua, skopSubjek: data.skopSubjek, unitKetua: data.unitKetua,
-    skopKelas: data.skopKelas, perluTukarKataLaluan: semakan.perluTukar
+    skopKelas: data.skopKelas, perluTukarKataLaluan: semakan.perluTukar, tahun: dataTahunSTPM()
   });
 }
 
@@ -196,7 +198,7 @@ function apiSemakSesi(p) {
   simpanSesi(p.token, segar);
   return jaya({
     nama: segar.nama, peranan: segar.peranan, perananSemua: segar.perananSemua, skopSubjek: segar.skopSubjek, unitKetua: segar.unitKetua, skopKelas: segar.skopKelas,
-    perluTukarKataLaluan: segar.perluTukarKataLaluan
+    perluTukarKataLaluan: segar.perluTukarKataLaluan, tahun: dataTahunSTPM()
   });
 }
 

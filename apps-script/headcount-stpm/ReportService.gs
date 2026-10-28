@@ -95,7 +95,7 @@ function apiJanaLaporan(p) {
         __gredTerkini: gredEfektif(r), __gredETR: r.ETR_Gred
       };
     }).sort(susunPelajar);
-    lajur = lajurLaporan([['IDPelajar', 'ID'], ['Nama', 'Nama Pelajar'], ['Kelas', 'Kelas'], ['Subjek', 'Subjek'],
+    lajur = lajurLaporan([['Nama', 'Nama Pelajar'], ['Kelas', 'Kelas'], ['Subjek', 'Subjek'],
       ['TOV', 'TOV'], ['OTR1', 'OTR1'], ['AR1', 'AR1'], ['OTR2', 'OTR2'], ['AR2', 'AR2'], ['ETR', 'ETR'], ['SEBENAR', 'Sebenar'],
       ['StatusGapETR', 'Gap ETR'], ['Trend', 'Trend'], ['Risiko', 'Risiko']]);
     const terkini = baris.map(b => b.__gredTerkini).filter(Boolean);
@@ -127,7 +127,7 @@ function apiJanaLaporan(p) {
       });
     });
     baris.sort((a, b) => String(a.Semester).localeCompare(String(b.Semester)) || susunPelajar(a, b));
-    lajur = lajurLaporan([['Semester', 'Semester'], ['IDPelajar', 'ID'], ['Nama', 'Nama Pelajar'], ['Kelas', 'Kelas'], ['Subjek', 'Subjek'],
+    lajur = lajurLaporan([['Semester', 'Semester'], ['Nama', 'Nama Pelajar'], ['Kelas', 'Kelas'], ['Subjek', 'Subjek'],
       ['ETR', 'ETR'], ['Terkini', 'Keputusan Terkini'], ['Trend', 'Trend']]);
     const ikutPelajar = kiraan(baris, b => b.IDPelajar);
     ringkasan = {
@@ -153,7 +153,7 @@ function apiJanaLaporan(p) {
         Punca: i.PuncaMasalah, Objektif: i.Objektif, Keputusan: i.KeputusanSelepasIntervensi, Catatan: i.Catatan
       };
     }).sort((a, b) => String(b.Tarikh).localeCompare(String(a.Tarikh)) || susunPelajar(a, b));
-    lajur = lajurLaporan([['Tarikh', 'Tarikh'], ['Semester', 'Sem'], ['IDPelajar', 'ID'], ['Nama', 'Nama Pelajar'], ['Kelas', 'Kelas'],
+    lajur = lajurLaporan([['Tarikh', 'Tarikh'], ['Semester', 'Sem'], ['Nama', 'Nama Pelajar'], ['Kelas', 'Kelas'],
       ['Subjek', 'Subjek'], ['Jenis', 'Jenis Intervensi'], ['PIC', 'Guru PIC'], ['Tempoh', 'Tempoh'], ['Status', 'Status'],
       ['Punca', 'Punca Masalah'], ['Objektif', 'Objektif'], ['Keputusan', 'Keputusan Selepas'], ['Catatan', 'Catatan']]);
     ringkasan = {
@@ -178,7 +178,7 @@ function apiJanaLaporan(p) {
         Perubahan: statusPerubahanUlangan(mapGred, r) || 'BELUM_DINILAI', Status: r.Status
       };
     }).sort(susunPelajar);
-    lajur = lajurLaporan([['IDPelajar', 'ID'], ['Nama', 'Nama Pelajar'], ['Kelas', 'Kelas'], ['Subjek', 'Subjek'],
+    lajur = lajurLaporan([['Nama', 'Nama Pelajar'], ['Kelas', 'Kelas'], ['Subjek', 'Subjek'],
       ['Asal', 'Keputusan Asal'], ['Sasaran', 'Sasaran'], ['Ujian', 'Ujian Selepas Intervensi'], ['Ulangan', 'Keputusan Ulangan'],
       ['Perubahan', 'Perubahan'], ['Status', 'Status']]);
     const perubahan = kiraan(baris, b => b.Perubahan);

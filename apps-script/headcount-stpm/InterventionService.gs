@@ -25,7 +25,7 @@ function apiSenaraiIntervensi(p) {
     senarai = senarai.filter(i => petaTahun[i.ID_Pelajar] === String(p.tahunSTPM));
   }
 
-  return jaya({ senarai, jenisIntervensiPilihan: jenisIntervensiLalai() });
+  return jaya({ senarai: lampirNama(senarai), jenisIntervensiPilihan: jenisIntervensiLalai() });
 }
 
 function apiSimpanIntervensi(p) {
