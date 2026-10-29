@@ -12,10 +12,15 @@ function apiSenaraiTahunSTPM(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
 
+  return jaya(dataTahunSTPM());
+}
+
+/* Senarai Tahun STPM (kohort) + tahun aktif — turut dihantar bersama log masuk/semak
+   sesi supaya portal tidak perlu satu panggilan pelayan tambahan semasa dibuka. */
+function dataTahunSTPM() {
   const tahunSet = new Set(bacaSheetSebagaiObjek(SHEET_STUDENTS).map(s => String(s.TahunSTPM).trim()).filter(Boolean));
   const senarai = Array.from(tahunSet).sort((a, b) => b.localeCompare(a));
-  const konfig = dapatkanKonfig();
-  return jaya({ senarai, tahunAktif: konfig.tahunSTPMAktif || '' });
+  return { senarai, tahunAktif: String(dapatkanKonfig().tahunSTPMAktif || '') };
 }
 
 /* Status TAMAT (pelajar diarkibkan selepas tamat belajar — rujuk apiArkibkanPelajar)

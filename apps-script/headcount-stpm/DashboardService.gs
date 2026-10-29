@@ -49,7 +49,35 @@ function apiDashboardGPK(p) {
     .sort((a, b) => b.peratusMerah - a.peratusMerah)
     .slice(0, 5);
 
+  // ---- Data carta dashboard (persembahan) ----
+  const namaSub = petaNamaSubjek();
+  const kelasPel = {};
+  pelajar.forEach(x => { kelasPel[x.ID_Pelajar] = x.Kelas || '(Tiada kelas)'; });
+  const kumpul = fn => { const m = {}; dianalisis.forEach(r => { const k = fn(r); (m[k] = m[k] || []).push(r); }); return m; };
+  const gpsKumpulan = senarai => ({
+    gps: kiraGPS(mapGred, senarai.map(gredEfektif).filter(Boolean)),
+    gpsETR: kiraGPS(mapGred, senarai.map(r => r.ETR_Gred).filter(Boolean))
+  });
+  const ikutSub = kumpul(r => String(r.KodSubjek)), ikutKls = kumpul(r => kelasPel[r.ID_Pelajar]);
+  const gpsIkutSubjek = Object.keys(ikutSub).sort().map(k => Object.assign({ label: k, nama: namaSub[k] || k }, gpsKumpulan(ikutSub[k])));
+  const gpsIkutKelas = Object.keys(ikutKls).sort().map(k => Object.assign({ label: k }, gpsKumpulan(ikutKls[k])));
+  const susunGred = Object.keys(mapGred).sort((a, b) => mapGred[b].nilai - mapGred[a].nilai);
+  const taburanGred = susunGred.map(g => ({ label: g, nilai: dianalisis.filter(r => String(gredEfektif(r)).toUpperCase() === g).length }));
+  const risiko = {};
+  dianalisis.forEach(r => { const k = (r.ETR_Gred && gredEfektif(r)) ? r.risiko : 'TIADA_DATA'; risiko[k] = (risiko[k] || 0) + 1; });
+  let muet = null;
+  try {
+    if (p.tahunSTPM) {
+      const bands = dapatkanBandMUET(), rekodMuet = petaRekodMuet(p.tahunSTPM);
+      const calon = pelajarMuet(p.tahunSTPM).map(x => ({ pelajar: x, rekod: rekodMuet[String(x.ID_Pelajar)] || {} }));
+      const sumber = ['A', 'T2', 'T1'].find(sm => analisisMuetKumpulan(calon, bands, sm).bilKeputusan > 0);
+      if (sumber) { const a = analisisMuetKumpulan(calon, bands, sumber); muet = { sumber, gpmp: a.gpmp, bilKeputusan: a.bilKeputusan, capai: a.capai, tidakCapai: a.tidakCapai }; }
+    }
+  } catch (e) { muet = null; }
+
   return jaya({
+    gpsIkutSubjek, gpsIkutKelas, taburanGred, risiko, muet, semester,
+    subjekKritikalNama: subjekKritikal.map(x => Object.assign({ nama: namaSub[x.kodSubjek] || x.kodSubjek }, x)),
     jumlahCalon: pelajar.length,
     jumlahSubjek: bacaSheetSebagaiObjek(SHEET_SUBJECTS).length,
     sasaranGPS, gpsSemasa, gapGPS: gpsSemasa !== null ? Number((gpsSemasa - sasaranGPS).toFixed(2)) : null,
