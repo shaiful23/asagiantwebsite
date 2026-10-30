@@ -225,10 +225,16 @@ Menu **Data Kelas** atau **Rumusan Kelas** → **PDF rujukan idME** (Admin & Gur
 7. **Kehadiran** dikira daripada rekod e-Kokurikulum sahaja (kosong sehingga e-Kokurikulum merekod kehadiran); guru tingkatan boleh **ganti manual** (0–12).
 8. Pelibatan daripada e-Kokurikulum diisi sebagai *Pelibatan 1* bagi peringkat berkenaan (e-Kokurikulum tidak merekod tahap *Pelibatan 1/2/3*); guru boleh mengubahnya dan suntingan itu kekal.
 
-## Padam murid (Admin, menu *Murid*)
+## Padam murid (Admin, Guru Tingkatan, KGP)
+- **Siapa boleh padam:**
+  - **Admin:** semua murid (menu *Murid*).
+  - **Guru Tingkatan:** murid dalam kelas sendiri (menu *Kelas Saya*).
+  - **KGP:** murid dalam unit sendiri (menu *Unit Saya*).
+- Pemadaman membuang data murid dalam **semua** unit, bukan hanya unit KGP itu. Borang pengesahan menyatakan perkara ini.
+- Hanya **Admin** boleh melihat senarai murid dipadam dan memulihkannya.
 - Butang **Padam** pada setiap murid membuka borang pengesahan. Admin **wajib mengisi sebab** (sekurang-kurangnya 10 aksara). Butang *Padam murid* tidak aktif selagi sebab belum diisi.
 - **Data yang dipadam:** rekod murid dalam `MURID`, `PENTAKSIRAN_ASPEK`, `PENTAKSIRAN_EKSTRA` dan `RUMUSAN`. Data `ARKIB_TAHUNAN` (tahun lepas) tidak disentuh.
-- **Rekod pemadaman:** sebab, nama Admin dan tarikh direkodkan dalam Sheet `MURID_DIPADAM` (dicipta automatik) dan dalam *Log Audit*.
+- **Rekod pemadaman:** sebab, nama dan peranan pemadam (Admin / Guru Tingkatan / KGP) serta tarikh direkodkan dalam Sheet `MURID_DIPADAM` (dicipta automatik) dan dalam *Log Audit*.
 - **Segerak e-Kokurikulum** melangkau murid yang dipadam supaya murid itu tidak dicipta semula.
 - **Pulihkan:** pilih penapis **Dipadam** di menu *Murid* untuk melihat senarai murid yang dipadam bersama sebabnya. Tekan **Pulihkan** untuk mengembalikan rekod dan markah daripada salinan yang disimpan semasa pemadaman.
 

@@ -379,9 +379,17 @@ function tanpaBaris(o) { const x = Object.assign({}, o); delete x.__row; return 
 
 /* Padam murid daripada MURID, PENTAKSIRAN_ASPEK, PENTAKSIRAN_EKSTRA dan RUMUSAN. Sebab WAJIB (direkodkan dalam
    MURID_DIPADAM dan log audit). Salinan data disimpan supaya boleh dipulihkan. Arkib tahun lepas tidak disentuh.
-   Segerak e-Kokurikulum melangkau murid yang dipadam supaya tidak dicipta semula. */
+   Segerak e-Kokurikulum melangkau murid yang dipadam supaya tidak dicipta semula.
+   Akses: Admin (semua murid), Guru Tingkatan (murid kelas sendiri), KGP (murid dalam unit sendiri).
+   Hanya Admin boleh memulihkan. */
+function bolehPadamMurid(sesi, m) {
+  if (sesi.peranan === ROLE_ADMIN) return true;
+  if (sesiBolehKelas(sesi, m.KunciKelas)) return true;
+  return SEMUA_ASPEK.some(a => m[a + '_Unit'] && (sesi.unit || []).indexOf(kunciUnit(a, m[a + '_Unit'])) !== -1);
+}
+
 function apiPadamMurid(p) {
-  const sesi = wajibPeranan(p.token, [ROLE_ADMIN]);
+  const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
   const nokp = normalKP(p.nokp);
   const sebab = String(p.sebab || '').replace(/\s+/g, ' ').trim();
@@ -391,13 +399,14 @@ function apiPadamMurid(p) {
     pastikanStrukturTerkini();
     const m = bacaSheetSebagaiObjek(SHEET_MURID).find(x => normalKP(x.NoKP) === nokp);
     if (!m) return ralat('Murid tidak dijumpai.');
+    if (!bolehPadamMurid(sesi, m)) return ralat('Anda hanya boleh memadam murid dalam kelas atau unit anda sendiri.');
     const aspek = bacaSheetSebagaiObjek(SHEET_ASPEK).filter(r => normalKP(r.NoKP) === nokp);
     const ekstra = bacaSheetSebagaiObjek(SHEET_EKSTRA).filter(r => normalKP(r.NoKP) === nokp);
     const rumusan = bacaSheetSebagaiObjek(SHEET_RUMUSAN).filter(r => normalKP(r.NoKP) === nokp);
     const salinan = JSON.stringify({ murid: tanpaBaris(m), aspek: aspek.map(tanpaBaris), ekstra: ekstra.map(tanpaBaris), rumusan: rumusan.map(tanpaBaris) });
     // rekod sebab DAHULU — jika pemadaman gagal separuh jalan, rekod dan salinan tetap ada
     upsertBanyak(SHEET_MURID_DIPADAM, 'NoKP', [{
-      NoKP: nokp, Nama: m.Nama, KunciKelas: m.KunciKelas, Sebab: sebab, DipadamOlehKP: sesi.nokp, DipadamOleh: sesi.nama,
+      NoKP: nokp, Nama: m.Nama, KunciKelas: m.KunciKelas, Sebab: sebab, DipadamOlehKP: sesi.nokp, DipadamOleh: sesi.nama + ' (' + perananPemadam(sesi, m) + ')',
       TarikhPadam: sekarangTeks(), Salinan: salinan
     }]);
     const padamSemua = (nama, senarai, medan) => senarai.slice().sort((a, b) => b.__row - a.__row).forEach(r => padamBaris(nama, r.__row, r[medan]));
@@ -405,9 +414,14 @@ function apiPadamMurid(p) {
     padamSemua(SHEET_EKSTRA, ekstra, 'NoKP');
     padamSemua(SHEET_RUMUSAN, rumusan, 'NoKP');
     padamBaris(SHEET_MURID, m.__row, m.NoKP);
-    catatAudit(sesi, 'PADAM', 'MURID', nokp, 'Padam murid: ' + m.Nama + ' (' + m.KunciKelas + '). Sebab: ' + sebab);
+    catatAudit(sesi, 'PADAM', 'MURID', nokp, 'Padam murid: ' + m.Nama + ' (' + m.KunciKelas + ') oleh ' + perananPemadam(sesi, m) + '. Sebab: ' + sebab);
     return jaya({ versi: versiData() });
   });
+}
+
+function perananPemadam(sesi, m) {
+  if (sesi.peranan === ROLE_ADMIN) return 'Admin';
+  return sesiBolehKelas(sesi, m.KunciKelas) ? 'Guru Tingkatan' : 'KGP';
 }
 
 function apiSenaraiMuridDipadam(p) {

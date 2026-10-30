@@ -2254,20 +2254,30 @@ function jadualUnitSaya() {
   var senarai = d.baris.filter(function (b) {
     return (!st.unit || b.kunciUnit === st.unit) && lulusTapisStatus(b.status, st.status) && (!cari || (b.nama + ' ' + b.kunciKelas).toUpperCase().indexOf(cari) !== -1);
   });
-  var h = '<div class="jadual-skrol"><table><thead><tr><th>Bil</th><th>Nama</th><th>Kelas</th><th>Jawatan</th><th>Pelibatan</th><th>Pencapaian</th><th>Komitmen</th><th>Khidmat</th><th class="n">Hadir</th><th class="n">Markah</th><th>Gred</th><th>Status</th></tr></thead><tbody>';
+  var h = '<div class="jadual-skrol"><table><thead><tr><th>Bil</th><th>Nama</th><th>Kelas</th><th>Jawatan</th><th>Pelibatan</th><th>Pencapaian</th><th>Komitmen</th><th>Khidmat</th><th class="n">Hadir</th><th class="n">Markah</th><th>Gred</th><th>Status</th><th></th></tr></thead><tbody>';
   var bil = 0;
   senarai.forEach(function (b) {
-    if (b.kunciUnit !== unitLepas && !st.unit) { unitLepas = b.kunciUnit; bil = 0; h += '<tr><td colspan="12" style="background:#eef2ff;font-weight:700;color:var(--biru-gelap)">' + e(b.aspek + ' · ' + NAMA_ASPEK[b.aspek] + ' — ' + b.unit) + '</td></tr>'; }
+    if (b.kunciUnit !== unitLepas && !st.unit) { unitLepas = b.kunciUnit; bil = 0; h += '<tr><td colspan="13" style="background:#eef2ff;font-weight:700;color:var(--biru-gelap)">' + e(b.aspek + ' · ' + NAMA_ASPEK[b.aspek] + ' — ' + b.unit) + '</td></tr>'; }
     bil++;
     var r = b.rec, komit = [r.Komit1, r.Komit2, r.Komit3, r.Komit4].filter(Boolean);
     h += '<tr><td>' + bil + '</td><td>' + e(b.nama) + '</td><td>' + e(paparKelasJs(b.kunciKelas)) + '</td><td>' + (e(r.Jawatan) || '<span class="pc-tiada">–</span>') + '</td>' +
       '<td>' + (e([r.Libat1, r.Libat2].filter(Boolean).join(' / ')) || '<span class="pc-tiada">–</span>') + '</td><td>' + (e([r.Capai1, r.Capai2].filter(Boolean).join(' / ')) || '<span class="pc-tiada">–</span>') + '</td>' +
       '<td title="' + e(komit.join(', ')) + '">' + komit.length + '/4</td><td>' + (r.Khidmat ? e(pendek(r.Khidmat, 30)) : '<span class="pc-tiada">–</span>') + '</td><td class="n">' + e(r.Kehadiran) + '</td>' +
       '<td class="n">' + tanda(r.Markah) + '</td><td>' + lencanaGred(Number(r.Markah) > 0 ? gredAspek(r.Markah) : '') + '</td>' +
-      '<td>' + lencanaSt(b.status) + (b.kurang.length && b.status !== 'LENGKAP' ? '<div class="nota">Belum: ' + e(b.kurang.join(', ')) + '</div>' : '') + '</td></tr>';
+      '<td>' + lencanaSt(b.status) + (b.kurang.length && b.status !== 'LENGKAP' ? '<div class="nota">Belum: ' + e(b.kurang.join(', ')) + '</div>' : '') + '</td>' +
+      '<td data-csv=""><button class="btn kecil merah" data-padam="' + e(b.nokp) + '" title="Padam murid">' + ik('padam') + 'Padam</button></td></tr>';
   });
-  if (!senarai.length) h += '<tr><td colspan="12" class="nota">Tiada ahli dalam paparan ini.</td></tr>';
+  if (!senarai.length) h += '<tr><td colspan="13" class="nota">Tiada ahli dalam paparan ini.</td></tr>';
   $('usJadual').innerHTML = h + '</tbody></table></div><div class="nota">' + senarai.length + ' ahli dipaparkan. Medan wajib: Jawatan, Pelibatan dan sekurang-kurangnya satu Komitmen.</div>';
+  Array.prototype.forEach.call($('usJadual').querySelectorAll('[data-padam]'), function (bt) {
+    bt.onclick = function () {
+      var b = d.baris.filter(function (x) { return x.nokp === bt.getAttribute('data-padam'); })[0];
+      padamMurid({ nokp: b.nokp, nama: b.nama, kunciKelas: b.kunciKelas }, function () {
+        S.us.baris = S.us.baris.filter(function (x) { return x.nokp !== b.nokp; });
+        renderUnitSaya(); halamanUnitSaya();
+      });
+    };
+  });
 }
 
 /* ===== KELAS SAYA ===== */
@@ -2351,10 +2361,19 @@ function jadualKelasSaya() {
         '<td class="n">' + (perluCg ? (adaCg ? e(fmt(m.cgpaSebelum)) : '<span style="color:var(--merah);font-weight:700">Belum</span>') : '<span class="pc-tiada">T1</span>') + '</td>' +
         '<td class="n"><b>' + tanda(r.CGPA) + '</b></td><td>' + lencanaGred(r.Gred) + '</td>' +
         '<td>' + lencanaSt(s.status) + (s.kurang && s.kurang.length ? '<div class="nota">Belum: ' + e(s.kurang.join('; ')) + '</div>' : '') + '</td>' +
-        '<td><button class="btn kecil luar" data-lihat="' + e(m.nokp) + '">Lihat</button></td></tr>';
+        '<td data-csv="" style="white-space:nowrap"><button class="btn kecil luar" data-lihat="' + e(m.nokp) + '">Lihat</button> <button class="btn kecil merah" data-padam="' + e(m.nokp) + '" title="Padam murid">' + ik('padam') + 'Padam</button></td></tr>';
     }).join('') + (senarai.length ? '' : '<tr><td colspan="11" class="nota">Tiada murid dalam paparan ini.</td></tr>') + '</tbody></table></div>';
   $('ksJadual').innerHTML = h;
   Array.prototype.forEach.call($('ksJadual').querySelectorAll('[data-lihat]'), function (b) { b.onclick = function () { bukaPentaksiran(b.getAttribute('data-lihat')); }; });
+  Array.prototype.forEach.call($('ksJadual').querySelectorAll('[data-padam]'), function (bt) {
+    bt.onclick = function () {
+      var m = d.murid.filter(function (x) { return x.nokp === bt.getAttribute('data-padam'); })[0];
+      padamMurid({ nokp: m.nokp, nama: m.nama, kunciKelas: m.kunciKelas || d.kelas }, function () {
+        S.data.murid = S.data.murid.filter(function (x) { return x.nokp !== m.nokp; });
+        renderKelasSaya(); muatSemulaKelas().then(function () { if (S.halaman === 'kelassaya') halamanKelasSaya(); });
+      });
+    };
+  });
 }
 
 /* ---------- Analisis Terperinci (ikut kategori) ---------- */
@@ -2534,7 +2553,8 @@ function muatDipadam(st, k, terkini, muat) {
 function padamMurid(m, selesai) {
   var MIN = 10;
   var modal = bukaModal('<h3>' + ik('padam') + ' Padam Murid</h3>' +
-    '<div class="amaran-kotak" style="margin-bottom:10px"><b>' + e(m.nama) + '</b> · ' + e(m.nokp) + ' · ' + e(paparKelasJs(m.kunciKelas)) + '<br>Semua data pentaksiran murid ini (aspek, ekstra kurikulum dan rumusan) akan dipadam. Segerak e-Kokurikulum tidak akan mencipta semula murid ini. Salinan disimpan dan boleh dipulihkan melalui penapis <b>Dipadam</b>.</div>' +
+    '<div class="amaran-kotak" style="margin-bottom:10px"><b>' + e(m.nama) + '</b> · ' + e(m.nokp) + ' · ' + e(paparKelasJs(m.kunciKelas)) + '<br>Semua data pentaksiran murid ini (<b>semua unit</b> PBB, KP dan SP, ekstra kurikulum dan rumusan) akan dipadam. Segerak e-Kokurikulum tidak akan mencipta semula murid ini. ' +
+    (adalahAdmin() ? 'Salinan disimpan dan boleh dipulihkan melalui penapis <b>Dipadam</b>.' : 'Salinan disimpan; hanya <b>Admin</b> boleh memulihkannya jika tersilap padam.') + '</div>' +
     '<div class="medan penuh"><label for="pmSebab">Sebab pemadaman <span style="color:var(--merah)">*</span></label>' +
     '<textarea id="pmSebab" rows="3" maxlength="500" placeholder="Cth: Rekod berganda — No. KP salah dimasukkan di e-Kokurikulum"></textarea>' +
     '<div class="nota" id="pmNota">Wajib diisi (sekurang-kurangnya ' + MIN + ' aksara). Sebab ini direkodkan dalam sistem bersama nama anda dan tarikh.</div></div>' +
