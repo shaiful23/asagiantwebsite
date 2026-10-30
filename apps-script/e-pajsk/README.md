@@ -180,6 +180,7 @@ Menu **Data Kelas** atau **Rumusan Kelas** → **PDF rujukan idME** (Admin & Gur
 ## Responsif (telefon / tablet / komputer)
 
 - ≤ 900px: menu sisi menjadi laci (butang ☰); ≤ 640px: jadual dipaparkan sebagai kad (label diambil automatik daripada tajuk lajur), borang/modal skrin penuh dengan butang tindakan melekat di bawah, input 16px (tiada zum automatik iOS), bar alat & penomboran disusun menegak.
+- **Skrin penuh:** kandungan memenuhi lebar skrin pada semua peranti, tanpa had lebar maksimum, jadi tiada ruang kosong di tepi pada skrin lebar. Kad ringkasan menyusun semula bilangan lajur mengikut lebar skrin.
 - Peranti sentuh: sasaran sentuhan ≥ 40px. Tiada skrol mendatar pada lebar 390px.
 
 ## Kemas kini langsung & prestasi
