@@ -544,7 +544,7 @@ function sibuk(hidup) {
   $('selimutSibuk').classList.toggle('hidden', bilSibuk === 0);
 }
 // Hanya operasi TULIS menyekat skrin; bacaan dipaparkan dengan petunjuk 'memuatkan' setempat supaya terasa pantas.
-var API_TULIS = /^api(Simpan|Segerak|Arkib|Naik|Reset|Padam|Import|Kira|Tukar|Auto|Login|Mohon|Proses|Kosongkan|Baiki)/;
+var API_TULIS = /^api(Simpan|Segerak|Arkib|Naik|Reset|Padam|Import|Kira|Tukar|Auto|Login|Mohon|Proses|Kosongkan|Baiki|Pulih)/;
 var RALAT_SEMENTARA = /Service|timed out|Server|bersambung|temporarily|Try again|sibuk/i;
 
 function api(fn, param, tanpaSibuk, cubaan) {
@@ -582,6 +582,7 @@ function bacaToken() { try { return sessionStorage.getItem('epajsk_token'); } ca
 
 /* ---------- Ikon SVG (gaya garisan 24px, tanpa CDN — pantas & stabil) ---------- */
 var IKON = {
+  padam: '<path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>',
   dashboard: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
   isi: '<path d="M9 3h6a1 1 0 0 1 1 1v2H8V4a1 1 0 0 1 1-1z"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
   status: '<path d="M3 6h3M3 12h3M3 18h3"/><path d="M10 6h11M10 12h11M10 18h11"/>',
@@ -1409,6 +1410,7 @@ function segerakKoko(kelas, selesai, paksa) {
     var h = '<h3>Segerak e-Kokurikulum selesai</h3><p>' + l.jumlahDiproses + ' murid disemak · <b>' + l.diubah + ' rekod dikemaskini</b> · ' + l.baharu + ' murid baharu · ' + l.kelasBerubah + ' bertukar kelas.' + (l.dariCache && !l.diubah ? ' <span class="nota">(e-Kokurikulum tiada perubahan sejak segerak terakhir)</span>' : '') + '</p>';
     if (l.tiadaDiKoko) h += '<div class="info-kotak">' + l.tiadaDiKoko + ' murid aktif dalam e-PAJSK tiada lagi dalam e-Kokurikulum (pindah/tamat) — tidak dipadam; Admin boleh menandakannya PINDAH di menu Murid.</div>';
     if (l.tingkatanBeza.length) h += '<div class="amaran-kotak"><b>Tingkatan berbeza (tidak diubah):</b><br>' + l.tingkatanBeza.slice(0, 15).map(e).join('<br>') + (l.tingkatanBeza.length > 15 ? '<br>… dan ' + (l.tingkatanBeza.length - 15) + ' lagi' : '') + '</div>';
+    if (l.dilangkauDipadam) h += '<div class="nota" style="margin:6px 0">' + l.dilangkauDipadam + ' murid yang dipadam oleh Admin dilangkau.</div>';
     if (l.jawatanDikemaskini) h += '<div class="info-kotak"><b>' + l.jawatanDikemaskini + ' jawatan</b> dikemas kini mengikut e-Kokurikulum.</div>';
     if (l.pencapaianDiisi) h += '<div class="info-kotak"><b>' + l.pencapaianDiisi + ' rekod pelibatan/pencapaian</b> dikemas kini daripada PENCAPAIAN e-Kokurikulum (ikut unit berdaftar murid).</div>';
     if (l.pencapaianTiadaUnit && l.pencapaianTiadaUnit.length) h += '<details class="amaran-kotak"><summary>' + l.pencapaianTiadaUnit.length + ' pencapaian tidak diisi automatik (unit tidak sepadan)</summary><ul>' + l.pencapaianTiadaUnit.map(function (x) { return '<li>' + e(x) + '</li>'; }).join('') + '</ul></details>';
@@ -2473,13 +2475,15 @@ function renderAnalisis() {
 /* ---------- Murid (Admin) ---------- */
 function halamanMurid() {
   var k = 'mu';
-  var h = '<h2 class="tajuk">Murid</h2><div class="baris-alat"><select id="muStatus"><option value="AKTIF">Aktif</option><option value="PINDAH">Pindah</option><option value="TAMAT">Tamat</option><option value="SEMUA">Semua</option></select>' +
+  var h = '<h2 class="tajuk">Murid</h2><div class="baris-alat"><select id="muStatus"><option value="AKTIF">Aktif</option><option value="PINDAH">Pindah</option><option value="TAMAT">Tamat</option><option value="SEMUA">Semua</option><option value="DIPADAM">Dipadam</option></select>' +
     pilihKelasHtml('muKelas', true) + palangPg(k) + '<div class="rapat"><button class="btn hijau" id="btnSegerakSemua">Segerak SEMUA daripada e-Kokurikulum</button><button class="btn luar" id="btnSegerakPaksa" title="Abaikan cache — baca semula seluruh e-Kokurikulum">Segerak paksa</button></div></div><div id="senaraiMurid"><div class="rangka-muat"></div><div class="rangka-muat"></div></div>';
   $('kandungan').innerHTML = h;
   var st = PG(k, { status: 'AKTIF', kelas: '' });
   $('muStatus').value = st.status; $('muKelas').value = st.kelas;
   var muat = function () {
     var terkini = permintaanTerkini();
+    $('muKelas').style.display = st.status === 'DIPADAM' ? 'none' : '';
+    if (st.status === 'DIPADAM') return muatDipadam(st, k, terkini, muat);
     api('apiSenaraiMurid', { status: st.status, kelas: st.kelas, halaman: st.halaman, saiz: st.saiz, cari: st.cari }).then(function (r) {
       if (!terkini() || S.halaman !== 'murid') return;
       st.halaman = r.halaman;
@@ -2488,9 +2492,10 @@ function halamanMurid() {
         '<div class="nota" style="margin-bottom:8px">Kemas kini terakhir daripada e-Kokurikulum: ' + e(r.segerakTerakhir || 'belum pernah') + '</div>' +
         '<div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Nama</th><th>Kelas</th><th>PBB</th><th>KP</th><th>SP</th><th class="n">CGPA lepas</th><th>Status</th><th></th></tr></thead><tbody>' +
         (r.senarai.length ? r.senarai.map(function (m, i) {
-          return '<tr><td>' + e(m.nama) + '<div class="nota">' + e(m.nokp) + '</div></td><td>' + e(paparKelasJs(m.kunciKelas)) + (m.perluSemak === 'YA' ? ' <span class="lencana kuning">Perlu semak</span>' : '') + '</td><td>' + e(m.pbb) + '</td><td>' + e(m.kp) + '</td><td>' + e(m.sp) + '</td><td class="n">' + tanda(m.cgpaSebelum) + '</td><td><span class="lencana ' + (m.status === 'AKTIF' ? 'hijau' : '') + '">' + e(m.status) + '</span></td><td>' + (m.status === 'TAMAT' ? '' : '<button class="btn kecil" data-i="' + i + '">Sunting</button>') + '</td></tr>';
+          return '<tr><td>' + e(m.nama) + '<div class="nota">' + e(m.nokp) + '</div></td><td>' + e(paparKelasJs(m.kunciKelas)) + (m.perluSemak === 'YA' ? ' <span class="lencana kuning">Perlu semak</span>' : '') + '</td><td>' + e(m.pbb) + '</td><td>' + e(m.kp) + '</td><td>' + e(m.sp) + '</td><td class="n">' + tanda(m.cgpaSebelum) + '</td><td><span class="lencana ' + (m.status === 'AKTIF' ? 'hijau' : '') + '">' + e(m.status) + '</span></td><td>' + '<span style="white-space:nowrap">' + (m.status === 'TAMAT' ? '' : '<button class="btn kecil" data-i="' + i + '">Sunting</button> ') + '<button class="btn kecil merah" data-p="' + i + '">Padam</button></span></td></tr>';
         }).join('') : '<tr><td colspan="8" class="nota">Tiada rekod.</td></tr>') + '</tbody></table></div>' + pagerHtml(r) + '</div>';
       pasangPager(k, kont, muat);
+      Array.prototype.forEach.call(kont.querySelectorAll('[data-p]'), function (b) { b.onclick = function () { padamMurid(r.senarai[Number(b.getAttribute('data-p'))], function () { muatSemulaKelas().then(muat); }); }; });
       Array.prototype.forEach.call(kont.querySelectorAll('[data-i]'), function (b) { b.onclick = function () { suntingMurid(r.senarai[Number(b.getAttribute('data-i'))], function () { muatSemulaKelas().then(muat); }); }; });
     }).catch(gagal);
   };
@@ -2502,6 +2507,54 @@ function halamanMurid() {
   $('btnSegerakPaksa').onclick = function () { sahkan('Segerak paksa membaca semula SELURUH e-Kokurikulum (lebih perlahan). Teruskan?', function () { segerakKoko('', muat, true); }, 'Segerak paksa'); };
   muat();
 }
+/* Senarai murid yang dipadam (sebab, oleh, tarikh) + Pulihkan. */
+function muatDipadam(st, k, terkini, muat) {
+  api('apiSenaraiMuridDipadam', { halaman: st.halaman, saiz: st.saiz, cari: st.cari }).then(function (r) {
+    if (!terkini() || S.halaman !== 'murid') return;
+    st.halaman = r.halaman;
+    var kont = $('senaraiMurid');
+    kont.innerHTML = '<div class="nota" style="margin-bottom:8px">Murid yang dipadam tidak dicipta semula oleh segerak e-Kokurikulum. Tekan <b>Pulihkan</b> untuk mengembalikan rekod dan markahnya.</div>' +
+      '<div class="kad"><div class="jadual-skrol"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Sebab</th><th>Dipadam oleh</th><th>Tarikh</th><th></th></tr></thead><tbody>' +
+      (r.senarai.length ? r.senarai.map(function (m, i) {
+        return '<tr><td>' + e(m.nama) + '<div class="nota">' + e(m.nokp) + '</div></td><td>' + e(paparKelasJs(m.kunciKelas)) + '</td><td>' + e(m.sebab) + '</td><td>' + e(m.oleh) + '</td><td>' + e(m.tarikh) + '</td><td><button class="btn kecil luar" data-u="' + i + '">Pulihkan</button></td></tr>';
+      }).join('') : '<tr><td colspan="6" class="nota">Tiada murid dipadam.</td></tr>') + '</tbody></table></div>' + pagerHtml(r) + '</div>';
+    pasangPager(k, kont, muat);
+    Array.prototype.forEach.call(kont.querySelectorAll('[data-u]'), function (b) {
+      b.onclick = function () {
+        var m = r.senarai[Number(b.getAttribute('data-u'))];
+        sahkan('Pulihkan ' + m.nama + '? Rekod murid dan markahnya akan dikembalikan.', function () {
+          api('apiPulihMurid', { nokp: m.nokp }).then(function (x) { S.versi = x.versi || S.versi; toast(x.dipulihkan ? 'Murid dipulihkan.' : 'Dibenarkan semula — murid akan dicipta pada segerak seterusnya.', 'jaya'); muatSemulaKelas().then(muat); }).catch(gagal);
+        }, 'Pulihkan');
+      };
+    });
+  }).catch(gagal);
+}
+
+/* Padam murid: Admin WAJIB mengisi sebab sebelum butang Padam diaktifkan. */
+function padamMurid(m, selesai) {
+  var MIN = 10;
+  var modal = bukaModal('<h3>' + ik('padam') + ' Padam Murid</h3>' +
+    '<div class="amaran-kotak" style="margin-bottom:10px"><b>' + e(m.nama) + '</b> · ' + e(m.nokp) + ' · ' + e(paparKelasJs(m.kunciKelas)) + '<br>Semua data pentaksiran murid ini (aspek, ekstra kurikulum dan rumusan) akan dipadam. Segerak e-Kokurikulum tidak akan mencipta semula murid ini. Salinan disimpan dan boleh dipulihkan melalui penapis <b>Dipadam</b>.</div>' +
+    '<div class="medan penuh"><label for="pmSebab">Sebab pemadaman <span style="color:var(--merah)">*</span></label>' +
+    '<textarea id="pmSebab" rows="3" maxlength="500" placeholder="Cth: Rekod berganda — No. KP salah dimasukkan di e-Kokurikulum"></textarea>' +
+    '<div class="nota" id="pmNota">Wajib diisi (sekurang-kurangnya ' + MIN + ' aksara). Sebab ini direkodkan dalam sistem bersama nama anda dan tarikh.</div></div>' +
+    '<div class="aksi-modal"><button class="btn luar" data-x="b">Batal</button><button class="btn merah" data-x="s" disabled>Padam murid</button></div>', true);
+  var t = $('pmSebab'), btn = modal.querySelector('[data-x=s]');
+  var kemas = function () {
+    var n = t.value.replace(/\s+/g, ' ').trim().length;
+    btn.disabled = n < MIN;
+    $('pmNota').textContent = n < MIN ? 'Wajib diisi — ' + (MIN - n) + ' aksara lagi. Sebab ini direkodkan dalam sistem bersama nama anda dan tarikh.' : 'Sebab ini akan direkodkan dalam sistem bersama nama anda dan tarikh.';
+  };
+  t.oninput = kemas; t.focus();
+  modal.querySelector('[data-x=b]').onclick = function () { tutupModal(modal); };
+  btn.onclick = function () {
+    if (btn.disabled) return;
+    api('apiPadamMurid', { nokp: m.nokp, sebab: t.value }).then(function (r) {
+      tutupModal(modal); S.versi = r.versi || S.versi; toast(m.nama + ' dipadam.', 'jaya'); selesai();
+    }).catch(gagal);
+  };
+}
+
 function suntingMurid(m, selesai) {
   var modal = bukaModal('<h3>Sunting Murid</h3><div class="nota" style="margin-bottom:10px">' + e(m.nama) + ' · ' + e(m.nokp) + '</div><div class="grid-borang">' +
     '<div class="medan"><label>Tingkatan</label><select id="smTing">' + [1, 2, 3, 4, 5].map(function (t) { return '<option' + (String(m.tingkatan) === String(t) ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></div>' +

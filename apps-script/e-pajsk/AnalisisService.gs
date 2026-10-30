@@ -266,9 +266,9 @@ function apiSimpanBarisSkor(p) {
 function apiKosongkanCache(p) {
   const sesi = wajibPeranan(p.token, [ROLE_ADMIN]);
   if (sesi.success === false) return sesi;
-  [SHEET_PENGGUNA, SHEET_MURID, SHEET_ASPEK, SHEET_EKSTRA, SHEET_RUMUSAN, SHEET_REFERENSI, SHEET_TETAPAN, SHEET_ARKIB, SHEET_PERMOHONAN].forEach(tandaKotor);
+  [SHEET_PENGGUNA, SHEET_MURID, SHEET_ASPEK, SHEET_EKSTRA, SHEET_RUMUSAN, SHEET_REFERENSI, SHEET_TETAPAN, SHEET_ARKIB, SHEET_PERMOHONAN, SHEET_MURID_DIPADAM].forEach(tandaKotor);
   kosongkanCacheRujukan();
-  CacheService.getScriptCache().remove('struktur_epajsk_v6');
+  CacheService.getScriptCache().remove('struktur_epajsk_v7');
   catatAudit(sesi, 'KOSONGKAN_CACHE', 'SISTEM', '', 'Semua cache dikosongkan melalui UI');
   return jaya({});
 }
@@ -283,7 +283,8 @@ function apiBaikiStruktur(p) {
     [[SHEET_PENGGUNA, HEADER_PENGGUNA, ['NoKP', 'Password']], [SHEET_MURID, HEADER_MURID, ['NoKP']], [SHEET_ASPEK, HEADER_ASPEK, ['Kunci', 'NoKP']],
       [SHEET_EKSTRA, HEADER_EKSTRA, ['NoKP']], [SHEET_RUMUSAN, HEADER_RUMUSAN, ['NoKP']], [SHEET_REFERENSI, HEADER_REFERENSI, ['KOD']],
       [SHEET_TETAPAN, HEADER_TETAPAN, null], [SHEET_ARKIB, HEADER_ARKIB, null], [SHEET_AUDIT, HEADER_AUDIT, ['NoKP']],
-      [SHEET_PERMOHONAN, HEADER_PERMOHONAN, ['NoKP', 'Tarikh', 'BukaHingga', 'TarikhProses']]
+      [SHEET_PERMOHONAN, HEADER_PERMOHONAN, ['NoKP', 'Tarikh', 'BukaHingga', 'TarikhProses']],
+      [SHEET_MURID_DIPADAM, HEADER_MURID_DIPADAM, ['NoKP', 'TarikhPadam', 'DipadamOlehKP']]
     ].forEach(([nama, header, teks]) => {
       if (ss.getSheetByName(nama)) return;
       const sh = ciptaSheetJikaTiada(ss, nama, header, teks);

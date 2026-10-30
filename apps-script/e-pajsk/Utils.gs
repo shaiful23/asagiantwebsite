@@ -402,7 +402,7 @@ function tambahLajurJikaTiada(namaSheet, namaLajur) {
 /* Pastikan struktur Sheet terkini (dipanggil setiap permintaan; disemak sebenar paling kerap sekali / 6 jam). */
 function pastikanStrukturTerkini() {
   const c = CacheService.getScriptCache();
-  if (c.get('struktur_epajsk_v6')) return;
+  if (c.get('struktur_epajsk_v7')) return;
   LAJUR_PENGGUNA_UNIT.forEach(l => tambahLajurJikaTiada(SHEET_PENGGUNA, l));
   tambahLajurJikaTiada(SHEET_ASPEK, 'JawatanKoko');
   tambahLajurJikaTiada(SHEET_ASPEK, 'PencapaianKoko');
@@ -410,7 +410,11 @@ function pastikanStrukturTerkini() {
     ciptaSheetJikaTiada(spreadsheetAktif(), SHEET_PERMOHONAN, HEADER_PERMOHONAN, ['NoKP', 'Tarikh', 'BukaHingga', 'TarikhProses']);
     tandaKotor(SHEET_PERMOHONAN);
   }
-  c.put('struktur_epajsk_v6', '1', 6 * 60 * 60);
+  if (!spreadsheetAktif().getSheetByName(SHEET_MURID_DIPADAM)) {
+    ciptaSheetJikaTiada(spreadsheetAktif(), SHEET_MURID_DIPADAM, HEADER_MURID_DIPADAM, ['NoKP', 'TarikhPadam', 'DipadamOlehKP']);
+    tandaKotor(SHEET_MURID_DIPADAM);
+  }
+  c.put('struktur_epajsk_v7', '1', 6 * 60 * 60);
 }
 
 function senaraiDaripadaMedan(nilai) {
