@@ -14,7 +14,8 @@ const SHEET_REFERENSI = 'REFERENSI';
 const SHEET_TETAPAN = 'TETAPAN';
 const SHEET_ARKIB = 'ARKIB_TAHUNAN';
 const SHEET_AUDIT = 'LOG_AUDIT';
-const SHEET_PERMOHONAN = 'PERMOHONAN_BUKA';   // permohonan KGP buka semula pengisian selepas tarikh akhir
+const SHEET_PERMOHONAN = 'PERMOHONAN_BUKA';
+const SHEET_MURID_DIPADAM = 'MURID_DIPADAM';   // murid yang dipadam oleh Admin (sebab + salinan data untuk dipulihkan)   // permohonan KGP buka semula pengisian selepas tarikh akhir
 
 /* ------------------------- PERANAN ------------------------- */
 const ROLE_ADMIN = 'ADMIN';

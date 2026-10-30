@@ -19,6 +19,9 @@ const HEADER_ASPEK = ['Kunci', 'NoKP', 'Aspek', 'Unit', 'Jawatan', 'Libat1', 'Ca
   'JawatanKoko',    // jawatan terakhir yang dilihat dalam e-Kokurikulum (untuk mengesan perubahan)
   'PencapaianKoko']; // aktiviti 1/2 yang diisi automatik daripada PENCAPAIAN e-Kokurikulum (JSON: ID + label)
 
+const HEADER_MURID_DIPADAM = ['NoKP', 'Nama', 'KunciKelas', 'Sebab', 'DipadamOlehKP', 'DipadamOleh', 'TarikhPadam', 'Salinan'];
+const SEBAB_PADAM_MIN = 10;
+
 const HEADER_EKSTRA = ['NoKP', 'Perkhidmatan', 'AnugerahKhas', 'KhidmatMasyarakat', 'Nilam', 'TimmsPisa', 'TugasKhas',
   'SkPerkhidmatan', 'SkAnugerah', 'SkKM', 'SkNilam', 'SkTimms', 'SkTugas', 'SkorTertinggi', 'Dikemaskini', 'OlehKP'];
 
@@ -119,7 +122,10 @@ function laksanakanSegerak(kunciKelas, paksa) {
   let capaiPeta = {};
   try { capaiPeta = petaPencapaianKokoTahun(tahun); } catch (e) { laporan.amaran.push('Sheet PENCAPAIAN e-Kokurikulum tidak dapat dibaca: ' + e.message); }
 
+  const dipadam = petaMuridDipadam();
+  laporan.dilangkauDipadam = 0;
   koko.murid.forEach(k => {
+    if (dipadam[k.nokp]) { laporan.dilangkauDipadam++; return; }   // dipadam oleh Admin: jangan dicipta semula
     kokoMap[k.nokp] = k;
     const sedia = sediaAda[k.nokp];
     if (kunciKelas && !(k.kunciKelas === kunciKelas || (sedia && sedia.KunciKelas === kunciKelas))) return;
@@ -359,6 +365,81 @@ function apiSenaraiMurid(p) {
   const bilPerluSemak = semuaMurid.filter(m => String(m.Status).toUpperCase() === 'AKTIF' && m.PerluSemak === 'YA').length;
   return jaya(Object.assign(halamanKan(senarai, p, m => m.nama + ' ' + m.nokp + ' ' + m.kunciKelas + ' ' + m.pbb + ' ' + m.kp + ' ' + m.sp),
     { bilPerluSemak, segerakTerakhir: dapatTetapan('SEGERAK_KOKO_TERAKHIR') }));
+}
+
+/* ------------------------- PADAM / PULIH MURID (Admin) ------------------------- */
+function petaMuridDipadam() {
+  const peta = {};
+  if (!spreadsheetAktif().getSheetByName(SHEET_MURID_DIPADAM)) return peta;
+  bacaSheetSebagaiObjek(SHEET_MURID_DIPADAM).forEach(r => { const kp = normalKP(r.NoKP); if (kp) peta[kp] = r; });
+  return peta;
+}
+
+function tanpaBaris(o) { const x = Object.assign({}, o); delete x.__row; return x; }
+
+/* Padam murid daripada MURID, PENTAKSIRAN_ASPEK, PENTAKSIRAN_EKSTRA dan RUMUSAN. Sebab WAJIB (direkodkan dalam
+   MURID_DIPADAM dan log audit). Salinan data disimpan supaya boleh dipulihkan. Arkib tahun lepas tidak disentuh.
+   Segerak e-Kokurikulum melangkau murid yang dipadam supaya tidak dicipta semula. */
+function apiPadamMurid(p) {
+  const sesi = wajibPeranan(p.token, [ROLE_ADMIN]);
+  if (sesi.success === false) return sesi;
+  const nokp = normalKP(p.nokp);
+  const sebab = String(p.sebab || '').replace(/\s+/g, ' ').trim();
+  if (sebab.length < SEBAB_PADAM_MIN) return ralat('Sila nyatakan sebab pemadaman (sekurang-kurangnya ' + SEBAB_PADAM_MIN + ' aksara).');
+  if (sebab.length > 500) return ralat('Sebab terlalu panjang (maksimum 500 aksara).');
+  return denganKunci(() => {
+    pastikanStrukturTerkini();
+    const m = bacaSheetSebagaiObjek(SHEET_MURID).find(x => normalKP(x.NoKP) === nokp);
+    if (!m) return ralat('Murid tidak dijumpai.');
+    const aspek = bacaSheetSebagaiObjek(SHEET_ASPEK).filter(r => normalKP(r.NoKP) === nokp);
+    const ekstra = bacaSheetSebagaiObjek(SHEET_EKSTRA).filter(r => normalKP(r.NoKP) === nokp);
+    const rumusan = bacaSheetSebagaiObjek(SHEET_RUMUSAN).filter(r => normalKP(r.NoKP) === nokp);
+    const salinan = JSON.stringify({ murid: tanpaBaris(m), aspek: aspek.map(tanpaBaris), ekstra: ekstra.map(tanpaBaris), rumusan: rumusan.map(tanpaBaris) });
+    // rekod sebab DAHULU — jika pemadaman gagal separuh jalan, rekod dan salinan tetap ada
+    upsertBanyak(SHEET_MURID_DIPADAM, 'NoKP', [{
+      NoKP: nokp, Nama: m.Nama, KunciKelas: m.KunciKelas, Sebab: sebab, DipadamOlehKP: sesi.nokp, DipadamOleh: sesi.nama,
+      TarikhPadam: sekarangTeks(), Salinan: salinan
+    }]);
+    const padamSemua = (nama, senarai, medan) => senarai.slice().sort((a, b) => b.__row - a.__row).forEach(r => padamBaris(nama, r.__row, r[medan]));
+    padamSemua(SHEET_ASPEK, aspek, 'Kunci');
+    padamSemua(SHEET_EKSTRA, ekstra, 'NoKP');
+    padamSemua(SHEET_RUMUSAN, rumusan, 'NoKP');
+    padamBaris(SHEET_MURID, m.__row, m.NoKP);
+    catatAudit(sesi, 'PADAM', 'MURID', nokp, 'Padam murid: ' + m.Nama + ' (' + m.KunciKelas + '). Sebab: ' + sebab);
+    return jaya({ versi: versiData() });
+  });
+}
+
+function apiSenaraiMuridDipadam(p) {
+  const sesi = wajibPeranan(p.token, [ROLE_ADMIN]);
+  if (sesi.success === false) return sesi;
+  const senarai = Object.values(petaMuridDipadam())
+    .map(r => ({ nokp: normalKP(r.NoKP), nama: r.Nama, kunciKelas: r.KunciKelas, sebab: r.Sebab, oleh: r.DipadamOleh, tarikh: String(nilaiSelSebagaiTeks(r.TarikhPadam)) }))
+    .sort((a, b) => String(b.tarikh).localeCompare(String(a.tarikh)));
+  return jaya(halamanKan(senarai, p, x => x.nama + ' ' + x.nokp + ' ' + x.kunciKelas + ' ' + x.sebab));
+}
+
+/* Pulihkan murid yang dipadam (daripada salinan) dan benarkan semula segerak e-Kokurikulum. */
+function apiPulihMurid(p) {
+  const sesi = wajibPeranan(p.token, [ROLE_ADMIN]);
+  if (sesi.success === false) return sesi;
+  const nokp = normalKP(p.nokp);
+  return denganKunci(() => {
+    const r = bacaSheetSebagaiObjek(SHEET_MURID_DIPADAM).find(x => normalKP(x.NoKP) === nokp);
+    if (!r) return ralat('Rekod murid dipadam tidak dijumpai.');
+    let s = null;
+    try { s = JSON.parse(r.Salinan || 'null'); } catch (e) { s = null; }
+    const adaMurid = bacaSheetSebagaiObjek(SHEET_MURID).some(x => normalKP(x.NoKP) === nokp);
+    if (s && !adaMurid) {
+      upsertBanyak(SHEET_MURID, 'NoKP', [Object.assign(s.murid, { NoKP: nokp })]);
+      upsertBanyak(SHEET_ASPEK, 'Kunci', s.aspek || []);
+      upsertBanyak(SHEET_EKSTRA, 'NoKP', s.ekstra || []);
+      upsertBanyak(SHEET_RUMUSAN, 'NoKP', s.rumusan || []);
+    }
+    padamBaris(SHEET_MURID_DIPADAM, r.__row, r.NoKP);
+    catatAudit(sesi, 'PULIH', 'MURID', nokp, 'Pulihkan murid: ' + r.Nama + (s ? '' : ' (tiada salinan — akan dicipta semula pada segerak seterusnya)'));
+    return jaya({ dipulihkan: !!(s && !adaMurid), versi: versiData() });
+  });
 }
 
 function apiSimpanMurid(p) {

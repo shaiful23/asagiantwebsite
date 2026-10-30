@@ -225,6 +225,13 @@ Menu **Data Kelas** atau **Rumusan Kelas** → **PDF rujukan idME** (Admin & Gur
 7. **Kehadiran** dikira daripada rekod e-Kokurikulum sahaja (kosong sehingga e-Kokurikulum merekod kehadiran); guru tingkatan boleh **ganti manual** (0–12).
 8. Pelibatan daripada e-Kokurikulum diisi sebagai *Pelibatan 1* bagi peringkat berkenaan (e-Kokurikulum tidak merekod tahap *Pelibatan 1/2/3*); guru boleh mengubahnya dan suntingan itu kekal.
 
+## Padam murid (Admin, menu *Murid*)
+- Butang **Padam** pada setiap murid membuka borang pengesahan. Admin **wajib mengisi sebab** (sekurang-kurangnya 10 aksara). Butang *Padam murid* tidak aktif selagi sebab belum diisi.
+- **Data yang dipadam:** rekod murid dalam `MURID`, `PENTAKSIRAN_ASPEK`, `PENTAKSIRAN_EKSTRA` dan `RUMUSAN`. Data `ARKIB_TAHUNAN` (tahun lepas) tidak disentuh.
+- **Rekod pemadaman:** sebab, nama Admin dan tarikh direkodkan dalam Sheet `MURID_DIPADAM` (dicipta automatik) dan dalam *Log Audit*.
+- **Segerak e-Kokurikulum** melangkau murid yang dipadam supaya murid itu tidak dicipta semula.
+- **Pulihkan:** pilih penapis **Dipadam** di menu *Murid* untuk melihat senarai murid yang dipadam bersama sebabnya. Tekan **Pulihkan** untuk mengembalikan rekod dan markah daripada salinan yang disimpan semasa pemadaman.
+
 ## Arkib & Naik Tingkatan (Admin, menu *Arkib & Naik Tingkatan*)
 
 Turutan wajib akhir tahun:
@@ -256,7 +263,7 @@ Selepas mengemas kini kod, buat **Deploy → Manage deployments → Edit → New
 
 ## Struktur Sheet
 
-`PENGGUNA`, `MURID`, `PENTAKSIRAN_ASPEK` (satu baris setiap murid × aspek), `PENTAKSIRAN_EKSTRA`, `RUMUSAN`, `REFERENSI`, `TETAPAN`, `ARKIB_TAHUNAN`, `LOG_AUDIT`, `PERMOHONAN_BUKA`.
+`PENGGUNA`, `MURID`, `PENTAKSIRAN_ASPEK` (satu baris setiap murid × aspek), `PENTAKSIRAN_EKSTRA`, `RUMUSAN`, `REFERENSI`, `TETAPAN`, `ARKIB_TAHUNAN`, `LOG_AUDIT`, `PERMOHONAN_BUKA`, `MURID_DIPADAM`.
 Lajur No. KP diformat teks (sistem juga melapik sifar di hadapan jika No. KP tersimpan sebagai nombor).
 
 ## Had & nota
