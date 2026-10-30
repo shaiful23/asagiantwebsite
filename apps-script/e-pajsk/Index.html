@@ -194,7 +194,8 @@
     .kaki-nav b { color: var(--kuning-logo); letter-spacing: .06em; }
     #barAtas { background: rgba(255,255,255,.88); backdrop-filter: saturate(160%) blur(10px); -webkit-backdrop-filter: saturate(160%) blur(10px); border-bottom: 1px solid var(--sempadan); padding: 10px 22px; }
     .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--biru), var(--ungu)); color: #fff; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; margin-right: 8px; vertical-align: middle; }
-    #kandungan { padding: 22px 24px 40px; max-width: 1480px; width: 100%; margin: 0 auto; }
+    /* Skrin penuh: kandungan memenuhi lebar skrin pada semua peranti (tiada had lebar). */
+    #kandungan { padding: 22px clamp(14px, 1.6vw, 32px) 40px; max-width: none; width: 100%; margin: 0; min-width: 0; }
 
     /* Tajuk halaman */
     .kepala-hal { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; }
@@ -207,7 +208,7 @@
     .kad h3 { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--biru-gelap); }
     .kad h3 .ikon { color: var(--biru); }
     .kad .sub-kad { margin: -6px 0 12px; font-size: 12.5px; color: var(--kelabu); }
-    .grid-kad { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+    .grid-kad { grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 14px; }
     .stat { position: relative; display: flex; gap: 14px; align-items: center; border-radius: var(--jejari); border-color: var(--sempadan); box-shadow: var(--bayang); padding: 16px; overflow: hidden; }
     .stat::after { content: ''; position: absolute; right: -24px; top: -24px; width: 80px; height: 80px; border-radius: 50%; background: currentColor; opacity: .05; }
     .stat .cip { width: 46px; height: 46px; border-radius: 13px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--biru-lembut); color: var(--biru); }
