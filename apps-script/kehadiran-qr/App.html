@@ -1,0 +1,941 @@
+<script>
+/* =========================================================================
+ * App.html — skrip klien SPA e-Kehadiran.
+ * Semua panggilan pelayan melalui google.script.run → api*() (Apps Script).
+ * Kebenaran sentiasa disahkan di pelayan; menu hanya memudahkan paparan.
+ * ========================================================================= */
+let TOKEN = '';
+try { TOKEN = localStorage.getItem('ekhd_token') || ''; } catch (e) { TOKEN = ''; }
+let PENGGUNA = null, TETAPAN_UI = {}, HALAMAN = 'dashboard', JENIS_LOGIN = 'GURU', BIL_PERMOHONAN = 0;
+const WARNA = { biru: '#1E3BD1', merah: '#D9141B', kuning: '#F6D20F', emas: '#E9B200', ungu: '#5B1F8C', hijau: '#16A34A', navy: '#0B1D6B', biruTerang: '#2F80ED', oren: '#F97316', kelabu: '#CBD5E1' };
+const PALET = [WARNA.biru, WARNA.merah, WARNA.emas, WARNA.ungu, WARNA.hijau, WARNA.biruTerang, WARNA.oren, WARNA.navy, '#0EA5E9', '#DB2777'];
+const HARI_PENDEK = { ISNIN: 'Isn', SELASA: 'Sel', RABU: 'Rab', KHAMIS: 'Kha', JUMAAT: 'Jum', SABTU: 'Sab', AHAD: 'Ahd' };
+const BULAN = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+const HARI_PENUH = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
+
+/* ------------------------------ UTILITI ------------------------------ */
+const $ = (s, el) => (el || document).querySelector(s);
+const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+function ikon(n, g) { return '<i class="ph' + (g ? '-' + g : '') + ' ph-' + n + '"></i>'; }
+function inisial(nama) { return String(nama || '?').replace(/\b(BIN|BINTI|ANAK|A\/L|A\/P|CIKGU)\b/gi, '').trim().split(/\s+/).slice(0, 2).map(x => x[0] || '').join('').toUpperCase(); }
+function avatar(nama, gambar, kelas) {
+  return gambar ? '<img class="avatar ' + (kelas || '') + '" src="' + esc(gambar) + '" alt="" referrerpolicy="no-referrer" onerror="this.outerHTML=\'<span class=&quot;avatar ' + (kelas || '') + '&quot;>' + esc(inisial(nama)) + '</span>\'">'
+    : '<span class="avatar ' + (kelas || '') + '">' + esc(inisial(nama)) + '</span>';
+}
+function tarikhPanjang(t) { if (!t) return '-'; const [y, m, d] = t.split('-').map(Number); const dt = new Date(y, m - 1, d); return HARI_PENUH[dt.getDay()] + ', ' + d + ' ' + BULAN[m - 1] + ' ' + y; }
+function tarikhPendek(t) { if (!t) return '-'; const [y, m, d] = String(t).slice(0, 10).split('-').map(Number); return d + ' ' + BULAN[m - 1].slice(0, 3) + ' ' + y; }
+function tarikhIniKlien() { const d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function warnaPeratus(p) { return p >= 95 ? WARNA.hijau : p >= 85 ? WARNA.biru : p >= 75 ? WARNA.emas : WARNA.merah; }
+function barPeratus(p) { const v = Number(p) || 0; return '<div class="bar-peratus"><div class="trek"><div class="isi" style="width:' + Math.min(100, v) + '%;background:' + warnaPeratus(v) + '"></div></div><b class="nombor">' + v.toFixed(1) + '%</b></div>'; }
+function lencana(teks, warna, ik) { return '<span class="lencana l-' + warna + '">' + (ik ? ikon(ik, 'fill') : '') + esc(teks) + '</span>'; }
+function kosong(ik, tajuk, teks) { return '<div class="kosong">' + ikon(ik, 'duotone') + '<b>' + esc(tajuk) + '</b>' + esc(teks || '') + '</div>'; }
+function rangka(tinggi) { return '<div class="rangka" style="height:' + (tinggi || 120) + 'px"></div>'; }
+function kadStat(warna, ik, label, nilai, sub) {
+  return '<div class="kad kad-stat w-' + warna + '"><div class="bulat">' + ikon(ik, 'duotone') + '</div><div><div class="label">' + esc(label) + '</div><div class="nilai nombor">' + nilai + '</div>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div></div>';
+}
+
+function toast(mesej, jenis) {
+  const t = document.createElement('div');
+  t.className = 'toast ' + (jenis || 'jaya');
+  t.innerHTML = ikon(jenis === 'gagal' ? 'warning-circle' : 'check-circle', 'fill') + '<span>' + esc(mesej) + '</span>';
+  $('#kotakToast').appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 3800);
+}
+
+/* ------------------------------ PANGGILAN PELAYAN ------------------------------ */
+function panggil(fn, param) {
+  return new Promise((selesai, gagal) => { google.script.run.withSuccessHandler(selesai).withFailureHandler(gagal)[fn](param || {}); });
+}
+function api(fn, param, senyap) {
+  return panggil(fn, Object.assign({ token: TOKEN }, param || {})).then(h => {
+    if (!h || h.success === false) {
+      const mesej = (h && h.message) || 'Ralat tidak diketahui.';
+      if (h && h.kod === 'SESI') { keluar(true); $('#ralatLogin').textContent = mesej; }
+      else if (h && h.kod === 'MESTI_TUKAR') paparTukarKataLaluan(true);
+      else if (!senyap) toast(mesej, 'gagal');
+      const e = new Error(mesej); e.kod = h && h.kod; throw e;
+    }
+    return h;
+  }, err => { if (!senyap) toast('Sambungan ke pelayan gagal. Sila cuba lagi.', 'gagal'); throw err; });
+}
+/* Pemuat halaman: jika pengguna sudah berpindah halaman sebelum respons tiba,
+   abaikan respons lama supaya ia tidak menimpa halaman semasa. */
+let NAV_SEQ = 0;
+function muat(fn, param) {
+  const seq = NAV_SEQ, gantung = () => new Promise(() => {});
+  return api(fn, param).then(h => seq === NAV_SEQ ? h : gantung(), e => { if (seq !== NAV_SEQ) return gantung(); throw e; });
+}
+function sibuk(btn, ya, teks) {
+  if (!btn) return;
+  if (ya) { btn.dataset.asal = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="putar"></span>' + (teks || 'Memproses…'); }
+  else { btn.disabled = false; if (btn.dataset.asal) btn.innerHTML = btn.dataset.asal; }
+}
+
+/* ------------------------------ CARTA (ApexCharts) ------------------------------ */
+/* Carta aktif didaftar supaya dimusnahkan sebelum kandungan halaman diganti —
+   carta yang dibuang dari DOM tanpa destroy() terus beranimasi pada nod tertanggal. */
+let CARTA_AKTIF = [];
+function musnahCarta(semua) {
+  CARTA_AKTIF = CARTA_AKTIF.filter(c => {
+    if (!semua && c.el.isConnected) return true;
+    try { c.carta.destroy(); } catch (e) { /* abaikan */ }
+    return false;
+  });
+}
+function carta(el, opsyen) {
+  if (typeof el === 'string') el = $(el);
+  if (!el) return;
+  musnahCarta(false);
+  if (el._carta) { try { el._carta.destroy(); } catch (e) { /* abaikan */ } CARTA_AKTIF = CARTA_AKTIF.filter(c => c.el !== el); }
+  if (typeof ApexCharts === 'undefined') { el.innerHTML = kosong('chart-bar', 'Carta tidak dapat dimuat', 'Semak sambungan internet.'); return; }
+  const asas = { chart: { fontFamily: 'Plus Jakarta Sans, sans-serif', toolbar: { show: false }, animations: { speed: 400 }, foreColor: '#64748B' },
+    grid: { borderColor: '#EEF1F7', strokeDashArray: 4 }, dataLabels: { enabled: false }, legend: { fontWeight: 600, markers: { radius: 12 } },
+    tooltip: { theme: 'light' }, colors: PALET };
+  const o = Object.assign({}, asas, opsyen, { chart: Object.assign({}, asas.chart, opsyen.chart || {}) });
+  el._carta = new ApexCharts(el, o); el._carta.render(); CARTA_AKTIF.push({ el, carta: el._carta });
+}
+function cartaDonut(el, label, nilai, warna, tengah) {
+  carta(el, { chart: { type: 'donut', height: 280 }, labels: label, series: nilai, colors: warna || PALET, stroke: { width: 3, colors: ['#fff'] },
+    legend: { position: 'bottom' }, plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, label: tengah || 'Jumlah', fontWeight: 700 } } } } } });
+}
+function cartaGauge(el, nilai, label, warna) {
+  carta(el, { chart: { type: 'radialBar', height: 250, sparkline: { enabled: true } }, series: [Number(nilai) || 0], colors: [warna || warnaPeratus(nilai)], labels: [label],
+    plotOptions: { radialBar: { hollow: { size: '64%' }, track: { background: '#EEF1F7', strokeWidth: '100%' },
+      dataLabels: { name: { offsetY: 24, fontSize: '13px', fontWeight: 700, color: '#64748B' }, value: { offsetY: -12, fontSize: '30px', fontWeight: 800, color: '#0F172A', formatter: v => Number(v).toFixed(1) + '%' } } } },
+    stroke: { lineCap: 'round' } });
+}
+function cartaBar(el, kategori, siri, opsyen) {
+  const o = opsyen || {};
+  carta(el, { chart: { type: 'bar', height: o.tinggi || 300, stacked: !!o.bertindan }, series: siri, xaxis: { categories: kategori, labels: { rotate: -35, trim: true } },
+    plotOptions: { bar: { borderRadius: 6, columnWidth: o.lebar || '55%', horizontal: !!o.mendatar, borderRadiusApplication: 'end' } },
+    yaxis: o.peratus ? { max: 100, min: 0, labels: { formatter: v => Math.round(v) + '%' } } : { labels: { formatter: v => Math.round(v) } },
+    colors: o.warna || PALET, tooltip: { y: { formatter: v => o.peratus ? Number(v).toFixed(1) + '%' : v } }, fill: { opacity: 1 } });
+}
+function cartaKawasan(el, kategori, siri, opsyen) {
+  const o = opsyen || {};
+  carta(el, { chart: { type: 'area', height: o.tinggi || 280, zoom: { enabled: false } }, series: siri, xaxis: { categories: kategori, labels: { rotate: -35 } },
+    stroke: { curve: 'smooth', width: 3 }, fill: { type: 'gradient', gradient: { opacityFrom: .35, opacityTo: .02 } }, markers: { size: 4, strokeWidth: 2, hover: { size: 6 } },
+    yaxis: o.peratus ? { max: 100, min: o.min || 0, labels: { formatter: v => Math.round(v) + '%' } } : {}, colors: o.warna || [WARNA.biru, WARNA.merah],
+    tooltip: { y: { formatter: v => o.peratus ? Number(v).toFixed(1) + '%' : v } } });
+}
+
+/* ------------------------------ JADUAL DATA ------------------------------
+   jadualData(el, { lajur:[{k,label,f(row),nombor,isih}], data, cari:true, eksport:'nama', perHalaman, klik(row) }) */
+function jadualData(el, cfg) {
+  if (typeof el === 'string') el = $(el);
+  const st = { q: '', isih: cfg.isihAwal || null, arah: cfg.arahAwal || 1, hal: 0, per: cfg.perHalaman || 10 };
+  const nilaiTeks = (r, l) => l.teks ? l.teks(r) : (r[l.k] == null ? '' : r[l.k]);
+  function tapis() {
+    let d = cfg.data.slice();
+    if (st.q) { const q = st.q.toLowerCase(); d = d.filter(r => cfg.lajur.some(l => String(nilaiTeks(r, l)).toLowerCase().indexOf(q) !== -1)); }
+    if (st.isih) { const l = cfg.lajur.find(x => x.k === st.isih); d.sort((a, b) => { const x = nilaiTeks(a, l), y = nilaiTeks(b, l);
+      return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true })) * st.arah; }); }
+    return d;
+  }
+  function lukis() {
+    const d = tapis(), mula = st.hal * st.per, keping = d.slice(mula, mula + st.per), bilHal = Math.max(1, Math.ceil(d.length / st.per));
+    const badan = el.querySelector('tbody');
+    badan.innerHTML = keping.length ? keping.map((r, i) => '<tr class="' + (cfg.klik ? 'boleh-klik' : '') + '" data-i="' + (mula + i) + '">' +
+      cfg.lajur.map(l => '<td class="' + (l.nombor ? 'nombor' : '') + '">' + (l.f ? l.f(r) : esc(r[l.k])) + '</td>').join('') + '</tr>').join('')
+      : '<tr><td colspan="' + cfg.lajur.length + '">' + kosong('magnifying-glass', 'Tiada rekod', st.q ? 'Cuba carian lain.' : '') + '</td></tr>';
+    el.querySelector('.hal-info').textContent = d.length ? (mula + 1) + '–' + Math.min(d.length, mula + st.per) + ' daripada ' + d.length + ' rekod' : '0 rekod';
+    el.querySelector('.hal-sebelum').disabled = st.hal === 0; el.querySelector('.hal-seterusnya').disabled = st.hal >= bilHal - 1;
+    el.querySelectorAll('th').forEach(th => { const a = th.querySelector('.anak-panah'); if (a) a.innerHTML = th.dataset.k === st.isih ? (st.arah > 0 ? '▲' : '▼') : '↕'; });
+    if (cfg.klik) badan.querySelectorAll('tr[data-i]').forEach(tr => tr.onclick = () => cfg.klik(d[Number(tr.dataset.i)]));
+  }
+  el.innerHTML = '<div class="alat-jadual">' + (cfg.cari === false ? '' : '<div class="input-ikon"><i class="ph ph-magnifying-glass"></i><input class="input" placeholder="Cari…"></div>') +
+    (cfg.alatTambahan || '') + (cfg.eksport ? '<button class="btn hantu kecil eksport" style="margin-left:auto">' + ikon('download-simple') + 'Eksport CSV</button>' : '') + '</div>' +
+    '<div class="bekas-jadual"><table class="jadual"><thead><tr>' + cfg.lajur.map(l => '<th data-k="' + esc(l.k) + '">' + esc(l.label) + (l.isih === false ? '' : '<span class="anak-panah">↕</span>') + '</th>').join('') +
+    '</tr></thead><tbody></tbody></table></div><div class="halaman"><span class="hal-info"></span><span><button class="btn hantu kecil hal-sebelum">' + ikon('caret-left') +
+    '</button> <button class="btn hantu kecil hal-seterusnya">' + ikon('caret-right') + '</button></span></div>';
+  const cari = el.querySelector('.alat-jadual input');
+  if (cari) cari.oninput = () => { st.q = cari.value.trim(); st.hal = 0; lukis(); };
+  el.querySelectorAll('th').forEach(th => { const l = cfg.lajur.find(x => x.k === th.dataset.k); if (l && l.isih !== false) th.onclick = () => { st.arah = st.isih === th.dataset.k ? -st.arah : 1; st.isih = th.dataset.k; lukis(); }; });
+  el.querySelector('.hal-sebelum').onclick = () => { st.hal--; lukis(); };
+  el.querySelector('.hal-seterusnya').onclick = () => { st.hal++; lukis(); };
+  const ek = el.querySelector('.eksport');
+  if (ek) ek.onclick = () => eksportCSV(cfg.eksport, cfg.lajur, tapis(), nilaiTeks);
+  lukis();
+}
+function eksportCSV(nama, lajur, data, nilaiTeks) {
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const csv = '﻿' + [lajur.map(l => q(l.label)).join(',')].concat(data.map(r => lajur.map(l => q(nilaiTeks(r, l))).join(','))).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = nama + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ------------------------------ MODAL ------------------------------ */
+function bukaModal(html, opsyen) {
+  const o = opsyen || {};
+  const k = $('#kotakModal');
+  k.innerHTML = '<div class="lapik"><div class="modal ' + (o.lebar ? 'lebar' : '') + '" role="dialog" aria-modal="true">' + html + '</div></div>';
+  const lapik = k.querySelector('.lapik');
+  if (!o.wajib) {
+    lapik.addEventListener('click', e => { if (e.target === lapik) tutupModal(); });
+    k.querySelectorAll('[data-tutup]').forEach(b => b.onclick = tutupModal);
+  }
+  return k.querySelector('.modal');
+}
+function tutupModal() { $('#kotakModal').innerHTML = ''; musnahCarta(false); }
+function kepalaModal(tajuk, ik, wajib) { return '<div class="modal-kepala">' + (ik ? '<span class="kad-stat w-biru" style="padding:0;border:0;box-shadow:none"><span class="bulat" style="width:40px;height:40px;font-size:20px">' + ikon(ik, 'duotone') + '</span></span>' : '') + '<h3>' + esc(tajuk) + '</h3>' + (wajib ? '' : '<button class="tutup" data-tutup>' + ikon('x') + '</button>') + '</div>'; }
+
+/* ------------------------------ PERMULAAN & LOG MASUK ------------------------------ */
+document.addEventListener('DOMContentLoaded', mula);
+function mula() {
+  $$('img.logo-sekolah').forEach(i => { i.src = LOGO_SEKOLAH; });
+  $$('.tab-jenis button').forEach(b => b.onclick = () => {
+    JENIS_LOGIN = b.dataset.jenis; $$('.tab-jenis button').forEach(x => x.classList.toggle('aktif', x === b));
+    $('#inNoKP').placeholder = JENIS_LOGIN === 'GURU' ? 'cth: 800101135001' : 'cth: 090101130123';
+  });
+  $$('.lihat').forEach(b => b.onclick = () => { const i = document.getElementById(b.dataset.sasaran); i.type = i.type === 'password' ? 'text' : 'password'; b.innerHTML = ikon(i.type === 'password' ? 'eye' : 'eye-slash'); });
+  $('#formLogin').onsubmit = logMasuk;
+  $('#btnKeluar').onclick = () => keluar();
+  $('#btnMenu').onclick = () => document.body.classList.toggle('menu-buka');
+  window.addEventListener('hashchange', () => { const h = location.hash.replace('#/', ''); if (PENGGUNA && h && h !== HALAMAN) pergi(h, true); });
+  setInterval(kemaskiniJam, 1000); kemaskiniJam();
+  if (!TOKEN) return tunjukLogin();
+  panggil('apiSemakSesi', { token: TOKEN }).then(h => {
+    if (!h || !h.success) return tunjukLogin();
+    masukAplikasi(h.pengguna, h.tetapanUi, h.mestiTukarPassword);
+  }).catch(() => tunjukLogin());
+}
+function tunjukLogin() { $('#skrinSplash').classList.add('hidden'); $('#skrinApp').classList.add('hidden'); $('#skrinLogin').classList.remove('hidden'); setTimeout(() => $('#inNoKP').focus(), 50); }
+
+function logMasuk(e) {
+  e.preventDefault();
+  const btn = $('#btnLogin'); $('#ralatLogin').textContent = '';
+  const nokp = $('#inNoKP').value.replace(/\D/g, ''), kl = $('#inKataLaluan').value;
+  if (nokp.length !== 12) { $('#ralatLogin').textContent = 'No. KP mesti 12 digit (tanpa sengkang).'; return; }
+  sibuk(btn, true, 'Mengesahkan…');
+  panggil('apiLogin', { nokp, kataLaluan: kl }).then(h => {
+    sibuk(btn, false);
+    if (!h.success) { $('#ralatLogin').textContent = h.message; return; }
+    if (h.pengguna.jenis !== JENIS_LOGIN) toast('Anda log masuk sebagai ' + (h.pengguna.jenis === 'GURU' ? 'guru' : 'murid') + '.');
+    TOKEN = h.token; try { localStorage.setItem('ekhd_token', TOKEN); } catch (er) { /* abaikan */ }
+    $('#inKataLaluan').value = '';
+    return panggil('apiSemakSesi', { token: TOKEN }).then(s => masukAplikasi(h.pengguna, s.tetapanUi || {}, h.mestiTukarPassword));
+  }).catch(() => { sibuk(btn, false); $('#ralatLogin').textContent = 'Sambungan ke pelayan gagal. Sila cuba lagi.'; });
+}
+
+function keluar(senyap) {
+  if (TOKEN && !senyap) panggil('apiLogout', { token: TOKEN }).catch(() => {});
+  TOKEN = ''; PENGGUNA = null; try { localStorage.removeItem('ekhd_token'); } catch (e) { /* abaikan */ }
+  tutupModal(); document.body.classList.remove('menu-buka'); history.replaceState(null, '', location.pathname + location.search); tunjukLogin();
+}
+
+function masukAplikasi(pengguna, tetapanUi, mestiTukar) {
+  PENGGUNA = pengguna; TETAPAN_UI = tetapanUi || {};
+  $('#skrinSplash').classList.add('hidden'); $('#skrinLogin').classList.add('hidden'); $('#skrinApp').classList.remove('hidden');
+  lukisPengguna(); binaNav();
+  if (mestiTukar) { paparTukarKataLaluan(true); return; }
+  const h = location.hash.replace('#/', '');
+  pergi(NAV_ID().indexOf(h) !== -1 ? h : 'dashboard');
+  kemaskiniLencanaPermohonan();
+}
+function kemaskiniLencanaPermohonan() {
+  if (PENGGUNA && PENGGUNA.admin) api('apiSenaraiPermohonan', { status: 'MENUNGGU' }, true).then(r => { BIL_PERMOHONAN = r.senarai.length; binaNav(); }).catch(() => {});
+}
+
+function lukisPengguna() {
+  const u = PENGGUNA;
+  $('#kadPengguna').innerHTML = avatar(u.nama, u.gambar) + '<div style="min-width:0"><b>' + esc(u.nama) + '</b><small>' +
+    esc(u.jenis === 'MURID' ? 'Murid · ' + u.kelas : (u.kelasTingkatan ? 'Kelas ' + u.kelasTingkatan : 'Guru')) + '</small><div class="cip-peranan">' +
+    u.peranan.map(p => '<span>' + esc(p) + '</span>').join('') + '</div></div>';
+}
+
+/* ------------------------------ NAVIGASI IKUT PERANAN ------------------------------ */
+function senaraiNav() {
+  const u = PENGGUNA, n = [];
+  n.push({ kumpulan: 'Utama' }, { id: 'dashboard', label: 'Papan Pemuka', ikon: 'squares-four' });
+  if (u.jenis === 'MURID') {
+    n.push({ id: 'rekod', label: 'Rekod Kehadiran Saya', ikon: 'calendar-check' }, { id: 'profil', label: 'Profil Saya', ikon: 'identification-badge' });
+  } else {
+    if (u.guruKelas || u.admin) n.push({ kumpulan: 'Guru Tingkatan' }, { id: 'kehadiran-kelas', label: 'Rekod Kehadiran Kelas', ikon: 'users-three' }, { id: 'amaran', label: 'Amaran Ponteng', ikon: 'warning-octagon' });
+    n.push({ kumpulan: 'Pengajaran & Pembelajaran' }, { id: 'imbas', label: 'Imbas QR Kelas', ikon: 'qr-code' }, { id: 'kelas-diajar', label: 'Kelas Diajar & Teach-In', ikon: 'chalkboard-teacher' });
+    n.push({ kumpulan: 'Rekod & Pelajar' }, { id: 'rekod', label: 'Rekod Kehadiran', ikon: 'calendar-check' }, { id: 'profil', label: 'Profil Pelajar', ikon: 'identification-badge' });
+    if (u.admin) n.push({ kumpulan: 'Pentadbir' }, { id: 'permohonan', label: 'Permohonan Buka Akses', ikon: 'lock-key-open', lencana: BIL_PERMOHONAN },
+      { id: 'analisis-permohonan', label: 'Analisis Permohonan', ikon: 'chart-line-up' }, { id: 'kod-qr', label: 'Kod QR Kelas', ikon: 'qr-code' },
+      { id: 'pengguna', label: 'Pengguna & Sistem', ikon: 'gear-six' });
+  }
+  n.push({ kumpulan: 'Akaun' }, { id: 'kata-laluan', label: 'Tukar Kata Laluan', ikon: 'key' });
+  return n;
+}
+function NAV_ID() { return senaraiNav().filter(x => x.id).map(x => x.id); }
+function binaNav() {
+  $('#navUtama').innerHTML = senaraiNav().map(x => x.kumpulan ? '<div class="nav-kumpulan">' + esc(x.kumpulan) + '</div>'
+    : '<div class="nav-item ' + (x.id === HALAMAN ? 'aktif' : '') + '" data-id="' + x.id + '">' + ikon(x.ikon, x.id === HALAMAN ? 'fill' : '') + esc(x.label) +
+      (x.lencana ? '<span class="lencana-nav">' + x.lencana + '</span>' : '') + '</div>').join('');
+  $$('#navUtama .nav-item').forEach(el => el.onclick = () => { pergi(el.dataset.id); document.body.classList.remove('menu-buka'); });
+}
+
+const HALAMAN_FN = {};
+function pergi(id, dariHash) {
+  if (NAV_ID().indexOf(id) === -1) id = 'dashboard';
+  HALAMAN = id; NAV_SEQ++; musnahCarta(true); binaNav(); tutupModal();
+  const item = senaraiNav().find(x => x.id === id);
+  $('#tajukHalaman').textContent = item ? item.label : '';
+  $('#remehHalaman').textContent = '';
+  if (!dariHash) history.replaceState(null, '', '#/' + id);
+  $('#kandungan').innerHTML = '<div class="grid g-4 mb">' + rangka(96) + rangka(96) + rangka(96) + rangka(96) + '</div>' + rangka(320);
+  window.scrollTo(0, 0);
+  try { HALAMAN_FN[id](); } catch (e) { $('#kandungan').innerHTML = kosong('bug', 'Ralat memaparkan halaman', e.message); }
+}
+
+function kemaskiniJam() {
+  const d = new Date();
+  const jam = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+  if ($('#teksJam')) $('#teksJam').textContent = jam + ':' + ('0' + d.getSeconds()).slice(-2);
+  if ($('#teksTarikh')) $('#teksTarikh').textContent = tarikhPanjang(tarikhIniKlien());
+  const cip = $('#cipKunci');
+  if (!cip || !PENGGUNA || !PENGGUNA.guruKelas) { if (cip) cip.classList.add('hidden'); return; }
+  const mk = TETAPAN_UI.masaKunci || '07:10';
+  const [h, m] = mk.split(':').map(Number), sasar = new Date(d); sasar.setHours(h, m, 0, 0);
+  const baki = Math.floor((sasar - d) / 1000);
+  cip.classList.remove('hidden');
+  if (baki > 0) { cip.className = 'cip-kunci buka'; cip.innerHTML = ikon('lock-simple-open', 'fill') + '<span class="teks-kunci">Rekod kelas dikunci dalam </span>' + Math.floor(baki / 60) + ':' + ('0' + baki % 60).slice(-2); }
+  else { cip.className = 'cip-kunci kunci'; cip.innerHTML = ikon('lock-simple', 'fill') + '<span class="teks-kunci">Rekod kelas dikunci </span>(' + mk + ')'; }
+}
+
+/* ------------------------------ TUKAR KATA LALUAN ------------------------------ */
+function borangKataLaluan(wajib) {
+  return '<form id="formKL">' + (wajib ? '<div class="banner kuning">' + ikon('shield-warning', 'fill') + '<div><b>Tukar kata laluan lalai anda</b><p>Demi keselamatan, anda wajib menukar kata laluan lalai (6 digit terakhir No. KP) sebelum menggunakan sistem.</p></div></div>' : '') +
+    '<div class="medan"><label>Kata laluan semasa</label><div class="input-ikon"><i class="ph ph-lock-simple"></i><input id="klLama" type="password" class="input" required autocomplete="current-password"></div></div>' +
+    '<div class="medan"><label>Kata laluan baharu</label><div class="input-ikon"><i class="ph ph-key"></i><input id="klBaharu" type="password" class="input" required autocomplete="new-password" minlength="8">' +
+    '<button type="button" class="lihat" data-sasaran="klBaharu"><i class="ph ph-eye"></i></button></div><div class="kekuatan"><span id="barKekuatan"></span></div>' +
+    '<small style="color:var(--teks-2)">Sekurang-kurangnya 8 aksara, mengandungi huruf dan nombor.</small></div>' +
+    '<div class="medan"><label>Sahkan kata laluan baharu</label><div class="input-ikon"><i class="ph ph-check-square"></i><input id="klSahkan" type="password" class="input" required autocomplete="new-password"></div></div>' +
+    '<p class="ralat" id="ralatKL"></p><button class="btn penuh" id="btnKL" type="submit">' + ikon('floppy-disk', 'bold') + 'Simpan Kata Laluan</button></form>';
+}
+function pasangBorangKataLaluan(wajib) {
+  const baharu = $('#klBaharu');
+  $$('#formKL .lihat').forEach(b => b.onclick = () => { baharu.type = baharu.type === 'password' ? 'text' : 'password'; });
+  baharu.oninput = () => {
+    const v = baharu.value; let s = 0;
+    if (v.length >= 8) s++; if (/[A-Z]/.test(v) && /[a-z]/.test(v)) s++; if (/\d/.test(v)) s++; if (/[^A-Za-z0-9]/.test(v) || v.length >= 12) s++;
+    const bar = $('#barKekuatan'); bar.style.width = (s * 25) + '%'; bar.style.background = [WARNA.merah, WARNA.merah, WARNA.emas, WARNA.biru, WARNA.hijau][s];
+  };
+  $('#formKL').onsubmit = e => {
+    e.preventDefault();
+    const r = $('#ralatKL'); r.textContent = '';
+    if ($('#klBaharu').value !== $('#klSahkan').value) { r.textContent = 'Pengesahan kata laluan tidak sepadan.'; return; }
+    const btn = $('#btnKL'); sibuk(btn, true, 'Menyimpan…');
+    panggil('apiTukarKataLaluan', { token: TOKEN, kataLaluanLama: $('#klLama').value, kataLaluanBaharu: $('#klBaharu').value }).then(h => {
+      sibuk(btn, false);
+      if (!h.success) { r.textContent = h.message; return; }
+      toast('Kata laluan berjaya ditukar.');
+      PENGGUNA = h.pengguna;
+      if (wajib) { tutupModal(); lukisPengguna(); pergi('dashboard'); kemaskiniLencanaPermohonan(); } else $('#formKL').reset();
+    }).catch(() => { sibuk(btn, false); r.textContent = 'Sambungan gagal.'; });
+  };
+}
+function paparTukarKataLaluan(wajib) {
+  $('#kandungan').innerHTML = '';
+  bukaModal(kepalaModal('Tukar Kata Laluan', 'key', true) + '<div class="modal-badan">' + borangKataLaluan(true) +
+    '<button class="btn hantu penuh" style="margin-top:10px" onclick="keluar()">' + ikon('sign-out') + 'Log Keluar</button></div>', { wajib: true });
+  pasangBorangKataLaluan(true);
+}
+HALAMAN_FN['kata-laluan'] = function () {
+  $('#kandungan').innerHTML = '<div class="grid g-2"><div class="kad"><div class="kad-kepala"><h3>' + ikon('key', 'duotone') + 'Tukar Kata Laluan</h3></div>' + borangKataLaluan(false) +
+    '</div><div class="kad"><div class="kad-kepala"><h3>' + ikon('shield-check', 'duotone') + 'Tip Keselamatan</h3></div><div class="senarai-jadual">' +
+    ['Jangan kongsi kata laluan dengan sesiapa, termasuk rakan sekelas atau guru lain.', 'Gunakan gabungan huruf besar, huruf kecil, nombor dan simbol.',
+      'Log keluar selepas menggunakan komputer awam/makmal.', 'Lupa kata laluan? Minta Pentadbir menetapkan semula kepada kata laluan lalai.']
+      .map(t => '<div class="slot-item"><span class="garis" style="background:var(--kuning)"></span><div class="info">' + esc(t) + '</div></div>').join('') + '</div></div></div>';
+  pasangBorangKataLaluan(false);
+};
+
+/* ============================== PAPAN PEMUKA ============================== */
+HALAMAN_FN.dashboard = function () {
+  muat('apiDashboard').then(d => {
+    $('#remehHalaman').textContent = tarikhPanjang(d.tarikh);
+    if (d.murid) return dashboardMurid(d);
+    dashboardGuru(d);
+  }).catch(e => { $('#kandungan').innerHTML = kosong('wifi-slash', 'Gagal memuat papan pemuka', e.message); });
+};
+
+function salam() { const h = new Date().getHours(); return h < 12 ? 'Selamat pagi' : h < 15 ? 'Selamat tengah hari' : h < 19 ? 'Selamat petang' : 'Selamat malam'; }
+
+function dashboardMurid(d) {
+  const m = d.murid, hi = m.hariIni;
+  const statusHI = !hi.direkod ? lencana('Belum direkod', 'kelabu', 'clock') : hi.hadir ? lencana('Hadir', 'hijau', 'check-circle') : lencana('Tidak hadir · ' + hi.sebab, 'merah', 'x-circle');
+  const am = m.amaran;
+  const adaAmaran = am.BERTURUT.peringkat.indeks >= 0 || am.TIDAK_BERTURUT.peringkat.indeks >= 0;
+  $('#kandungan').innerHTML =
+    '<div class="kad sambutan mb"><div class="jalur-pelangi"></div><h2>' + salam() + ', ' + esc(m.profil.nama.split(' ')[0]) + '!</h2><p>' + esc(m.profil.kelas) + ' · Status kehadiran hari ini: ' + statusHI + '</p></div>' +
+    (adaAmaran ? '<div class="banner merah">' + ikon('warning-octagon', 'fill') + '<div><b>Perhatian: rekod ponteng anda telah mencapai peringkat amaran</b><p>' +
+      (am.BERTURUT.peringkat.indeks >= 0 ? 'Berturut-turut: ' + esc(am.BERTURUT.peringkat.label) + ' (' + am.BERTURUT.hari + ' hari). ' : '') +
+      (am.TIDAK_BERTURUT.peringkat.indeks >= 0 ? 'Tidak berturut-turut: ' + esc(am.TIDAK_BERTURUT.peringkat.label) + ' (' + am.TIDAK_BERTURUT.hari + ' hari). ' : '') +
+      'Sila berjumpa Guru Tingkatan anda.</p></div></div>' : '') +
+    '<div class="grid g-4 mb">' +
+      kadStat(hi.direkod ? (hi.hadir ? 'hijau' : 'merah') : 'biru', hi.direkod ? (hi.hadir ? 'check-circle' : 'x-circle') : 'clock', 'Status Hari Ini', hi.direkod ? (hi.hadir ? 'Hadir' : 'Tidak Hadir') : 'Belum', hi.sebab ? esc(hi.sebab) : (hi.direkod ? 'Direkod oleh Guru Tingkatan' : 'Menunggu rekod Guru Tingkatan')) +
+      kadStat('biru', 'calendar-check', 'Kehadiran Bulan Ini', m.bulanIni.peratus.toFixed(1) + '<small>%</small>', m.bulanIni.hadir + ' / ' + m.bulanIni.hari + ' hari') +
+      kadStat('ungu', 'chart-line-up', 'Kehadiran Tahun Ini', m.tahunIni.peratus.toFixed(1) + '<small>%</small>', m.tahunIni.hadir + ' / ' + m.tahunIni.hari + ' hari persekolahan') +
+      kadStat(m.tahunIni.ponteng ? 'merah' : 'hijau', 'prohibit', 'Hari Ponteng (Tahun)', m.tahunIni.ponteng, m.tahunIni.tidakHadirSah + ' hari tidak hadir bersebab') +
+    '</div><div class="grid g-21 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-bar', 'duotone') + 'Trend Kehadiran Bulanan</h3><span class="remeh">Tahun semasa</span></div><div id="cMTrend" class="carta"></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('gauge', 'duotone') + 'Kehadiran Keseluruhan</h3></div><div id="cMGauge"></div></div></div>' +
+    '<div class="grid g-2"><div class="kad"><div class="kad-kepala"><h3>' + ikon('clock-countdown', 'duotone') + 'Sesi P&P Hari Ini</h3><span class="remeh">Direkod melalui imbasan QR guru</span></div><div class="senarai-jadual">' +
+    (m.sesiHariIni.length ? m.sesiHariIni.map(s => '<div class="slot-item ' + (s.jenis === 'GURU TEACH-IN' ? 'teachin' : '') + '"><div class="masa">Slot<small>' + esc(s.slot) + '</small></div><span class="garis"></span><div class="info"><b>' + esc(s.subjek) + '</b><small>' + esc(s.guru) + (s.jenis === 'GURU TEACH-IN' ? ' · Teach-In' : '') + '</small></div>' +
+      (s.hadir ? lencana('Hadir', 'hijau') : lencana('Tidak hadir', 'merah')) + '</div>').join('') : kosong('chalkboard', 'Tiada sesi direkod lagi hari ini')) +
+    '</div></div><div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar-dots', 'duotone') + '20 Hari Persekolahan Terkini</h3></div><div class="kalendar" style="grid-template-columns:repeat(10,1fr)">' +
+    (m.terkini.length ? m.terkini.map(h => '<div class="sel ' + (h.hadir ? 'hadir' : (h.ponteng ? 'ponteng' : 'sah')) + '" title="' + esc(tarikhPanjang(h.tarikh) + (h.sebab ? ' · ' + h.sebab : '')) + '">' + Number(h.tarikh.slice(8)) + '<small>' + esc(BULAN[Number(h.tarikh.slice(5, 7)) - 1].slice(0, 3)) + '</small></div>').join('') : '') + '</div>' +
+    (m.terkini.length ? '' : kosong('calendar-blank', 'Belum ada rekod')) + petunjukKalendar() + '</div></div>';
+  cartaBar('#cMTrend', m.trend.map(t => t.label), [{ name: 'Kehadiran', data: m.trend.map(t => t.peratus) }], { peratus: true, warna: [WARNA.biru] });
+  cartaGauge('#cMGauge', m.tahunIni.peratus, 'Tahun ' + d.tarikh.slice(0, 4));
+}
+function petunjukKalendar() { return '<div class="petunjuk"><span><i style="background:var(--hijau-lembut);border:1px solid #86EFAC"></i>Hadir</span><span><i style="background:var(--kuning-lembut);border:1px solid #FDE047"></i>Tidak hadir (bersebab)</span><span><i style="background:var(--merah-lembut);border:1px solid #FCA5A5"></i>Ponteng</span></div>'; }
+
+function dashboardGuru(d) {
+  const g = d.guru, ks = d.kelasSaya, sk = d.sekolah;
+  let html = '<div class="kad sambutan mb"><div class="jalur-pelangi"></div><h2>' + salam() + ', ' + esc(PENGGUNA.nama) + '</h2><p>' + esc(PENGGUNA.labelPeranan.join(' · ')) +
+    (PENGGUNA.kelasTingkatan ? ' · Kelas ' + esc(PENGGUNA.kelasTingkatan) : '') + '</p><div class="tindakan">' +
+    '<button class="btn kuning" onclick="pergi(\'imbas\')">' + ikon('qr-code', 'bold') + 'Imbas QR Kelas</button>' +
+    (ks ? '<button class="btn hantu" onclick="pergi(\'kehadiran-kelas\')">' + ikon('users-three') + 'Rekod Kehadiran Kelas</button>' : '') + '</div></div>';
+
+  const fokusSekolah = sk && !ks && !g.jadual.length && !g.sesiHariIni.length;
+  if (fokusSekolah) { $('#kandungan').innerHTML = html + blokSekolah(sk); lukisCartaSekolah(sk); return; }
+  if (ks) {
+    const k = ks.kunci;
+    html += !ks.direkod ? (k.boleh ? '<div class="banner kuning">' + ikon('alarm', 'fill') + '<div><b>Kehadiran kelas ' + esc(ks.kelas) + ' belum direkod hari ini</b><p>Rekod sebelum ' + esc(d.masaKunci) + '. Selepas itu rekod dikunci dan perlu permohonan kepada admin.</p></div><button class="btn kecil" style="margin-left:auto" onclick="pergi(\'kehadiran-kelas\')">Rekod Sekarang</button></div>'
+      : '<div class="banner merah">' + ikon('lock-simple', 'fill') + '<div><b>Kehadiran kelas ' + esc(ks.kelas) + ' belum direkod & sudah dikunci</b><p>' + esc(k.sebab) + '</p></div><button class="btn kecil merah" style="margin-left:auto" onclick="pergi(\'kehadiran-kelas\')">Mohon Buka Akses</button></div>') : '';
+    html += '<div class="grid g-4 mb">' +
+      kadStat('biru', 'users-three', 'Kelas ' + ks.kelas, ks.direkod ? ks.hadir + '<small> / ' + ks.jumlah + '</small>' : '—', ks.direkod ? 'Hadir hari ini · ' + ks.peratus.toFixed(1) + '%' : ks.jumlah + ' murid · belum direkod') +
+      kadStat('merah', 'user-minus', 'Tidak Hadir Hari Ini', ks.direkod ? ks.tidakHadir : '—', ks.direkod ? (ks.senaraiTidakHadir.filter(x => x.ponteng).length + ' dikira ponteng') : '') +
+      kadStat('oren', 'warning-octagon', 'Perlu Tindakan Amaran', ks.perluTindakan, ks.dalamAmaran + ' murid dalam peringkat amaran') +
+      kadStat('ungu', 'qr-code', 'Sesi P&P Direkod', g.kad.sesiDirekod + '<small> / ' + (g.kad.kelasHariIni + g.kad.teachInHariIni) + '</small>', g.kad.teachInHariIni + ' teach-in hari ini') + '</div>';
+  } else {
+    html += '<div class="grid g-4 mb">' +
+      kadStat('biru', 'chalkboard-teacher', 'Kelas Hari Ini', g.kad.kelasHariIni, 'Mengikut jadual waktu') +
+      kadStat('ungu', 'swap', 'Teach-In Hari Ini', g.kad.teachInHariIni, 'Daripada e-Teach-In') +
+      kadStat('hijau', 'qr-code', 'Sesi Direkod', g.kad.sesiDirekod, 'Imbasan QR hari ini') +
+      kadStat('kuning', 'percent', 'Kehadiran Murid (Sesi)', g.kad.peratusSesi.toFixed(1) + '<small>%</small>', 'Purata sesi direkod hari ini') + '</div>';
+  }
+
+  html += '<div class="grid g-21 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar', 'duotone') + 'Jadual Saya Hari Ini</h3><span class="remeh">' + esc(d.hari) + '</span></div><div class="senarai-jadual">' +
+    (g.jadual.length ? g.jadual.map(j => '<div class="slot-item ' + (j.jenis === 'TEACH-IN' ? 'teachin' : '') + '"><div class="masa">' + esc(j.mula || '-') + '<small>Slot ' + esc(j.slot) + '</small></div><span class="garis"></span>' +
+      '<div class="info"><b>' + esc(j.kelas) + ' · ' + esc(j.subjek || '-') + '</b><small>' + (j.jenis === 'TEACH-IN' ? 'Teach-In · ganti ' + esc(j.guruAsal || '') : 'Kelas diajar') + '</small></div>' +
+      (j.direkod ? lencana(j.hadir + '/' + j.jumlah + ' hadir', 'hijau', 'check-circle') : lencana('Belum diimbas', 'kelabu', 'clock')) + '</div>').join('')
+      : kosong('coffee', 'Tiada kelas dijadualkan hari ini', 'Jadual diambil daripada e-Teach-In.')) + '</div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-donut', 'duotone') + (ks ? 'Kehadiran ' + esc(ks.kelas) : 'Sesi Hari Ini') + '</h3></div><div id="cGDonut"></div></div></div>';
+
+  if (ks) html += '<div class="grid g-21 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('trend-up', 'duotone') + 'Trend Kehadiran Kelas</h3><span class="remeh">15 hari persekolahan terkini</span></div><div id="cGTrend" class="carta"></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('user-minus', 'duotone') + 'Tidak Hadir Hari Ini</h3></div><div class="senarai-jadual">' +
+    (ks.direkod && ks.senaraiTidakHadir.length ? ks.senaraiTidakHadir.map(t => '<div class="slot-item"><span class="garis" style="background:' + (t.ponteng ? WARNA.merah : WARNA.emas) + '"></span><div class="info"><b>' + esc(t.nama) + '</b><small>' + esc(t.sebab) + '</small></div>' + (t.ponteng ? lencana('Ponteng', 'merah') : lencana('Bersebab', 'kuning')) + '</div>').join('')
+      : kosong(ks.direkod ? 'confetti' : 'clock', ks.direkod ? 'Semua murid hadir!' : 'Belum direkod')) + '</div></div></div>';
+
+  if (sk) html += blokSekolah(sk);
+  $('#kandungan').innerHTML = html;
+
+  if (ks && ks.direkod) cartaDonut('#cGDonut', ['Hadir', 'Tidak hadir'], [ks.hadir, ks.tidakHadir], [WARNA.hijau, WARNA.merah], 'Murid');
+  else if (ks) $('#cGDonut').innerHTML = kosong('clock', 'Belum direkod hari ini');
+  else if (g.sesiHariIni.length) cartaBar('#cGDonut', g.sesiHariIni.map(s => s.kelas + ' (S' + s.slot + ')'), [{ name: 'Kehadiran', data: g.sesiHariIni.map(s => s.jumlah ? Math.round(s.hadir / s.jumlah * 1000) / 10 : 0) }], { peratus: true, tinggi: 280 });
+  else $('#cGDonut').innerHTML = kosong('qr-code', 'Belum ada sesi diimbas', 'Imbas kod QR kelas semasa masuk ke kelas.');
+  if (ks) { if (ks.trend.length) cartaKawasan('#cGTrend', ks.trend.map(t => tarikhPendek(t.tarikh).slice(0, -5)), [{ name: 'Kehadiran', data: ks.trend.map(t => t.peratus) }], { peratus: true, min: 50 }); else $('#cGTrend').innerHTML = kosong('chart-line', 'Belum ada data'); }
+  if (sk) lukisCartaSekolah(sk);
+}
+
+function blokSekolah(sk) {
+  return '<div class="nav-kumpulan" style="padding:8px 0 12px;color:var(--teks-2)">Gambaran Sekolah Hari Ini</div><div class="grid g-4 mb">' +
+    kadStat('biru', 'buildings', 'Kelas Direkod', sk.kad.kelasDirekod + '<small> / ' + sk.kad.kelas + '</small>', sk.belumDirekod.length + ' kelas belum direkod') +
+    kadStat('hijau', 'percent', 'Kehadiran Sekolah', sk.kad.peratusHadir.toFixed(1) + '<small>%</small>', 'Daripada kelas yang telah direkod') +
+    kadStat('merah', 'user-minus', 'Murid Tidak Hadir', sk.kad.tidakHadir, sk.kad.ponteng + ' dikira ponteng') +
+    kadStat('kuning', 'lock-key-open', 'Permohonan Menunggu', sk.kad.permohonanMenunggu, '<a href="#/permohonan">Semak permohonan →</a>') + '</div>' +
+    '<div class="grid g-2 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-bar', 'duotone') + 'Kehadiran Mengikut Tingkatan</h3></div><div id="cSTingkatan" class="carta"></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-pie-slice', 'duotone') + 'Sebab Tidak Hadir</h3></div><div id="cSSebab" class="carta"></div></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('table', 'duotone') + 'Status Rekod Setiap Kelas</h3></div><div id="tSKelas"></div></div>';
+}
+function lukisCartaSekolah(sk) {
+  if (sk.perTingkatan.length) cartaBar('#cSTingkatan', sk.perTingkatan.map(t => 'Tingkatan ' + t.tingkatan), [{ name: 'Kehadiran', data: sk.perTingkatan.map(t => t.peratus) }], { peratus: true, warna: [WARNA.biru], lebar: '45%' });
+  else $('#cSTingkatan').innerHTML = kosong('chart-bar', 'Belum ada kelas direkod');
+  if (sk.sebab.length) cartaDonut('#cSSebab', sk.sebab.map(s => s.sebab), sk.sebab.map(s => s.bil), null, 'Murid'); else $('#cSSebab').innerHTML = kosong('confetti', 'Tiada ketidakhadiran direkod');
+  jadualData('#tSKelas', { data: sk.perKelas, eksport: 'status-kelas-hari-ini', isihAwal: 'kelas', lajur: [
+    { k: 'kelas', label: 'Kelas', f: r => '<b>' + esc(r.kelas) + '</b>' },
+    { k: 'direkod', label: 'Status', teks: r => r.direkod ? 'Direkod' : 'Belum', f: r => r.direkod ? lencana(r.selepasKunci ? 'Direkod (selepas kunci)' : 'Direkod', r.selepasKunci ? 'kuning' : 'hijau') : lencana('Belum direkod', 'merah') },
+    { k: 'hadir', label: 'Hadir', nombor: true, f: r => r.direkod ? r.hadir + ' / ' + r.jumlah : '-' }, { k: 'tidakHadir', label: 'Tidak Hadir', nombor: true, f: r => r.direkod ? r.tidakHadir : '-' },
+    { k: 'peratus', label: 'Peratus', teks: r => r.peratus == null ? -1 : r.peratus, f: r => r.peratus == null ? '-' : barPeratus(r.peratus) }, { k: 'oleh', label: 'Direkod Oleh' }] });
+}
+
+/* ============================== REKOD KEHADIRAN KELAS (GT/PGT) ============================== */
+let KK = null;
+HALAMAN_FN['kehadiran-kelas'] = function (tarikh, kelas) {
+  muat('apiKehadiranKelasMuat', { tarikh: tarikh || (KK && KK.tarikh) || tarikhIniKlien(), kelas: kelas || (KK && KK.kelasPilihan) || '' }).then(d => {
+    KK = d; KK.kelasPilihan = kelas || (KK && KK.kelasPilihan) || ''; lukisKehadiranKelas();
+  }).catch(e => { $('#kandungan').innerHTML = kosong('users-three', 'Tidak dapat memuat rekod kelas', e.message); });
+};
+function lukisKehadiranKelas() {
+  const d = KK, k = d.kunci;
+  $('#remehHalaman').textContent = d.kelas + ' · ' + tarikhPanjang(d.tarikh);
+  let banner = '';
+  if (k.boleh) banner = '<div class="banner hijau">' + ikon('lock-simple-open', 'fill') + '<div><b>Akses rekod dibuka</b><p>' + (k.melaluiPermohonan ? 'Dibuka melalui permohonan yang diluluskan admin — sah sehingga ' + esc(k.tamat) + '.' : 'Rekod kehadiran kelas sebelum ' + esc(k.masaKunci) + '. Selepas itu rekod dikunci secara automatik.') + '</p></div></div>';
+  else if (k.permohonanMenunggu) banner = '<div class="banner kuning">' + ikon('hourglass-medium', 'fill') + '<div><b>Permohonan buka akses sedang menunggu kelulusan admin</b><p>Dihantar ' + esc(k.permohonanMenunggu.masa) + ' · Alasan: ' + esc(k.permohonanMenunggu.alasan) + '</p></div></div>';
+  else banner = '<div class="banner merah">' + ikon('lock-simple', 'fill') + '<div><b>Rekod dikunci</b><p>' + esc(k.sebab) + '</p></div>' + (d.tarikh <= tarikhIniKlien() ? '<button class="btn merah kecil" style="margin-left:auto" onclick="borangMohonAkses()">' + ikon('lock-key-open', 'bold') + 'Mohon Buka Akses</button>' : '') + '</div>';
+  const bolehUbah = k.boleh || PENGGUNA.admin;
+  $('#kandungan').innerHTML = banner +
+    '<div class="kad mb"><div class="alat-jadual" style="margin:0">' +
+      '<div class="medan" style="margin:0"><label>Tarikh</label><input type="date" class="input" id="kkTarikh" value="' + esc(d.tarikh) + '" max="' + tarikhIniKlien() + '"></div>' +
+      (d.senaraiKelas.length ? '<div class="medan" style="margin:0"><label>Kelas</label><select class="input" id="kkKelas">' + d.senaraiKelas.map(c => '<option ' + (c === d.kelas ? 'selected' : '') + '>' + esc(c) + '</option>').join('') + '</select></div>' : '') +
+      '<div class="medan" style="margin:0;flex:1;min-width:200px"><label>Cari murid</label><div class="input-ikon"><i class="ph ph-magnifying-glass"></i><input class="input" id="kkCari" placeholder="Nama murid…"></div></div>' +
+      (bolehUbah ? '<button class="btn hantu" style="align-self:flex-end" id="kkSemuaHadir">' + ikon('checks') + 'Tandakan Semua Hadir</button>' : '') +
+    '</div>' + (d.rekod ? '<p style="margin:12px 0 0;color:var(--teks-2);font-size:13px">' + ikon('info') + ' Direkod oleh <b>' + esc(d.rekod.direkodOleh) + '</b> pada ' + esc(d.rekod.masa) + (d.rekod.selepasKunci ? ' ' + lencana('Selepas kunci', 'kuning') : '') + '. Anda boleh kemaskini selagi akses dibuka.</p>' : '') + '</div>' +
+    '<div class="banner biru">' + ikon('hand-tap', 'fill') + '<div><b>Semua murid ditanda HADIR secara lalai</b><p>Matikan suis <b>Hadir</b> bagi murid yang tidak hadir, kemudian pilih sebab daripada senarai IDME.</p></div></div>' +
+    '<div class="roster" id="kkRoster">' + d.murid.map((m, i) => kadRoster(m, i, bolehUbah)).join('') + '</div>' +
+    (d.murid.length ? '' : kosong('users', 'Tiada murid dalam kelas ini', 'Senarai murid diambil daripada e-Data & Enrolmen.')) +
+    '<div class="bar-simpan"><div class="kiraan"><span><b id="kkHadir">0</b>Hadir</span><span style="color:#FCA5A5"><b id="kkTidak">0</b>Tidak hadir</span><span style="opacity:.7"><b>' + d.murid.length + '</b>Jumlah</span></div>' +
+    (bolehUbah ? '<button class="btn kuning" id="kkSimpan">' + ikon('floppy-disk', 'bold') + (d.rekod ? 'Kemaskini Rekod' : 'Simpan Rekod Kehadiran') + '</button>' : '<span style="margin-left:auto;opacity:.8">' + ikon('lock-simple') + ' Paparan sahaja</span>') + '</div>';
+  $('#kkTarikh').onchange = e => HALAMAN_FN['kehadiran-kelas'](e.target.value, $('#kkKelas') ? $('#kkKelas').value : '');
+  if ($('#kkKelas')) $('#kkKelas').onchange = e => HALAMAN_FN['kehadiran-kelas']($('#kkTarikh').value, e.target.value);
+  $('#kkCari').oninput = e => { const q = e.target.value.toLowerCase(); $$('.murid-kad').forEach(c => { c.style.display = c.dataset.nama.toLowerCase().indexOf(q) !== -1 ? '' : 'none'; }); };
+  $$('.murid-kad input[type=checkbox]').forEach(cb => cb.onchange = () => togolMurid(cb));
+  if ($('#kkSemuaHadir')) $('#kkSemuaHadir').onclick = () => $$('.murid-kad input[type=checkbox]').forEach(cb => { cb.checked = true; togolMurid(cb); });
+  if ($('#kkSimpan')) $('#kkSimpan').onclick = simpanKehadiranKelas;
+  kiraRoster();
+}
+function pilihanSebab(senarai, pilih) {
+  const kump = {}; senarai.forEach(s => { (kump[s.kategori || 'Lain-lain'] = kump[s.kategori || 'Lain-lain'] || []).push(s); });
+  return '<option value="">— Pilih sebab tidak hadir —</option>' + Object.keys(kump).map(k => '<optgroup label="' + esc(k) + '">' +
+    kump[k].map(s => '<option value="' + esc(s.kod) + '" ' + (String(s.kod) === String(pilih) ? 'selected' : '') + '>' + esc(s.sebab) + (s.dikiraPonteng ? ' ⚠' : '') + '</option>').join('') + '</optgroup>').join('');
+}
+function kadRoster(m, i, bolehUbah) {
+  return '<div class="murid-kad ' + (m.hadir ? '' : 'tidak-hadir') + '" data-nokp="' + esc(m.nokp) + '" data-nama="' + esc(m.nama) + '"><div class="baris"><span class="no">' + (i + 1) + '</span>' + avatar(m.nama, m.gambar) +
+    '<div class="nama">' + esc(m.nama) + '<small>' + esc(m.nokp) + '</small></div><label class="togol"><input type="checkbox" ' + (m.hadir ? 'checked' : '') + (bolehUbah ? '' : ' disabled') + '><span class="landas"></span><span class="teks-togol">' + (m.hadir ? 'Hadir' : 'Tidak') + '</span></label></div>' +
+    '<select class="input sebab ' + (m.hadir ? 'hidden' : '') + '" ' + (bolehUbah ? '' : 'disabled') + '>' + pilihanSebab(KK.sebab, m.kodSebab) + '</select></div>';
+}
+function togolMurid(cb) {
+  const kad = cb.closest('.murid-kad'); const hadir = cb.checked;
+  kad.classList.toggle('tidak-hadir', !hadir); kad.querySelector('.sebab').classList.toggle('hidden', hadir); kad.querySelector('.teks-togol').textContent = hadir ? 'Hadir' : 'Tidak';
+  if (!hadir) kad.querySelector('.sebab').focus();
+  kiraRoster();
+}
+function kiraRoster() { const jum = $$('.murid-kad').length, tidak = $$('.murid-kad.tidak-hadir').length; $('#kkHadir').textContent = jum - tidak; $('#kkTidak').textContent = tidak; }
+function simpanKehadiranKelas() {
+  const tidakHadir = [], tiadaSebab = [];
+  $$('.murid-kad.tidak-hadir').forEach(c => { const kod = c.querySelector('.sebab').value; if (!kod) tiadaSebab.push(c.dataset.nama); tidakHadir.push({ nokp: c.dataset.nokp, kodSebab: kod }); });
+  if (tiadaSebab.length) { toast('Pilih sebab tidak hadir bagi: ' + tiadaSebab.slice(0, 3).join(', ') + (tiadaSebab.length > 3 ? '…' : ''), 'gagal'); return; }
+  const btn = $('#kkSimpan'); sibuk(btn, true, 'Menyimpan…');
+  api('apiKehadiranKelasSimpan', { tarikh: KK.tarikh, kelas: KK.senaraiKelas.length ? KK.kelas : '', tidakHadir }).then(r => {
+    toast((r.dikemaskini ? 'Rekod dikemaskini' : 'Rekod disimpan') + ': ' + r.hadir + ' hadir, ' + r.tidakHadir + ' tidak hadir.');
+    HALAMAN_FN['kehadiran-kelas'](KK.tarikh, KK.kelasPilihan);
+  }).catch(e => { sibuk(btn, false); if (e.kod === 'TERKUNCI') HALAMAN_FN['kehadiran-kelas'](KK.tarikh, KK.kelasPilihan); });
+}
+function borangMohonAkses() {
+  bukaModal(kepalaModal('Mohon Buka Akses Rekod', 'lock-key-open') + '<div class="modal-badan"><div class="banner biru">' + ikon('info', 'fill') + '<div><b>' + esc(KK.kelas) + ' · ' + esc(tarikhPanjang(KK.tarikh)) + '</b><p>Permohonan akan dihantar kepada admin. Alasan disimpan dan dianalisis untuk rujukan pentadbiran.</p></div></div>' +
+    '<div class="medan"><label>Alasan (wajib)</label><textarea class="input" id="mohonAlasan" rows="4" placeholder="Nyatakan sebab rekod tidak dapat dibuat sebelum masa kunci…"></textarea><small style="color:var(--teks-2)"><span id="mohonBil">0</span> aksara · minimum 15</small></div>' +
+    '<p class="ralat" id="mohonRalat"></p></div><div class="modal-kaki"><button class="btn hantu" data-tutup>Batal</button><button class="btn merah" id="mohonHantar">' + ikon('paper-plane-tilt', 'bold') + 'Hantar Permohonan</button></div>');
+  $('#mohonAlasan').oninput = e => { $('#mohonBil').textContent = e.target.value.trim().length; };
+  $('#mohonHantar').onclick = () => {
+    const alasan = $('#mohonAlasan').value.trim();
+    if (alasan.length < 15) { $('#mohonRalat').textContent = 'Alasan mesti sekurang-kurangnya 15 aksara.'; return; }
+    const btn = $('#mohonHantar'); sibuk(btn, true, 'Menghantar…');
+    api('apiMohonBukaAkses', { tarikh: KK.tarikh, kelas: KK.senaraiKelas.length ? KK.kelas : '', alasan }).then(() => { tutupModal(); toast('Permohonan dihantar kepada admin.'); HALAMAN_FN['kehadiran-kelas'](KK.tarikh, KK.kelasPilihan); })
+      .catch(e => { sibuk(btn, false); $('#mohonRalat').textContent = e.message; });
+  };
+}
+
+/* ============================== IMBAS QR KELAS ============================== */
+function urlPengimbas() {
+  const asas = TETAPAN_UI.urlPengimbas || 'https://smkasajaya.my/kehadiranqrscanner.html';
+  return asas + (asas.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(TOKEN) + '&nama=' + encodeURIComponent(PENGGUNA.nama) + '&exec=' + encodeURIComponent(EXEC_URL);
+}
+HALAMAN_FN.imbas = function () {
+  muat('apiDashboard').then(d => {
+    const g = d.guru;
+    $('#kandungan').innerHTML = '<div class="grid g-12 mb"><div class="kad sambutan" style="display:flex;flex-direction:column;justify-content:center;align-items:flex-start">' +
+      '<div class="jalur-pelangi"></div><h2>' + ikon('qr-code', 'duotone') + ' Imbas Kod QR Kelas</h2><p>Imbas kod QR yang ditampal di dalam kelas. Borang kehadiran akan diisi secara automatik mengikut jadual waktu dan rekod teach-in. Murid ditanda hadir secara lalai.</p>' +
+      '<div class="tindakan"><a class="btn kuning" href="' + esc(urlPengimbas()) + '" target="_blank" rel="noopener">' + ikon('camera', 'bold') + 'Buka Pengimbas Kamera</a></div>' +
+      '<p style="font-size:12px;opacity:.7;margin-top:14px">Pengimbas dibuka dalam tab baharu kerana kamera tidak dibenarkan dalam halaman Google Apps Script.</p></div>' +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar', 'duotone') + 'Jadual Hari Ini</h3><span class="remeh">' + esc(d.hari) + '</span></div><div class="senarai-jadual">' +
+      (g.jadual.length ? g.jadual.map(j => '<div class="slot-item ' + (j.jenis === 'TEACH-IN' ? 'teachin' : '') + '"><div class="masa">' + esc(j.mula || '-') + '<small>' + esc(j.tamat || '') + '</small></div><span class="garis"></span><div class="info"><b>' + esc(j.kelas) + '</b><small>' + esc(j.subjek) + ' · ' + (j.jenis === 'TEACH-IN' ? 'Teach-In' : 'Slot ' + esc(j.slot)) + '</small></div>' +
+        (j.direkod ? lencana(j.statusMasa || 'Direkod', j.statusMasa === 'LEWAT' ? 'kuning' : 'hijau', 'check-circle') : lencana('Belum', 'kelabu')) + '</div>').join('') : kosong('coffee', 'Tiada kelas dijadualkan hari ini')) + '</div></div></div>' +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('list-checks', 'duotone') + 'Sesi Direkod Hari Ini</h3><button class="btn hantu kecil" onclick="pergi(\'imbas\')">' + ikon('arrow-clockwise') + 'Muat semula</button></div><div id="tSesiHariIni"></div></div>';
+    jadualData('#tSesiHariIni', { data: g.sesiHariIni, cari: false, lajur: [{ k: 'slot', label: 'Slot', nombor: true }, { k: 'kelas', label: 'Kelas', f: r => '<b>' + esc(r.kelas) + '</b>' }, { k: 'subjek', label: 'Subjek' },
+      { k: 'jenis', label: 'Jenis', f: r => lencana(r.jenis, r.jenis === 'GURU TEACH-IN' ? 'ungu' : 'biru') }, { k: 'statusMasa', label: 'Status Masa', f: r => lencana(r.statusMasa, r.statusMasa === 'LEWAT' ? 'kuning' : r.statusMasa === 'TEPAT MASA' ? 'hijau' : 'kelabu') },
+      { k: 'hadir', label: 'Kehadiran Murid', f: r => barPeratus(r.jumlah ? r.hadir / r.jumlah * 100 : 0) + '<small style="color:var(--teks-2)">' + r.hadir + '/' + r.jumlah + '</small>' }] });
+  }).catch(e => { $('#kandungan').innerHTML = kosong('wifi-slash', 'Gagal memuat', e.message); });
+};
+
+/* ============================== KELAS DIAJAR & TEACH-IN ============================== */
+HALAMAN_FN['kelas-diajar'] = function () {
+  muat('apiKelasDiajar').then(d => {
+    $('#remehHalaman').textContent = 'Sumber: ' + d.sumber;
+    const hari = d.hariSekolah.length ? d.hariSekolah : ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'];
+    const grid = '<div style="overflow:auto"><div class="jadual-waktu" style="grid-template-columns:70px repeat(' + d.slot.length + ',minmax(80px,1fr))"><div></div>' +
+      d.slot.map(s => '<div class="jw-kepala">' + esc(s.slot) + '<br><span style="font-weight:600">' + esc(s.mula) + '</span></div>').join('') +
+      hari.map(h => '<div class="jw-hari">' + esc(HARI_PENDEK[h] || h) + '</div>' + d.slot.map(s => { const j = d.jadual.find(x => x.hari === h && String(x.slot) === String(s.slot));
+        return '<div class="jw-sel ' + (j ? 'ada' : '') + '">' + (j ? '<b>' + esc(j.kelas) + '</b><small>' + esc(j.subjek) + '</small>' : '') + '</div>'; }).join('')).join('') + '</div></div>';
+    $('#kandungan').innerHTML = '<div class="grid g-4 mb">' +
+      kadStat('biru', 'chalkboard-teacher', 'Kelas Diajar', d.kelas.length, d.jadual.length + ' waktu seminggu') +
+      kadStat('ungu', 'swap', 'Teach-In (60 hari)', d.ringkasanTeachIn.jumlah, d.ringkasanTeachIn.akanDatang + ' akan datang') +
+      kadStat('hijau', 'check-circle', 'Teach-In Direkod', d.ringkasanTeachIn.direkod, 'Melalui imbasan QR') +
+      kadStat('merah', 'warning', 'Teach-In Tidak Direkod', d.ringkasanTeachIn.tidakDirekod, 'Tiada imbasan pada masa itu') + '</div>' +
+      '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('books', 'duotone') + 'Kelas Diajar</h3></div><div class="grid-murid">' +
+      (d.kelas.length ? d.kelas.map(k => '<div class="kad-murid" style="cursor:default"><span class="avatar" style="background:linear-gradient(135deg,var(--navy-700),var(--biru))">' + esc(k.kelas.split(' ')[0]) + '</span><div><b>' + esc(k.kelas) + '</b><small style="display:block;color:var(--teks-2)">' + esc(k.subjek) + '</small><small style="color:var(--teks-2)">' + k.bilMurid + ' murid · ' + k.waktu + ' waktu/minggu · ' + k.sesiDirekod + ' sesi direkod</small></div></div>').join('')
+        : kosong('books', 'Tiada kelas dalam jadual', 'Pastikan nama/No. KP anda sepadan dengan rekod e-Teach-In.')) + '</div></div>' +
+      '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('calendar', 'duotone') + 'Jadual Waktu Mingguan</h3></div>' + grid + '</div>' +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('swap', 'duotone') + 'Kelas Teach-In</h3><span class="remeh">60 hari lepas & akan datang</span></div><div id="tTeachIn"></div></div>';
+    const warnaStatus = { 'DIREKOD': 'hijau', 'AKAN DATANG': 'biru', 'HARI INI': 'kuning', 'TIDAK DIREKOD': 'merah' };
+    jadualData('#tTeachIn', { data: d.teachIn, eksport: 'teach-in', lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => '<b>' + esc(tarikhPendek(r.tarikh)) + '</b><br><small style="color:var(--teks-2)">' + esc(r.hari) + '</small>' },
+      { k: 'slot', label: 'Slot', nombor: true }, { k: 'kelas', label: 'Kelas' }, { k: 'subjek', label: 'Subjek' }, { k: 'guruAsal', label: 'Guru Asal' },
+      { k: 'status', label: 'Status', f: r => lencana(r.status, warnaStatus[r.status] || 'kelabu') }, { k: 'hadir', label: 'Kehadiran', f: r => r.hadir == null ? '-' : r.hadir + '/' + r.jumlah }] });
+  }).catch(e => { $('#kandungan').innerHTML = kosong('wifi-slash', 'Gagal memuat', e.message); });
+};
+
+/* ============================== REKOD KEHADIRAN & ANALISIS BULANAN ============================== */
+let RK = { bulan: '', kelas: '', tab: '' };
+HALAMAN_FN.rekod = function () {
+  if (!RK.bulan) RK.bulan = tarikhIniKlien().slice(0, 7);
+  muat('apiRekodKehadiran', { bulan: RK.bulan, kelas: RK.kelas }).then(d => {
+    $('#remehHalaman').textContent = 'Analisis bulanan · ' + d.labelBulan;
+    const pemilih = '<div class="kad mb"><div class="alat-jadual" style="margin:0"><div class="medan" style="margin:0"><label>Bulan</label><input type="month" class="input" id="rkBulan" value="' + esc(d.bulan) + '" max="' + tarikhIniKlien().slice(0, 7) + '"></div>' +
+      (d.senaraiKelas ? '<div class="medan" style="margin:0"><label>Kelas</label><select class="input" id="rkKelas"><option value="">— Pilih kelas —</option>' + d.senaraiKelas.map(k => '<option ' + (k === RK.kelas ? 'selected' : '') + '>' + esc(k) + '</option>').join('') + '</select></div>' : '') + '</div></div>';
+    if (d.murid) { $('#kandungan').innerHTML = pemilih + '<div id="rkIsi"></div>'; rekodMurid(d.murid); }
+    else {
+      const tab = [];
+      if (d.kelas) tab.push(['kelas', 'Kelas ' + d.kelas.kelas, 'users-three']);
+      tab.push(['subjek', 'Sesi Subjek Saya', 'qr-code']);
+      if (d.sekolah) tab.push(['sekolah', 'Seluruh Sekolah', 'buildings']);
+      if (!tab.some(t => t[0] === RK.tab)) RK.tab = tab[0][0];
+      $('#kandungan').innerHTML = pemilih + '<div class="tab">' + tab.map(t => '<button data-tab="' + t[0] + '" class="' + (t[0] === RK.tab ? 'aktif' : '') + '">' + ikon(t[2]) + esc(t[1]) + '</button>').join('') + '</div><div id="rkIsi"></div>';
+      $$('.tab button').forEach(b => b.onclick = () => { RK.tab = b.dataset.tab; $$('.tab button').forEach(x => x.classList.toggle('aktif', x === b)); lukisTab(); });
+      const lukisTab = () => RK.tab === 'kelas' ? rekodKelas(d.kelas) : RK.tab === 'sekolah' ? rekodSekolah(d.sekolah) : rekodSubjek(d.subjek);
+      lukisTab();
+    }
+    $('#rkBulan').onchange = e => { RK.bulan = e.target.value; HALAMAN_FN.rekod(); };
+    if ($('#rkKelas')) $('#rkKelas').onchange = e => { RK.kelas = e.target.value; RK.tab = e.target.value ? 'kelas' : RK.tab; HALAMAN_FN.rekod(); };
+  }).catch(e => { $('#kandungan').innerHTML = kosong('wifi-slash', 'Gagal memuat', e.message); });
+};
+
+function rekodMurid(m) {
+  const r = m.ringkasan;
+  const [y, mo] = m.bulan.split('-').map(Number), hariPertama = new Date(y, mo - 1, 1).getDay(), bilHari = new Date(y, mo, 0).getDate();
+  const peta = {}; m.harian.forEach(h => { peta[h.tarikh] = h; });
+  let kal = ['Ahd', 'Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab'].map(h => '<div class="kepala-hari">' + h + '</div>').join('') + '<div></div>'.repeat(hariPertama);
+  for (let i = 1; i <= bilHari; i++) { const t = m.bulan + '-' + ('0' + i).slice(-2), h = peta[t];
+    kal += '<div class="sel ' + (h ? (h.hadir ? 'hadir' : h.ponteng ? 'ponteng' : 'sah') : '') + (t === tarikhIniKlien() ? ' hari-ini' : '') + '" title="' + esc(h && h.sebab ? h.sebab : '') + '">' + i + (h ? '<small>' + (h.hadir ? 'Hadir' : 'Tidak') + '</small>' : '') + '</div>'; }
+  $('#rkIsi').innerHTML = '<div class="grid g-4 mb">' + kadStat('biru', 'calendar-check', 'Kehadiran Bulan Ini', r.peratus.toFixed(1) + '<small>%</small>', r.hadir + ' / ' + r.hari + ' hari') +
+    kadStat('merah', 'calendar-x', 'Tidak Hadir', r.tidakHadir, 'hari dalam bulan ini') + kadStat('ungu', 'chart-line-up', 'Kehadiran Tahun Ini', r.peratusTahun.toFixed(1) + '<small>%</small>', 'Purata kumulatif') +
+    kadStat(r.pontengTahun ? 'oren' : 'hijau', 'prohibit', 'Ponteng (Tahun)', r.pontengTahun, 'Hari dikira ponteng') + '</div>' +
+    '<div class="grid g-2 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar-dots', 'duotone') + 'Kalendar Kehadiran</h3></div><div class="kalendar">' + kal + '</div>' + petunjukKalendar() + '</div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-bar', 'duotone') + 'Trend Bulanan (Tahun Ini)</h3></div><div id="cRTrend" class="carta"></div></div></div>' +
+    '<div class="grid g-2 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('books', 'duotone') + 'Kehadiran Mengikut Subjek</h3></div><div id="cRSubjek" class="carta"></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-pie-slice', 'duotone') + 'Sebab Tidak Hadir</h3></div><div id="cRSebab" class="carta"></div></div></div>' +
+    '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('list-bullets', 'duotone') + 'Rekod Harian</h3></div><div id="tRHarian"></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('clock-countdown', 'duotone') + 'Sesi Subjek Tidak Hadir</h3></div><div id="tRSubjek"></div></div>';
+  cartaBar('#cRTrend', m.trend.map(t => t.label), [{ name: 'Kehadiran', data: m.trend.map(t => t.peratus) }], { peratus: true, warna: [WARNA.ungu] });
+  if (m.perSubjek.length) cartaBar('#cRSubjek', m.perSubjek.map(s => s.subjek), [{ name: 'Kehadiran', data: m.perSubjek.map(s => s.peratus) }], { peratus: true, mendatar: true, warna: [WARNA.biru], tinggi: Math.max(240, m.perSubjek.length * 38) });
+  else $('#cRSubjek').innerHTML = kosong('books', 'Tiada sesi subjek direkod bulan ini');
+  if (m.sebab.length) cartaDonut('#cRSebab', m.sebab.map(s => s.sebab), m.sebab.map(s => s.bil), null, 'Hari'); else $('#cRSebab').innerHTML = kosong('confetti', 'Tiada ketidakhadiran bulan ini');
+  jadualData('#tRHarian', { data: m.harian.slice().reverse(), eksport: 'rekod-harian-' + m.bulan, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => '<b>' + esc(tarikhPendek(r.tarikh)) + '</b>' }, { k: 'hari', label: 'Hari' },
+    { k: 'hadir', label: 'Status', teks: r => r.hadir ? 'Hadir' : 'Tidak hadir', f: r => r.hadir ? lencana('Hadir', 'hijau') : lencana(r.ponteng ? 'Ponteng' : 'Tidak hadir', r.ponteng ? 'merah' : 'kuning') }, { k: 'sebab', label: 'Sebab' }] });
+  jadualData('#tRSubjek', { data: m.subjekTidakHadir, cari: false, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => esc(tarikhPendek(r.tarikh)) }, { k: 'slot', label: 'Slot', nombor: true }, { k: 'subjek', label: 'Subjek' }, { k: 'sebab', label: 'Sebab' }] });
+}
+
+function rekodKelas(k) {
+  const r = k.ringkasan;
+  $('#rkIsi').innerHTML = '<div class="grid g-4 mb">' + kadStat('biru', 'calendar-check', 'Hari Direkod', r.hariDirekod, 'Bulan ini') + kadStat('hijau', 'percent', 'Purata Kehadiran', r.peratus.toFixed(1) + '<small>%</small>', 'Kelas ' + esc(k.kelas)) +
+    kadStat('merah', 'user-minus', 'Jumlah Ketidakhadiran', r.tidakHadir, r.ponteng + ' dikira ponteng') + kadStat('kuning', 'medal', 'Kehadiran Penuh', r.muridSempurna, 'murid tidak pernah tidak hadir') + '</div>' +
+    '<div class="grid g-21 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('trend-up', 'duotone') + 'Kehadiran Harian</h3></div><div id="cKHarian" class="carta"></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-pie-slice', 'duotone') + 'Sebab Tidak Hadir</h3></div><div id="cKSebab" class="carta"></div></div></div>' +
+    '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('student', 'duotone') + 'Analisis Murid</h3></div><div id="tKMurid"></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('list-bullets', 'duotone') + 'Rekod Harian Kelas</h3></div><div id="tKHarian"></div></div>';
+  if (k.harian.length) carta('#cKHarian', { chart: { type: 'bar', height: 300, stacked: true }, series: [{ name: 'Hadir', data: k.harian.map(h => h.hadir) }, { name: 'Tidak hadir', data: k.harian.map(h => h.tidakHadir) }],
+    xaxis: { categories: k.harian.map(h => Number(h.tarikh.slice(8)) + ' ' + (HARI_PENDEK[h.hari] || '')) }, colors: [WARNA.hijau, WARNA.merah], plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } } });
+  else $('#cKHarian').innerHTML = kosong('calendar-blank', 'Tiada rekod bulan ini');
+  if (k.sebab.length) cartaDonut('#cKSebab', k.sebab.map(s => s.sebab), k.sebab.map(s => s.bil), null, 'Kes'); else $('#cKSebab').innerHTML = kosong('confetti', 'Tiada ketidakhadiran');
+  jadualData('#tKMurid', { data: k.murid, eksport: 'analisis-murid-' + k.kelas + '-' + k.bulan, isihAwal: 'peratus', lajur: [{ k: 'nama', label: 'Murid', f: r => '<b>' + esc(r.nama) + '</b><br><small style="color:var(--teks-2)">' + esc(r.nokp) + '</small>' },
+    { k: 'hadir', label: 'Hadir', nombor: true, f: r => r.hadir + ' / ' + r.hari }, { k: 'tidakHadir', label: 'Tidak Hadir', nombor: true }, { k: 'ponteng', label: 'Ponteng', nombor: true, f: r => r.ponteng ? '<b style="color:var(--merah)">' + r.ponteng + '</b>' : '0' },
+    { k: 'peratus', label: 'Peratus', f: r => barPeratus(r.peratus) }, { k: 'tarikhTidakHadir', label: 'Tarikh Tidak Hadir', isih: false, teks: r => r.tarikhTidakHadir.join('; '), f: r => '<small style="color:var(--teks-2)">' + esc(r.tarikhTidakHadir.join('; ')) + '</small>' }] });
+  jadualData('#tKHarian', { data: k.harian.slice().reverse(), eksport: 'rekod-harian-' + k.kelas + '-' + k.bulan, cari: false, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => '<b>' + esc(tarikhPendek(r.tarikh)) + '</b>' }, { k: 'hari', label: 'Hari' },
+    { k: 'hadir', label: 'Hadir', nombor: true, f: r => r.hadir + ' / ' + r.jumlah }, { k: 'peratus', label: 'Peratus', f: r => barPeratus(r.peratus) }, { k: 'oleh', label: 'Direkod Oleh' },
+    { k: 'selepasKunci', label: 'Catatan', f: r => r.selepasKunci ? lencana('Selepas kunci', 'kuning') : '' }] });
+}
+
+function rekodSubjek(s) {
+  const r = s.ringkasan;
+  $('#rkIsi').innerHTML = '<div class="grid g-4 mb">' + kadStat('biru', 'qr-code', 'Sesi Direkod', r.sesi, 'Bulan ini') + kadStat('ungu', 'swap', 'Sesi Teach-In', r.teachIn, 'Melalui e-Teach-In') +
+    kadStat('kuning', 'clock-afternoon', 'Imbasan Lewat', r.lewat, 'Selepas tempoh toleransi') + kadStat('hijau', 'percent', 'Kehadiran Murid', r.peratus.toFixed(1) + '<small>%</small>', 'Purata semua sesi') + '</div>' +
+    '<div class="grid g-21 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-bar', 'duotone') + 'Kehadiran Mengikut Kelas & Subjek</h3></div><div id="cSKelas" class="carta"></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('timer', 'duotone') + 'Ketepatan Masa</h3></div><div id="cSMasa" class="carta"></div></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('list-bullets', 'duotone') + 'Semua Sesi</h3></div><div id="tSSesi"></div></div>';
+  if (s.perKelas.length) cartaBar('#cSKelas', s.perKelas.map(k => k.kelas), [{ name: 'Kehadiran', data: s.perKelas.map(k => k.peratus) }], { peratus: true, warna: [WARNA.biru] });
+  else $('#cSKelas').innerHTML = kosong('qr-code', 'Tiada sesi direkod bulan ini');
+  if (s.statusMasa.length) cartaDonut('#cSMasa', s.statusMasa.map(x => x.label), s.statusMasa.map(x => x.bil), s.statusMasa.map(x => x.label === 'LEWAT' ? WARNA.emas : x.label === 'TEPAT MASA' ? WARNA.hijau : WARNA.kelabu), 'Sesi');
+  else $('#cSMasa').innerHTML = kosong('timer', 'Tiada data');
+  jadualData('#tSSesi', { data: s.sesi.slice().reverse(), eksport: 'sesi-subjek-' + RK.bulan, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => '<b>' + esc(tarikhPendek(r.tarikh)) + '</b>' }, { k: 'slot', label: 'Slot', nombor: true },
+    { k: 'kelas', label: 'Kelas' }, { k: 'subjek', label: 'Subjek' }, { k: 'jenis', label: 'Jenis', f: r => lencana(r.jenis, r.jenis === 'GURU TEACH-IN' ? 'ungu' : 'biru') },
+    { k: 'statusMasa', label: 'Status Masa', f: r => lencana(r.statusMasa, r.statusMasa === 'LEWAT' ? 'kuning' : r.statusMasa === 'TEPAT MASA' ? 'hijau' : 'kelabu') }, { k: 'peratus', label: 'Kehadiran', f: r => barPeratus(r.peratus) }] });
+}
+
+function rekodSekolah(s) {
+  const r = s.ringkasan;
+  $('#rkIsi').innerHTML = '<div class="grid g-4 mb">' + kadStat('biru', 'database', 'Rekod Kelas', r.rekod, 'Bulan ini') + kadStat('hijau', 'percent', 'Kehadiran Sekolah', r.peratus.toFixed(1) + '<small>%</small>', 'Purata bulanan') +
+    kadStat('merah', 'user-minus', 'Ketidakhadiran', r.tidakHadir, 'Kes direkod') + kadStat('oren', 'prohibit', 'Ponteng', r.ponteng, 'Kes dikira ponteng') + '</div>' +
+    '<div class="grid g-21 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('trend-up', 'duotone') + 'Trend Harian Sekolah</h3></div><div id="cSkHarian" class="carta"></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-pie-slice', 'duotone') + 'Sebab Tidak Hadir</h3></div><div id="cSkSebab" class="carta"></div></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('ranking', 'duotone') + 'Kedudukan Kelas</h3></div><div id="tSkKelas"></div></div>';
+  if (s.harian.length) cartaKawasan('#cSkHarian', s.harian.map(h => tarikhPendek(h.tarikh).slice(0, -5)), [{ name: 'Kehadiran', data: s.harian.map(h => h.peratus) }], { peratus: true, min: 50 }); else $('#cSkHarian').innerHTML = kosong('chart-line', 'Tiada data');
+  if (s.sebab.length) cartaDonut('#cSkSebab', s.sebab.map(x => x.sebab), s.sebab.map(x => x.bil), null, 'Kes'); else $('#cSkSebab').innerHTML = kosong('confetti', 'Tiada data');
+  jadualData('#tSkKelas', { data: s.perKelas, eksport: 'kedudukan-kelas-' + RK.bulan, isihAwal: 'peratus', arahAwal: -1, klik: r => { RK.kelas = r.kelas; RK.tab = 'kelas'; HALAMAN_FN.rekod(); },
+    lajur: [{ k: 'kelas', label: 'Kelas', f: r => '<b>' + esc(r.kelas) + '</b>' }, { k: 'hari', label: 'Hari Direkod', nombor: true }, { k: 'peratus', label: 'Kehadiran', f: r => barPeratus(r.peratus) },
+      { k: 'selepasKunci', label: 'Rekod Selepas Kunci', nombor: true, f: r => r.selepasKunci ? lencana(r.selepasKunci + ' hari', 'kuning') : '0' }] });
+}
+
+/* ============================== PROFIL PELAJAR ============================== */
+HALAMAN_FN.profil = function () {
+  if (PENGGUNA.jenis === 'MURID') {
+    muat('apiProfilPelajar', {}).then(p => { $('#kandungan').innerHTML = htmlProfil(p, 'p'); lukisCartaProfil(p, 'p'); }).catch(e => { $('#kandungan').innerHTML = kosong('identification-badge', 'Gagal memuat profil', e.message); });
+    return;
+  }
+  $('#kandungan').innerHTML = '<div class="kad mb"><div class="alat-jadual" style="margin:0"><div class="input-ikon" style="max-width:none"><i class="ph ph-magnifying-glass"></i><input class="input" id="pfCari" placeholder="Cari nama atau No. KP murid…"></div>' +
+    '<select class="input" id="pfKelas" style="max-width:220px"><option value="">Semua kelas saya</option></select></div></div><div id="pfSenarai">' + rangka(200) + '</div>';
+  let pemasa;
+  const muatSenarai = () => muat('apiCariPelajar', { q: $('#pfCari').value, kelas: $('#pfKelas').value }).then(r => {
+    const sel = $('#pfKelas');
+    if (sel.options.length === 1) r.senaraiKelas.forEach(k => sel.insertAdjacentHTML('beforeend', '<option>' + esc(k) + '</option>'));
+    $('#remehHalaman').textContent = r.senarai.length + ' murid dipaparkan';
+    $('#pfSenarai').innerHTML = r.senarai.length ? '<div class="grid-murid">' + r.senarai.map(m => '<div class="kad-murid" data-nokp="' + esc(m.nokp) + '">' + avatar(m.nama, m.gambar) + '<div style="min-width:0"><b style="font-size:13px">' + esc(m.nama) + '</b><small style="display:block;color:var(--teks-2)">' + esc(m.kelas) + '</small></div></div>').join('') + '</div>'
+      : kosong('student', 'Tiada murid dijumpai', 'Anda hanya boleh melihat murid dalam kelas yang anda ajar atau kelas tingkatan anda.');
+    $$('.kad-murid[data-nokp]').forEach(c => c.onclick = () => bukaProfilModal(c.dataset.nokp));
+  }).catch(() => {});
+  $('#pfCari').oninput = () => { clearTimeout(pemasa); pemasa = setTimeout(muatSenarai, 350); };
+  $('#pfKelas').onchange = muatSenarai;
+  muatSenarai();
+};
+function htmlProfil(p, id) {
+  const m = p.profil, k = p.kehadiran;
+  return '<div class="grid g-21 mb"><div class="kad"><div class="profil-kepala">' + (m.gambar ? '<img class="foto avatar" src="' + esc(m.gambar) + '" referrerpolicy="no-referrer" alt="" onerror="this.outerHTML=\'<span class=&quot;foto avatar&quot;>' + esc(inisial(m.nama)) + '</span>\'">' : '<span class="foto avatar">' + esc(inisial(m.nama)) + '</span>') +
+    '<div><h2>' + esc(m.nama) + '</h2><p style="margin:4px 0 10px;color:var(--teks-2)">' + esc(m.kelas) + ' · Tingkatan ' + esc(m.tingkatan || '-') + '</p>' + lencana(k.peratus.toFixed(1) + '% kehadiran', k.peratus >= 90 ? 'hijau' : k.peratus >= 80 ? 'kuning' : 'merah', 'chart-line-up') + ' ' +
+    (k.peringkatBerturut !== 'Tiada' ? lencana('Berturut: ' + k.peringkatBerturut, 'merah') + ' ' : '') + (k.peringkatTidakBerturut !== 'Tiada' ? lencana('Tidak berturut: ' + k.peringkatTidakBerturut, 'oren') : '') + '</div></div>' +
+    '<hr style="border:0;border-top:1px solid var(--sempadan);margin:18px 0"><div class="butiran">' +
+    [['No. Kad Pengenalan', m.nokp], ['Jantina', m.jantina], ['Tarikh Lahir', m.tarikhLahir ? tarikhPendek(m.tarikhLahir) : '-'], ['Kelas', m.kelas], ['Guru Tingkatan', (p.guruTingkatan || []).join(', ') || '-'],
+      ['Penolong Guru Tingkatan', (p.penolongGT || []).join(', ') || '-'], ['Ibu Bapa / Penjaga', m.namaPenjaga], ['Telefon Penjaga', m.telefonPenjaga], ['Alamat', m.alamat]]
+      .map(x => '<div><small>' + esc(x[0]) + '</small><span>' + esc(x[1] || '-') + '</span></div>').join('') + '</div><p style="font-size:11.5px;color:var(--kelabu);margin:16px 0 0">' + ikon('database') + ' Sumber: ' + esc(p.sumber) + '</p></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('gauge', 'duotone') + 'Kehadiran Tahun Ini</h3></div><div id="' + id + 'Gauge"></div><div class="tangga" style="grid-template-columns:1fr 1fr;margin-top:8px">' +
+    '<div><b>' + k.hadir + '/' + k.hari + '</b><small>Hari hadir</small></div><div><b style="color:var(--merah)">' + k.ponteng + '</b><small>Hari ponteng</small></div><div><b>' + k.tidakHadirSah + '</b><small>Tidak hadir bersebab</small></div><div><b>' + k.berturut + '</b><small>Ponteng berturut kini</small></div></div></div></div>' +
+    '<div class="grid g-2"><div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-bar', 'duotone') + 'Trend Bulanan</h3></div><div id="' + id + 'Trend" class="carta"></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar-x', 'duotone') + 'Ketidakhadiran Terkini</h3></div><div class="senarai-jadual">' +
+    (p.tidakHadirTerkini.length ? p.tidakHadirTerkini.map(h => '<div class="slot-item"><span class="garis" style="background:' + (h.ponteng ? WARNA.merah : WARNA.emas) + '"></span><div class="info"><b>' + esc(tarikhPanjang(h.tarikh)) + '</b><small>' + esc(h.sebab) + '</small></div>' + (h.ponteng ? lencana('Ponteng', 'merah') : lencana('Bersebab', 'kuning')) + '</div>').join('') : kosong('confetti', 'Tiada ketidakhadiran direkod')) + '</div></div></div>';
+}
+function lukisCartaProfil(p, id) {
+  cartaGauge('#' + id + 'Gauge', p.kehadiran.peratus, 'Kehadiran');
+  if (p.trend.length) cartaBar('#' + id + 'Trend', p.trend.map(t => t.label), [{ name: 'Kehadiran', data: p.trend.map(t => t.peratus) }], { peratus: true, warna: [WARNA.biru] }); else $('#' + id + 'Trend').innerHTML = kosong('chart-bar', 'Belum ada data');
+}
+function bukaProfilModal(nokp) {
+  const m = bukaModal(kepalaModal('Profil Pelajar', 'identification-badge') + '<div class="modal-badan" id="pmBadan">' + rangka(300) + '</div>', { lebar: true });
+  api('apiProfilPelajar', { nokp }).then(p => { $('#pmBadan', m).innerHTML = htmlProfil(p, 'pm'); lukisCartaProfil(p, 'pm'); }).catch(e => { $('#pmBadan', m).innerHTML = kosong('warning', 'Gagal memuat', e.message); });
+}
+
+/* ============================== AMARAN PONTENG ============================== */
+let AM = { kelas: '', tapis: 'perlu', data: null };
+const LABEL_PERINGKAT = { AMARAN_1: 'Amaran Pertama', AMARAN_2: 'Amaran Kedua', AMARAN_TERAKHIR: 'Amaran Terakhir', BUANG_SEKOLAH: 'Buang Sekolah' };
+function pilPeringkat(kod) { return kod ? '<span class="lencana pil-' + kod + '">' + esc(LABEL_PERINGKAT[kod]) + '</span>' : '<span class="lencana l-kelabu">Tiada</span>'; }
+function kemajuan(k) { return '<div class="kemajuan-amaran">' + [0, 1, 2, 3].map(i => '<span class="' + (i <= k.peringkat.indeks ? 'capai s' + i : '') + '"></span>').join('') + '</div>'; }
+HALAMAN_FN.amaran = function () {
+  muat('apiAmaranPonteng', { kelas: AM.kelas }).then(d => { AM.data = d; lukisAmaran(); }).catch(e => { $('#kandungan').innerHTML = kosong('warning-octagon', 'Gagal memuat amaran', e.message); });
+};
+function lukisAmaran() {
+  const d = AM.data, rk = d.ringkasan;
+  $('#remehHalaman').textContent = d.kelas + ' · Tahun ' + tarikhIniKlien().slice(0, 4);
+  const tangga = (k, warna) => '<div class="kad"><div class="kad-kepala"><h3>' + ikon(k === 'BERTURUT' ? 'arrows-left-right' : 'dots-three-outline', 'duotone') + esc(d.labelKategori[k]) + '</h3></div><div class="tangga">' +
+    d.peringkat[k].map(p => '<div><b>' + (rk[k][p.kod] || 0) + '</b><small>' + esc(p.label) + '</small><br><small style="font-weight:600;color:var(--kelabu)">hari ke-' + p.hari + '</small></div>').join('') + '</div></div>';
+  const tapisan = { semua: d.senarai, perlu: d.senarai.filter(s => s.BERTURUT.perluSurat || s.TIDAK_BERTURUT.perluSurat),
+    berturut: d.senarai.filter(s => s.BERTURUT.peringkat.indeks >= 0), tidak: d.senarai.filter(s => s.TIDAK_BERTURUT.peringkat.indeks >= 0),
+    hampir: d.senarai.filter(s => ['BERTURUT', 'TIDAK_BERTURUT'].some(k => s[k].peringkat.seterusnya && s[k].peringkat.seterusnya.baki <= 2 && s[k].hari > 0)) };
+  $('#kandungan').innerHTML = (d.senaraiKelas.length ? '<div class="kad mb"><div class="alat-jadual" style="margin:0"><div class="medan" style="margin:0"><label>Kelas</label><select class="input" id="amKelas"><option value="">Semua kelas</option>' +
+    d.senaraiKelas.map(k => '<option ' + (k === AM.kelas ? 'selected' : '') + '>' + esc(k) + '</option>').join('') + '</select></div></div></div>' : '') +
+    '<div class="grid g-4 mb">' + kadStat('merah', 'bell-ringing', 'Perlu Tindakan', rk.perluTindakan, 'Peringkat dicapai, surat belum dijana') + kadStat('oren', 'hourglass-medium', 'Hampir Peringkat Seterusnya', rk.hampir, 'Baki 2 hari atau kurang') +
+    kadStat('kuning', 'arrows-left-right', 'Ponteng Berturut', tapisan.berturut.length, 'Murid dalam peringkat amaran') + kadStat('ungu', 'dots-three-outline', 'Ponteng Tidak Berturut', tapisan.tidak.length, 'Murid dalam peringkat amaran') + '</div>' +
+    '<div class="grid g-2 mb">' + tangga('BERTURUT') + tangga('TIDAK_BERTURUT') + '</div>' +
+    '<div class="kad"><div class="tab">' + [['perlu', 'Perlu Tindakan'], ['hampir', 'Hampir'], ['berturut', 'Berturut-turut'], ['tidak', 'Tidak Berturut-turut'], ['semua', 'Semua Ada Ponteng']]
+      .map(t => '<button data-t="' + t[0] + '" class="' + (AM.tapis === t[0] ? 'aktif' : '') + '">' + esc(t[1]) + ' <span class="lencana l-kelabu">' + tapisan[t[0]].length + '</span></button>').join('') + '</div><div id="tAmaran"></div></div>';
+  if ($('#amKelas')) $('#amKelas').onchange = e => { AM.kelas = e.target.value; HALAMAN_FN.amaran(); };
+  $$('.tab button').forEach(b => b.onclick = () => { AM.tapis = b.dataset.t; lukisAmaran(); });
+  jadualData('#tAmaran', { data: tapisan[AM.tapis], eksport: 'amaran-ponteng-' + AM.tapis, klik: r => bukaButiranAmaran(r.nokp), lajur: [
+    { k: 'nama', label: 'Murid', f: r => '<div class="orang">' + avatar(r.nama, r.gambar) + '<div><b>' + esc(r.nama) + '</b><small>' + esc(r.kelas) + '</small></div></div>' },
+    { k: 'b', label: 'Berturut-turut', teks: r => r.BERTURUT.hari, f: r => '<b class="nombor">' + r.BERTURUT.hari + ' hari</b> ' + pilPeringkat(r.BERTURUT.peringkat.kod) + kemajuan(r.BERTURUT) +
+      (r.BERTURUT.peringkat.seterusnya && r.BERTURUT.hari ? '<small style="color:var(--teks-2)">' + r.BERTURUT.peringkat.seterusnya.baki + ' hari lagi → ' + esc(r.BERTURUT.peringkat.seterusnya.label) + '</small>' : '') },
+    { k: 't', label: 'Tidak Berturut-turut', teks: r => r.TIDAK_BERTURUT.hari, f: r => '<b class="nombor">' + r.TIDAK_BERTURUT.hari + ' hari</b> ' + pilPeringkat(r.TIDAK_BERTURUT.peringkat.kod) + kemajuan(r.TIDAK_BERTURUT) +
+      (r.TIDAK_BERTURUT.peringkat.seterusnya ? '<small style="color:var(--teks-2)">' + r.TIDAK_BERTURUT.peringkat.seterusnya.baki + ' hari lagi → ' + esc(r.TIDAK_BERTURUT.peringkat.seterusnya.label) + '</small>' : '') },
+    { k: 'peratusHadir', label: 'Kehadiran', f: r => barPeratus(r.peratusHadir) },
+    { k: 's', label: 'Status', teks: r => (r.BERTURUT.perluSurat || r.TIDAK_BERTURUT.perluSurat) ? 'Perlu surat' : 'Dikemas kini', f: r => ((r.BERTURUT.perluSurat || r.TIDAK_BERTURUT.perluSurat) ? lencana('Perlu surat', 'merah', 'envelope-simple') : lencana('Surat dijana', 'hijau', 'check')) + '<br><small style="color:var(--teks-2)">' + r.bilIntervensi + ' intervensi</small>' }] });
+}
+function bukaButiranAmaran(nokp) {
+  const m = bukaModal(kepalaModal('Butiran Amaran Ponteng', 'warning-octagon') + '<div class="modal-badan" id="baBadan">' + rangka(320) + '</div>', { lebar: true });
+  api('apiButiranAmaranMurid', { nokp }).then(d => {
+    const s = d.status, mu = d.murid;
+    const blokKat = k => { const x = s[k]; return '<div class="kad"><div class="kad-kepala"><h3>' + esc(AM.data.labelKategori[k]) + '</h3>' + pilPeringkat(x.peringkat.kod) + '</div>' +
+      '<div class="nilai nombor" style="font-size:30px;font-weight:800">' + x.hari + ' <small style="font-size:14px;color:var(--teks-2)">hari ' + (k === 'BERTURUT' ? 'berturut-turut' + (x.mulaEpisod ? ' sejak ' + esc(tarikhPendek(x.mulaEpisod)) : '') : 'terkumpul') + '</small></div>' + kemajuan(x) +
+      '<p style="font-size:12.5px;color:var(--teks-2);margin:8px 0 12px">' + (x.peringkat.seterusnya ? 'Peringkat seterusnya: <b>' + esc(x.peringkat.seterusnya.label) + '</b> pada hari ke-' + x.peringkat.seterusnya.hari + ' (' + x.peringkat.seterusnya.baki + ' hari lagi).' : 'Peringkat tertinggi telah dicapai.') + '</p>' +
+      (x.peringkat.indeks >= 0 ? '<button class="btn ' + (x.perluSurat ? 'merah' : 'hantu') + ' kecil jana" data-k="' + k + '">' + ikon('printer', 'bold') + (x.perluSurat ? 'Jana Surat ' + esc(x.peringkat.label) : 'Cetak Semula Surat ' + esc(x.peringkat.label)) + '</button>' : '<span style="font-size:12.5px;color:var(--kelabu)">Belum mencapai peringkat amaran.</span>') + '</div>'; };
+    $('#baBadan', m).innerHTML = '<div class="profil-kepala mb" style="align-items:center">' + avatar(mu.nama, mu.gambar, 'foto') + '<div><h2 style="font-size:19px">' + esc(mu.nama) + '</h2><p style="margin:2px 0;color:var(--teks-2)">' + esc(mu.kelas) + ' · ' + esc(mu.nokp) + '</p>' +
+      '<small style="color:var(--teks-2)">Penjaga: <b>' + esc(mu.namaPenjaga || '-') + '</b> · ' + esc(mu.telefonPenjaga || '-') + '</small></div></div>' +
+      '<div class="grid g-2 mb">' + blokKat('BERTURUT') + blokKat('TIDAK_BERTURUT') + '</div>' +
+      '<div class="grid g-2"><div class="kad"><div class="kad-kepala"><h3>' + ikon('hand-heart', 'duotone') + 'Tindakan & Intervensi</h3></div>' +
+      '<div class="medan"><label>Tindakan</label><select class="input" id="ivTindakan"><option value="">— Pilih tindakan —</option>' + d.tindakan.map(t => '<option>' + esc(t) + '</option>').join('') + '</select></div>' +
+      '<div class="grid g-2" style="gap:10px"><div class="medan"><label>Tarikh</label><input type="date" class="input" id="ivTarikh" value="' + tarikhIniKlien() + '" max="' + tarikhIniKlien() + '"></div>' +
+      '<div class="medan"><label>Kategori</label><select class="input" id="ivKat"><option value="BERTURUT">Berturut-turut</option><option value="TIDAK_BERTURUT">Tidak berturut-turut</option><option value="UMUM">Umum</option></select></div></div>' +
+      '<div class="medan"><label>Catatan / hasil</label><textarea class="input" id="ivCatatan" rows="3" placeholder="cth: Ibu dihubungi, murid sakit di rumah, akan hadir esok…"></textarea></div>' +
+      '<button class="btn hijau kecil" id="ivSimpan">' + ikon('plus-circle', 'bold') + 'Rekod Intervensi</button><hr style="border:0;border-top:1px solid var(--sempadan);margin:16px 0">' +
+      '<div class="garis-masa">' + (d.intervensi.length ? d.intervensi.map(i => '<div class="item"><span class="titik" style="background:var(--hijau-lembut);color:var(--hijau)">' + ikon('hand-heart', 'fill') + '</span><div><b>' + esc(i.tindakan) + '</b><small>' + esc(tarikhPendek(i.tarikh)) + ' · ' + esc(i.oleh) + ' · ' + esc(i.kategori) + '</small>' + (i.catatan ? '<div style="font-size:13px;margin-top:2px">' + esc(i.catatan) + '</div>' : '') + '</div></div>').join('') : kosong('hand-heart', 'Belum ada intervensi direkod')) + '</div></div>' +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('envelope-simple', 'duotone') + 'Surat Dikeluarkan</h3></div><div class="garis-masa">' +
+      (d.surat.length ? d.surat.map(x => '<div class="item"><span class="titik" style="background:var(--merah-lembut);color:var(--merah)">' + ikon('envelope-simple', 'fill') + '</span><div><b>' + esc(LABEL_PERINGKAT[x.peringkat]) + ' · ' + esc(AM.data.labelKategori[x.kategori]) + '</b><small>' + esc(x.noRujukan) + ' · ' + esc(tarikhPendek(x.tarikh)) + ' · ' + x.bilHari + ' hari · ' + esc(x.oleh) + '</small></div></div>').join('') : kosong('envelope-simple', 'Belum ada surat dikeluarkan')) +
+      '</div><div class="kad-kepala" style="margin-top:16px"><h3>' + ikon('calendar-x', 'duotone') + 'Tarikh Tidak Hadir (Tahun Ini)</h3></div><div style="display:flex;flex-wrap:wrap;gap:6px">' +
+      d.tidakHadir.map(h => '<span class="lencana ' + (h.ponteng ? 'l-merah' : 'l-kuning') + '" title="' + esc(h.sebab) + '">' + esc(tarikhPendek(h.tarikh)) + '</span>').join('') + '</div></div></div>';
+    $$('.jana', m).forEach(b => b.onclick = () => janaSurat(nokp, b.dataset.k, b));
+    $('#ivSimpan', m).onclick = () => {
+      const btn = $('#ivSimpan', m); if (!$('#ivTindakan', m).value) { toast('Sila pilih tindakan.', 'gagal'); return; }
+      sibuk(btn, true, 'Menyimpan…');
+      api('apiRekodIntervensi', { nokp, tindakan: $('#ivTindakan', m).value, tarikh: $('#ivTarikh', m).value, kategori: $('#ivKat', m).value, catatan: $('#ivCatatan', m).value })
+        .then(() => { toast('Intervensi direkod.'); bukaButiranAmaran(nokp); HALAMAN_FN.amaran(); }).catch(() => sibuk(btn, false));
+    };
+  }).catch(e => { $('#baBadan', m).innerHTML = kosong('warning', 'Gagal memuat', e.message); });
+}
+function janaSurat(nokp, kategori, btn) {
+  sibuk(btn, true, 'Menjana…');
+  api('apiJanaSurat', { nokp, kategori }).then(r => { sibuk(btn, false); cetakSurat(r.surat); toast('Surat ' + r.surat.noRujukan + ' sedia untuk dicetak.'); HALAMAN_FN.amaran(); })
+    .catch(() => sibuk(btn, false));
+}
+
+/* Surat amaran bercetak (A4) — kepala surat dengan logo sekolah terbenam. */
+function cetakSurat(s) {
+  const m = s.murid, sk = s.sekolah, berturut = s.kategori === 'BERTURUT';
+  const seterusnya = s.ambang[s.ambang.findIndex(x => x.kod === s.peringkat) + 1];
+  const tajukPeringkat = s.peringkat === 'BUANG_SEKOLAH' ? 'NOTIS PEMBERITAHUAN TINDAKAN BUANG SEKOLAH' : 'SURAT ' + s.labelPeringkat.toUpperCase();
+  const perenggan = s.peringkat === 'BUANG_SEKOLAH' ? [
+    'Dengan hormatnya perkara di atas adalah dirujuk.',
+    'Pihak sekolah telah mengeluarkan surat-surat amaran terdahulu berhubung ketidakhadiran anak/jagaan tuan/puan. Walau bagaimanapun, rekod menunjukkan anak/jagaan tuan/puan masih tidak hadir ke sekolah selama <b>' + s.bilHari + ' hari persekolahan ' + (berturut ? 'berturut-turut' : 'secara tidak berturut-turut') + '</b> tanpa sebab yang munasabah.',
+    'Sehubungan itu, dimaklumkan bahawa pihak sekolah akan mengambil <b>tindakan buang sekolah</b> terhadap anak/jagaan tuan/puan mengikut peraturan yang berkuat kuasa.',
+    'Tuan/puan dijemput hadir ke sekolah untuk berjumpa dengan Pengetua dalam tempoh <b>tujuh (7) hari</b> dari tarikh surat ini bagi memberikan penjelasan sebelum tindakan dimuktamadkan.'
+  ] : [
+    'Dengan hormatnya perkara di atas adalah dirujuk.',
+    'Dimaklumkan bahawa anak/jagaan tuan/puan seperti butiran di atas telah tidak hadir ke sekolah selama <b>' + s.bilHari + ' hari persekolahan ' + (berturut ? 'berturut-turut' : 'secara tidak berturut-turut') + '</b> tanpa sebab yang munasabah.',
+    'Sehubungan itu, tuan/puan diminta memastikan anak/jagaan tuan/puan hadir ke sekolah dengan segera dan berhubung dengan Guru Tingkatan bagi menjelaskan sebab ketidakhadiran tersebut.',
+    seterusnya ? 'Sila ambil perhatian bahawa sekiranya ketidakhadiran ini berterusan sehingga <b>' + seterusnya.hari + ' hari</b>, <b>' + esc(seterusnya.label) + '</b> akan dikeluarkan' + (seterusnya.kod === 'BUANG_SEKOLAH' ? ' iaitu tindakan buang sekolah' : '') + ' mengikut peraturan yang berkuat kuasa.' : ''
+  ].filter(Boolean);
+  const html = '<!DOCTYPE html><html lang="ms"><head><meta charset="UTF-8"><title>' + esc(s.noRujukan) + '</title><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"><style>' +
+    '@page{size:A4;margin:16mm 18mm}body{font-family:"Plus Jakarta Sans",Arial,sans-serif;color:#0F172A;font-size:12.5px;line-height:1.6;margin:0}.kepala{display:flex;gap:16px;align-items:center;padding-bottom:10px}' +
+    '.kepala img{width:78px;height:78px}.kepala h1{font-size:17px;margin:0;color:#0B1D6B;letter-spacing:.02em}.kepala p{margin:2px 0 0;font-size:11.5px;color:#475569}.pelangi{height:5px;background:linear-gradient(90deg,#D9141B 0 25%,#F6D20F 25% 50%,#1E3BD1 50% 75%,#5B1F8C 75% 100%);border-radius:3px;margin-bottom:16px}' +
+    '.ruj{text-align:right;font-size:12px;margin-bottom:14px}.tajuk{font-weight:800;text-decoration:underline;margin:14px 0;text-transform:uppercase}table{border-collapse:collapse;width:100%;margin:10px 0 14px}td{border:1px solid #CBD5E1;padding:6px 10px;vertical-align:top}td:first-child{width:34%;background:#F7F9FD;font-weight:700}' +
+    'ol{padding-left:20px}ol li{margin-bottom:8px}.ttd{display:flex;justify-content:space-between;gap:30px;margin-top:40px}.ttd div{flex:1}.garis{border-top:1px dotted #0F172A;margin-top:44px;padding-top:4px;font-weight:700}' +
+    '.potong{margin-top:34px;border-top:2px dashed #94A3B8;padding-top:14px}.potong h4{margin:0 0 8px;text-align:center;letter-spacing:.06em}.cetak{position:fixed;top:12px;right:12px}@media print{.cetak{display:none}}' +
+    '.cetak button{font:inherit;font-weight:700;background:#1E3BD1;color:#fff;border:0;border-radius:10px;padding:10px 16px;cursor:pointer}</style></head><body>' +
+    '<div class="cetak"><button onclick="window.print()">🖨 Cetak / Simpan PDF</button></div>' +
+    '<div class="kepala"><img src="' + LOGO_SEKOLAH + '" alt=""><div><h1>' + esc(sk.nama || 'SEKOLAH MENENGAH KEBANGSAAN ASAJAYA') + '</h1><p>' + esc(sk.alamat) + '</p><p>' + [sk.telefon ? 'Tel: ' + esc(sk.telefon) : '', sk.emel ? 'E-mel: ' + esc(sk.emel) : '', sk.kod ? 'Kod Sekolah: ' + esc(sk.kod) : ''].filter(Boolean).join(' · ') + '</p></div></div><div class="pelangi"></div>' +
+    '<div class="ruj">Ruj. Kami: <b>' + esc(s.noRujukan) + '</b><br>Tarikh: <b>' + esc(tarikhPanjang(s.tarikhKeluar).split(', ')[1]) + '</b></div>' +
+    '<div>Kepada:<br><b>' + esc(m.namaPenjaga || 'Ibu Bapa / Penjaga') + '</b><br>' + esc(m.alamat || '').replace(/,\s*/g, ',<br>') + '</div><p>Tuan/Puan,</p>' +
+    '<div class="tajuk">' + esc(tajukPeringkat) + ' — TIDAK HADIR KE SEKOLAH (' + esc(s.labelKategori.toUpperCase()) + ')</div>' +
+    '<table><tr><td>Nama Murid</td><td>' + esc(m.nama) + '</td></tr><tr><td>No. Kad Pengenalan</td><td>' + esc(m.nokp) + '</td></tr><tr><td>Kelas</td><td>' + esc(m.kelas) + '</td></tr>' +
+    '<tr><td>Bilangan Hari Tidak Hadir</td><td>' + s.bilHari + ' hari (' + esc(s.labelKategori) + ')</td></tr><tr><td>Tarikh Tidak Hadir</td><td>' + s.tarikhPonteng.map(t => esc(tarikhPendek(t))).join(', ') + '</td></tr></table>' +
+    '<ol>' + perenggan.map(p => '<li>' + p + '</li>').join('') + '<li>Kerjasama dan perhatian tuan/puan dalam perkara ini amatlah dihargai.</li></ol><p>Sekian, terima kasih.</p><p><b>"BERAZAM, BERUSAHA, BERJAYA"</b></p><p>Saya yang menjalankan amanah,</p>' +
+    '<div class="ttd"><div><div class="garis">' + esc(s.guruTingkatan || '') + '</div>Guru Tingkatan ' + esc(m.kelas) + '</div><div><div class="garis">' + esc(sk.pengetua || '') + '</div>Pengetua<br>' + esc(sk.nama || 'SMK Asajaya') + '</div></div>' +
+    '<div class="potong"><h4>AKUAN PENERIMAAN SURAT (Sila kembalikan kepada Guru Tingkatan)</h4>Saya, ...................................................................... ibu bapa/penjaga kepada <b>' + esc(m.nama) + '</b> (' + esc(m.kelas) + ') mengaku telah menerima surat rujukan <b>' + esc(s.noRujukan) + '</b> dan memahami kandungannya.' +
+    '<div class="ttd" style="margin-top:20px"><div><div class="garis">Tandatangan</div></div><div><div class="garis">Tarikh</div></div><div><div class="garis">No. Telefon</div></div></div></div>' +
+    '</body></html>';
+  const w = window.open('', '_blank');
+  if (!w) { toast('Benarkan tetingkap timbul (pop-up) untuk mencetak surat.', 'gagal'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+
+/* ============================== ADMIN: PERMOHONAN ============================== */
+let PM = { status: 'MENUNGGU' };
+HALAMAN_FN.permohonan = function () {
+  muat('apiSenaraiPermohonan', { status: PM.status === 'SEMUA' ? '' : PM.status }).then(d => {
+    if (PM.status === 'MENUNGGU') { BIL_PERMOHONAN = d.senarai.length; binaNav(); }
+    const warna = { MENUNGGU: 'kuning', DILULUSKAN: 'hijau', DITOLAK: 'merah' };
+    $('#kandungan').innerHTML = '<div class="tab">' + [['MENUNGGU', 'Menunggu', 'hourglass-medium'], ['DILULUSKAN', 'Diluluskan', 'check-circle'], ['DITOLAK', 'Ditolak', 'x-circle'], ['SEMUA', 'Semua', 'list']]
+      .map(t => '<button data-s="' + t[0] + '" class="' + (PM.status === t[0] ? 'aktif' : '') + '">' + ikon(t[2]) + t[1] + '</button>').join('') + '</div>' +
+      (PM.status === 'MENUNGGU' ? (d.senarai.length ? '<div class="grid g-2">' + d.senarai.map(p => '<div class="kad"><div class="kad-kepala"><div class="orang">' + avatar(p.guru) + '<div><b>' + esc(p.guru) + '</b><small>' + esc(p.kelas) + ' · rekod ' + esc(tarikhPanjang(p.tarikhRekod)) + '</small></div></div>' + lencana('Menunggu', 'kuning', 'hourglass-medium') + '</div>' +
+        '<div class="banner biru" style="margin-bottom:12px">' + ikon('quotes', 'fill') + '<div><b>Alasan</b><p>' + esc(p.alasan) + '</p></div></div><small style="color:var(--teks-2)">Dihantar ' + esc(p.masaMohon) + '</small>' +
+        '<div class="medan" style="margin-top:10px"><input class="input catatan" data-id="' + esc(p.id) + '" placeholder="Catatan admin (wajib jika ditolak)"></div><div style="display:flex;gap:8px;justify-content:flex-end">' +
+        '<button class="btn hantu kecil proses" data-id="' + esc(p.id) + '" data-k="DITOLAK">' + ikon('x') + 'Tolak</button><button class="btn hijau kecil proses" data-id="' + esc(p.id) + '" data-k="DILULUSKAN">' + ikon('check', 'bold') + 'Luluskan</button></div></div>').join('') + '</div>'
+        : '<div class="kad">' + kosong('check-circle', 'Tiada permohonan menunggu', 'Semua permohonan telah diproses.') + '</div>') : '<div class="kad"><div id="tPermohonan"></div></div>');
+    $$('.tab button').forEach(b => b.onclick = () => { PM.status = b.dataset.s; HALAMAN_FN.permohonan(); });
+    $$('.proses').forEach(b => b.onclick = () => {
+      const catatan = $('.catatan[data-id="' + b.dataset.id + '"]').value; sibuk(b, true, '…');
+      api('apiProsesPermohonan', { id: b.dataset.id, keputusan: b.dataset.k, catatan }).then(r => { toast(r.status === 'DILULUSKAN' ? 'Diluluskan — akses dibuka sehingga ' + r.tamatAkses : 'Permohonan ditolak.'); HALAMAN_FN.permohonan(); }).catch(() => sibuk(b, false));
+    });
+    if ($('#tPermohonan')) jadualData('#tPermohonan', { data: d.senarai, eksport: 'permohonan-buka-akses', lajur: [{ k: 'masaMohon', label: 'Dihantar' }, { k: 'guru', label: 'Guru', f: r => '<b>' + esc(r.guru) + '</b>' }, { k: 'kelas', label: 'Kelas' },
+      { k: 'tarikhRekod', label: 'Tarikh Rekod', f: r => esc(tarikhPendek(r.tarikhRekod)) }, { k: 'alasan', label: 'Alasan', f: r => '<small>' + esc(r.alasan) + '</small>' }, { k: 'status', label: 'Status', f: r => lencana(r.status, warna[r.status] || 'kelabu') },
+      { k: 'diprosesOleh', label: 'Diproses Oleh', f: r => esc(r.diprosesOleh || '-') + (r.catatanAdmin ? '<br><small style="color:var(--teks-2)">' + esc(r.catatanAdmin) + '</small>' : '') }] });
+  }).catch(e => { $('#kandungan').innerHTML = kosong('wifi-slash', 'Gagal memuat', e.message); });
+};
+
+HALAMAN_FN['analisis-permohonan'] = function () {
+  muat('apiAnalisisPermohonan', {}).then(d => {
+    $('#remehHalaman').textContent = 'Tahun ' + d.tahun;
+    const k = d.kad;
+    $('#kandungan').innerHTML = '<div class="grid g-4 mb">' + kadStat('biru', 'files', 'Jumlah Permohonan', k.jumlah, k.menunggu + ' menunggu') + kadStat('hijau', 'check-circle', 'Diluluskan', k.lulus, bulat(k.lulus, k.jumlah) + '% daripada jumlah') +
+      kadStat('merah', 'x-circle', 'Ditolak', k.tolak, bulat(k.tolak, k.jumlah) + '% daripada jumlah') + kadStat('ungu', 'timer', 'Purata Masa Proses', k.purataMinitProses + '<small> min</small>', k.peratusRekodSelepasKunci + '% rekod kelas dibuat selepas kunci') + '</div>' +
+      '<div class="grid g-21 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-bar', 'duotone') + 'Permohonan Bulanan</h3></div><div id="cAPBulan" class="carta"></div></div>' +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-donut', 'duotone') + 'Status</h3></div><div id="cAPStatus" class="carta"></div></div></div>' +
+      '<div class="grid g-2 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('buildings', 'duotone') + 'Mengikut Kelas</h3></div><div id="cAPKelas" class="carta"></div></div>' +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar', 'duotone') + 'Mengikut Hari Rekod</h3></div><div id="cAPHari" class="carta"></div></div></div>' +
+      '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('user-list', 'duotone') + 'Mengikut Guru</h3></div><div id="tAPGuru"></div></div>' +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('quotes', 'duotone') + 'Semua Permohonan & Alasan</h3></div><div id="tAPSemua"></div></div>';
+    cartaBar('#cAPBulan', d.perBulan.map(b => b.bulan), [{ name: 'Diluluskan', data: d.perBulan.map(b => b.lulus) }, { name: 'Ditolak', data: d.perBulan.map(b => b.tolak) },
+      { name: 'Menunggu', data: d.perBulan.map(b => b.jumlah - b.lulus - b.tolak) }], { bertindan: true, warna: [WARNA.hijau, WARNA.merah, WARNA.emas] });
+    if (d.perStatus.length) cartaDonut('#cAPStatus', d.perStatus.map(s => s.label), d.perStatus.map(s => s.bil), d.perStatus.map(s => s.label === 'DILULUSKAN' ? WARNA.hijau : s.label === 'DITOLAK' ? WARNA.merah : WARNA.emas), 'Permohonan');
+    else $('#cAPStatus').innerHTML = kosong('check-circle', 'Tiada permohonan');
+    if (d.perKelas.length) cartaBar('#cAPKelas', d.perKelas.map(s => s.label), [{ name: 'Permohonan', data: d.perKelas.map(s => s.bil) }], { mendatar: true, warna: [WARNA.ungu], tinggi: Math.max(220, d.perKelas.length * 34) }); else $('#cAPKelas').innerHTML = kosong('buildings', 'Tiada data');
+    cartaBar('#cAPHari', d.perHari.map(s => s.label), [{ name: 'Permohonan', data: d.perHari.map(s => s.bil) }], { warna: [WARNA.biru], lebar: '45%' });
+    jadualData('#tAPGuru', { data: d.perGuru, eksport: 'analisis-permohonan-guru', isihAwal: 'jumlah', arahAwal: -1, lajur: [{ k: 'guru', label: 'Guru', f: r => '<b>' + esc(r.guru) + '</b>' }, { k: 'kelas', label: 'Kelas' },
+      { k: 'jumlah', label: 'Jumlah', nombor: true }, { k: 'lulus', label: 'Lulus', nombor: true }, { k: 'tolak', label: 'Tolak', nombor: true }, { k: 'menunggu', label: 'Menunggu', nombor: true }] });
+    jadualData('#tAPSemua', { data: d.senarai, eksport: 'semua-permohonan', lajur: [{ k: 'masaMohon', label: 'Dihantar' }, { k: 'guru', label: 'Guru' }, { k: 'kelas', label: 'Kelas' }, { k: 'tarikhRekod', label: 'Tarikh Rekod', f: r => esc(tarikhPendek(r.tarikhRekod)) },
+      { k: 'alasan', label: 'Alasan', f: r => '<small>' + esc(r.alasan) + '</small>' }, { k: 'status', label: 'Status', f: r => lencana(r.status, r.status === 'DILULUSKAN' ? 'hijau' : r.status === 'DITOLAK' ? 'merah' : 'kuning') }] });
+  }).catch(e => { $('#kandungan').innerHTML = kosong('wifi-slash', 'Gagal memuat', e.message); });
+};
+function bulat(a, b) { return b ? Math.round(a / b * 100) : 0; }
+
+/* ============================== ADMIN: KOD QR KELAS ============================== */
+HALAMAN_FN['kod-qr'] = function () {
+  muat('apiSenaraiKelasQR', {}).then(d => {
+    const lukis = () => {
+      $('#kandungan').innerHTML = '<div class="banner biru">' + ikon('info', 'fill') + '<div><b>Cetak dan tampal kod QR di dalam setiap kelas</b><p>Kod QR diambil daripada lajur KodQR & Bilik dalam Sheet KELAS. Kelas tanpa KodQR tidak dipaparkan.</p></div>' +
+        '<button class="btn kecil" style="margin-left:auto" id="btnCetakQR">' + ikon('printer', 'bold') + 'Cetak Semua</button></div><div class="qr-grid">' +
+        d.senarai.filter(k => k.kandunganQR).map((k, i) => '<div class="qr-kad"><img src="' + LOGO_SEKOLAH + '" style="width:38px;height:38px" alt=""><h4>' + esc(k.kelas) + '</h4><small>' + esc(k.bilik || '') + '</small><div class="qr" id="qr' + i + '"></div><small>' + k.bilMurid + ' murid · ' + esc(k.kandunganQR) + '</small></div>').join('') + '</div>' +
+        (d.senarai.some(k => !k.kandunganQR) ? '<div class="banner kuning" style="margin-top:18px">' + ikon('warning', 'fill') + '<div><b>Kelas tanpa KodQR</b><p>' + esc(d.senarai.filter(k => !k.kandunganQR).map(k => k.kelas).join(', ')) + '</p></div></div>' : '');
+      d.senarai.filter(k => k.kandunganQR).forEach((k, i) => new QRCode(document.getElementById('qr' + i), { text: k.kandunganQR, width: 170, height: 170, colorDark: '#081350', correctLevel: QRCode.CorrectLevel.M }));
+      $('#btnCetakQR').onclick = () => {
+        const w = window.open('', '_blank'); if (!w) { toast('Benarkan pop-up untuk mencetak.', 'gagal'); return; }
+        w.document.write('<!DOCTYPE html><html><head><title>Kod QR Kelas</title><style>body{font-family:Arial,sans-serif;margin:0}.k{page-break-after:always;height:96vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}' +
+          '.k img.l{width:90px}.k h1{font-size:54px;margin:10px 0 0;color:#0B1D6B}.k p{font-size:20px;color:#475569;margin:4px 0 18px}.k .p{height:10px;width:360px;background:linear-gradient(90deg,#D9141B 0 25%,#F6D20F 25% 50%,#1E3BD1 50% 75%,#5B1F8C 75% 100%);border-radius:5px;margin:18px 0}.k .q img{width:360px;height:360px}</style></head><body>' +
+          d.senarai.filter(k => k.kandunganQR).map((k, i) => '<div class="k"><img class="l" src="' + LOGO_SEKOLAH + '"><h1>' + esc(k.kelas) + '</h1><p>' + esc(k.bilik || '') + '</p><div class="q">' + document.getElementById('qr' + i).innerHTML + '</div><div class="p"></div><p>Imbas untuk merekod kehadiran · e-Kehadiran SMK Asajaya</p></div>').join('') +
+          '<script>setTimeout(()=>print(),400)<\/script></body></html>');
+        w.document.close();
+      };
+    };
+    if (typeof QRCode === 'undefined') { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'; s.onload = lukis; s.onerror = () => { $('#kandungan').innerHTML = kosong('qr-code', 'Pustaka QR gagal dimuat'); }; document.head.appendChild(s); }
+    else lukis();
+  }).catch(e => { $('#kandungan').innerHTML = kosong('wifi-slash', 'Gagal memuat', e.message); });
+};
+
+/* ============================== ADMIN: PENGGUNA & SISTEM ============================== */
+HALAMAN_FN.pengguna = function (segar) {
+  Promise.all([muat('apiSenaraiPengguna', {}), muat('apiStatusSumberLuar', { segar: !!segar })]).then(([u, s]) => {
+    $('#kandungan').innerHTML = '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('plugs-connected', 'duotone') + 'Sambungan Sistem Luar</h3><button class="btn hantu kecil" id="btnSegar">' + ikon('arrow-clockwise') + 'Segar Semula Cache</button></div><div class="grid g-4">' +
+      s.sumber.map(x => '<div class="kad kad-stat w-' + (!x.ok ? 'merah' : x.disambung ? 'hijau' : 'kuning') + '" style="box-shadow:none"><div class="bulat">' + ikon(!x.ok ? 'plugs' : x.disambung ? 'plugs-connected' : 'table', 'duotone') + '</div><div><div class="label">' + esc(x.nama) + '</div><div class="nilai" style="font-size:20px">' + x.bil + ' <small>rekod</small></div><div class="sub">' + esc(x.mesej) + '</div></div></div>').join('') +
+      '</div><p style="font-size:12.5px;color:var(--teks-2);margin:12px 0 0">' + ikon('info') + ' Sambungan ditetapkan dalam Sheet <b>TETAPAN</b> (ID spreadsheet & nama lajur). Status kuning = masih guna Sheet tempatan.</p></div>' +
+      '<div class="grid g-4 mb">' + kadStat('biru', 'chalkboard-teacher', 'Guru Berdaftar', u.ringkasan.guru, 'Dalam Sheet GURU') + kadStat('ungu', 'student', 'Murid Aktif', u.ringkasan.murid, u.ringkasan.muridPernahLogMasuk + ' pernah log masuk') +
+      u.ringkasan.perPeranan.slice(0, 2).map((p, i) => kadStat(i ? 'kuning' : 'hijau', i ? 'user-circle-plus' : 'user-circle-gear', p.label, p.bil, 'pengguna')).join('') + '</div>' +
+      '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('key', 'duotone') + 'Set Semula Kata Laluan (Guru / Murid)</h3></div><div class="alat-jadual" style="margin:0">' +
+      '<div class="input-ikon"><i class="ph ph-identification-card"></i><input class="input" id="resetNoKP" inputmode="numeric" placeholder="No. KP pengguna (12 digit)"></div>' +
+      '<button class="btn hantu" id="btnResetNoKP">' + ikon('arrow-counter-clockwise') + 'Set Semula ke 6 Digit Akhir No. KP</button></div></div>' +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('users', 'duotone') + 'Senarai Guru & Peranan</h3></div><div id="tPengguna"></div></div>';
+    $('#btnSegar').onclick = () => HALAMAN_FN.pengguna(true);
+    $('#btnResetNoKP').onclick = () => {
+      const nokp = $('#resetNoKP').value.replace(/\D/g, '');
+      if (nokp.length !== 12) { toast('No. KP mesti 12 digit.', 'gagal'); return; }
+      if (!confirm('Set semula kata laluan ' + nokp + ' kepada 6 digit terakhir No. KP?')) return;
+      api('apiAdminSetSemulaKataLaluan', { nokp }).then(r => { toast(r.mesej); $('#resetNoKP').value = ''; }).catch(() => {});
+    };
+    jadualData('#tPengguna', { data: u.guru, eksport: 'senarai-guru', lajur: [{ k: 'nama', label: 'Guru', f: r => '<div class="orang">' + avatar(r.nama) + '<div><b>' + esc(r.nama) + '</b><small>' + esc(r.nokp) + '</small></div></div>' },
+      { k: 'peranan', label: 'Peranan', teks: r => r.labelPeranan.join(', '), f: r => r.peranan.map(p => lencana(p, p === 'ADMIN' ? 'ungu' : (p === 'GT' || p === 'PGT') ? 'biru' : 'kelabu')).join(' ') },
+      { k: 'kelasTingkatan', label: 'Kelas Tingkatan' }, { k: 'akaun', label: 'Akaun', f: r => lencana(r.akaun, r.akaun === 'AKTIF' ? 'hijau' : r.akaun === 'BELUM LOG MASUK' ? 'kelabu' : 'kuning') },
+      { k: 'logMasukTerakhir', label: 'Log Masuk Terakhir' }, { k: 'x', label: '', isih: false, f: r => '<button class="btn hantu kecil reset" data-nokp="' + esc(r.nokp) + '" data-nama="' + esc(r.nama) + '">' + ikon('key') + 'Set Semula</button>' }] });
+    $('#tPengguna').addEventListener('click', e => {
+      const b = e.target.closest('.reset'); if (!b) return;
+      if (!confirm('Set semula kata laluan ' + b.dataset.nama + ' kepada 6 digit terakhir No. KP?')) return;
+      api('apiAdminSetSemulaKataLaluan', { nokp: b.dataset.nokp }).then(r => toast(r.mesej)).catch(() => {});
+    });
+  }).catch(e => { $('#kandungan').innerHTML = kosong('wifi-slash', 'Gagal memuat', e.message); });
+};
+</script>
