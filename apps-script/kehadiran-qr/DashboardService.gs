@@ -66,10 +66,12 @@ function apiDashboard(p) {
       profil: profilMuridUntukKlien(murid),
       hariIni: hariIni ? { direkod: true, hadir: hariIni.hadir, sebab: hariIni.sebab || '' } : { direkod: false },
       bulanIni: { hari: bulanIni.length, hadir: bulanIni.filter(h => h.hadir).length, peratus: bulatPeratus(bulanIni.filter(h => h.hadir).length, bulanIni.length) },
-      tahunIni: { hari: a.hariSekolah, hadir: a.hadir, peratus: bulatPeratus(a.hadir, a.hariSekolah), tidakHadirSah: a.tidakHadirSah, ponteng: a.TIDAK_BERTURUT.hari },
+      tahunIni: { hari: a.hariSekolah, hadir: a.hadir, peratus: bulatPeratus(a.hadir, a.hariSekolah), tidakHadirSah: a.tidakHadirSah, ponteng: a.TIDAK_BERTURUT.hari,
+        pontengKelas: kesPontengKelasMurid(murid.NoKP, tarikh.slice(0, 4)).length },
       sesiHariIni: logHariIni.sort((x, y) => String(x.Slot).localeCompare(String(y.Slot), undefined, { numeric: true })).map(l => ({
         slot: l.Slot, subjek: l.Subjek, guru: l.NamaGuru, jenis: l.Jenis,
-        hadir: !thSubjek.some(t => t.IdLog === l.IdLog), sebab: (thSubjek.find(t => t.IdLog === l.IdLog) || {}).Sebab || '' })),
+        hadir: !thSubjek.some(t => t.IdLog === l.IdLog), sebab: (thSubjek.find(t => t.IdLog === l.IdLog) || {}).Sebab || '',
+        pontengKelas: thSubjek.some(t => t.IdLog === l.IdLog && adalahPontengKelas(t)) })),
       trend: trendBulanan(sejarah),
       terkini: sejarah.slice(-20),
       amaran: { BERTURUT: a.BERTURUT, TIDAK_BERTURUT: a.TIDAK_BERTURUT }
@@ -98,7 +100,9 @@ function apiDashboard(p) {
       cuti: kSaya ? (tingkatanCutiPada(tarikh)[kSaya.tingkatan] || '') : '',
       kunci: statusKunci(tarikh, sesi.kelasTingkatan), trend: trendKelas(sesi.kelasTingkatan, 15),
       perluTindakan: amaran.filter(s => s.BERTURUT.perluSurat || s.TIDAK_BERTURUT.perluSurat).length,
-      dalamAmaran: amaran.filter(s => s.BERTURUT.peringkat.indeks >= 0 || s.TIDAK_BERTURUT.peringkat.indeks >= 0).length
+      dalamAmaran: amaran.filter(s => s.BERTURUT.peringkat.indeks >= 0 || s.TIDAK_BERTURUT.peringkat.indeks >= 0).length,
+      pontengKelasHariIni: bacaSheetSebagaiObjek(SHEET.TIDAK_HADIR_SUBJEK).filter(t => adalahPontengKelas(t) && keTarikh(t.Tarikh) === tarikh && normalKelas(t.Kelas) === sesi.kelasTingkatan)
+        .map(t => ({ nama: t.NamaMurid, subjek: t.Subjek, masa: keHHmm(t.Slot), guru: t.NamaGuru || '' }))
     });
   }
   if (adalahAdmin(sesi)) hasil.sekolah = ringkasanSekolah(tarikh);
@@ -125,7 +129,8 @@ function ringkasanSekolah(tarikh) {
   return {
     kad: { kelas: kelas.length, kelasDirekod: direkod.length, peratusHadir: bulatPeratus(jumHadir, jumMurid), tidakHadir: th.length,
       ponteng: th.filter(t => String(t.DikiraPonteng) === 'YA').length,
-      permohonanMenunggu: bacaSheetSebagaiObjek(SHEET.PERMOHONAN).filter(x => x.Status === 'MENUNGGU').length },
+      permohonanMenunggu: bacaSheetSebagaiObjek(SHEET.PERMOHONAN).filter(x => x.Status === 'MENUNGGU').length,
+      pontengKelas: bacaSheetSebagaiObjek(SHEET.TIDAK_HADIR_SUBJEK).filter(t => adalahPontengKelas(t) && keTarikh(t.Tarikh) === tarikh).length },
     perKelas, perTingkatan: Object.keys(tingkatan).sort().map(t => ({ tingkatan: t, peratus: bulatPeratus(tingkatan[t].hadir, tingkatan[t].jumlah), hadir: tingkatan[t].hadir, jumlah: tingkatan[t].jumlah })),
     sebab: Object.keys(sebab).map(s => ({ sebab: s, bil: sebab[s] })).sort((a, b) => b.bil - a.bil),
     belumDirekod: perKelas.filter(k => !k.direkod && !k.cuti).map(k => k.kelas),
@@ -192,7 +197,9 @@ function analisisMurid(murid, bulan) {
       peratus: bulatPeratus(perSubjek[s].sesi - perSubjek[s].tidakHadir, perSubjek[s].sesi) })),
     sebab: Object.keys(sebab).map(s => ({ sebab: s, bil: sebab[s] })),
     trend: trendBulanan(sejarah),
+    pontengKelas: kesPontengKelasMurid(murid.NoKP, bulan),
     ringkasan: { hari: harian.length, hadir: hadirBulan, tidakHadir: harian.length - hadirBulan, peratus: bulatPeratus(hadirBulan, harian.length),
+      pontengKelas: kesPontengKelasMurid(murid.NoKP, bulan).length, pontengKelasTahun: kesPontengKelasMurid(murid.NoKP, bulan.slice(0, 4)).length,
       peratusTahun: bulatPeratus(a.hadir, a.hariSekolah), pontengTahun: a.TIDAK_BERTURUT.hari } };
 }
 
@@ -312,6 +319,7 @@ function apiProfilPelajar(p) {
     guruTingkatan: gt.filter(g => perananGuru(g).indexOf('GT') !== -1).map(g => g.Nama),
     penolongGT: gt.filter(g => perananGuru(g).indexOf('PGT') !== -1).map(g => g.Nama),
     kehadiran: { hari: a.hariSekolah, hadir: a.hadir, peratus: bulatPeratus(a.hadir, a.hariSekolah), tidakHadirSah: a.tidakHadirSah, ponteng: a.TIDAK_BERTURUT.hari,
+      pontengKelas: kesPontengKelasMurid(murid.NoKP, tarikhHariIni().slice(0, 4)).length,
       berturut: a.BERTURUT.hari, peringkatBerturut: a.BERTURUT.peringkat.label, peringkatTidakBerturut: a.TIDAK_BERTURUT.peringkat.label },
     trend: trendBulanan(sejarah),
     tidakHadirTerkini: sejarah.filter(h => !h.hadir).slice(-10).reverse(),

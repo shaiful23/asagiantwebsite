@@ -16,6 +16,7 @@ logo: biru, merah, kuning, ungu). Disambung kepada **e-Data & Enrolmen**,
 | **Profil Pelajar (sidebar)** | Profil ringkas + **gambar** murid — **ditarik dari e-Data & Enrolmen**. Murid lihat profil sendiri; guru lihat murid kelas yang diajar/kelas tingkatan; admin semua. |
 | **Rekod Kehadiran Kelas (GT/PGT)** | Lalai **semua murid hadir**; GT matikan suis bagi yang tidak hadir & pilih sebab dari senarai **IDME**. **Kunci automatik selepas 07:10** — selepas itu GT wajib **mohon admin buka akses dengan alasan**. |
 | **Amaran Ponteng (sidebar)** | Pengiraan automatik kategori berturut-turut & tidak berturut-turut, rekod tindakan/intervensi, **jana surat amaran** bercetak (kepala surat + logo, No. Rujukan, tarikh ponteng, akuan penerimaan). |
+| **Ponteng Kelas (sidebar)** | Guru MP tandakan murid yang hadir ke sekolah tetapi tiada dalam kelas dengan butang **Ponteng Kelas** dalam borang imbas QR (ditolak jika murid ditanda tidak hadir ke sekolah oleh GT). Analisis lengkap: kes & kadar, trend harian/bulanan, mengikut subjek, waktu, hari, kelas, guru, peta haba hari × waktu, murid berulang (≥3 kes sebulan), senarai kes — ikut skop (admin semua, GT kelasnya, guru sesi sendiri). Kiraan juga di papan pemuka, profil & rekod murid. |
 | **Imbas QR Kelas** | Guru subjek/teach-in imbas QR kelas → borang dropdown auto-isi (subjek & jenis dari jadual/e-Teach-In) → murid lalai hadir → simpan. Murid yang ditanda tidak hadir oleh GT pagi itu dicadangkan tidak hadir. |
 | **Admin** | Lulus/tolak permohonan buka akses, **analisis permohonan** (bulanan, kelas, guru, hari, masa proses, % rekod selepas kunci), cetak kod QR kelas, status sambungan sistem luar, set semula kata laluan. |
 
@@ -61,6 +62,7 @@ umum — semak dengan pentadbiran sekolah sebelum digunakan secara rasmi.
 | `KehadiranSubjekService.gs` | Imbas QR guru subjek / teach-in |
 | `AmaranService.gs` | Amaran ponteng, intervensi, surat amaran |
 | `DashboardService.gs` | Papan pemuka, analisis bulanan, kelas diajar, profil |
+| `PontengKelasService.gs` | Analisis ponteng kelas |
 | `AdminService.gs` | Permohonan, analisis, kod QR, pengguna, status sumber luar |
 | `Code.gs` | Menu, Sediakan Sistem, data contoh, `doGet` (SPA + API JSONP pengimbas) |
 | `Index.html` `Gaya.html` `Logo.html` `App.html` | Antara muka SPA (logo terbenam dalam `Logo.html`) |
