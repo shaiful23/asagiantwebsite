@@ -17,7 +17,7 @@ const MEMO_DATA = {};
 const TEMPOH_CACHE_SHEET_SAAT = 600;
 
 function sheetBolehDicache(namaSheet) {
-  return [SHEET_USERS, SHEET_PANITIA, SHEET_KATEGORI_DOKUMEN].indexOf(namaSheet) !== -1;
+  return [SHEET_USERS, SHEET_PANITIA, SHEET_KATEGORI_DOKUMEN, SHEET_TETAPAN].indexOf(namaSheet) !== -1;
 }
 function kunciCacheSheet(namaSheet) { return 'sheet_ebahasa_' + namaSheet; }
 
@@ -51,6 +51,8 @@ function salinRekod(rekod) { return rekod.map(r => Object.assign({}, r)); }
    kepada rentetan di sini, satu tempat sahaja. */
 function nilaiSelSebagaiTeks(nilai) {
   if (nilai instanceof Date) {
+    /* Sel masa sahaja (cth. 08:00) dibaca sebagai tarikh tahun 1899 — pulangkan HH:mm. */
+    if (nilai.getFullYear() < 1900) return ('0' + nilai.getHours()).slice(-2) + ':' + ('0' + nilai.getMinutes()).slice(-2);
     const adaMasa = nilai.getHours() || nilai.getMinutes() || nilai.getSeconds();
     return adaMasa ? formatTarikhMasa(nilai) : formatTarikh(nilai);
   }
@@ -106,26 +108,104 @@ function headerSebenarSheet(sh) {
   return sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0];
 }
 
+/* ------------------------- KESELAMATAN TULISAN -------------------------
+   denganKunci(): semua tulisan ke Sheet melalui LockService supaya dua guru yang
+   menyimpan serentak tidak menindih baris satu sama lain. Kunci boleh bersarang
+   dalam satu pelaksanaan (kiraan KUNCI_DIPEGANG).
+   selamatNilai(): teks bermula = + @ disimpan sebagai teks biasa (bukan formula)
+   untuk menghalang suntikan formula daripada input borang. */
+let KUNCI_DIPEGANG = 0;
+let KUNCI_SKRIP = null;
+function denganKunci(fn) {
+  if (KUNCI_DIPEGANG > 0) return fn();
+  if (!KUNCI_SKRIP) KUNCI_SKRIP = LockService.getScriptLock();
+  if (!KUNCI_SKRIP.tryLock(25000)) throw new Error('Sistem sedang sibuk menyimpan data lain. Sila cuba sebentar lagi.');
+  KUNCI_DIPEGANG++;
+  try {
+    return fn();
+  } finally {
+    KUNCI_DIPEGANG--;
+    try { SpreadsheetApp.flush(); } catch (e) { /* abaikan */ }
+    KUNCI_SKRIP.releaseLock();
+  }
+}
+
+function selamatNilai(nilai) {
+  if (typeof nilai !== 'string') return nilai;
+  /* Formula (= + @) dan masa "HH:mm" disimpan sebagai teks biasa. */
+  if (/^[=+@]/.test(nilai) || /^\d{1,2}:\d{2}$/.test(nilai)) return "'" + nilai;
+  return nilai;
+}
+
+function barisDaripadaObjek(headerSebenar, objek) {
+  return headerSebenar.map(h => (objek[h] !== undefined && objek[h] !== null ? selamatNilai(objek[h]) : ''));
+}
+
+/* Pastikan nombor baris masih menunjuk rekod yang sama (lajur pertama = ID).
+   Jika baris telah beralih (cth. rekod lain dipadam serentak), cari semula. */
+function samaId(a, b) {
+  const x = String(a), y = String(b);
+  if (x === y) return true;
+  return /^\d+$/.test(x) && /^\d+$/.test(y) && Number(x) === Number(y);
+}
+
+function sahkanNomborBaris(sh, nomborBaris, nilaiId) {
+  if (nilaiId === undefined || nilaiId === null || nilaiId === '') return nomborBaris;
+  const semasa = nomborBaris <= sh.getLastRow() ? sh.getRange(nomborBaris, 1).getValue() : null;
+  if (semasa !== null && samaId(semasa, nilaiId)) return nomborBaris;
+  const lajurId = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues() : [];
+  const idx = lajurId.findIndex(r => samaId(r[0], nilaiId));
+  if (idx === -1) throw new Error('Rekod ini telah dipadam atau diubah oleh pengguna lain. Sila muat semula halaman.');
+  return idx + 2;
+}
+
 function tambahBaris(namaSheet, objek, header) {
   const sh = dapatkanSheet(namaSheet);
-  const headerSebenar = headerSebenarSheet(sh);
-  const baris = headerSebenar.map(h => (objek[h] !== undefined && objek[h] !== null ? objek[h] : ''));
-  sh.appendRow(baris);
+  const nombor = denganKunci(() => {
+    sh.appendRow(barisDaripadaObjek(headerSebenarSheet(sh), objek));
+    return sh.getLastRow();
+  });
   batalCacheSheet(namaSheet);
-  return sh.getLastRow();
+  return nombor;
 }
 
 /* Kemaskini satu baris (mengikut __row yang diperoleh dari bacaSheetSebagaiObjek). */
 function kemaskiniBaris(namaSheet, nomborBaris, objek, header) {
   const sh = dapatkanSheet(namaSheet);
-  const headerSebenar = headerSebenarSheet(sh);
-  const baris = headerSebenar.map(h => (objek[h] !== undefined && objek[h] !== null ? objek[h] : ''));
-  sh.getRange(nomborBaris, 1, 1, headerSebenar.length).setValues([baris]);
+  denganKunci(() => {
+    const headerSebenar = headerSebenarSheet(sh);
+    const baris = sahkanNomborBaris(sh, nomborBaris, objek[headerSebenar[0]]);
+    sh.getRange(baris, 1, 1, headerSebenar.length).setValues([barisDaripadaObjek(headerSebenar, objek)]);
+  });
+  batalCacheSheet(namaSheet);
+}
+
+/* Kemaskini lajur tertentu SAHAJA bagi satu rekod (digunakan oleh segerak
+   kalendar automatik supaya tidak menimpa suntingan guru yang berlaku serentak). */
+function kemaskiniMedan(namaSheet, rekod, senaraiMedan) {
+  const sh = dapatkanSheet(namaSheet);
+  denganKunci(() => {
+    const headerSebenar = headerSebenarSheet(sh);
+    const baris = sahkanNomborBaris(sh, rekod.__row, rekod[headerSebenar[0]]);
+    senaraiMedan.forEach(medan => {
+      const lajur = headerSebenar.indexOf(medan);
+      if (lajur === -1) return;
+      const nilai = rekod[medan] === undefined || rekod[medan] === null ? '' : selamatNilai(rekod[medan]);
+      sh.getRange(baris, lajur + 1).setValue(nilai);
+    });
+  });
   batalCacheSheet(namaSheet);
 }
 
 function padamBaris(namaSheet, nomborBaris) {
-  dapatkanSheet(namaSheet).deleteRow(nomborBaris);
+  const sh = dapatkanSheet(namaSheet);
+  const memo = MEMO_DATA[namaSheet];
+  const rekod = memo ? memo.find(r => r.__row === nomborBaris) : null;
+  denganKunci(() => {
+    let baris = nomborBaris;
+    if (rekod) baris = sahkanNomborBaris(sh, nomborBaris, rekod[headerSebenarSheet(sh)[0]]);
+    sh.deleteRow(baris);
+  });
   batalCacheSheet(namaSheet);
 }
 
@@ -219,6 +299,11 @@ function jaya(data) {
 
 function includeFile(nama) {
   return HtmlService.createHtmlOutputFromFile(nama).getContent();
+}
+
+/* Gabung fail HTML kecil (Gaya, Logo, App) ke dalam Index.html: <?!= include('App'); ?> */
+function include(nama) {
+  return includeFile(nama);
 }
 
 /* Papar mesej kepada admin: kotak dialog jika dijalankan dari menu Sheet; jika

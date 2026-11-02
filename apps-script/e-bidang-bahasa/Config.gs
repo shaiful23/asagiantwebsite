@@ -21,6 +21,8 @@ const SHEET_PELAN_OPERASI = 'PELAN_OPERASI';
 const SHEET_AKTIVITI_TAHUNAN = 'AKTIVITI_TAHUNAN';
 const SHEET_PENCERAPAN_PDP = 'PENCERAPAN_PDP';
 const SHEET_SEMAKAN_BUKU_LATIHAN = 'SEMAKAN_BUKU_LATIHAN';
+const SHEET_TETAPAN = 'TETAPAN';
+const SHEET_PLC = 'PLC';
 
 /* ------------------------- PERANAN (ROLES) ------------------------- */
 const ROLE_ADMIN = 'ADMIN';
@@ -73,6 +75,13 @@ const JENIS_PROGRAM = 'PROGRAM';
 const JENIS_PLC = 'PLC';
 const SEMUA_JENIS_PROGRAM = [JENIS_PROGRAM, JENIS_PLC];
 
+/* ------------------------- PLC (PROFESSIONAL LEARNING COMMUNITY) ------------------------- */
+const SENARAI_JENIS_PLC = ['Lesson Study', 'Learning Walk', 'Teacher Sharing Session', 'Peer Coaching',
+  'Coaching & Mentoring', 'Book Club', 'Data Analysis', 'Kajian Tindakan', 'Lain-lain'];
+const SEMUA_STATUS_PLC = ['DIRANCANG', 'SELESAI', 'DIBATALKAN'];
+
 /* ------------------------- SESI & KESELAMATAN ------------------------- */
-const TEMPOH_SESI_SAAT = 8 * 60 * 60; // 8 jam
+const TEMPOH_SESI_SAAT = 6 * 60 * 60; // 6 jam (had maksimum CacheService) — dilanjutkan setiap kali digunakan
+const HAD_CUBAAN_LOGIN = 5;           // cubaan log masuk gagal sebelum akaun dikunci sementara
+const TEMPOH_KUNCI_LOGIN_SAAT = 600;  // 10 minit
 const NAMA_FOLDER_INDUK_DRIVE = 'E-Bidang Bahasa - Fail';

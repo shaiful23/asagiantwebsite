@@ -50,7 +50,23 @@ function apiCartaOrganisasi(p) {
     };
   });
 
-  return jaya({ pentadbir, panitia });
+  /* Penasihat (Pengetua), Penasihat Bersama (PK Pentadbiran) & Setiausaha Bidang
+     daripada Sheet TETAPAN — boleh No. KP pengguna sistem atau nama sahaja. */
+  const semuaPengguna = bacaSheetSebagaiObjek(SHEET_USERS);
+  const nodTetapan = (kunci, labelJawatan) => {
+    const nilai = tetapan(kunci);
+    if (!nilai) return null;
+    const u = semuaPengguna.find(x => samaId(String(x.NoKP).trim(), nilai));
+    if (u) return Object.assign(profilRingkas(u), { jawatan: labelJawatan });
+    return { nokp: '', nama: nilai, peranan: '', jawatan: labelJawatan, gambarDataUri: '' };
+  };
+
+  return jaya({
+    pentadbir, panitia,
+    penasihat: nodTetapan('PENGETUA', 'Pengetua · Penasihat'),
+    penasihatBersama: nodTetapan('PK_PENTADBIRAN', 'PK Pentadbiran · Penasihat Bersama'),
+    setiausaha: nodTetapan('SETIAUSAHA_BIDANG', 'Setiausaha Bidang')
+  });
 }
 
 /* Butiran penuh satu profil (dibuka daripada nod Carta Organisasi, atau Profil
