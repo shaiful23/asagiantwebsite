@@ -189,13 +189,14 @@ function apiJanaSurat(p) {
       catatAudit(sesi, 'JANA_SURAT_AMARAN', noRujukan + ' ' + murid.Nama + ' ' + kodPeringkat);
     }
     const tarikhRujukan = kategori === 'BERTURUT' ? a.tarikhPonteng.filter(t => t >= a.BERTURUT.mulaEpisod) : a.tarikhPonteng;
-    const guruKelas = bacaSheetSebagaiObjek(SHEET.GURU).filter(g => normalKelas(g.KelasTingkatan) === murid.Kelas && perananGuru(g).indexOf('GT') !== -1)[0];
+    const guruKelas = senaraiGuru().filter(g => normalKelas(g.KelasTingkatan) === murid.Kelas && perananGuru(g).indexOf('GT') !== -1)[0];
     return jaya({ surat: {
       noRujukan, tarikhKeluar, kategori, labelKategori: LABEL_KATEGORI_AMARAN[kategori], peringkat: kodPeringkat,
       labelPeringkat: PERINGKAT_AMARAN[kategori].find(x => x.kod === kodPeringkat).label, bilHari: a[kategori].hari,
       tarikhPonteng: tarikhRujukan, murid: profilMuridUntukKlien(murid),
-      sekolah: { nama: tetapan('NAMA_SEKOLAH'), alamat: tetapan('ALAMAT_SEKOLAH'), telefon: tetapan('TELEFON_SEKOLAH'),
-        emel: tetapan('EMEL_SEKOLAH'), kod: tetapan('KOD_SEKOLAH'), pengetua: tetapan('NAMA_PENGETUA') },
+      sekolah: (te => ({ nama: tetapan('NAMA_SEKOLAH') || te.NAMA_SEKOLAH, alamat: tetapan('ALAMAT_SEKOLAH') || te.ALAMAT_SEKOLAH,
+        telefon: tetapan('TELEFON_SEKOLAH'), emel: tetapan('EMEL_SEKOLAH'), kod: tetapan('KOD_SEKOLAH') || te.KOD_SEKOLAH,
+        pengetua: tetapan('NAMA_PENGETUA') || te.PENGETUA }))(tetapanEData()),
       guruTingkatan: guruKelas ? guruKelas.Nama : (adalahGuruKelas(sesi) ? sesi.nama : ''),
       ambang: PERINGKAT_AMARAN[kategori]
     } });

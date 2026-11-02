@@ -19,15 +19,13 @@ function trendBulanan(sejarah) {
 
 function slotJadualHariIni(sesi, tarikh) {
   const hari = hariBagiTarikh(tarikh);
-  const slot = senaraiSlot();
-  const masa = s => slot.find(x => String(x.slot) === String(s)) || { mula: '', tamat: '' };
   const log = bacaSheetSebagaiObjek(SHEET.LOG_SUBJEK).filter(l => samaNoKP(l.NoKPGuru, sesi.nokp) && keTarikh(l.Tarikh) === tarikh);
   const sudah = (kelas, s) => log.find(l => normalKelas(l.Kelas) === kelas && String(l.Slot) === String(s));
-  const senarai = jadualGuru(sesi).filter(j => j.Hari === hari).map(j => ({ jenis: 'JADUAL', slot: j.Slot, kelas: j.Kelas, subjek: j.Subjek }))
-    .concat(teachInGuru(sesi).filter(t => t.Tarikh === tarikh).map(t => ({ jenis: 'TEACH-IN', slot: t.Slot, kelas: t.Kelas, subjek: t.Subjek, guruAsal: t.NamaGuruAsal })));
+  const senarai = jadualGuru(sesi).filter(j => j.Hari === hari).map(j => ({ jenis: 'JADUAL', slot: j.Slot, mula: j.MasaMula, tamat: j.MasaTamat, kelas: j.Kelas, subjek: j.Subjek }))
+    .concat(teachInGuru(sesi).filter(t => t.Tarikh === tarikh).map(t => ({ jenis: 'TEACH-IN', slot: t.Slot, mula: t.MasaMula, tamat: t.MasaTamat, kelas: t.Kelas, subjek: t.Subjek, guruAsal: t.NamaGuruAsal })));
   return senarai.map(x => {
     const l = sudah(x.kelas, x.slot);
-    return Object.assign(x, masa(x.slot), { direkod: !!l, hadir: l ? Number(l.Hadir) : null, jumlah: l ? Number(l.JumlahMurid) : null, statusMasa: l ? l.StatusMasa : '' });
+    return Object.assign(x, { direkod: !!l, hadir: l ? Number(l.Hadir) : null, jumlah: l ? Number(l.JumlahMurid) : null, statusMasa: l ? l.StatusMasa : '' });
   }).sort((a, b) => String(a.mula).localeCompare(String(b.mula)));
 }
 
@@ -95,7 +93,9 @@ function apiDashboard(p) {
     const ctx = konteksKehadiranTahun(tarikh.slice(0, 4));
     const surat = bacaSheetSebagaiObjek(SHEET.SURAT);
     const amaran = muridDalamKelas(sesi.kelasTingkatan).map(m => statusAmaranMurid(m, ctx, surat));
+    const kSaya = senaraiKelas().find(k => k.kelas === sesi.kelasTingkatan);
     hasil.kelasSaya = Object.assign(ringkasanKelasHariIni(sesi.kelasTingkatan, tarikh), {
+      cuti: kSaya ? (tingkatanCutiPada(tarikh)[kSaya.tingkatan] || '') : '',
       kunci: statusKunci(tarikh, sesi.kelasTingkatan), trend: trendKelas(sesi.kelasTingkatan, 15),
       perluTindakan: amaran.filter(s => s.BERTURUT.perluSurat || s.TIDAK_BERTURUT.perluSurat).length,
       dalamAmaran: amaran.filter(s => s.BERTURUT.peringkat.indeks >= 0 || s.TIDAK_BERTURUT.peringkat.indeks >= 0).length
@@ -110,9 +110,10 @@ function ringkasanSekolah(tarikh) {
   const rekod = bacaSheetSebagaiObjek(SHEET.REKOD_KELAS).filter(r => keTarikh(r.Tarikh) === tarikh);
   const th = bacaSheetSebagaiObjek(SHEET.TIDAK_HADIR).filter(t => keTarikh(t.Tarikh) === tarikh);
   const kiraMurid = {}; senaraiMurid().forEach(m => { kiraMurid[m.Kelas] = (kiraMurid[m.Kelas] || 0) + 1; });
+  const cuti = tingkatanCutiPada(tarikh);
   const perKelas = kelas.map(k => {
     const r = rekod.find(x => normalKelas(x.Kelas) === k.kelas);
-    return { kelas: k.kelas, tingkatan: k.tingkatan, direkod: !!r, jumlah: r ? Number(r.JumlahMurid) : (kiraMurid[k.kelas] || 0),
+    return { kelas: k.kelas, tingkatan: k.tingkatan, direkod: !!r, cuti: !r && cuti[k.tingkatan] ? cuti[k.tingkatan] : '', jumlah: r ? Number(r.JumlahMurid) : (kiraMurid[k.kelas] || 0),
       hadir: r ? Number(r.Hadir) : 0, tidakHadir: r ? Number(r.TidakHadir) : 0, peratus: r ? bulatPeratus(Number(r.Hadir), Number(r.JumlahMurid)) : null,
       oleh: r ? r.NamaGuru : '', selepasKunci: r ? r.SelepasKunci === 'YA' : false };
   });
@@ -127,7 +128,8 @@ function ringkasanSekolah(tarikh) {
       permohonanMenunggu: bacaSheetSebagaiObjek(SHEET.PERMOHONAN).filter(x => x.Status === 'MENUNGGU').length },
     perKelas, perTingkatan: Object.keys(tingkatan).sort().map(t => ({ tingkatan: t, peratus: bulatPeratus(tingkatan[t].hadir, tingkatan[t].jumlah), hadir: tingkatan[t].hadir, jumlah: tingkatan[t].jumlah })),
     sebab: Object.keys(sebab).map(s => ({ sebab: s, bil: sebab[s] })).sort((a, b) => b.bil - a.bil),
-    belumDirekod: perKelas.filter(k => !k.direkod).map(k => k.kelas)
+    belumDirekod: perKelas.filter(k => !k.direkod && !k.cuti).map(k => k.kelas),
+    kelasCuti: perKelas.filter(k => k.cuti).length
   };
 }
 
@@ -253,7 +255,7 @@ function apiKelasDiajar(p) {
         hadir: l ? Number(l.Hadir) : null, jumlah: l ? Number(l.JumlahMurid) : null };
     });
   return jaya({
-    slot: senaraiSlot(), hariSekolah: senaraiDaripadaMedan(tetapan('HARI_PERSEKOLAHAN')),
+    slot: slotJadual(jadual), hariSekolah: senaraiDaripadaMedan(tetapan('HARI_PERSEKOLAHAN')),
     jadual: jadual.map(j => ({ hari: j.Hari, slot: j.Slot, kelas: j.Kelas, subjek: j.Subjek })),
     kelas: Object.keys(kelasUnik).map(k => Object.assign(kelasUnik[k], { bilMurid: kiraMurid[kelasUnik[k].kelas] || 0,
       sesiDirekod: log.filter(l => normalKelas(l.Kelas) === kelasUnik[k].kelas && l.Subjek === kelasUnik[k].subjek).length })),
@@ -261,6 +263,14 @@ function apiKelasDiajar(p) {
       akanDatang: teachIn.filter(t => t.status === 'AKAN DATANG').length, tidakDirekod: teachIn.filter(t => t.status === 'TIDAK DIREKOD').length },
     sumber: tetapan('TEACHIN_SPREADSHEET_ID') ? 'e-Teach-In' : 'Sheet tempatan (e-Teach-In belum disambung)'
   });
+}
+
+/* Lajur grid jadual mingguan = blok unik dalam jadual guru (Perdana & T6 berbeza waktu). */
+function slotJadual(jadual) {
+  const peta = {};
+  jadual.forEach(j => { if (j.MasaMula && !peta[j.MasaMula]) peta[j.MasaMula] = { slot: j.Slot, mula: j.MasaMula, tamat: j.MasaTamat }; });
+  const senarai = Object.keys(peta).sort().map(k => peta[k]);
+  return senarai.length ? senarai : senaraiSlot();
 }
 
 /* ============================== PROFIL PELAJAR ============================== */
@@ -296,7 +306,7 @@ function apiProfilPelajar(p) {
   const ctx = konteksKehadiranTahun(tarikhHariIni().slice(0, 4));
   const sejarah = sejarahHarianMurid(murid, ctx);
   const a = analisisPonteng(sejarah);
-  const gt = bacaSheetSebagaiObjek(SHEET.GURU).filter(g => normalKelas(g.KelasTingkatan) === murid.Kelas);
+  const gt = senaraiGuru().filter(g => normalKelas(g.KelasTingkatan) === murid.Kelas);
   return jaya({
     profil: profilMuridUntukKlien(murid),
     guruTingkatan: gt.filter(g => perananGuru(g).indexOf('GT') !== -1).map(g => g.Nama),
