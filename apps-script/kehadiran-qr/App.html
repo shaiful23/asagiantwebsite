@@ -375,7 +375,7 @@ function dashboardMurid(d) {
     '</div><div class="grid g-21 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-bar', 'duotone') + 'Trend Kehadiran Bulanan</h3><span class="remeh">Tahun semasa</span></div><div id="cMTrend" class="carta"></div></div>' +
     '<div class="kad"><div class="kad-kepala"><h3>' + ikon('gauge', 'duotone') + 'Kehadiran Keseluruhan</h3></div><div id="cMGauge"></div></div></div>' +
     '<div class="grid g-2"><div class="kad"><div class="kad-kepala"><h3>' + ikon('clock-countdown', 'duotone') + 'Sesi P&P Hari Ini</h3><span class="remeh">Direkod melalui imbasan QR guru</span></div><div class="senarai-jadual">' +
-    (m.sesiHariIni.length ? m.sesiHariIni.map(s => '<div class="slot-item ' + (s.jenis === 'GURU TEACH-IN' ? 'teachin' : '') + '"><div class="masa">Slot<small>' + esc(s.slot) + '</small></div><span class="garis"></span><div class="info"><b>' + esc(s.subjek) + '</b><small>' + esc(s.guru) + (s.jenis === 'GURU TEACH-IN' ? ' · Teach-In' : '') + '</small></div>' +
+    (m.sesiHariIni.length ? m.sesiHariIni.map(s => '<div class="slot-item ' + (s.jenis === 'GURU TEACH-IN' ? 'teachin' : '') + '"><div class="masa">' + esc(s.slot || '-') + '<small>Masa</small></div><span class="garis"></span><div class="info"><b>' + esc(s.subjek) + '</b><small>' + esc(s.guru) + (s.jenis === 'GURU TEACH-IN' ? ' · Teach-In' : '') + '</small></div>' +
       (s.hadir ? lencana('Hadir', 'hijau') : lencana('Tidak hadir', 'merah')) + '</div>').join('') : kosong('chalkboard', 'Tiada sesi direkod lagi hari ini')) +
     '</div></div><div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar-dots', 'duotone') + '20 Hari Persekolahan Terkini</h3></div><div class="kalendar" style="grid-template-columns:repeat(10,1fr)">' +
     (m.terkini.length ? m.terkini.map(h => '<div class="sel ' + (h.hadir ? 'hadir' : (h.ponteng ? 'ponteng' : 'sah')) + '" title="' + esc(tarikhPanjang(h.tarikh) + (h.sebab ? ' · ' + h.sebab : '')) + '">' + Number(h.tarikh.slice(8)) + '<small>' + esc(BULAN[Number(h.tarikh.slice(5, 7)) - 1].slice(0, 3)) + '</small></div>').join('') : '') + '</div>' +
@@ -396,7 +396,8 @@ function dashboardGuru(d) {
   if (fokusSekolah) { $('#kandungan').innerHTML = html + blokSekolah(sk); lukisCartaSekolah(sk); return; }
   if (ks) {
     const k = ks.kunci;
-    html += !ks.direkod ? (k.boleh ? '<div class="banner kuning">' + ikon('alarm', 'fill') + '<div><b>Kehadiran kelas ' + esc(ks.kelas) + ' belum direkod hari ini</b><p>Rekod sebelum ' + esc(d.masaKunci) + '. Selepas itu rekod dikunci dan perlu permohonan kepada admin.</p></div><button class="btn kecil" style="margin-left:auto" onclick="pergi(\'kehadiran-kelas\')">Rekod Sekarang</button></div>'
+    html += ks.cuti && !ks.direkod ? '<div class="banner biru">' + ikon('calendar-x', 'fill') + '<div><b>Tingkatan kelas ' + esc(ks.kelas) + ' tidak hadir ke sekolah hari ini</b><p>' + esc(ks.cuti) + ' (e-Teach-In). Rekod kehadiran kelas tidak diperlukan.</p></div></div>'
+      : !ks.direkod ? (k.boleh ? '<div class="banner kuning">' + ikon('alarm', 'fill') + '<div><b>Kehadiran kelas ' + esc(ks.kelas) + ' belum direkod hari ini</b><p>Rekod sebelum ' + esc(d.masaKunci) + '. Selepas itu rekod dikunci dan perlu permohonan kepada admin.</p></div><button class="btn kecil" style="margin-left:auto" onclick="pergi(\'kehadiran-kelas\')">Rekod Sekarang</button></div>'
       : '<div class="banner merah">' + ikon('lock-simple', 'fill') + '<div><b>Kehadiran kelas ' + esc(ks.kelas) + ' belum direkod & sudah dikunci</b><p>' + esc(k.sebab) + '</p></div><button class="btn kecil merah" style="margin-left:auto" onclick="pergi(\'kehadiran-kelas\')">Mohon Buka Akses</button></div>') : '';
     html += '<div class="grid g-4 mb">' +
       kadStat('biru', 'users-three', 'Kelas ' + ks.kelas, ks.direkod ? ks.hadir + '<small> / ' + ks.jumlah + '</small>' : '—', ks.direkod ? 'Hadir hari ini · ' + ks.peratus.toFixed(1) + '%' : ks.jumlah + ' murid · belum direkod') +
@@ -412,7 +413,7 @@ function dashboardGuru(d) {
   }
 
   html += '<div class="grid g-21 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar', 'duotone') + 'Jadual Saya Hari Ini</h3><span class="remeh">' + esc(d.hari) + '</span></div><div class="senarai-jadual">' +
-    (g.jadual.length ? g.jadual.map(j => '<div class="slot-item ' + (j.jenis === 'TEACH-IN' ? 'teachin' : '') + '"><div class="masa">' + esc(j.mula || '-') + '<small>Slot ' + esc(j.slot) + '</small></div><span class="garis"></span>' +
+    (g.jadual.length ? g.jadual.map(j => '<div class="slot-item ' + (j.jenis === 'TEACH-IN' ? 'teachin' : '') + '"><div class="masa">' + esc(j.mula || '-') + '<small>' + esc(j.tamat || '') + '</small></div><span class="garis"></span>' +
       '<div class="info"><b>' + esc(j.kelas) + ' · ' + esc(j.subjek || '-') + '</b><small>' + (j.jenis === 'TEACH-IN' ? 'Teach-In · ganti ' + esc(j.guruAsal || '') : 'Kelas diajar') + '</small></div>' +
       (j.direkod ? lencana(j.hadir + '/' + j.jumlah + ' hadir', 'hijau', 'check-circle') : lencana('Belum diimbas', 'kelabu', 'clock')) + '</div>').join('')
       : kosong('coffee', 'Tiada kelas dijadualkan hari ini', 'Jadual diambil daripada e-Teach-In.')) + '</div></div>' +
@@ -436,7 +437,7 @@ function dashboardGuru(d) {
 
 function blokSekolah(sk) {
   return '<div class="nav-kumpulan" style="padding:8px 0 12px;color:var(--teks-2)">Gambaran Sekolah Hari Ini</div><div class="grid g-4 mb">' +
-    kadStat('biru', 'buildings', 'Kelas Direkod', sk.kad.kelasDirekod + '<small> / ' + sk.kad.kelas + '</small>', sk.belumDirekod.length + ' kelas belum direkod') +
+    kadStat('biru', 'buildings', 'Kelas Direkod', sk.kad.kelasDirekod + '<small> / ' + sk.kad.kelas + '</small>', sk.belumDirekod.length + ' kelas belum direkod' + (sk.kelasCuti ? ' · ' + sk.kelasCuti + ' kelas giliran/cuti' : '')) +
     kadStat('hijau', 'percent', 'Kehadiran Sekolah', sk.kad.peratusHadir.toFixed(1) + '<small>%</small>', 'Daripada kelas yang telah direkod') +
     kadStat('merah', 'user-minus', 'Murid Tidak Hadir', sk.kad.tidakHadir, sk.kad.ponteng + ' dikira ponteng') +
     kadStat('kuning', 'lock-key-open', 'Permohonan Menunggu', sk.kad.permohonanMenunggu, '<a href="#/permohonan">Semak permohonan →</a>') + '</div>' +
@@ -450,7 +451,7 @@ function lukisCartaSekolah(sk) {
   if (sk.sebab.length) cartaDonut('#cSSebab', sk.sebab.map(s => s.sebab), sk.sebab.map(s => s.bil), null, 'Murid'); else $('#cSSebab').innerHTML = kosong('confetti', 'Tiada ketidakhadiran direkod');
   jadualData('#tSKelas', { data: sk.perKelas, eksport: 'status-kelas-hari-ini', isihAwal: 'kelas', lajur: [
     { k: 'kelas', label: 'Kelas', f: r => '<b>' + esc(r.kelas) + '</b>' },
-    { k: 'direkod', label: 'Status', teks: r => r.direkod ? 'Direkod' : 'Belum', f: r => r.direkod ? lencana(r.selepasKunci ? 'Direkod (selepas kunci)' : 'Direkod', r.selepasKunci ? 'kuning' : 'hijau') : lencana('Belum direkod', 'merah') },
+    { k: 'direkod', label: 'Status', teks: r => r.direkod ? 'Direkod' : r.cuti ? 'Giliran' : 'Belum', f: r => r.cuti ? lencana('Giliran: ' + r.cuti, 'biru') : r.direkod ? lencana(r.selepasKunci ? 'Direkod (selepas kunci)' : 'Direkod', r.selepasKunci ? 'kuning' : 'hijau') : lencana('Belum direkod', 'merah') },
     { k: 'hadir', label: 'Hadir', nombor: true, f: r => r.direkod ? r.hadir + ' / ' + r.jumlah : '-' }, { k: 'tidakHadir', label: 'Tidak Hadir', nombor: true, f: r => r.direkod ? r.tidakHadir : '-' },
     { k: 'peratus', label: 'Peratus', teks: r => r.peratus == null ? -1 : r.peratus, f: r => r.peratus == null ? '-' : barPeratus(r.peratus) }, { k: 'oleh', label: 'Direkod Oleh' }] });
 }
@@ -544,10 +545,10 @@ HALAMAN_FN.imbas = function () {
       '<div class="tindakan"><a class="btn kuning" href="' + esc(urlPengimbas()) + '" target="_blank" rel="noopener">' + ikon('camera', 'bold') + 'Buka Pengimbas Kamera</a></div>' +
       '<p style="font-size:12px;opacity:.7;margin-top:14px">Pengimbas dibuka dalam tab baharu kerana kamera tidak dibenarkan dalam halaman Google Apps Script.</p></div>' +
       '<div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar', 'duotone') + 'Jadual Hari Ini</h3><span class="remeh">' + esc(d.hari) + '</span></div><div class="senarai-jadual">' +
-      (g.jadual.length ? g.jadual.map(j => '<div class="slot-item ' + (j.jenis === 'TEACH-IN' ? 'teachin' : '') + '"><div class="masa">' + esc(j.mula || '-') + '<small>' + esc(j.tamat || '') + '</small></div><span class="garis"></span><div class="info"><b>' + esc(j.kelas) + '</b><small>' + esc(j.subjek) + ' · ' + (j.jenis === 'TEACH-IN' ? 'Teach-In' : 'Slot ' + esc(j.slot)) + '</small></div>' +
+      (g.jadual.length ? g.jadual.map(j => '<div class="slot-item ' + (j.jenis === 'TEACH-IN' ? 'teachin' : '') + '"><div class="masa">' + esc(j.mula || '-') + '<small>' + esc(j.tamat || '') + '</small></div><span class="garis"></span><div class="info"><b>' + esc(j.kelas) + '</b><small>' + esc(j.subjek) + ' · ' + (j.jenis === 'TEACH-IN' ? 'Teach-In' : esc(j.mula) + '–' + esc(j.tamat)) + '</small></div>' +
         (j.direkod ? lencana(j.statusMasa || 'Direkod', j.statusMasa === 'LEWAT' ? 'kuning' : 'hijau', 'check-circle') : lencana('Belum', 'kelabu')) + '</div>').join('') : kosong('coffee', 'Tiada kelas dijadualkan hari ini')) + '</div></div></div>' +
       '<div class="kad"><div class="kad-kepala"><h3>' + ikon('list-checks', 'duotone') + 'Sesi Direkod Hari Ini</h3><button class="btn hantu kecil" onclick="pergi(\'imbas\')">' + ikon('arrow-clockwise') + 'Muat semula</button></div><div id="tSesiHariIni"></div></div>';
-    jadualData('#tSesiHariIni', { data: g.sesiHariIni, cari: false, lajur: [{ k: 'slot', label: 'Slot', nombor: true }, { k: 'kelas', label: 'Kelas', f: r => '<b>' + esc(r.kelas) + '</b>' }, { k: 'subjek', label: 'Subjek' },
+    jadualData('#tSesiHariIni', { data: g.sesiHariIni, cari: false, lajur: [{ k: 'slot', label: 'Masa', nombor: true }, { k: 'kelas', label: 'Kelas', f: r => '<b>' + esc(r.kelas) + '</b>' }, { k: 'subjek', label: 'Subjek' },
       { k: 'jenis', label: 'Jenis', f: r => lencana(r.jenis, r.jenis === 'GURU TEACH-IN' ? 'ungu' : 'biru') }, { k: 'statusMasa', label: 'Status Masa', f: r => lencana(r.statusMasa, r.statusMasa === 'LEWAT' ? 'kuning' : r.statusMasa === 'TEPAT MASA' ? 'hijau' : 'kelabu') },
       { k: 'hadir', label: 'Kehadiran Murid', f: r => barPeratus(r.jumlah ? r.hadir / r.jumlah * 100 : 0) + '<small style="color:var(--teks-2)">' + r.hadir + '/' + r.jumlah + '</small>' }] });
   }).catch(e => { $('#kandungan').innerHTML = kosong('wifi-slash', 'Gagal memuat', e.message); });
@@ -559,7 +560,7 @@ HALAMAN_FN['kelas-diajar'] = function () {
     $('#remehHalaman').textContent = 'Sumber: ' + d.sumber;
     const hari = d.hariSekolah.length ? d.hariSekolah : ['ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT'];
     const grid = '<div style="overflow:auto"><div class="jadual-waktu" style="grid-template-columns:70px repeat(' + d.slot.length + ',minmax(80px,1fr))"><div></div>' +
-      d.slot.map(s => '<div class="jw-kepala">' + esc(s.slot) + '<br><span style="font-weight:600">' + esc(s.mula) + '</span></div>').join('') +
+      d.slot.map(s => '<div class="jw-kepala">' + esc(s.mula) + '<br><span style="font-weight:600">' + esc(s.tamat) + '</span></div>').join('') +
       hari.map(h => '<div class="jw-hari">' + esc(HARI_PENDEK[h] || h) + '</div>' + d.slot.map(s => { const j = d.jadual.find(x => x.hari === h && String(x.slot) === String(s.slot));
         return '<div class="jw-sel ' + (j ? 'ada' : '') + '">' + (j ? '<b>' + esc(j.kelas) + '</b><small>' + esc(j.subjek) + '</small>' : '') + '</div>'; }).join('')).join('') + '</div></div>';
     $('#kandungan').innerHTML = '<div class="grid g-4 mb">' +
@@ -574,7 +575,7 @@ HALAMAN_FN['kelas-diajar'] = function () {
       '<div class="kad"><div class="kad-kepala"><h3>' + ikon('swap', 'duotone') + 'Kelas Teach-In</h3><span class="remeh">60 hari lepas & akan datang</span></div><div id="tTeachIn"></div></div>';
     const warnaStatus = { 'DIREKOD': 'hijau', 'AKAN DATANG': 'biru', 'HARI INI': 'kuning', 'TIDAK DIREKOD': 'merah' };
     jadualData('#tTeachIn', { data: d.teachIn, eksport: 'teach-in', lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => '<b>' + esc(tarikhPendek(r.tarikh)) + '</b><br><small style="color:var(--teks-2)">' + esc(r.hari) + '</small>' },
-      { k: 'slot', label: 'Slot', nombor: true }, { k: 'kelas', label: 'Kelas' }, { k: 'subjek', label: 'Subjek' }, { k: 'guruAsal', label: 'Guru Asal' },
+      { k: 'slot', label: 'Masa', nombor: true }, { k: 'kelas', label: 'Kelas' }, { k: 'subjek', label: 'Subjek' }, { k: 'guruAsal', label: 'Guru Asal' },
       { k: 'status', label: 'Status', f: r => lencana(r.status, warnaStatus[r.status] || 'kelabu') }, { k: 'hadir', label: 'Kehadiran', f: r => r.hadir == null ? '-' : r.hadir + '/' + r.jumlah }] });
   }).catch(e => { $('#kandungan').innerHTML = kosong('wifi-slash', 'Gagal memuat', e.message); });
 };
@@ -626,7 +627,7 @@ function rekodMurid(m) {
   if (m.sebab.length) cartaDonut('#cRSebab', m.sebab.map(s => s.sebab), m.sebab.map(s => s.bil), null, 'Hari'); else $('#cRSebab').innerHTML = kosong('confetti', 'Tiada ketidakhadiran bulan ini');
   jadualData('#tRHarian', { data: m.harian.slice().reverse(), eksport: 'rekod-harian-' + m.bulan, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => '<b>' + esc(tarikhPendek(r.tarikh)) + '</b>' }, { k: 'hari', label: 'Hari' },
     { k: 'hadir', label: 'Status', teks: r => r.hadir ? 'Hadir' : 'Tidak hadir', f: r => r.hadir ? lencana('Hadir', 'hijau') : lencana(r.ponteng ? 'Ponteng' : 'Tidak hadir', r.ponteng ? 'merah' : 'kuning') }, { k: 'sebab', label: 'Sebab' }] });
-  jadualData('#tRSubjek', { data: m.subjekTidakHadir, cari: false, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => esc(tarikhPendek(r.tarikh)) }, { k: 'slot', label: 'Slot', nombor: true }, { k: 'subjek', label: 'Subjek' }, { k: 'sebab', label: 'Sebab' }] });
+  jadualData('#tRSubjek', { data: m.subjekTidakHadir, cari: false, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => esc(tarikhPendek(r.tarikh)) }, { k: 'slot', label: 'Masa', nombor: true }, { k: 'subjek', label: 'Subjek' }, { k: 'sebab', label: 'Sebab' }] });
 }
 
 function rekodKelas(k) {
@@ -660,7 +661,7 @@ function rekodSubjek(s) {
   else $('#cSKelas').innerHTML = kosong('qr-code', 'Tiada sesi direkod bulan ini');
   if (s.statusMasa.length) cartaDonut('#cSMasa', s.statusMasa.map(x => x.label), s.statusMasa.map(x => x.bil), s.statusMasa.map(x => x.label === 'LEWAT' ? WARNA.emas : x.label === 'TEPAT MASA' ? WARNA.hijau : WARNA.kelabu), 'Sesi');
   else $('#cSMasa').innerHTML = kosong('timer', 'Tiada data');
-  jadualData('#tSSesi', { data: s.sesi.slice().reverse(), eksport: 'sesi-subjek-' + RK.bulan, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => '<b>' + esc(tarikhPendek(r.tarikh)) + '</b>' }, { k: 'slot', label: 'Slot', nombor: true },
+  jadualData('#tSSesi', { data: s.sesi.slice().reverse(), eksport: 'sesi-subjek-' + RK.bulan, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => '<b>' + esc(tarikhPendek(r.tarikh)) + '</b>' }, { k: 'slot', label: 'Masa', nombor: true },
     { k: 'kelas', label: 'Kelas' }, { k: 'subjek', label: 'Subjek' }, { k: 'jenis', label: 'Jenis', f: r => lencana(r.jenis, r.jenis === 'GURU TEACH-IN' ? 'ungu' : 'biru') },
     { k: 'statusMasa', label: 'Status Masa', f: r => lencana(r.statusMasa, r.statusMasa === 'LEWAT' ? 'kuning' : r.statusMasa === 'TEPAT MASA' ? 'hijau' : 'kelabu') }, { k: 'peratus', label: 'Kehadiran', f: r => barPeratus(r.peratus) }] });
 }
@@ -913,7 +914,11 @@ HALAMAN_FN.pengguna = function (segar) {
   Promise.all([muat('apiSenaraiPengguna', {}), muat('apiStatusSumberLuar', { segar: !!segar })]).then(([u, s]) => {
     $('#kandungan').innerHTML = '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('plugs-connected', 'duotone') + 'Sambungan Sistem Luar</h3><button class="btn hantu kecil" id="btnSegar">' + ikon('arrow-clockwise') + 'Segar Semula Cache</button></div><div class="grid g-4">' +
       s.sumber.map(x => '<div class="kad kad-stat w-' + (!x.ok ? 'merah' : x.disambung ? 'hijau' : 'kuning') + '" style="box-shadow:none"><div class="bulat">' + ikon(!x.ok ? 'plugs' : x.disambung ? 'plugs-connected' : 'table', 'duotone') + '</div><div><div class="label">' + esc(x.nama) + '</div><div class="nilai" style="font-size:20px">' + x.bil + ' <small>rekod</small></div><div class="sub">' + esc(x.mesej) + '</div></div></div>').join('') +
-      '</div><p style="font-size:12.5px;color:var(--teks-2);margin:12px 0 0">' + ikon('info') + ' Sambungan ditetapkan dalam Sheet <b>TETAPAN</b> (ID spreadsheet & nama lajur). Status kuning = masih guna Sheet tempatan.</p></div>' +
+      '</div><p style="font-size:12.5px;color:var(--teks-2);margin:12px 0 0">' + ikon('info') + ' Sambungan ditetapkan dalam Sheet <b>TETAPAN</b> (ID/URL spreadsheet). Status kuning = masih guna Sheet tempatan.</p></div>' +
+      '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('arrows-left-right', 'duotone') + 'Pemetaan Kod Kelas e-Teach-In → e-Data</h3><span class="remeh">' + s.peta.senarai.length + ' kod dipetakan</span></div>' +
+      (s.peta.tanpaPeta.length ? '<div class="banner kuning">' + ikon('warning', 'fill') + '<div><b>' + s.peta.tanpaPeta.length + ' kod kelas tiada padanan</b><p>' + esc(s.peta.tanpaPeta.join(', ')) +
+        ' — isi dalam Sheet <b>PETA_KOD_KELAS</b> (menu e-Kehadiran → 3. Jana Peta Kod Kelas). Sesi untuk kelas ini tidak dapat dipadankan dengan senarai murid.</p></div></div>' : '') +
+      '<div id="tPetaKod"></div></div>' +
       '<div class="grid g-4 mb">' + kadStat('biru', 'chalkboard-teacher', 'Guru Berdaftar', u.ringkasan.guru, 'Dalam Sheet GURU') + kadStat('ungu', 'student', 'Murid Aktif', u.ringkasan.murid, u.ringkasan.muridPernahLogMasuk + ' pernah log masuk') +
       u.ringkasan.perPeranan.slice(0, 2).map((p, i) => kadStat(i ? 'kuning' : 'hijau', i ? 'user-circle-plus' : 'user-circle-gear', p.label, p.bil, 'pengguna')).join('') + '</div>' +
       '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('key', 'duotone') + 'Set Semula Kata Laluan (Guru / Murid)</h3></div><div class="alat-jadual" style="margin:0">' +
@@ -921,6 +926,8 @@ HALAMAN_FN.pengguna = function (segar) {
       '<button class="btn hantu" id="btnResetNoKP">' + ikon('arrow-counter-clockwise') + 'Set Semula ke 6 Digit Akhir No. KP</button></div></div>' +
       '<div class="kad"><div class="kad-kepala"><h3>' + ikon('users', 'duotone') + 'Senarai Guru & Peranan</h3></div><div id="tPengguna"></div></div>';
     $('#btnSegar').onclick = () => HALAMAN_FN.pengguna(true);
+    jadualData('#tPetaKod', { data: s.peta.senarai, eksport: 'peta-kod-kelas', perHalaman: 8, lajur: [{ k: 'kod', label: 'Kod e-Teach-In', f: r => '<b>' + esc(r.kod) + '</b>' },
+      { k: 'kelas', label: 'Kelas e-Data' }, { k: 'kaedah', label: 'Kaedah', f: r => lencana(r.kaedah === 'MANUAL' ? 'Manual (Sheet)' : 'Automatik — sila semak', r.kaedah === 'MANUAL' ? 'hijau' : 'kuning') }] });
     $('#btnResetNoKP').onclick = () => {
       const nokp = $('#resetNoKP').value.replace(/\D/g, '');
       if (nokp.length !== 12) { toast('No. KP mesti 12 digit.', 'gagal'); return; }

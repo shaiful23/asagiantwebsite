@@ -415,7 +415,7 @@ function lukisBorang() {
   $('#skrinImbas').classList.add('hidden');
   const b = $('#skrinBorang'); b.classList.remove('hidden');
   b.innerHTML = '<div class="kad"><div class="kelas-kepala"><span class="lencana-kelas">' + esc(String(d.kelas).split(' ')[0]) + '</span><div><h3>' + esc(d.kelas) + '</h3>' +
-    '<p class="sub">' + esc(d.hari) + ' · ' + (d.slot ? 'Slot ' + esc(d.slot.slot) + ' (' + esc(d.slot.mula) + '–' + esc(d.slot.tamat) + ')' : 'Tiada slot') + '</p></div></div>' + info +
+    '<p class="sub">' + esc(d.hari) + ' · ' + (d.slot ? esc(d.slot.mula) + '–' + esc(d.slot.tamat || '') : 'Di luar waktu P&P') + '</p></div></div>' + info +
     '<div class="grid2"><div><label class="l">Subjek</label><select id="fSubjek" class="input">' + senaraiSubjek.map(s => '<option' + (s === d.subjekCadangan ? ' selected' : '') + '>' + esc(s) + '</option>').join('') + '</select></div>' +
     '<div><label class="l">Jenis Kehadiran</label><select id="fJenis" class="input">' + d.senaraiJenis.map(j => '<option' + (j === d.jenisCadangan ? ' selected' : '') + '>' + esc(j) + '</option>').join('') + '</select></div></div>' +
     '<label class="l">Bilik</label><input id="fBilik" class="input" value="' + esc(d.bilik || '') + '">' +

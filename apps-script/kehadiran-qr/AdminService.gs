@@ -81,7 +81,7 @@ function apiSenaraiPengguna(p) {
   const sesi = wajibAdmin(p.token);
   if (gagal(sesi)) return sesi;
   const akaun = {}; bacaSheetSebagaiObjek(SHEET.AKAUN).forEach(a => { akaun[digitSahaja(a.NoKP)] = a; });
-  const guru = bacaSheetSebagaiObjek(SHEET.GURU).map(g => {
+  const guru = senaraiGuru().map(g => {
     const a = akaun[digitSahaja(g.NoKP)];
     return { nokp: digitSahaja(g.NoKP), nama: g.Nama, peranan: perananGuru(g), labelPeranan: perananGuru(g).map(x => LABEL_PERANAN[x] || x),
       kelasTingkatan: normalKelas(g.KelasTingkatan), status: g.Status || 'AKTIF',
@@ -93,6 +93,30 @@ function apiSenaraiPengguna(p) {
   const muridAktif = murid.filter(m => akaun[digitSahaja(m.NoKP)]).length;
   return jaya({ guru, ringkasan: { guru: guru.length, murid: murid.length, muridPernahLogMasuk: muridAktif,
     perPeranan: Object.keys(LABEL_PERANAN).filter(k => k !== 'MURID').map(k => ({ label: LABEL_PERANAN[k], bil: guru.filter(g => g.peranan.indexOf(k) !== -1).length })) } });
+}
+
+/* Pemetaan kod kelas e-Teach-In → kelas e-Data, untuk semakan admin. */
+function ringkasanPetaKod() {
+  try {
+    const manual = {}; bacaSheetSebagaiObjek(SHEET.PETA_KOD).forEach(r => { if (r.Kod && r.Kelas) manual[normalKelas(r.Kod)] = true; });
+    const peta = petaKodKelas();
+    return { format: formatTeachIn(), senarai: Object.keys(peta).sort().map(k => ({ kod: k, kelas: peta[k], kaedah: manual[k] ? 'MANUAL' : 'AUTO' })),
+      tanpaPeta: MEMO_LUAR.kodTanpaPeta || [] };
+  } catch (e) { return { senarai: [], tanpaPeta: [], ralat: e.message }; }
+}
+
+/* Tulis pemetaan automatik ke Sheet PETA_KOD_KELAS (kod yang belum ada sahaja)
+   supaya admin boleh menyemak & membetulkan. */
+function janaPetaKodKelas() {
+  sediakanSistem(true);
+  segarSemulaSumberLuar();
+  const sedia = {}; bacaSheetSebagaiObjek(SHEET.PETA_KOD).forEach(r => { sedia[normalKelas(r.Kod)] = true; });
+  const peta = petaKodKelas(), baris = [];
+  Object.keys(peta).sort().forEach(k => { if (!sedia[k]) baris.push({ Kod: k, Kelas: peta[k], Catatan: 'AUTO — sila semak' }); });
+  (MEMO_LUAR.kodTanpaPeta || []).forEach(k => { if (!sedia[k]) baris.push({ Kod: k, Kelas: '', Catatan: 'TIADA PADANAN — isi nama kelas seperti di e-Data (cth. 6 ATAS 1)' }); });
+  tambahBanyakBaris(SHEET.PETA_KOD, baris);
+  segarSemulaSumberLuar();
+  return baris.length;
 }
 
 function apiStatusSumberLuar(p) {
@@ -109,5 +133,5 @@ function apiStatusSumberLuar(p) {
     uji('e-Teach-In — jadual waktu', 'TEACHIN_SPREADSHEET_ID', senaraiJadual),
     uji('e-Teach-In — guru ganti', 'TEACHIN_SPREADSHEET_ID', senaraiTeachIn),
     uji('IDME — sebab tidak hadir', 'IDME_SPREADSHEET_ID', senaraiSebab)
-  ] });
+  ], peta: ringkasanPetaKod() });
 }

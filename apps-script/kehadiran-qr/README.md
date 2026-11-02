@@ -90,7 +90,45 @@ umum — semak dengan pentadbiran sekolah sebelum digunakan secara rasmi.
 Untuk mencuba dahulu: menu **Isi Data Contoh** (hanya jika Sheet GURU kosong) — log masuk
 admin contoh `800101135001`, GT contoh `800202135002` (kata laluan = 6 digit terakhir).
 
-## Sambungan Sistem Luar (Sheet TETAPAN)
+## Sambungan e-Data & e-Teach-In SMK Asajaya (format dikesan automatik)
+
+Isi dua nilai sahaja dalam Sheet **TETAPAN** (ID atau URL penuh diterima):
+
+| Kunci | Nilai |
+| --- | --- |
+| `EDATA_SPREADSHEET_ID` | spreadsheet **E-DATA & ENROLMEN** |
+| `TEACHIN_SPREADSHEET_ID` | spreadsheet **PENGURUSAN TEACH-IN** |
+
+Sistem mengesan format SMK Asajaya secara automatik (`EDATA_FORMAT` / `TEACHIN_FORMAT` = `AUTO`):
+
+| Data | Dibaca dari |
+| --- | --- |
+| Murid | e-Data `Data_Murid` — kelas = `TINGKATAN` + `KELAS` → cth. `1 AKASIA`, `PPKI PKKS ROTI 2`; murid bukan `AKTIF` ditapis |
+| Foto murid | e-Data `Foto_Murid` — `THUMB` (base64; tidak perlu kongsi fail Drive) |
+| Guru, peranan & kelas GT/PGT | e-Data `Pengguna` (`ADMIN+PENOLONG GURU TINGKATAN` → ADMIN + PGT) |
+| Peranan tambahan / guru tambahan | e-Teach-In `Profil_Guru` (`PERANAN_GURU` KAUNSELOR/PENGETUA; baris yang `NO_KP` diisi → akaun guru automatik) |
+| Jadual waktu | e-Teach-In `Jadual_Induk_Perdana` & `Jadual_Induk_T6` (grid). Waktu berturut dengan subjek & kelas sama digabung jadi satu blok (cth. 7:00–8:00); `PERH`, `KT`, `KK` diabaikan; `3AL/3AS` = dua kelas |
+| Guru ganti | e-Teach-In `Rekod_TeachIn` (`WAKTU` atau `INDEKS_SLOT`; status BATAL diabaikan) |
+| Giliran / tingkatan tidak hadir | e-Teach-In `Tingkatan_Tidak_Hadir` — kelas terlibat tidak dikira "belum direkod" |
+| Nama sekolah, pengetua, kod sekolah (surat) | e-Data `Tetapan` (jika kosong dalam TETAPAN sistem ini) |
+
+**Kod kelas e-Teach-In** (`2AR`, `T6A3`) dipadankan secara automatik kepada kelas e-Data
+(`2AR` → `2 AZARA`). Semak di portal: *Pengguna & Sistem → Pemetaan Kod Kelas*, atau menu
+**e-Kehadiran → 3. Jana Peta Kod Kelas** untuk menulis pemetaan ke Sheet `PETA_KOD_KELAS`
+dan betulkan di situ (pemetaan dalam Sheet mengatasi automatik). Kod Tingkatan 6 (`T6A3`)
+perlu diisi secara manual kerana e-Data tiada padanan nama yang jelas.
+
+**Guru dipadankan dengan jadual melalui nama** (jadual tiada No. KP). Beza ejaan kecil
+(cth. MOHAMED/MOHAMAD, BTE/BINTI) diterima. Jika nama terlalu berbeza, isi lajur
+`NamaDalamJadual` dalam Sheet `GURU` (nama tepat seperti di e-Teach-In).
+
+**Guru mata pelajaran yang tiada dalam `Pengguna` e-Data** perlu No. KP untuk log masuk —
+isi `NO_KP` dalam `Profil_Guru` e-Teach-In (akaun dicipta automatik), atau tambah baris
+dalam Sheet `GURU` (No. KP, Nama seperti dalam jadual, Peranan `GMP`).
+
+Kod QR kelas lalai = kod e-Teach-In (cth. `KELAS:2AR`) — terus berfungsi tanpa isi Sheet KELAS.
+
+## Sambungan Sistem Luar — format lain (Sheet TETAPAN)
 
 | Sistem | Kunci ID | Tab & lajur |
 | --- | --- | --- |

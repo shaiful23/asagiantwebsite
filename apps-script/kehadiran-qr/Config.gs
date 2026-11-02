@@ -30,12 +30,13 @@ const SHEET = {
   PERMOHONAN: 'PERMOHONAN_BUKA_AKSES',
   INTERVENSI: 'INTERVENSI',
   SURAT: 'SURAT_AMARAN',
+  PETA_KOD: 'PETA_KOD_KELAS',            // kod kelas e-Teach-In (cth. 2AR) → kelas e-Data (2 AZARA)
   AUDIT: 'AUDIT'
 };
 
 const HEADER = {
   TETAPAN: ['Kunci', 'Nilai', 'Keterangan'],
-  GURU: ['NoKP', 'Nama', 'Peranan', 'KelasTingkatan', 'Emel', 'NoTelefon', 'Status'],
+  GURU: ['NoKP', 'Nama', 'Peranan', 'KelasTingkatan', 'Emel', 'NoTelefon', 'Status', 'NamaDalamJadual'],
   MURID: ['NoKP', 'Nama', 'Kelas', 'Tingkatan', 'Jantina', 'TarikhLahir', 'Alamat', 'NamaPenjaga', 'TelefonPenjaga', 'Gambar', 'Status'],
   KELAS: ['Kelas', 'Tingkatan', 'KodQR', 'Bilik'],
   SLOT: ['Slot', 'MasaMula', 'MasaTamat'],
@@ -50,6 +51,7 @@ const HEADER = {
   PERMOHONAN: ['IdPermohonan', 'TarikhRekod', 'Kelas', 'NoKPGuru', 'NamaGuru', 'Alasan', 'MasaMohon', 'Status', 'DiprosesOleh', 'MasaProses', 'CatatanAdmin', 'TamatAkses'],
   INTERVENSI: ['IdIntervensi', 'Tarikh', 'NoKPMurid', 'NamaMurid', 'Kelas', 'Kategori', 'Tindakan', 'Catatan', 'NoKPGuru', 'NamaGuru', 'Masa'],
   SURAT: ['NoRujukan', 'TarikhKeluar', 'NoKPMurid', 'NamaMurid', 'Kelas', 'Kategori', 'Peringkat', 'BilHari', 'MulaEpisod', 'NoKPGuru', 'NamaGuru', 'Masa'],
+  PETA_KOD: ['Kod', 'Kelas', 'Catatan'],
   AUDIT: ['Masa', 'NoKP', 'Nama', 'Tindakan', 'Butiran']
 };
 
@@ -136,6 +138,7 @@ const TETAPAN_LALAI = [
   ['HARI_PERSEKOLAHAN', 'ISNIN,SELASA,RABU,KHAMIS,JUMAAT', 'Hari persekolahan'],
 
   ['EDATA_SPREADSHEET_ID', '', 'e-Data & Enrolmen: ID atau URL spreadsheet (kosong = guna Sheet MURID)'],
+  ['EDATA_FORMAT', 'AUTO', 'e-Data: AUTO (kesan format SMK Asajaya: tab Data_Murid/Pengguna/Foto_Murid), SMKA, atau UMUM (guna pemetaan lajur di bawah)'],
   ['EDATA_TAB', 'MURID', 'e-Data & Enrolmen: nama tab senarai murid'],
   ['EDATA_LAJUR_NOKP', 'NoKP', 'e-Data: nama lajur No. KP murid'],
   ['EDATA_LAJUR_NAMA', 'Nama', 'e-Data: nama lajur nama murid'],
@@ -150,6 +153,7 @@ const TETAPAN_LALAI = [
   ['EDATA_LAJUR_STATUS', 'Status', 'e-Data: nama lajur status murid (AKTIF/BERHENTI/PINDAH)'],
 
   ['TEACHIN_SPREADSHEET_ID', '', 'e-Teach-In: ID atau URL spreadsheet (kosong = guna Sheet JADUAL_WAKTU & TEACH_IN)'],
+  ['TEACHIN_FORMAT', 'AUTO', 'e-Teach-In: AUTO (kesan format SMK Asajaya: Jadual_Induk_Perdana/T6, Rekod_TeachIn, Profil_Guru), SMKA, atau UMUM'],
   ['TEACHIN_TAB_JADUAL', 'JADUAL_WAKTU', 'e-Teach-In: nama tab jadual waktu (kelas diajar)'],
   ['TEACHIN_JADUAL_LAJUR_HARI', 'Hari', 'e-Teach-In jadual: lajur hari'],
   ['TEACHIN_JADUAL_LAJUR_SLOT', 'Slot', 'e-Teach-In jadual: lajur slot/waktu'],

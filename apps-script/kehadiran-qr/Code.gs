@@ -23,12 +23,18 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('e-Kehadiran')
     .addItem('1. Sediakan / Kemaskini Struktur Sistem', 'sediakanSistem')
     .addItem('2. Segar Semula Data Sistem Luar (cache)', 'segarSemulaSumberLuarMenu')
+    .addItem('3. Jana Peta Kod Kelas e-Teach-In (untuk disemak)', 'janaPetaKodKelasMenu')
     .addSeparator()
     .addItem('Isi Data Contoh (percubaan sahaja)', 'isiDataContohMenu')
     .addToUi();
 }
 
 function onEdit() { try { segarSemulaSumberLuar(); } catch (e) { /* abaikan */ } }
+
+function janaPetaKodKelasMenu() {
+  const bil = janaPetaKodKelas();
+  SpreadsheetApp.getUi().alert(bil + ' baris ditambah ke Sheet PETA_KOD_KELAS. Semak lajur Kelas (mesti sama seperti nama kelas penuh e-Data, cth. "2 AZARA") dan isi kod yang tiada padanan. Pemetaan dalam Sheet ini mengatasi pemetaan automatik.');
+}
 
 function segarSemulaSumberLuarMenu() {
   segarSemulaSumberLuar();

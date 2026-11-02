@@ -16,14 +16,24 @@ const SENARAI_SUBJEK = [
   'PENDIDIKAN SYARIAH ISLAMIAH', 'SAINS SUKAN', 'BIMBINGAN & KAUNSELING', 'LAIN-LAIN'
 ];
 
+/* Slot sandaran (Sheet SLOT_WAKTU) — kunci slot = masa mula (HH:mm). */
+function senaraiSlot() { return senaraiSlotTempatan().map(s => ({ slot: s.mula, mula: s.mula, tamat: s.tamat })); }
 function slotPada(masaHHmm) {
-  return bacaSheetSebagaiObjek(SHEET.SLOT)
-    .map(s => ({ slot: Number(s.Slot) || s.Slot, mula: keHHmm(s.MasaMula), tamat: keHHmm(s.MasaTamat) }))
-    .find(s => masaHHmm >= s.mula && masaHHmm < s.tamat) || null;
+  const s = senaraiSlotTempatan().find(x => masaHHmm >= x.mula && masaHHmm < x.tamat);
+  return s ? { slot: s.mula, mula: s.mula, tamat: s.tamat } : null;
 }
-function senaraiSlot() {
-  return bacaSheetSebagaiObjek(SHEET.SLOT).map(s => ({ slot: Number(s.Slot) || s.Slot, mula: keHHmm(s.MasaMula), tamat: keHHmm(s.MasaTamat) }))
-    .sort((a, b) => a.mula.localeCompare(b.mula));
+
+/* Blok P&P semasa bagi guru & kelas: rekod teach-in hari ini → jadual kelas → SLOT_WAKTU.
+   Imbasan sehingga 10 minit sebelum blok bermula dikira untuk blok itu. */
+function tentukanBlok(sesi, kelas, tarikh, masa) {
+  const hari = hariBagiTarikh(tarikh), m = minitDaripadaHHmm(masa);
+  const dalam = e => !!e.MasaMula && m >= minitDaripadaHHmm(e.MasaMula) - 10 && m < (e.MasaTamat ? minitDaripadaHHmm(e.MasaTamat) : 24 * 60);
+  const teachIn = teachInGuru(sesi).filter(t => t.Tarikh === tarikh && t.Kelas === kelas).find(dalam) || null;
+  const jadualKelas = senaraiJadual().filter(j => j.Hari === hari && j.Kelas === kelas && dalam(j));
+  const jadual = jadualKelas.find(j => rekodMilikGuru(j.NoKPGuru, j.NamaGuru, sesi)) || jadualKelas[0] || null;
+  const asas = teachIn || jadual;
+  const blok = asas ? { slot: asas.MasaMula, mula: asas.MasaMula, tamat: asas.MasaTamat } : slotPada(masa);
+  return { blok, jadual, teachIn };
 }
 
 /* Kod QR: "KELAS:<KodQR>" atau "KELAS:<KodQR>|BILIK:<bilik>". */
@@ -56,9 +66,9 @@ function apiImbasKelas(p) {
   const kelas = cariKelasDenganKod(qr.kodKelas);
   if (!kelas) return ralat('Kelas dengan kod "' + qr.kodKelas + '" tidak didaftarkan.');
 
-  const tarikh = tarikhHariIni(), hari = hariBagiTarikh(tarikh), slot = slotPada(masaSekarang());
-  const jadual = slot ? senaraiJadual().find(j => j.Hari === hari && String(j.Slot) === String(slot.slot) && j.Kelas === kelas.kelas) : null;
-  const teachIn = slot ? teachInGuru(sesi).find(t => t.Tarikh === tarikh && String(t.Slot) === String(slot.slot) && t.Kelas === kelas.kelas) : null;
+  const tarikh = tarikhHariIni(), hari = hariBagiTarikh(tarikh);
+  const tb = tentukanBlok(sesi, kelas.kelas, tarikh, masaSekarang());
+  const slot = tb.blok, jadual = tb.jadual, teachIn = tb.teachIn;
   const milikSaya = jadual && rekodMilikGuru(jadual.NoKPGuru, jadual.NamaGuru, sesi);
 
   const subjekSaya = Array.from(new Set(jadualGuru(sesi).map(j => j.Subjek).filter(Boolean)));
@@ -102,7 +112,7 @@ function apiRekodKehadiranSubjek(p) {
   if (typeof tidakHadir === 'string') { try { tidakHadir = JSON.parse(tidakHadir || '[]'); } catch (e) { return ralat('Data murid tidak sah.'); } }
   tidakHadir = Array.isArray(tidakHadir) ? tidakHadir : [];
 
-  const kini = sekarang(), tarikh = formatTarikh(kini), masa = formatMasa(kini), slot = slotPada(masa);
+  const kini = sekarang(), tarikh = formatTarikh(kini), masa = formatMasa(kini), slot = tentukanBlok(sesi, kelas.kelas, tarikh, masa).blok;
   const senaraiM = muridDalamKelas(kelas.kelas);
   const petaMurid = {}; senaraiM.forEach(m => { petaMurid[digitSahaja(m.NoKP)] = m; });
   for (let i = 0; i < tidakHadir.length; i++) {
@@ -131,7 +141,7 @@ function apiRekodKehadiranSubjek(p) {
       return { IdLog: idLog, Tarikh: tarikh, Slot: log.Slot, Kelas: kelas.kelas, Subjek: subjek, NoKPMurid: "'" + digitSahaja(m.NoKP),
         NamaMurid: m.Nama, KodSebab: s.kod, Sebab: s.sebab };
     }));
-    catatAudit(sesi, sedia ? 'KEMASKINI_KEHADIRAN_SUBJEK' : 'REKOD_KEHADIRAN_SUBJEK', kelas.kelas + ' ' + subjek + ' slot ' + log.Slot);
+    catatAudit(sesi, sedia ? 'KEMASKINI_KEHADIRAN_SUBJEK' : 'REKOD_KEHADIRAN_SUBJEK', kelas.kelas + ' ' + subjek + ' ' + log.Slot);
     return jaya({ idLog, statusMasa: log.StatusMasa, hadir: log.Hadir, tidakHadir: log.TidakHadir, jumlah: log.JumlahMurid, dikemaskini: !!sedia });
   });
 }

@@ -15,14 +15,13 @@ function cincangKataLaluan(nokp, kataLaluan) {
 function kataLaluanLalai(nokp) { return digitSahaja(nokp).slice(-6); }
 
 /* ------------------------------ PENGGUNA ------------------------------ */
+/* Guru = gabungan e-Data (Pengguna) + Sheet GURU + peranan e-Teach-In (SumberLuar.gs). */
 function cariGuru(nokp) {
-  return bacaSheetSebagaiObjek(SHEET.GURU).find(g => samaNoKP(g.NoKP, nokp)
-    && String(g.Status || 'AKTIF').toUpperCase() !== 'TIDAK AKTIF') || null;
+  return senaraiGuru().find(g => samaNoKP(g.NoKP, nokp) && !/TIDAK AKTIF|TIDAK_AKTIF|FALSE/.test(String(g.Status || 'AKTIF').toUpperCase())) || null;
 }
 function perananGuru(guru) {
-  return senaraiDaripadaMedan(guru.Peranan).map(p => p.toUpperCase().replace(/\s+/g, ''))
-    .map(p => p === 'GURUTINGKATAN' ? 'GT' : p === 'PENOLONGGT' || p === 'PENOLONGGURUTINGKATAN' ? 'PGT' : p)
-    .filter(p => PERANAN[p] && p !== PERANAN.MURID);
+  const p = Array.isArray(guru.Peranan) ? guru.Peranan : petaPeranan(String(guru.Peranan || '').replace(/,/g, '+'));
+  return p.filter(x => PERANAN[x] && x !== PERANAN.MURID);
 }
 function profilSesi(nokp) {
   const guru = cariGuru(nokp);
@@ -30,7 +29,7 @@ function profilSesi(nokp) {
     const peranan = perananGuru(guru);
     if (!peranan.length) peranan.push(PERANAN.GMP);
     return { jenis: 'GURU', nokp: digitSahaja(guru.NoKP), nama: String(guru.Nama || '').trim(), peranan,
-      kelasTingkatan: normalKelas(guru.KelasTingkatan) };
+      kelasTingkatan: normalKelas(guru.KelasTingkatan), namaJadual: guru.NamaDalamJadual || '' };
   }
   const murid = cariMurid(nokp);
   if (murid) {
