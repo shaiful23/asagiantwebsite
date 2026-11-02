@@ -16,6 +16,8 @@ function apiDashboard(p) {
   const semuaTindakan = bacaSheetSebagaiObjek(SHEET_TINDAKAN_SUSULAN);
   const semuaPesanan = bacaSheetSebagaiObjek(SHEET_PESANAN_MAKMAL);
   const semuaProgram = bacaSheetSebagaiObjek(SHEET_PROGRAM);
+  const semuaPLC = dapatkanSpreadsheet().getSheetByName(SHEET_PLC)
+    ? bacaSheetSebagaiObjek(SHEET_PLC).filter(r => r.Status !== 'DIBATALKAN') : [];
   const hariIni = formatTarikh(new Date());
   const tahunIni = hariIni.slice(0, 4);
   const dalamSkop = r => panitiaSkop.indexOf(String(r.Panitia)) !== -1;
@@ -58,6 +60,7 @@ function apiDashboard(p) {
   const mesyuaratSkop = semuaMesyuarat.filter(dalamSkop);
   const programSkop = semuaProgram.filter(dalamSkop);
   const tindakanSkop = semuaTindakan.filter(dalamSkop);
+  const plcSkop = semuaPLC.filter(dalamSkop);
 
   const aktivitiBulanan = [];
   for (let b = 1; b <= 12; b++) {
@@ -65,7 +68,8 @@ function apiDashboard(p) {
     aktivitiBulanan.push({
       mesyuarat: mesyuaratSkop.filter(m => String(m.TarikhMesyuarat).indexOf(awalan) === 0).length,
       program: programSkop.filter(pr => pr.JenisProgram !== 'PLC' && String(pr.TarikhMula).indexOf(awalan) === 0).length,
-      plc: programSkop.filter(pr => pr.JenisProgram === 'PLC' && String(pr.TarikhMula).indexOf(awalan) === 0).length
+      plc: programSkop.filter(pr => pr.JenisProgram === 'PLC' && String(pr.TarikhMula).indexOf(awalan) === 0).length +
+        plcSkop.filter(r => String(r.Tarikh).indexOf(awalan) === 0).length
     });
   }
 
@@ -81,6 +85,10 @@ function apiDashboard(p) {
       .map(pr => ({ jenis: pr.JenisProgram === 'PLC' ? 'PLC' : 'PROGRAM', tajuk: pr.NamaProgram, panitia: pr.Panitia,
         tarikhMula: pr.TarikhMula, tarikhTamat: pr.TarikhTamat || pr.TarikhMula, masaMula: pr.MasaMula || '', masaTamat: pr.MasaTamat || '',
         keterangan: pr.Objektif || '', disegerak: !!pr.EventIdKalendar })))
+    .concat(plcSkop
+      .filter(r => String(r.Tarikh) >= hariIni)
+      .map(r => ({ jenis: 'PLC', tajuk: r.Tajuk, panitia: r.Panitia, tarikhMula: r.Tarikh, tarikhTamat: r.Tarikh,
+        masaMula: r.MasaMula || '', masaTamat: r.MasaTamat || '', keterangan: r.JenisPLC || '', disegerak: !!r.EventIdKalendar })))
     .sort((a, b) => String(a.tarikhMula).localeCompare(String(b.tarikhMula)))
     .slice(0, 6);
 
@@ -89,7 +97,8 @@ function apiDashboard(p) {
     purataKelengkapan: ringkasanPanitia.length ? Math.round(ringkasanPanitia.reduce((j, r) => j + r.peratusChecklist, 0) / ringkasanPanitia.length) : 0,
     mesyuaratAkanDatang: mesyuaratSkop.filter(m => String(m.TarikhMesyuarat) >= hariIni).length,
     programTahunIni: programSkop.filter(pr => String(pr.TarikhMula).indexOf(tahunIni) === 0).length,
-    tindakanTertunggak: tindakanSkop.filter(t => t.Status !== STATUS_SELESAI).length
+    tindakanTertunggak: tindakanSkop.filter(t => t.Status !== STATUS_SELESAI).length,
+    plcTahunIni: plcSkop.filter(r => String(r.Tarikh).indexOf(tahunIni) === 0).length
   };
 
   return jaya({ ringkasanPanitia, tindakanSaya, jumlahPenggunaAktif, ringkasanPesananMakmal,

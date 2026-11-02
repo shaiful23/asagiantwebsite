@@ -5,7 +5,8 @@
  * ========================================================================= */
 
 const HEADER_MESYUARAT = ['IDMesyuarat', 'Panitia', 'TarikhMesyuarat', 'Tajuk', 'Agenda',
-  'MinitUrl', 'MinitFailId', 'DiciptaOleh', 'TarikhCipta', 'EventIdKalendar', 'MasaMula', 'MasaTamat'];
+  'MinitUrl', 'MinitFailId', 'DiciptaOleh', 'TarikhCipta', 'EventIdKalendar', 'MasaMula', 'MasaTamat',
+  'Tempat', 'StatusKalendar', 'HashKalendar'];
 const HEADER_KEHADIRAN_MESYUARAT = ['IDKehadiran', 'IDMesyuarat', 'NamaAhli', 'Status', 'Catatan'];
 const HEADER_TINDAKAN_SUSULAN = ['IDTindakan', 'IDMesyuarat', 'Panitia', 'Perkara',
   'TanggungjawabNoKP', 'TarikhAkhir', 'Status', 'CatatanKemaskini'];
@@ -47,7 +48,10 @@ function apiSimpanMesyuarat(p) {
     TarikhCipta: sediaAda ? sediaAda.TarikhCipta : formatTarikhMasa(new Date()),
     EventIdKalendar: sediaAda ? sediaAda.EventIdKalendar : '',
     MasaMula: masaMula,
-    MasaTamat: masaTamat
+    MasaTamat: masaTamat,
+    Tempat: String(p.tempat !== undefined ? p.tempat : (sediaAda ? sediaAda.Tempat || '' : '')).trim(),
+    StatusKalendar: sediaAda ? sediaAda.StatusKalendar || '' : '',
+    HashKalendar: sediaAda ? sediaAda.HashKalendar || '' : ''
   };
 
   if (p.namaFail && p.dataBase64) {
@@ -58,7 +62,7 @@ function apiSimpanMesyuarat(p) {
   }
 
   // Kalendar bukan sumber kebenaran — kegagalan (kuota/akses) tidak menghalang mesyuarat disimpan.
-  try { objek.EventIdKalendar = segerakEventMesyuarat(objek); } catch (e) { /* kekalkan nilai sediaAda */ }
+  segerakKalendarSelamat('MESYUARAT', objek);
 
   if (sediaAda) {
     kemaskiniBaris(SHEET_MESYUARAT, sediaAda.__row, objek, HEADER_MESYUARAT);
@@ -67,7 +71,7 @@ function apiSimpanMesyuarat(p) {
     tambahBaris(SHEET_MESYUARAT, objek, HEADER_MESYUARAT);
     catatAudit(sesi, 'TAMBAH', 'MESYUARAT', objek.IDMesyuarat, 'Tambah mesyuarat: ' + tajuk + ' (' + p.panitia + ')');
   }
-  return jaya({ idMesyuarat: objek.IDMesyuarat });
+  return jaya({ idMesyuarat: objek.IDMesyuarat, statusKalendar: objek.StatusKalendar || '' });
 }
 
 function apiPadamMesyuarat(p) {

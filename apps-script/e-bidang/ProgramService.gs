@@ -5,9 +5,10 @@
  * ========================================================================= */
 
 const HEADER_PROGRAM = ['IDProgram', 'Panitia', 'NamaProgram', 'JenisProgram', 'TarikhMula',
-  'TarikhTamat', 'Objektif', 'Status', 'DiciptaOleh', 'EventIdKalendar', 'MasaMula', 'MasaTamat'];
+  'TarikhTamat', 'Objektif', 'Status', 'DiciptaOleh', 'EventIdKalendar', 'MasaMula', 'MasaTamat',
+  'Tempat', 'StatusKalendar', 'HashKalendar'];
 const HEADER_EVIDENS = ['IDEvidens', 'IDProgram', 'Panitia', 'Keterangan', 'FailUrl', 'FailId',
-  'DimuatNaikOleh', 'TarikhMuatNaik'];
+  'DimuatNaikOleh', 'TarikhMuatNaik', 'DimuatNaikOlehNoKP'];
 
 const STATUS_PROGRAM_DIRANCANG = 'DIRANCANG';
 const STATUS_PROGRAM_BERJALAN = 'BERJALAN';
@@ -54,11 +55,14 @@ function apiSimpanProgram(p) {
     DiciptaOleh: sediaAda ? sediaAda.DiciptaOleh : sesi.nama,
     EventIdKalendar: sediaAda ? sediaAda.EventIdKalendar : '',
     MasaMula: masaMula,
-    MasaTamat: masaTamat
+    MasaTamat: masaTamat,
+    Tempat: String(p.tempat !== undefined ? p.tempat : (sediaAda ? sediaAda.Tempat || '' : '')).trim(),
+    StatusKalendar: sediaAda ? sediaAda.StatusKalendar || '' : '',
+    HashKalendar: sediaAda ? sediaAda.HashKalendar || '' : ''
   };
 
   // Kalendar bukan sumber kebenaran — kegagalan (kuota/akses) tidak menghalang program disimpan.
-  try { objek.EventIdKalendar = segerakEventProgram(objek); } catch (e) { /* kekalkan nilai sediaAda */ }
+  segerakKalendarSelamat('PROGRAM', objek);
 
   if (sediaAda) {
     kemaskiniBaris(SHEET_PROGRAM, sediaAda.__row, objek, HEADER_PROGRAM);
@@ -67,7 +71,7 @@ function apiSimpanProgram(p) {
     tambahBaris(SHEET_PROGRAM, objek, HEADER_PROGRAM);
     catatAudit(sesi, 'TAMBAH', 'PROGRAM', objek.IDProgram, 'Tambah program: ' + namaProgram + ' (' + p.panitia + ')');
   }
-  return jaya({ idProgram: objek.IDProgram });
+  return jaya({ idProgram: objek.IDProgram, statusKalendar: objek.StatusKalendar || '' });
 }
 
 function apiPadamProgram(p) {
@@ -93,7 +97,9 @@ function apiPadamProgram(p) {
 function apiSenaraiEvidens(p) {
   const sesi = wajibPeranan(p.token, null);
   if (sesi.success === false) return sesi;
-  const senarai = bacaSheetSebagaiObjek(SHEET_EVIDENS).filter(ev => ev.IDProgram === p.idProgram);
+  const senarai = bacaSheetSebagaiObjek(SHEET_EVIDENS).filter(ev => ev.IDProgram === p.idProgram)
+    .filter(ev => bolehLihatPanitia(sesi, ev.Panitia))
+    .map(ev => Object.assign({}, ev, { bolehUrus: bolehUrusRekodSendiri(sesi, ev.Panitia, ev.DimuatNaikOlehNoKP, ev.DimuatNaikOleh) }));
   return jaya({ senarai });
 }
 
@@ -115,7 +121,8 @@ function apiMuatNaikEvidens(p) {
     FailUrl: failDrive.url,
     FailId: failDrive.fileId,
     DimuatNaikOleh: sesi.nama,
-    TarikhMuatNaik: formatTarikhMasa(new Date())
+    TarikhMuatNaik: formatTarikhMasa(new Date()),
+    DimuatNaikOlehNoKP: sesi.nokp
   };
   tambahBaris(SHEET_EVIDENS, objek, HEADER_EVIDENS);
   catatAudit(sesi, 'MUAT_NAIK', 'EVIDENS', objek.IDEvidens, 'Muat naik evidens program: ' + program.NamaProgram);
@@ -128,7 +135,9 @@ function apiPadamEvidens(p) {
 
   const evidens = cariBarisMengikutId(SHEET_EVIDENS, 'IDEvidens', p.idEvidens);
   if (!evidens) return ralat('Evidens tidak dijumpai.');
-  if (!wajibAksesPanitia(sesi, evidens.Panitia)) return ralat('Anda tidak mempunyai kebenaran untuk panitia ini.');
+  if (!bolehUrusRekodSendiri(sesi, evidens.Panitia, evidens.DimuatNaikOlehNoKP, evidens.DimuatNaikOleh)) {
+    return ralat('Hanya pemuat naik evidens atau Ketua Panitia boleh memadamnya.');
+  }
 
   padamFailDrive(evidens.FailId);
   padamBaris(SHEET_EVIDENS, evidens.__row);
