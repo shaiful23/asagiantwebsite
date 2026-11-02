@@ -20,11 +20,13 @@
   .hidden { display:none !important; }
   i.ph, i.ph-fill { vertical-align:-2px; }
   header { position:sticky; top:0; z-index:10; color:#fff; padding:14px 16px 12px; background:radial-gradient(circle at 90% 0, rgba(91,31,140,.6), transparent 45%), linear-gradient(140deg,var(--navy-700),var(--navy-900)); }
-  header .baris { display:flex; align-items:center; gap:12px; max-width:640px; margin:0 auto; }
+  header .baris { display:flex; align-items:center; gap:12px; max-width:1100px; margin:0 auto; }
   header img { width:42px; height:42px; border-radius:50%; background:#fff; padding:2px; }
   header b { display:block; font-size:15px; letter-spacing:.03em; } header small { opacity:.75; font-size:12px; }
-  header .pelangi { height:3px; background:var(--pelangi); max-width:640px; margin:10px auto 0; border-radius:3px; }
-  main { max-width:640px; margin:0 auto; padding:16px 14px 120px; }
+  header .pelangi { height:3px; background:var(--pelangi); max-width:1100px; margin:10px auto 0; border-radius:3px; }
+  main { max-width:1100px; margin:0 auto; padding:16px clamp(12px, 2vw, 28px) 120px; }
+  #skrinImbas { max-width:640px; margin-left:auto; margin-right:auto; }
+  @media (min-width:820px) { .senarai-murid { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:8px; } .senarai-murid .murid { margin-bottom:0; } }
   .kad { background:#fff; border:1px solid var(--sempadan); border-radius:18px; padding:16px; box-shadow:0 1px 3px rgba(15,23,42,.06); margin-bottom:14px; }
   .kad h2 { font-size:16px; margin:0 0 4px; font-weight:800; display:flex; gap:8px; align-items:center; } .kad h2 i { color:var(--biru); font-size:20px; }
   .sub { color:var(--teks-2); font-size:13px; margin:0; }
@@ -55,7 +57,7 @@
   .togol .landas::after { content:''; position:absolute; top:3px; left:22px; width:19px; height:19px; border-radius:50%; background:#fff; transition:left .15s; box-shadow:0 1px 3px rgba(0,0,0,.25); }
   .togol input:not(:checked) + .landas { background:#CBD5E1; } .togol input:not(:checked) + .landas::after { left:3px; } .togol input:not(:checked) ~ span:last-child { color:var(--merah); }
   .bar-bawah { position:fixed; left:0; right:0; bottom:0; z-index:20; padding:12px 14px calc(12px + env(safe-area-inset-bottom)); background:rgba(8,19,80,.96); color:#fff; box-shadow:0 -10px 30px rgba(8,19,80,.25); }
-  .bar-bawah .dalam { max-width:640px; margin:0 auto; display:flex; gap:12px; align-items:center; }
+  .bar-bawah .dalam { max-width:1100px; margin:0 auto; display:flex; gap:12px; align-items:center; }
   .bar-bawah .kira { font-weight:700; font-size:13px; } .bar-bawah .kira b { font-size:19px; }
   .bar-bawah .btn { margin-left:auto; }
   .hasil { text-align:center; padding:26px 16px; } .hasil i.besar { font-size:56px; } .hasil h3 { margin:8px 0 4px; font-size:19px; }
@@ -423,9 +425,9 @@ function lukisBorang() {
     '<div class="kad"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><h2 style="margin:0"><i class="ph-fill ph-users-three"></i>Murid (' + d.murid.length + ')</h2>' +
     '<button class="btn hantu kecil" id="btnSemua"><i class="ph ph-checks"></i>Semua Hadir</button></div>' +
     '<p class="sub" style="margin-bottom:10px">Semua murid <b>hadir</b> secara lalai. Matikan suis bagi murid yang tidak hadir dan pilih sebab.</p>' +
-    d.murid.map(m => '<div class="murid' + (m.hadir ? '' : ' tidak') + '" data-nokp="' + esc(m.nokp) + '" data-nama="' + esc(m.nama) + '"><div class="atas">' + avatar(m.nama, m.gambar) +
+    '<div class="senarai-murid">' + d.murid.map(m => '<div class="murid' + (m.hadir ? '' : ' tidak') + '" data-nokp="' + esc(m.nokp) + '" data-nama="' + esc(m.nama) + '"><div class="atas">' + avatar(m.nama, m.gambar) +
       '<div class="nama">' + esc(m.nama) + (m.tidakHadirPagi ? '<small>Tidak hadir pagi ini (GT)</small>' : '') + '</div><label class="togol"><input type="checkbox"' + (m.hadir ? ' checked' : '') + '><span class="landas"></span><span>' + (m.hadir ? 'Hadir' : 'Tidak') + '</span></label></div>' +
-      '<select class="input sebab' + (m.hadir ? ' hidden' : '') + '">' + pilihanSebab(m.kodSebab) + '</select></div>').join('') + '</div>' +
+      '<select class="input sebab' + (m.hadir ? ' hidden' : '') + '">' + pilihanSebab(m.kodSebab) + '</select></div>').join('') + '</div></div>' +
     '<button class="btn hantu penuh" onclick="imbasSemula()"><i class="ph ph-arrow-counter-clockwise"></i>Batal & Imbas Kelas Lain</button>';
   b.querySelectorAll('.murid input[type=checkbox]').forEach(cb => cb.onchange = () => togol(cb));
   $('#btnSemua').onclick = () => b.querySelectorAll('.murid input[type=checkbox]').forEach(cb => { cb.checked = true; togol(cb); });

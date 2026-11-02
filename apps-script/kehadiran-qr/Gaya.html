@@ -133,7 +133,9 @@
   .cip-kunci { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; font-weight: 700; font-size: 13px; }
   .cip-kunci.buka { background: var(--hijau-lembut); color: #166534; } .cip-kunci.kunci { background: var(--merah-lembut); color: var(--merah-gelap); }
   #btnMenu { display: none; }
-  .kandungan { padding: 26px 28px 60px; max-width: 1440px; width: 100%; }
+  /* Kandungan memenuhi lebar skrin pada semua peranti (tiada had lebar). */
+  .kandungan { padding: clamp(18px, 1.6vw, 34px) clamp(16px, 1.8vw, 40px) 60px; width: 100%; }
+  html, body { width: 100%; min-height: 100%; }
 
   /* ------------------------------ KAD & GRID ------------------------------ */
   .grid { display: grid; gap: 18px; }
@@ -325,6 +327,12 @@
   .qr-kad h4 { font-size: 17px; font-weight: 800; } .qr-kad small { color: var(--teks-2); }
 
   /* ------------------------------ RESPONSIF ------------------------------ */
+  /* Skrin lebar (monitor/TV): ruang & tipografi sedikit lebih besar, lebih banyak lajur. */
+  @media (min-width: 1700px) {
+    body { font-size: 15px; } .grid { gap: 22px; } .mb { margin-bottom: 22px; }
+    .kad-stat .nilai { font-size: 32px; } .bar-atas h1 { font-size: 22px; }
+    .roster { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); } .carta { min-height: 300px; }
+  }
   @media (max-width: 1180px) { .g-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g-21, .g-12 { grid-template-columns: 1fr; } }
   @media (max-width: 920px) {
     #skrinLogin { grid-template-columns: 1fr; } .hero-login { display: none; } .kad-login .logo-mudah { display: flex; }
