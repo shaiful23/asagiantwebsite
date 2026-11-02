@@ -88,7 +88,8 @@ function apiSenaraiPengguna(p) {
       akaun: a ? (String(a.MestiTukarPassword).toUpperCase() === 'YA' ? 'BELUM TUKAR KATA LALUAN' : 'AKTIF') : 'BELUM LOG MASUK',
       logMasukTerakhir: a ? a.LogMasukTerakhir : '' };
   });
-  const murid = senaraiMurid();
+  let murid = [];
+  try { murid = senaraiMurid(); } catch (e) { /* sumber luar rosak — status dipaparkan oleh apiStatusSumberLuar */ }
   const muridAktif = murid.filter(m => akaun[digitSahaja(m.NoKP)]).length;
   return jaya({ guru, ringkasan: { guru: guru.length, murid: murid.length, muridPernahLogMasuk: muridAktif,
     perPeranan: Object.keys(LABEL_PERANAN).filter(k => k !== 'MURID').map(k => ({ label: LABEL_PERANAN[k], bil: guru.filter(g => g.peranan.indexOf(k) !== -1).length })) } });

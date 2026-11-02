@@ -135,7 +135,7 @@ const TETAPAN_LALAI = [
   ['URL_PENGIMBAS', 'https://smkasajaya.my/kehadiranqrscanner.html', 'URL halaman pengimbas QR (GitHub Pages)'],
   ['HARI_PERSEKOLAHAN', 'ISNIN,SELASA,RABU,KHAMIS,JUMAAT', 'Hari persekolahan'],
 
-  ['EDATA_SPREADSHEET_ID', '', 'e-Data & Enrolmen: ID spreadsheet (kosong = guna Sheet MURID)'],
+  ['EDATA_SPREADSHEET_ID', '', 'e-Data & Enrolmen: ID atau URL spreadsheet (kosong = guna Sheet MURID)'],
   ['EDATA_TAB', 'MURID', 'e-Data & Enrolmen: nama tab senarai murid'],
   ['EDATA_LAJUR_NOKP', 'NoKP', 'e-Data: nama lajur No. KP murid'],
   ['EDATA_LAJUR_NAMA', 'Nama', 'e-Data: nama lajur nama murid'],
@@ -149,7 +149,7 @@ const TETAPAN_LALAI = [
   ['EDATA_LAJUR_GAMBAR', 'Gambar', 'e-Data: nama lajur gambar profil (URL atau ID fail Drive)'],
   ['EDATA_LAJUR_STATUS', 'Status', 'e-Data: nama lajur status murid (AKTIF/BERHENTI/PINDAH)'],
 
-  ['TEACHIN_SPREADSHEET_ID', '', 'e-Teach-In: ID spreadsheet (kosong = guna Sheet JADUAL_WAKTU & TEACH_IN)'],
+  ['TEACHIN_SPREADSHEET_ID', '', 'e-Teach-In: ID atau URL spreadsheet (kosong = guna Sheet JADUAL_WAKTU & TEACH_IN)'],
   ['TEACHIN_TAB_JADUAL', 'JADUAL_WAKTU', 'e-Teach-In: nama tab jadual waktu (kelas diajar)'],
   ['TEACHIN_JADUAL_LAJUR_HARI', 'Hari', 'e-Teach-In jadual: lajur hari'],
   ['TEACHIN_JADUAL_LAJUR_SLOT', 'Slot', 'e-Teach-In jadual: lajur slot/waktu'],
@@ -167,7 +167,7 @@ const TETAPAN_LALAI = [
   ['TEACHIN_GANTI_LAJUR_NAMAGURUASAL', 'NamaGuruAsal', 'e-Teach-In ganti: lajur nama guru asal'],
   ['TEACHIN_GANTI_LAJUR_SUBJEK', 'Subjek', 'e-Teach-In ganti: lajur subjek'],
 
-  ['IDME_SPREADSHEET_ID', '', 'Senarai sebab tidak hadir IDME: ID spreadsheet (kosong = guna Sheet SEBAB_TIDAK_HADIR)'],
+  ['IDME_SPREADSHEET_ID', '', 'Senarai sebab tidak hadir IDME: ID atau URL spreadsheet (kosong = guna Sheet SEBAB_TIDAK_HADIR)'],
   ['IDME_TAB', 'SEBAB_TIDAK_HADIR', 'IDME: nama tab senarai sebab'],
   ['IDME_LAJUR_KOD', 'Kod', 'IDME: lajur kod sebab'],
   ['IDME_LAJUR_SEBAB', 'Sebab', 'IDME: lajur keterangan sebab'],
