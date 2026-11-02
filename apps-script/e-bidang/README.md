@@ -7,6 +7,13 @@ sebagai database dan Google Apps Script sebagai backend + frontend
 
 ## Ciri Utama
 
+> **Naik taraf kerangka Kemanusiaan/VOTEK (November 2026):** fail HTML kecil
+> (`Index` + `Gaya` + `Logo` + `App`) dengan pembukaan serta-merta, modul
+> **PLC** berasingan, segerak **DUA HALA** Google Calendar, Sheet **TETAPAN**
+> (boleh disunting dari menu Tetapan), Carta Organisasi dengan Pengetua/PK
+> Pentadbiran/Setiausaha, had cubaan log masuk & kunci tulisan. Butiran di
+> bahagian *Naik Taraf Kerangka Kemanusiaan/VOTEK* di bawah.
+
 - **Log masuk selamat** — No. Kad Pengenalan (No. KP) + kata laluan. Kata
   laluan lalai bagi pengguna baharu ialah **6 digit terakhir No. KP**; kata
   laluan disimpan sebagai *hash* SHA-256 (bukan teks biasa) dalam Sheet `USERS`.
@@ -241,10 +248,15 @@ sebagai database dan Google Apps Script sebagai backend + frontend
   bagi setiap Makmal — lanjutan `PesananMakmalService.gs` (permintaan) yang
   uruskan STOK sedia ada & pematuhan keselamatan.
 - `AuditService.gs` — catat & semak log audit.
-- `appsscript.json`, `Index.html` — manifest & frontend SPA tunggal.
+- `PlcService.gs` — modul PLC (Lesson Study, Learning Walk, TSS, dll.).
+- `TetapanService.gs` — Sheet `TETAPAN` & menu Tetapan.
+- `appsscript.json` — manifest.
+- `Index.html` — struktur halaman; menggabungkan `Gaya.html` (CSS),
+  `Logo.html` (logo sekolah) dan `App.html` (skrip) melalui `include()`.
 
-**Nota struktur frontend:** mengikut pendekatan projek `headcount-stpm` dalam
-repo yang sama, sistem ini guna **satu `Index.html` sebagai Single Page App**
+**Nota struktur frontend:** sistem ini ialah satu Single Page App, tetapi kodnya
+dipecah kepada 4 fail HTML kecil (mengikut kerangka portal Kemanusiaan/VOTEK)
+supaya mudah disalin tanpa terpotong. Asalnya: **satu `Index.html` sebagai Single Page App**
 (navigasi sidebar tukar kandungan tanpa reload) berbanding banyak fail HTML
 berasingan bagi setiap paparan — lebih mudah diselenggara kerana banyak
 kandungan (borang, jadual, modal) dikongsi antara paparan.
@@ -259,10 +271,12 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
    `MeetingService.gs`, `ProgramService.gs`, `PesananMakmalService.gs`,
    `CalendarService.gs`, `NotifikasiService.gs`, `DashboardService.gs`,
    `ProfilService.gs`, `PerancanganService.gs`, `PencerapanService.gs`,
-   `MakmalOpsService.gs`, `AuditService.gs`), cipta fail Script baharu dengan
+   `MakmalOpsService.gs`, `AuditService.gs`, `PlcService.gs`,
+   `TetapanService.gs`), cipta fail Script baharu dengan
    nama yang sama (tanpa `.gs`) dan salin-tampal kandungannya.
-4. Cipta satu fail HTML baharu bernama **Index** (guna nama tepat ini),
-   salin-tampal kandungan `Index.html`.
+4. Cipta **empat** fail HTML dengan nama tepat **Index**, **Gaya**, **Logo**
+   dan **App**, dan salin-tampal kandungan `Index.html`, `Gaya.html`,
+   `Logo.html` dan `App.html` masing-masing.
 5. Klik ikon gear ⚙️ **Project Settings**, tandakan *"Show appsscript.json
    manifest file in editor"*, salin-tampal kandungan `appsscript.json` di sini.
 6. Kembali ke Sheet, refresh halaman. Menu baharu **"Sistem E-Bidang"** akan
@@ -336,6 +350,39 @@ kandungan (borang, jadual, modal) dikongsi antara paparan.
 - **Alternatif tanpa menu:** dalam editor Apps Script, pilih fungsi
   (cth. `sediakanSegerakKalendarAutomatik`, `kemaskiniStrukturSistem`) di senarai
   fungsi → **Run**. Keputusan dipaparkan dalam **Log Pelaksanaan**.
+
+## Naik Taraf Kerangka Kemanusiaan/VOTEK
+
+Langkah bagi deployment sedia ada (data dalam Sheet kekal):
+
+1. Dalam editor Apps Script, gantikan semua fail `.gs` dan cipta fail baharu
+   `PlcService` dan `TetapanService` (Script).
+2. Gantikan fail HTML **Index** dengan `Index.html` baharu (kini pendek), dan
+   cipta tiga fail HTML baharu **Gaya**, **Logo**, **App** daripada
+   `Gaya.html`, `Logo.html`, `App.html`. Nama mesti tepat.
+3. **Deploy → Manage deployments → Edit → New version → Deploy.**
+4. Dalam Sheet: **Sistem E-Bidang → 2. Kemaskini Struktur** (sekali) — cipta
+   Sheet `PLC` & `TETAPAN`, tambah lajur `Tempat`/`StatusKalendar`/
+   `HashKalendar` (MESYUARAT, PROGRAM) dan `DimuatNaikOlehNoKP` (DOKUMEN,
+   EVIDENS).
+5. **Sistem E-Bidang → 4. Aktifkan Pencetus Automatik** (sekali) — segerak dua
+   hala setiap `SELANG_SYNC_MINIT` (lalai 15 minit) + pemanas cache 10 minit.
+6. Log masuk sebagai Admin/Ketua Bidang → menu **Tetapan**: isi Pengetua,
+   PK Pentadbiran & Setiausaha Bidang (No. KP pengguna sistem atau nama).
+
+**Apa yang baharu**
+
+| Ciri | Keterangan |
+|---|---|
+| Pembukaan pantas | Sesi & data terakhir disimpan dalam pelayar; portal dibuka serta-merta lalu disegarkan senyap. Pelayan hanya pulangkan "sama" jika data tidak berubah. |
+| PLC | Menu PLC berasingan (Sheet `PLC`). **Semua guru** panitia boleh rekod; sunting/padam oleh pencipta atau Ketua Panitia. Rekod PLC lama dalam Program kekal dipaparkan. |
+| Kalendar dua hala | Ubah tarikh/masa/tempat di Google Calendar → portal dikemaskini ("Dari Kalendar"). Event dipadam di kalendar tidak dicipta semula sehingga disunting dari portal. Warna: Mesyuarat biru, Program merah, PLC ungu; peringatan pop-up; event yatim dipadam. |
+| TETAPAN | `CALENDAR_ID`, `DUA_HALA`, `JEMPUT_GURU`, `SELANG_SYNC_MINIT`, `PERINGATAN_MINIT`, `MASA_MULA_LALAI`, `MASA_TAMAT_LALAI`, `TEMPAT_LALAI`, `PENGETUA`, `PK_PENTADBIRAN`, `SETIAUSAHA_BIDANG`. |
+| Keselamatan | 5 cubaan log masuk gagal → dikunci 10 minit; sesi dilanjutkan semasa digunakan; semua tulisan Sheet melalui LockService; teks bermula `=`, `+`, `@` disimpan sebagai teks (bukan formula); guru hanya boleh sunting/padam dokumen & evidens sendiri. |
+
+**Nota:** dokumen/evidens lama tanpa `DimuatNaikOlehNoKP` dipadankan mengikut
+nama pemuat naik. Log keluar memadam sesi & data tersimpan dalam pelayar —
+guru yang guna komputer bersama perlu klik **Log Keluar**.
 
 ## Naik Taraf Deployment Sedia Ada
 

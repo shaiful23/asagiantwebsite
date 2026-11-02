@@ -28,15 +28,28 @@ function ciptaSesi(pengguna) {
     nama: pengguna.NamaPenuh,
     peranan: pengguna.Peranan,
     panitia: senaraiPanitiaDaripadaMedan(pengguna.Panitia),
-    makmal: senaraiDaripadaMedan(pengguna.MakmalDijaga)
+    makmal: senaraiDaripadaMedan(pengguna.MakmalDijaga),
+    t: Date.now()
   }), TEMPOH_SESI_SAAT);
   return token;
 }
 
+/* Sesi gelangsar: setiap kali digunakan (paling kerap sekali setiap 10 minit),
+   tempoh sesi dilanjutkan semula — guru aktif tidak terkeluar di tengah kerja. */
+const MEMO_SESI = {};
 function sahkanSesi(token) {
   if (!token) return null;
-  const mentah = CacheService.getScriptCache().get('sesi_ebidang_' + token);
-  return mentah ? JSON.parse(mentah) : null;
+  if (MEMO_SESI[token]) return MEMO_SESI[token];
+  const cache = CacheService.getScriptCache();
+  const mentah = cache.get('sesi_ebidang_' + token);
+  if (!mentah) return null;
+  const sesi = JSON.parse(mentah);
+  if (!sesi.t || Date.now() - sesi.t > 10 * 60 * 1000) {
+    sesi.t = Date.now();
+    try { cache.put('sesi_ebidang_' + token, JSON.stringify(sesi), TEMPOH_SESI_SAAT); } catch (e) { /* abaikan */ }
+  }
+  MEMO_SESI[token] = sesi;
+  return sesi;
 }
 
 /* Pulangkan sesi jika sah DAN peranan dibenarkan; jika tidak, pulangkan objek ralat.
@@ -73,14 +86,33 @@ function apiLogin(p) {
   const kataLaluan = String(p.kataLaluan || '').trim();
   if (!nokp || !kataLaluan) return ralat('Sila isi No. KP dan kata laluan.');
 
-  const pengguna = bacaSheetSebagaiObjek(SHEET_USERS).find(u => String(u.NoKP).trim() === nokp);
-  if (!pengguna || pengguna.Password !== cincangKataLaluan(kataLaluan)) return ralat('No. KP atau kata laluan tidak sah.');
+  /* Had cubaan: selepas HAD_CUBAAN_LOGIN kali gagal, No. KP dikunci 10 minit. */
+  const cache = CacheService.getScriptCache();
+  const kunciGagal = 'gagal_ebidang_' + nokp.replace(/\D/g, '');
+  const bilGagal = Number(cache.get(kunciGagal) || 0);
+  if (bilGagal >= HAD_CUBAAN_LOGIN) {
+    return ralat('Terlalu banyak cubaan log masuk gagal. Akaun dikunci sementara — cuba lagi selepas 10 minit.');
+  }
+
+  const pengguna = bacaSheetSebagaiObjek(SHEET_USERS).find(u => samaId(String(u.NoKP).trim(), nokp));
+  if (!pengguna || pengguna.Password !== cincangKataLaluan(kataLaluan)) {
+    const bil = bilGagal + 1;
+    cache.put(kunciGagal, String(bil), TEMPOH_KUNCI_LOGIN_SAAT);
+    if (bil >= HAD_CUBAAN_LOGIN) {
+      try { catatAudit({ nokp, nama: '-', peranan: '-' }, 'LOGIN_DIKUNCI', 'PENGGUNA', nokp, bil + ' cubaan log masuk gagal'); } catch (e) { /* abaikan */ }
+      return ralat('Terlalu banyak cubaan log masuk gagal. Akaun dikunci sementara — cuba lagi selepas 10 minit.');
+    }
+    const baki = HAD_CUBAAN_LOGIN - bil;
+    return ralat('No. KP atau kata laluan tidak sah.' + (baki <= 2 ? ' Baki ' + baki + ' cubaan sebelum dikunci.' : ''));
+  }
   if (String(pengguna.Status).toUpperCase() !== 'AKTIF') return ralat('Akaun ini tidak aktif. Sila hubungi admin.');
+  cache.remove(kunciGagal);
 
   const token = ciptaSesi(pengguna);
   catatAudit({ nokp: pengguna.NoKP, nama: pengguna.NamaPenuh, peranan: pengguna.Peranan }, 'LOGIN', 'PENGGUNA', pengguna.NoKP, 'Log masuk berjaya');
   return jaya({
     token,
+    nokp: String(pengguna.NoKP),
     nama: pengguna.NamaPenuh,
     peranan: pengguna.Peranan,
     panitia: senaraiPanitiaDaripadaMedan(pengguna.Panitia),
@@ -92,12 +124,13 @@ function apiLogin(p) {
 function apiSemakSesi(p) {
   const sesi = sahkanSesi(p.token);
   if (!sesi) return ralat('Sesi tamat tempoh. Sila log masuk semula.');
-  return jaya({ nama: sesi.nama, peranan: sesi.peranan, panitia: sesi.panitia, makmal: sesi.makmal });
+  return jaya({ nokp: String(sesi.nokp), nama: sesi.nama, peranan: sesi.peranan, panitia: sesi.panitia, makmal: sesi.makmal });
 }
 
 function apiLogout(p) {
   const sesi = sahkanSesi(p.token);
   if (sesi) CacheService.getScriptCache().remove('sesi_ebidang_' + p.token);
+  delete MEMO_SESI[p.token];
   return jaya({});
 }
 
@@ -119,4 +152,23 @@ function apiTukarPasswordSendiri(p) {
   kemaskiniBaris(SHEET_USERS, pengguna.__row, pengguna, HEADER_USERS);
   catatAudit(sesi, 'TUKAR_PASSWORD', 'PENGGUNA', sesi.nokp, 'Tukar kata laluan sendiri');
   return jaya({});
+}
+
+/* ------------------------- BACAAN PANTAS ("SAMA") -------------------------
+   Klien menyimpan hasil bacaan terakhir (localStorage) bersama cincangannya.
+   Panggilan ini menjalankan fungsi bacaan berkenaan dan, jika hasilnya sama
+   dengan cincangan klien, pulangkan { sama: true } sahaja — klien terus guna
+   data simpanannya tanpa memuat turun semula (lebih pantas di rangkaian perlahan). */
+const CORAK_BACAAN_PANTAS = /^api(Senarai|Checklist|Dashboard|Carta|Kalendar|Profil|Tetapan)[A-Za-z]*$/;
+
+function apiBacaPantas(p) {
+  const nama = String((p && p.fn) || '');
+  if (!CORAK_BACAAN_PANTAS.test(nama) || typeof globalThis[nama] !== 'function') return ralat('Fungsi bacaan tidak sah.');
+  const param = Object.assign({}, (p && p.param) || {}, { token: p.token });
+  const hasil = globalThis[nama](param);
+  if (!hasil || hasil.success === false) return hasil;
+  const cincang = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify(hasil)));
+  if (p.hash && p.hash === cincang) return jaya({ sama: true, __hash: cincang });
+  hasil.__hash = cincang;
+  return hasil;
 }
