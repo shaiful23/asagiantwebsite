@@ -7,7 +7,7 @@
 
 const HEADER_KATEGORI_DOKUMEN = ['KodKategori', 'NamaKategori', 'Keterangan', 'Wajib'];
 const HEADER_DOKUMEN = ['IDDokumen', 'Panitia', 'KodKategori', 'NamaDokumen', 'TarikhDokumen',
-  'FailUrl', 'FailId', 'DimuatNaikOleh', 'TarikhMuatNaik', 'Catatan', 'Status'];
+  'FailUrl', 'FailId', 'DimuatNaikOleh', 'TarikhMuatNaik', 'Catatan', 'Status', 'DimuatNaikOlehNoKP'];
 
 function apiSenaraiKategoriDokumen(p) {
   const sesi = wajibPeranan(p.token, null);
@@ -32,7 +32,8 @@ function apiSenaraiDokumen(p) {
         idDokumen: d.IDDokumen, panitia: d.Panitia, kodKategori: d.KodKategori,
         namaKategori: k ? k.NamaKategori : d.KodKategori, namaDokumen: d.NamaDokumen,
         tarikhDokumen: d.TarikhDokumen, failUrl: d.FailUrl, dimuatNaikOleh: d.DimuatNaikOleh,
-        tarikhMuatNaik: d.TarikhMuatNaik, catatan: d.Catatan, __row: d.__row
+        tarikhMuatNaik: d.TarikhMuatNaik, catatan: d.Catatan, __row: d.__row,
+        bolehUrus: bolehUrusRekodSendiri(sesi, d.Panitia, d.DimuatNaikOlehNoKP, d.DimuatNaikOleh)
       };
     })
     .sort((a, b) => String(b.tarikhDokumen).localeCompare(String(a.tarikhDokumen)));
@@ -83,7 +84,8 @@ function apiMuatNaikDokumen(p) {
     DimuatNaikOleh: sesi.nama,
     TarikhMuatNaik: formatTarikhMasa(new Date()),
     Catatan: String(p.catatan || '').trim(),
-    Status: 'AKTIF'
+    Status: 'AKTIF',
+    DimuatNaikOlehNoKP: sesi.nokp
   };
   tambahBaris(SHEET_DOKUMEN, objek, HEADER_DOKUMEN);
   catatAudit(sesi, 'MUAT_NAIK', 'DOKUMEN', objek.IDDokumen, 'Muat naik dokumen: ' + namaDokumen + ' (' + p.panitia + ')');
@@ -96,7 +98,9 @@ function apiKemaskiniDokumen(p) {
 
   const dokumen = cariBarisMengikutId(SHEET_DOKUMEN, 'IDDokumen', p.idDokumen);
   if (!dokumen) return ralat('Dokumen tidak dijumpai.');
-  if (!wajibAksesPanitia(sesi, dokumen.Panitia)) return ralat('Anda tidak mempunyai kebenaran untuk dokumen ini.');
+  if (!bolehUrusRekodSendiri(sesi, dokumen.Panitia, dokumen.DimuatNaikOlehNoKP, dokumen.DimuatNaikOleh)) {
+    return ralat('Hanya pemuat naik dokumen atau Ketua Panitia boleh mengubah dokumen ini.');
+  }
 
   dokumen.NamaDokumen = String(p.namaDokumen || dokumen.NamaDokumen).trim();
   dokumen.TarikhDokumen = p.tarikhDokumen || dokumen.TarikhDokumen;
@@ -121,7 +125,9 @@ function apiPadamDokumen(p) {
 
   const dokumen = cariBarisMengikutId(SHEET_DOKUMEN, 'IDDokumen', p.idDokumen);
   if (!dokumen) return ralat('Dokumen tidak dijumpai.');
-  if (!wajibAksesPanitia(sesi, dokumen.Panitia)) return ralat('Anda tidak mempunyai kebenaran untuk dokumen ini.');
+  if (!bolehUrusRekodSendiri(sesi, dokumen.Panitia, dokumen.DimuatNaikOlehNoKP, dokumen.DimuatNaikOleh)) {
+    return ralat('Hanya pemuat naik dokumen atau Ketua Panitia boleh mengubah dokumen ini.');
+  }
 
   padamFailDrive(dokumen.FailId);
   dokumen.Status = 'DIPADAM';

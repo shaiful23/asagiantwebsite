@@ -9,9 +9,10 @@
  * Semakan Keselamatan) dan tanpa peranan Pembantu Makmal. Dihoskan dalam
  * Google Apps Script, terikat pada satu Google Sheet sebagai database.
  * Backend modular (Config/Utils/Auth/User/Panitia/Document/Drive/Meeting/
- * Program/Calendar/Notifikasi/Dashboard/Profil/Perancangan/Pencerapan/
- * Audit Service)
- * menyajikan satu frontend SPA (Index.html) melalui doGet().
+ * Program/Plc/Tetapan/Calendar/Notifikasi/Dashboard/Profil/Audit
+ * Service) menyajikan satu frontend SPA melalui doGet(): Index.html (struktur)
+ * menggabungkan Gaya.html (CSS), Logo.html (logo sekolah) dan App.html (skrip)
+ * dengan include() — fail kecil, mudah disalin & diselenggara.
  *
  * CARA PASANG: rujuk README.md dalam folder ini.
  * ========================================================================= */
@@ -21,10 +22,10 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Sistem E-Bidang')
     .addItem('1. Sediakan Sistem (Jalankan Sekali)', 'sediakanSistemEBidang')
-    .addItem('2. Kemaskini Struktur (Emel & Kalendar)', 'kemaskiniStrukturSistem')
+    .addItem('2. Kemaskini Struktur (PLC, Tetapan & Kalendar)', 'kemaskiniStrukturSistem')
     .addItem('3. Aktifkan Notifikasi E-mel Harian', 'sediakanNotifikasiHarian')
     .addItem('4. Selaraskan Senarai Panitia', 'menuSelaraskanSenaraiPanitia')
-    .addItem('5. Aktifkan Segerak Google Calendar Automatik', 'sediakanSegerakKalendarAutomatik')
+    .addItem('5. Aktifkan Pencetus Automatik (Kalendar 2 Hala & Cache)', 'sediakanSegerakKalendarAutomatik')
     .addItem('6. Segerak Google Calendar Sekarang', 'segerakKalendarSekarangMenu')
     .addToUi();
 }
@@ -73,9 +74,11 @@ function sediakanSistemEBidang() {
   pastikanSheet(SHEET_AKTIVITI_TAHUNAN, HEADER_AKTIVITI_TAHUNAN, []);
   pastikanSheet(SHEET_PENCERAPAN_PDP, HEADER_PENCERAPAN_PDP, []);
   pastikanSheet(SHEET_SEMAKAN_BUKU_LATIHAN, HEADER_SEMAKAN_BUKU_LATIHAN, []);
+  pastikanSheet(SHEET_PLC, HEADER_PLC, []);
+  pastikanSheetTetapan();
 
   paparMesejAdmin(
-    'Sistem sedia. Semua 16 Sheet (USERS, PANITIA, KATEGORI_DOKUMEN, DOKUMEN, MESYUARAT, ' +
+    'Sistem sedia. Semua 18 Sheet (TETAPAN, PLC, USERS, PANITIA, KATEGORI_DOKUMEN, DOKUMEN, MESYUARAT, ' +
     'KEHADIRAN_MESYUARAT, TINDAKAN_SUSULAN, PROGRAM, EVIDENS, AUDIT_LOG, ' +
     'PERANCANGAN_STRATEGIK, PELAN_TAKTIKAL, PELAN_OPERASI, AKTIVITI_TAHUNAN, ' +
     'PENCERAPAN_PDP, SEMAKAN_BUKU_LATIHAN) telah dicipta.\n\n' +
@@ -108,7 +111,17 @@ function kemaskiniStrukturSistem() {
     'OpsyenPengkhususan', 'GredJawatan', 'KelasDiajar', 'TahunMulaSubjekSemasa'].forEach(lajur => {
     if (tambahLajurJikaTiada(SHEET_USERS, lajur)) perubahan.push('USERS.' + lajur);
   });
+  [SHEET_MESYUARAT, SHEET_PROGRAM].forEach(nama => {
+    ['Tempat', 'StatusKalendar', 'HashKalendar'].forEach(lajur => {
+      if (tambahLajurJikaTiada(nama, lajur)) perubahan.push(nama + '.' + lajur);
+    });
+  });
+  [SHEET_DOKUMEN, SHEET_EVIDENS].forEach(nama => {
+    if (tambahLajurJikaTiada(nama, 'DimuatNaikOlehNoKP')) perubahan.push(nama + '.DimuatNaikOlehNoKP');
+  });
+  if (pastikanSheetTetapan()) perubahan.push('TETAPAN (Sheet/kunci baharu)');
   [
+    [SHEET_PLC, HEADER_PLC],
     [SHEET_PERANCANGAN_STRATEGIK, HEADER_PERANCANGAN_STRATEGIK],
     [SHEET_PELAN_TAKTIKAL, HEADER_PELAN_TAKTIKAL],
     [SHEET_PELAN_OPERASI, HEADER_PELAN_OPERASI],
@@ -129,7 +142,11 @@ function kemaskiniStrukturSistem() {
       'opsyen, gred jawatan, kelas diajar, tahun mula mengajar subjek semasa) di menu ' +
       '"Profil Saya" selepas log masuk — tiada tindakan admin diperlukan bagi lajur ini. ' +
       'Sheet baharu (jika ada) bagi menu "Perancangan Strategik" (PS/PT/PO & Carta Gantt) ' +
-      'sedia digunakan serta-merta — tiada tindakan tambahan diperlukan.'
+      'sedia digunakan serta-merta — tiada tindakan tambahan diperlukan.\n\n' +
+      'BAHARU: Sheet PLC (menu PLC) dan Sheet TETAPAN (menu Tetapan di portal — isi Pengetua, ' +
+      'PK Pentadbiran & Setiausaha Bidang untuk Carta Organisasi). Lajur Tempat/StatusKalendar/' +
+      'HashKalendar membolehkan segerak DUA HALA Google Calendar — jalankan menu ' +
+      '"5. Aktifkan Pencetus Automatik" sekali selepas ini.'
     : 'Tiada kemaskini diperlukan — struktur sudah terkini.');
 }
 
