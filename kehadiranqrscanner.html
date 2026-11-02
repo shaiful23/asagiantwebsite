@@ -3,320 +3,462 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Imbas QR — Kehadiran Guru & Murid SMK Asajaya</title>
+<meta name="theme-color" content="#0B1D6B">
+<title>Imbas QR Kelas — e-Kehadiran SMK Asajaya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 <style>
-  body{background:
-    radial-gradient(circle at 12% 0%, rgba(99,102,241,.14), transparent 42%),
-    radial-gradient(circle at 88% 6%, rgba(16,185,129,.08), transparent 38%),
-    #0b1120;
-    min-height:100vh; color:#f1f5f9; font-family:'Inter',Roboto,-apple-system,sans-serif;}
-  .glass{background:rgba(30,41,59,.6);backdrop-filter:blur(10px);}
-  #qr-reader{border-radius:14px; overflow:hidden; background:#000;}
-  #qr-reader video{border-radius:14px;}
-  .spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
-  .fade-in{animation:fadeIn .3s ease both;}
-  select, input, textarea { color-scheme: dark; }
+  :root { --navy-900:#060E3D; --navy-800:#081350; --navy-700:#0B1D6B; --biru:#1E3BD1; --biru-lembut:#E8EDFF; --merah:#D9141B; --merah-lembut:#FDE8E9;
+    --kuning:#F6D20F; --kuning-lembut:#FFF8D6; --ungu:#5B1F8C; --ungu-lembut:#F1E8FA; --hijau:#16A34A; --hijau-lembut:#DCFCE7;
+    --teks:#0F172A; --teks-2:#475569; --kelabu:#94A3B8; --sempadan:#E3E8F2; --latar:#F3F5FB;
+    --pelangi: linear-gradient(90deg,#D9141B 0 25%,#F6D20F 25% 50%,#1E3BD1 50% 75%,#5B1F8C 75% 100%); }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; background:var(--latar); color:var(--teks); font-size:14px; -webkit-font-smoothing:antialiased; }
+  .hidden { display:none !important; }
+  i.ph, i.ph-fill { vertical-align:-2px; }
+  header { position:sticky; top:0; z-index:10; color:#fff; padding:14px 16px 12px; background:radial-gradient(circle at 90% 0, rgba(91,31,140,.6), transparent 45%), linear-gradient(140deg,var(--navy-700),var(--navy-900)); }
+  header .baris { display:flex; align-items:center; gap:12px; max-width:640px; margin:0 auto; }
+  header img { width:42px; height:42px; border-radius:50%; background:#fff; padding:2px; }
+  header b { display:block; font-size:15px; letter-spacing:.03em; } header small { opacity:.75; font-size:12px; }
+  header .pelangi { height:3px; background:var(--pelangi); max-width:640px; margin:10px auto 0; border-radius:3px; }
+  main { max-width:640px; margin:0 auto; padding:16px 14px 120px; }
+  .kad { background:#fff; border:1px solid var(--sempadan); border-radius:18px; padding:16px; box-shadow:0 1px 3px rgba(15,23,42,.06); margin-bottom:14px; }
+  .kad h2 { font-size:16px; margin:0 0 4px; font-weight:800; display:flex; gap:8px; align-items:center; } .kad h2 i { color:var(--biru); font-size:20px; }
+  .sub { color:var(--teks-2); font-size:13px; margin:0; }
+  #qr-reader { border-radius:16px; overflow:hidden; background:#000; border:0 !important; margin-top:12px; }
+  #qr-reader video { border-radius:16px; }
+  #statusTeks { text-align:center; color:var(--teks-2); font-size:13px; margin:10px 0 0; }
+  .baris-manual { display:flex; gap:8px; margin-top:12px; }
+  .input { width:100%; font:inherit; color:var(--teks); background:#fff; border:1.5px solid var(--sempadan); border-radius:12px; padding:10px 12px; outline:none; }
+  .input:focus { border-color:var(--biru); box-shadow:0 0 0 4px rgba(30,59,209,.12); }
+  label.l { display:block; font-size:11.5px; font-weight:800; color:var(--teks-2); text-transform:uppercase; letter-spacing:.05em; margin:12px 0 6px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; border:0; border-radius:12px; padding:11px 16px; font:inherit; font-weight:700; cursor:pointer; background:var(--biru); color:#fff; white-space:nowrap; }
+  .btn:disabled { opacity:.55; } .btn.penuh { width:100%; } .btn.kuning { background:var(--kuning); color:var(--navy-800); } .btn.hantu { background:#fff; color:var(--teks); border:1.5px solid var(--sempadan); }
+  .btn.kecil { padding:7px 12px; font-size:13px; }
+  .putar { width:16px; height:16px; border:2.5px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:p .7s linear infinite; display:inline-block; } @keyframes p { to { transform:rotate(360deg); } }
+  .kelas-kepala { display:flex; gap:12px; align-items:center; }
+  .kelas-kepala .lencana-kelas { width:54px; height:54px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; color:#fff; background:linear-gradient(135deg,var(--navy-700),var(--biru)); flex-shrink:0; }
+  .kelas-kepala h3 { margin:0; font-size:19px; font-weight:800; }
+  .info { display:flex; gap:10px; padding:10px 12px; border-radius:12px; font-size:13px; margin-top:12px; }
+  .info i { font-size:18px; flex-shrink:0; } .info.biru { background:var(--biru-lembut); color:var(--navy-700); } .info.ungu { background:var(--ungu-lembut); color:var(--ungu); } .info.kuning { background:var(--kuning-lembut); color:#854D0E; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 10px; }
+  .murid { display:flex; flex-direction:column; gap:8px; padding:10px 12px; border:1.5px solid var(--sempadan); border-radius:14px; margin-bottom:8px; background:#fff; }
+  .murid.tidak { border-color:#F8B4B6; background:#FFF7F7; }
+  .murid .atas { display:flex; align-items:center; gap:10px; }
+  .avatar { width:36px; height:36px; border-radius:50%; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:12px; object-fit:cover; background:linear-gradient(135deg,var(--biru),var(--ungu)); }
+  .murid .nama { flex:1; min-width:0; font-weight:700; font-size:13px; line-height:1.3; } .murid .nama small { display:block; color:var(--merah); font-weight:600; font-size:11px; }
+  .togol { position:relative; display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; color:#166534; cursor:pointer; }
+  .togol input { position:absolute; opacity:0; } .togol .landas { width:44px; height:25px; border-radius:25px; background:var(--hijau); position:relative; transition:background .15s; }
+  .togol .landas::after { content:''; position:absolute; top:3px; left:22px; width:19px; height:19px; border-radius:50%; background:#fff; transition:left .15s; box-shadow:0 1px 3px rgba(0,0,0,.25); }
+  .togol input:not(:checked) + .landas { background:#CBD5E1; } .togol input:not(:checked) + .landas::after { left:3px; } .togol input:not(:checked) ~ span:last-child { color:var(--merah); }
+  .bar-bawah { position:fixed; left:0; right:0; bottom:0; z-index:20; padding:12px 14px calc(12px + env(safe-area-inset-bottom)); background:rgba(8,19,80,.96); color:#fff; box-shadow:0 -10px 30px rgba(8,19,80,.25); }
+  .bar-bawah .dalam { max-width:640px; margin:0 auto; display:flex; gap:12px; align-items:center; }
+  .bar-bawah .kira { font-weight:700; font-size:13px; } .bar-bawah .kira b { font-size:19px; }
+  .bar-bawah .btn { margin-left:auto; }
+  .hasil { text-align:center; padding:26px 16px; } .hasil i.besar { font-size:56px; } .hasil h3 { margin:8px 0 4px; font-size:19px; }
+  .cip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800; margin:3px; }
+  .c-hijau { background:var(--hijau-lembut); color:#166534; } .c-merah { background:var(--merah-lembut); color:#A30F14; } .c-kuning { background:var(--kuning-lembut); color:#854D0E; } .c-biru { background:var(--biru-lembut); color:var(--navy-700); }
+  .toast { position:fixed; left:50%; top:80px; transform:translateX(-50%); z-index:30; background:var(--merah); color:#fff; padding:11px 16px; border-radius:12px; font-weight:700; box-shadow:0 12px 30px rgba(0,0,0,.25); max-width:92vw; }
 </style>
 </head>
-<body class="p-4 md:p-8">
-  <div class="max-w-lg mx-auto space-y-4">
-    <div class="glass p-5 rounded-2xl border border-white/10 text-center">
-      <h1 class="text-lg font-bold flex items-center justify-center gap-2"><i class="fas fa-qrcode text-indigo-400"></i> Imbas Kehadiran Kelas</h1>
-      <p id="modeInfo" class="text-xs text-slate-400 mt-1"></p>
-    </div>
-
-    <div id="akesTidakSah" class="hidden glass p-6 rounded-2xl border border-rose-500/30 text-center">
-      <i class="fas fa-triangle-exclamation text-3xl text-rose-400 mb-2"></i>
-      <h2 class="font-bold text-rose-300">Akses Tidak Sah</h2>
-      <p class="text-sm text-slate-400 mt-2">Sila buka pengimbas ini melalui butang "Imbas Kehadiran (QR Kelas)" dalam Portal Guru.</p>
-    </div>
-
-    <div id="kawasanImbas" class="glass p-4 rounded-2xl border border-white/10">
-      <div id="qr-reader"></div>
-      <p id="statusTeks" class="text-xs text-slate-400 mt-3 text-center">Sedia untuk imbas kod QR kelas...</p>
-    </div>
-
-    <div id="kadHasil" class="hidden glass p-5 rounded-2xl border border-white/10 fade-in"></div>
+<body>
+<header>
+  <div class="baris"><img id="logo" alt="Logo SMK Asajaya"><div><b>e-KEHADIRAN · SMK ASAJAYA</b><small id="infoPengguna">Imbas QR Kelas</small></div></div>
+  <div class="pelangi"></div>
+</header>
+<main>
+  <div id="aksesTidakSah" class="kad hidden" style="text-align:center">
+    <i class="ph-fill ph-warning-octagon" style="font-size:44px;color:var(--merah)"></i>
+    <h2 style="justify-content:center">Akses Tidak Sah</h2>
+    <p class="sub">Buka pengimbas ini melalui butang <b>“Buka Pengimbas Kamera”</b> di menu <b>Imbas QR Kelas</b> dalam portal e-Kehadiran.</p>
   </div>
+
+  <section id="skrinImbas" class="kad">
+    <h2><i class="ph-fill ph-qr-code"></i>Imbas Kod QR Kelas</h2>
+    <p class="sub">Halakan kamera ke kod QR yang ditampal di dalam kelas.</p>
+    <div id="qr-reader"></div>
+    <p id="statusTeks">Menghidupkan kamera…</p>
+    <div class="baris-manual"><input id="kodManual" class="input" placeholder="Atau taip kod kelas (cth: 5ALP)"><button id="btnManual" class="btn hantu"><i class="ph ph-arrow-right"></i></button></div>
+  </section>
+
+  <section id="skrinBorang" class="hidden"></section>
+  <section id="skrinHasil" class="kad hidden"></section>
+</main>
+<div id="barBawah" class="bar-bawah hidden"><div class="dalam"><div class="kira"><b id="kHadir">0</b> hadir · <b id="kTidak" style="color:#FCA5A5">0</b> tidak</div>
+  <button id="btnSimpan" class="btn kuning"><i class="ph-bold ph-floppy-disk"></i>Simpan Kehadiran</button></div></div>
 
 <script>
 /* =========================================================================
-   Laman ini SENGAJA dihoskan di LUAR Apps Script (GitHub Pages / domain
-   sekolah) — Apps Script HtmlService menyekat getUserMedia() (akses kamera)
-   secara RASMI & KEKAL, tak kira iframe atau akses terus. Di sini kamera
-   berfungsi normal. Hasil imbasan dihantar ke Sistem Kehadiran QR melalui
-   endpoint JSONP (elak sepenuhnya isu CORS merentasi domain).
+   Pengimbas QR e-Kehadiran — SENGAJA dihoskan di luar Apps Script (GitHub
+   Pages) kerana HtmlService menyekat getUserMedia() (kamera). Dibuka dari
+   portal dengan ?token=…&nama=…&exec=… dan bercakap dengan backend melalui
+   JSONP (doGet apiAction) — tiada isu CORS. Murid lalai HADIR; hanya murid
+   tidak hadir dihantar (URL kekal pendek).
    ========================================================================= */
-const params = new URLSearchParams(window.location.search);
-const TOKEN = params.get('token') || '';
-const NAMA = params.get('nama') || '';
-const EXEC = params.get('exec') || '';
-const PREFIX_QR_KELAS = 'KELAS:';
+/* Logo rasmi SMK Asajaya terbenam terus dalam kod (PNG 220px, base64). */
+const LOGO_SEKOLAH = [
+  'data:image/png;base64,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',
+  'Jggg=='
+].join('');
+const P = new URLSearchParams(location.search);
+const TOKEN = P.get('token') || '', NAMA = P.get('nama') || '', EXEC = P.get('exec') || '';
+const $ = s => document.querySelector(s);
+document.getElementById('logo').src = LOGO_SEKOLAH;
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function inisial(n) { return String(n || '?').replace(/\b(BIN|BINTI|ANAK|A\/L|A\/P)\b/gi, '').trim().split(/\s+/).slice(0, 2).map(x => x[0] || '').join('').toUpperCase(); }
+function avatar(n, g) { return g ? '<img class="avatar" src="' + esc(g) + '" referrerpolicy="no-referrer" alt="" onerror="this.outerHTML=\'<span class=&quot;avatar&quot;>' + esc(inisial(n)) + '</span>\'">' : '<span class="avatar">' + esc(inisial(n)) + '</span>'; }
+function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); }
 
-if (!TOKEN || !EXEC || !NAMA) {
-  document.getElementById('akesTidakSah').classList.remove('hidden');
-  document.getElementById('kawasanImbas').classList.add('hidden');
-  throw new Error('Parameter tidak lengkap/tidak sah dalam URL.');
+if (!TOKEN || !EXEC || !/^https:\/\/script\.google(usercontent)?\.com\//.test(EXEC)) {
+  $('#aksesTidakSah').classList.remove('hidden'); $('#skrinImbas').classList.add('hidden');
+  throw new Error('Parameter URL tidak sah.');
 }
-document.getElementById('modeInfo').innerText = 'Log masuk sebagai: ' + NAMA;
+$('#infoPengguna').textContent = NAMA ? 'Log masuk: ' + NAMA : 'Imbas QR Kelas';
 
-function jsonp(url, timeoutMs){
-  return new Promise((resolve, reject) => {
-    const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-    const script = document.createElement('script');
-    let selesai = false;
-    const bersih = () => { delete window[cbName]; script.remove(); clearTimeout(timer); };
-    window[cbName] = (data) => { if (selesai) return; selesai = true; bersih(); resolve(data); };
-    script.onerror = () => { if (selesai) return; selesai = true; bersih(); reject(new Error('Gagal sambung ke pelayan.')); };
-    const timer = setTimeout(() => { if (selesai) return; selesai = true; bersih(); reject(new Error('Tamat masa menunggu respons pelayan.')); }, timeoutMs || 15000);
-    script.src = url + (url.indexOf('?') === -1 ? '?' : '&') + 'callback=' + cbName;
-    document.body.appendChild(script);
+function jsonp(action, param, ms) {
+  return new Promise((selesai, gagal) => {
+    const cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 1e5), s = document.createElement('script');
+    let tamat = false;
+    const bersih = () => { delete window[cb]; s.remove(); clearTimeout(pemasa); };
+    window[cb] = d => { if (tamat) return; tamat = true; bersih(); selesai(d); };
+    s.onerror = () => { if (tamat) return; tamat = true; bersih(); gagal(new Error('Gagal sambung ke pelayan.')); };
+    const pemasa = setTimeout(() => { if (tamat) return; tamat = true; bersih(); gagal(new Error('Pelayan lambat memberi respons. Cuba lagi.')); }, ms || 20000);
+    let url = EXEC + '?apiAction=' + encodeURIComponent(action) + '&token=' + encodeURIComponent(TOKEN);
+    Object.keys(param || {}).forEach(k => { url += '&' + k + '=' + encodeURIComponent(param[k]); });
+    s.src = url + '&callback=' + cb;
+    document.body.appendChild(s);
   });
 }
-function apiUrl(action, extraParams){
-  let u = EXEC + '?apiAction=' + encodeURIComponent(action) + '&token=' + encodeURIComponent(TOKEN);
-  Object.keys(extraParams || {}).forEach(k => { u += '&' + k + '=' + encodeURIComponent(extraParams[k]); });
-  return u;
-}
-function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-let qrScanner = null;
-let lastScanTime = 0;
-let sedangProses = false;
-
-function mulaScan(){
-  document.getElementById('statusTeks').innerText = 'Sedia untuk imbas kod QR kelas...';
-  qrScanner = new Html5Qrcode('qr-reader');
-  qrScanner.start(
-    { facingMode: 'environment' },
-    { fps: 10, qrbox: 250 },
-    decodedText => onScan(decodedText.trim()),
-    () => {}
-  ).catch(() => {
-    document.getElementById('statusTeks').innerHTML = '<span class="text-rose-400"><i class="fas fa-triangle-exclamation mr-1"></i>Tidak dapat mengakses kamera. Sila benarkan akses kamera pada pelayar/peranti anda.</span>';
-  });
+/* ------------------------------ KAMERA ------------------------------ */
+let pengimbas = null, sibuk = false, DATA = null;
+function mulaKamera() {
+  $('#statusTeks').textContent = 'Menghidupkan kamera…';
+  if (typeof Html5Qrcode === 'undefined') { $('#statusTeks').textContent = 'Pustaka pengimbas gagal dimuat. Guna kod kelas manual di bawah.'; return; }
+  pengimbas = new Html5Qrcode('qr-reader');
+  const cfg = { fps: 10, qrbox: { width: 240, height: 240 }, aspectRatio: 1 };
+  pengimbas.start({ facingMode: 'environment' }, cfg, t => diimbas(t.trim()), () => {})
+    .then(() => { $('#statusTeks').textContent = 'Sedia — halakan kamera ke kod QR kelas.'; })
+    .catch(() => Html5Qrcode.getCameras().then(c => {
+      if (!c || !c.length) throw new Error('tiada');
+      return pengimbas.start(c[0].id, cfg, t => diimbas(t.trim()), () => {}).then(() => { $('#statusTeks').textContent = 'Sedia — halakan kamera ke kod QR kelas.'; });
+    }).catch(() => { pengimbas = null; $('#statusTeks').innerHTML = '<b style="color:var(--merah)">Kamera tidak dapat diakses.</b> Benarkan akses kamera, atau taip kod kelas di bawah.'; }));
 }
-function hentikanScan(){
-  if (qrScanner){
-    const inst = qrScanner; qrScanner = null;
-    inst.stop().then(() => inst.clear()).catch(() => {});
-  }
+function hentiKamera() {
+  if (!pengimbas) return;
+  const p = pengimbas; pengimbas = null;
+  try { Promise.resolve(p.stop()).then(() => p.clear()).catch(() => {}); } catch (e) { try { p.clear(); } catch (e2) { /* kamera tidak berjalan */ } }
 }
 
-function onScan(decodedText){
-  const now = Date.now();
-  if (now - lastScanTime < 2000 || sedangProses) return;
-  if (decodedText.indexOf(PREFIX_QR_KELAS) !== 0){
-    document.getElementById('statusTeks').innerText = 'Kod QR tidak dikenali sistem. Cuba lagi.';
-    return;
-  }
-  lastScanTime = now;
-  sedangProses = true;
-  hentikanScan();
-  document.getElementById('statusTeks').innerHTML = '<span class="spinner"></span> Mengesahkan kelas...';
-  jsonp(apiUrl('cariKelasQR', { kod: decodedText })).then(res => {
-    sedangProses = false;
-    if (!res.success){ paparRalat(res.message); return; }
-    paparFormGuru(res);
-  }).catch(err => {
-    sedangProses = false;
-    paparRalat(err.message);
-  });
+function diimbas(teks) {
+  if (sibuk) return;
+  if (teks.toUpperCase().indexOf('KELAS:') !== 0) { $('#statusTeks').textContent = 'Kod QR ini bukan kod QR kelas e-Kehadiran.'; return; }
+  sibuk = true; hentiKamera();
+  $('#statusTeks').innerHTML = '<span class="putar" style="border-color:rgba(30,59,209,.2);border-top-color:var(--biru)"></span> Mengesahkan kelas…';
+  jsonp('imbasKelas', { kod: teks }).then(r => {
+    sibuk = false;
+    if (!r.success) { tunjukRalat(r.message); return; }
+    DATA = r; lukisBorang();
+  }).catch(e => { sibuk = false; tunjukRalat(e.message); });
+}
+$('#btnManual').onclick = () => { const k = $('#kodManual').value.trim(); if (k) diimbas('KELAS:' + k); };
+$('#kodManual').onkeydown = e => { if (e.key === 'Enter') $('#btnManual').click(); };
+
+function tunjukRalat(mesej) {
+  $('#skrinImbas').classList.add('hidden'); $('#skrinBorang').classList.add('hidden'); $('#barBawah').classList.add('hidden');
+  const h = $('#skrinHasil'); h.classList.remove('hidden');
+  h.innerHTML = '<div class="hasil"><i class="ph-fill ph-x-circle besar" style="color:var(--merah)"></i><h3>Tidak berjaya</h3><p class="sub">' + esc(mesej) + '</p><br><button class="btn" onclick="imbasSemula()"><i class="ph ph-camera"></i>Imbas Semula</button></div>';
+}
+function imbasSemula() {
+  DATA = null; $('#skrinHasil').classList.add('hidden'); $('#skrinBorang').classList.add('hidden'); $('#barBawah').classList.add('hidden');
+  $('#skrinImbas').classList.remove('hidden'); $('#kodManual').value = ''; window.scrollTo(0, 0); mulaKamera();
 }
 
-function paparRalat(mesej){
-  document.getElementById('statusTeks').innerText = '';
-  const kad = document.getElementById('kadHasil');
-  kad.classList.remove('hidden');
-  kad.innerHTML = `
-    <div class="text-center">
-      <i class="fas fa-circle-xmark text-3xl text-rose-400 mb-2"></i>
-      <p class="text-rose-300 font-bold">${esc(mesej)}</p>
-      <button onclick="cubaImbasSemula()" class="mt-4 bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-xl font-bold text-sm"><i class="fas fa-camera mr-1.5"></i>Cuba Imbas Semula</button>
-    </div>`;
+/* ------------------------------ BORANG ------------------------------ */
+function pilihanSebab(pilih) {
+  const k = {}; DATA.sebab.forEach(s => { (k[s.kategori || 'Lain-lain'] = k[s.kategori || 'Lain-lain'] || []).push(s); });
+  return '<option value="">— Pilih sebab tidak hadir —</option>' + Object.keys(k).map(g => '<optgroup label="' + esc(g) + '">' +
+    k[g].map(s => '<option value="' + esc(s.kod) + '"' + (String(s.kod) === String(pilih) ? ' selected' : '') + '>' + esc(s.sebab) + '</option>').join('') + '</optgroup>').join('');
 }
+function lukisBorang() {
+  const d = DATA;
+  const senaraiSubjek = Array.from(new Set([d.subjekCadangan].concat(d.subjekSaya, d.senaraiSubjek).filter(Boolean)));
+  let info = '';
+  if (d.teachIn) info = '<div class="info ungu"><i class="ph-fill ph-swap"></i><div><b>Kelas teach-in dikesan</b> (e-Teach-In) — menggantikan ' + esc(d.teachIn.guruAsal || 'guru asal') + '.</div></div>';
+  else if (d.jadual && d.jadual.milikSaya) info = '<div class="info biru"><i class="ph-fill ph-calendar-check"></i><div>Sepadan dengan jadual anda: <b>' + esc(d.jadual.subjek) + '</b>.</div></div>';
+  else if (d.jadual) info = '<div class="info kuning"><i class="ph-fill ph-warning"></i><div>Jadual asal slot ini: <b>' + esc(d.jadual.subjek) + '</b> oleh ' + esc(d.jadual.guru) + '. Sahkan jenis kehadiran anda.</div></div>';
+  else info = '<div class="info kuning"><i class="ph-fill ph-info"></i><div>' + (d.slot ? 'Tiada jadual untuk kelas ini pada slot semasa.' : 'Di luar waktu P&P berjadual.') + ' Sila lengkapkan borang secara manual.</div></div>';
+  if (d.sudahDirekod) info += '<div class="info biru"><i class="ph-fill ph-arrows-clockwise"></i><div>Sesi ini telah direkod pada ' + esc(d.sudahDirekod.masa) + '. Menyimpan semula akan <b>mengemas kini</b> rekod tersebut.</div></div>';
+  const bilPagi = d.murid.filter(m => m.tidakHadirPagi).length;
+  if (bilPagi && !d.sudahDirekod) info += '<div class="info kuning"><i class="ph-fill ph-user-minus"></i><div>' + bilPagi + ' murid ditanda tidak hadir oleh Guru Tingkatan pagi ini — ditanda tidak hadir secara automatik (boleh diubah).</div></div>';
 
-/* ==================== BORANG KEHADIRAN GURU ==================== */
-function paparFormGuru(data){
-  document.getElementById('statusTeks').innerText = '';
-  window._dataKelasSemasa = data;
-
-  const jadual = data.jadualSemasa;
-  const jenisAuto = jadual && jadual.sepadanDenganGuruSemasa ? 'GURU SUBJEK' : 'GURU GANTI (RELIEF)';
-  const subjekAuto = jadual ? jadual.subjek : '';
-
-  let pilihanSubjek = '';
-  const senaraiUtama = (data.subjekGuru && data.subjekGuru.length) ? data.subjekGuru : data.senaraiSubjek;
-  senaraiUtama.forEach(s => { pilihanSubjek += `<option value="${esc(s)}" ${s===subjekAuto?'selected':''}>${esc(s)}</option>`; });
-  if (!senaraiUtama.includes('LAIN-LAIN')) pilihanSubjek += `<option value="LAIN-LAIN">LAIN-LAIN</option>`;
-
-  let pilihanJenis = '';
-  data.senaraiJenisGuru.forEach(j => { pilihanJenis += `<option value="${esc(j)}" ${j===jenisAuto?'selected':''}>${esc(j)}</option>`; });
-
-  const notaJadual = jadual
-    ? `<p class="text-xs ${jadual.sepadanDenganGuruSemasa ? 'text-emerald-400' : 'text-amber-400'} mt-1">
-         <i class="fas fa-calendar-check mr-1"></i>Jadual Waktu: Slot ${esc(jadual.slot)} (${esc(jadual.masaMula)}–${esc(jadual.masaTamat)})
-         ${jadual.sepadanDenganGuruSemasa ? '— sepadan dengan jadual anda' : '— guru dijadualkan berbeza, sila sahkan jenis kehadiran'}
-       </p>`
-    : `<p class="text-xs text-slate-400 mt-1"><i class="fas fa-circle-info mr-1"></i>Tiada jadual waktu sepadan pada masa ini. Sila lengkapkan borang secara manual.</p>`;
-
-  const kad = document.getElementById('kadHasil');
-  kad.classList.remove('hidden');
-  kad.innerHTML = `
-    <div class="flex items-center gap-3 mb-3 pb-4 border-b border-white/10">
-      <div class="w-11 h-11 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center"><i class="fas fa-chalkboard-user"></i></div>
-      <div><h3 class="font-bold">${esc(data.namaKelas)}</h3><p class="text-xs text-slate-400">${esc(data.bilik || '')}</p></div>
-    </div>
-    ${notaJadual}
-    <form id="formGuru" class="space-y-3 mt-3">
-      <div>
-        <label class="block text-xs uppercase text-slate-400 mb-1">Subjek</label>
-        <select id="fgSubjek" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">${pilihanSubjek}</select>
-      </div>
-      <div>
-        <label class="block text-xs uppercase text-slate-400 mb-1">Jenis Kehadiran</label>
-        <select id="fgJenis" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">${pilihanJenis}</select>
-      </div>
-      <div>
-        <label class="block text-xs uppercase text-slate-400 mb-1">Bilik</label>
-        <input id="fgBilik" value="${esc(data.bilik || '')}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white uppercase">
-      </div>
-      <div>
-        <label class="block text-xs uppercase text-slate-400 mb-1">Catatan (pilihan)</label>
-        <textarea id="fgCatatan" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white"></textarea>
-      </div>
-      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2"><i class="fas fa-floppy-disk"></i> Sahkan Kehadiran Saya</button>
-    </form>`;
-  document.getElementById('formGuru').addEventListener('submit', hantarKehadiranGuru);
+  $('#skrinImbas').classList.add('hidden');
+  const b = $('#skrinBorang'); b.classList.remove('hidden');
+  b.innerHTML = '<div class="kad"><div class="kelas-kepala"><span class="lencana-kelas">' + esc(String(d.kelas).split(' ')[0]) + '</span><div><h3>' + esc(d.kelas) + '</h3>' +
+    '<p class="sub">' + esc(d.hari) + ' · ' + (d.slot ? 'Slot ' + esc(d.slot.slot) + ' (' + esc(d.slot.mula) + '–' + esc(d.slot.tamat) + ')' : 'Tiada slot') + '</p></div></div>' + info +
+    '<div class="grid2"><div><label class="l">Subjek</label><select id="fSubjek" class="input">' + senaraiSubjek.map(s => '<option' + (s === d.subjekCadangan ? ' selected' : '') + '>' + esc(s) + '</option>').join('') + '</select></div>' +
+    '<div><label class="l">Jenis Kehadiran</label><select id="fJenis" class="input">' + d.senaraiJenis.map(j => '<option' + (j === d.jenisCadangan ? ' selected' : '') + '>' + esc(j) + '</option>').join('') + '</select></div></div>' +
+    '<label class="l">Bilik</label><input id="fBilik" class="input" value="' + esc(d.bilik || '') + '">' +
+    '<label class="l">Catatan (pilihan)</label><input id="fCatatan" class="input" placeholder="cth: Kelas di makmal / aktiviti luar"></div>' +
+    '<div class="kad"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><h2 style="margin:0"><i class="ph-fill ph-users-three"></i>Murid (' + d.murid.length + ')</h2>' +
+    '<button class="btn hantu kecil" id="btnSemua"><i class="ph ph-checks"></i>Semua Hadir</button></div>' +
+    '<p class="sub" style="margin-bottom:10px">Semua murid <b>hadir</b> secara lalai. Matikan suis bagi murid yang tidak hadir dan pilih sebab.</p>' +
+    d.murid.map(m => '<div class="murid' + (m.hadir ? '' : ' tidak') + '" data-nokp="' + esc(m.nokp) + '" data-nama="' + esc(m.nama) + '"><div class="atas">' + avatar(m.nama, m.gambar) +
+      '<div class="nama">' + esc(m.nama) + (m.tidakHadirPagi ? '<small>Tidak hadir pagi ini (GT)</small>' : '') + '</div><label class="togol"><input type="checkbox"' + (m.hadir ? ' checked' : '') + '><span class="landas"></span><span>' + (m.hadir ? 'Hadir' : 'Tidak') + '</span></label></div>' +
+      '<select class="input sebab' + (m.hadir ? ' hidden' : '') + '">' + pilihanSebab(m.kodSebab) + '</select></div>').join('') + '</div>' +
+    '<button class="btn hantu penuh" onclick="imbasSemula()"><i class="ph ph-arrow-counter-clockwise"></i>Batal & Imbas Kelas Lain</button>';
+  b.querySelectorAll('.murid input[type=checkbox]').forEach(cb => cb.onchange = () => togol(cb));
+  $('#btnSemua').onclick = () => b.querySelectorAll('.murid input[type=checkbox]').forEach(cb => { cb.checked = true; togol(cb); });
+  $('#barBawah').classList.remove('hidden');
+  $('#btnSimpan').innerHTML = '<i class="ph-bold ph-floppy-disk"></i>' + (d.sudahDirekod ? 'Kemas Kini' : 'Simpan Kehadiran');
+  kira(); window.scrollTo(0, 0);
 }
-
-function hantarKehadiranGuru(e){
-  e.preventDefault();
-  const btn = e.target.querySelector('button[type="submit"]');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Menyimpan...';
-  const data = window._dataKelasSemasa;
-  jsonp(apiUrl('catatKehadiranGuru', {
-    idKelas: data.idKelas,
-    subjek: document.getElementById('fgSubjek').value,
-    jenis: document.getElementById('fgJenis').value,
-    bilik: document.getElementById('fgBilik').value,
-    catatan: document.getElementById('fgCatatan').value
-  })).then(res => {
-    if (!res.success){ btn.disabled = false; btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Sahkan Kehadiran Saya'; alert(res.message); return; }
-    window._idLogSemasa = res.idLog;
-    window._idKelasSemasa = data.idKelas;
-    paparStatusGuru(res, data);
-  }).catch(err => {
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Sahkan Kehadiran Saya';
-    alert(err.message || 'Ralat sambungan.');
-  });
+function togol(cb) {
+  const m = cb.closest('.murid'), h = cb.checked;
+  m.classList.toggle('tidak', !h); m.querySelector('.sebab').classList.toggle('hidden', h); cb.parentNode.lastElementChild.textContent = h ? 'Hadir' : 'Tidak'; kira();
 }
+function kira() { const j = document.querySelectorAll('.murid').length, t = document.querySelectorAll('.murid.tidak').length; $('#kHadir').textContent = j - t; $('#kTidak').textContent = t; }
 
-function paparStatusGuru(res, dataKelas){
-  const warna = res.statusMasa === 'LEWAT' ? 'text-amber-400' : 'text-emerald-400';
-  const notaPendua = res.sudahDicatat ? `<p class="text-xs text-slate-400 mt-1">${esc(res.message)}</p>` : '';
-  const kad = document.getElementById('kadHasil');
-  kad.innerHTML = `
-    <div class="text-center pb-4 border-b border-white/10">
-      <i class="fas fa-circle-check text-2xl text-emerald-400 mb-1"></i>
-      <p class="font-bold">Kehadiran guru direkod — <span class="${warna}">${esc(res.statusMasa)}</span></p>
-      ${notaPendua}
-    </div>
-    <div id="senaraiMurid" class="mt-4"></div>`;
-  paparSenaraiMurid(res.senaraiMurid, dataKelas);
-}
+$('#btnSimpan').onclick = () => {
+  const tidakHadir = [], tiada = [];
+  document.querySelectorAll('.murid.tidak').forEach(m => { const k = m.querySelector('.sebab').value; if (!k) tiada.push(m.dataset.nama); tidakHadir.push({ nokp: m.dataset.nokp, kodSebab: k }); });
+  if (tiada.length) { toast('Pilih sebab bagi: ' + tiada.slice(0, 2).join(', ') + (tiada.length > 2 ? '…' : '')); return; }
+  const btn = $('#btnSimpan'); btn.disabled = true; btn.innerHTML = '<span class="putar"></span>Menyimpan…';
+  jsonp('rekodKehadiranSubjek', { kelas: DATA.kelas, subjek: $('#fSubjek').value, jenis: $('#fJenis').value, bilik: $('#fBilik').value, catatan: $('#fCatatan').value, tidakHadir: JSON.stringify(tidakHadir) })
+    .then(r => {
+      btn.disabled = false;
+      if (!r.success) { toast(r.message); btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i>Cuba Lagi'; return; }
+      $('#skrinBorang').classList.add('hidden'); $('#barBawah').classList.add('hidden');
+      const h = $('#skrinHasil'); h.classList.remove('hidden');
+      h.innerHTML = '<div class="hasil"><i class="ph-fill ph-check-circle besar" style="color:var(--hijau)"></i><h3>Kehadiran ' + (r.dikemaskini ? 'dikemas kini' : 'direkod') + '!</h3><p class="sub">' + esc(DATA.kelas) + ' · ' + esc($('#fSubjek').value) + '</p><br>' +
+        '<span class="cip c-hijau"><i class="ph-fill ph-check"></i>' + r.hadir + ' hadir</span><span class="cip c-merah"><i class="ph-fill ph-x"></i>' + r.tidakHadir + ' tidak hadir</span>' +
+        '<span class="cip ' + (r.statusMasa === 'LEWAT' ? 'c-kuning' : 'c-biru') + '"><i class="ph-fill ph-clock"></i>Guru: ' + esc(r.statusMasa) + '</span><br><br>' +
+        '<button class="btn" onclick="imbasSemula()"><i class="ph ph-qr-code"></i>Imbas Kelas Seterusnya</button></div>';
+      window.scrollTo(0, 0);
+    }).catch(e => { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i>Cuba Lagi'; toast(e.message); });
+};
 
-/* ==================== KEHADIRAN MURID ==================== */
-function paparSenaraiMurid(senaraiMurid, dataKelas){
-  const wrap = document.getElementById('senaraiMurid');
-  if (!senaraiMurid || !senaraiMurid.length){
-    wrap.innerHTML = `<p class="text-xs text-slate-400 text-center mt-2">Tiada murid berdaftar untuk kelas ini dalam sistem.</p>
-      <button onclick="cubaImbasSemula()" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-xl font-bold text-sm"><i class="fas fa-camera mr-1.5"></i>Imbas Kelas Seterusnya</button>`;
-    return;
-  }
-  const STATUS_OPTIONS = ['HADIR', 'TIDAK HADIR', 'LEWAT', 'SAKIT (MC)', 'CUTI/URUSAN RASMI', 'TANPA SEBAB'];
-  let barisHtml = '';
-  senaraiMurid.forEach(m => {
-    let opsi = '';
-    STATUS_OPTIONS.forEach(s => { opsi += `<option value="${esc(s)}" ${s==='HADIR'?'selected':''}>${esc(s)}</option>`; });
-    barisHtml += `
-      <div class="flex items-center justify-between gap-2 py-1.5 border-b border-white/5">
-        <span class="text-sm">${esc(m.nama)}</span>
-        <select data-id="${esc(m.idMurid)}" data-nama="${esc(m.nama)}" class="statusMurid bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-white">${opsi}</select>
-      </div>`;
-  });
-  wrap.innerHTML = `
-    <h3 class="text-sm font-bold mb-2"><i class="fas fa-users mr-1.5 text-slate-400"></i>Kehadiran Murid (${senaraiMurid.length} orang)</h3>
-    <button type="button" onclick="tandaSemuaHadir()" class="text-xs text-indigo-400 hover:text-indigo-300 mb-2"><i class="fas fa-check-double mr-1"></i>Tandakan Semua Hadir</button>
-    <div id="senaraiBarisMurid">${barisHtml}</div>
-    <button onclick="hantarKehadiranMurid(event)" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2"><i class="fas fa-floppy-disk"></i> Simpan Kehadiran Murid</button>`;
-}
-
-function tandaSemuaHadir(){
-  document.querySelectorAll('.statusMurid').forEach(sel => { sel.value = 'HADIR'; });
-}
-
-// Dihantar secara berkelompok (bukan sekali gus) supaya URL JSONP tidak
-// menjadi terlalu panjang untuk kelas yang ramai murid (30-40+ orang).
-const SAIZ_KELOMPOK_MURID = 15;
-
-function hantarKehadiranMurid(e){
-  const dataMurid = Array.from(document.querySelectorAll('.statusMurid')).map(sel => ({
-    idMurid: sel.getAttribute('data-id'), nama: sel.getAttribute('data-nama'), status: sel.value
-  }));
-  const btn = e.target;
-  btn.disabled = true;
-
-  const kelompok = [];
-  for (let i = 0; i < dataMurid.length; i += SAIZ_KELOMPOK_MURID) kelompok.push(dataMurid.slice(i, i + SAIZ_KELOMPOK_MURID));
-
-  const ringkasanGabungan = {};
-  let jumlahGabungan = 0;
-
-  function hantarSeterusnya(indeks){
-    if (indeks >= kelompok.length){ paparSelesai({ ringkasan: ringkasanGabungan, jumlah: jumlahGabungan }); return; }
-    btn.innerHTML = '<span class="spinner"></span> Menyimpan (' + (indeks + 1) + '/' + kelompok.length + ')...';
-    jsonp(apiUrl('catatKehadiranMurid', {
-      idLog: window._idLogSemasa,
-      idKelas: window._idKelasSemasa,
-      dataMurid: JSON.stringify(kelompok[indeks])
-    }), 20000).then(res => {
-      if (!res.success){ btn.disabled = false; btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Simpan Kehadiran Murid'; alert(res.message); return; }
-      Object.keys(res.ringkasan).forEach(k => { ringkasanGabungan[k] = (ringkasanGabungan[k] || 0) + res.ringkasan[k]; });
-      jumlahGabungan += res.jumlah;
-      hantarSeterusnya(indeks + 1);
-    }).catch(err => {
-      btn.disabled = false; btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Simpan Kehadiran Murid';
-      alert(err.message || 'Ralat sambungan.');
-    });
-  }
-  hantarSeterusnya(0);
-}
-
-function paparSelesai(res){
-  const ringkasanHtml = Object.keys(res.ringkasan).map(k => `<span class="inline-block bg-white/5 rounded-lg px-2 py-1 mr-1 mb-1">${esc(k)}: <b>${res.ringkasan[k]}</b></span>`).join('');
-  const kad = document.getElementById('kadHasil');
-  kad.innerHTML = `
-    <div class="text-center">
-      <i class="fas fa-circle-check text-3xl text-emerald-400 mb-2"></i>
-      <p class="text-emerald-300 font-bold">Kehadiran ${res.jumlah} murid berjaya disimpan!</p>
-      <div class="text-xs mt-3">${ringkasanHtml}</div>
-      <button onclick="cubaImbasSemula()" class="mt-4 bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-xl font-bold text-sm"><i class="fas fa-camera mr-1.5"></i>Imbas Kelas Seterusnya</button>
-    </div>`;
-}
-
-function cubaImbasSemula(){
-  document.getElementById('kadHasil').classList.add('hidden');
-  document.getElementById('kadHasil').innerHTML = '';
-  mulaScan();
-}
-
-mulaScan();
+mulaKamera();
 </script>
 </body>
 </html>

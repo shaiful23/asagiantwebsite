@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1D6B">
+  <title>e-Kehadiran — SMK Asajaya</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
+  <?!= include('Gaya'); ?>
+  <?!= include('Logo'); ?>
+  <script>const EXEC_URL = '<?= execUrl ?>';</script>
+</head>
+<body>
+
+  <!-- ============================ SPLASH ============================ -->
+  <div id="skrinSplash" role="status" aria-live="polite">
+    <img class="logo-sekolah" alt="Logo SMK Asajaya">
+    <div class="bar-muat"></div>
+    <p>Memuatkan e-Kehadiran…</p>
+  </div>
+
+  <!-- ============================ LOG MASUK ============================ -->
+  <div id="skrinLogin" class="hidden">
+    <section class="hero-login" aria-hidden="true">
+      <div class="hero-jenama">
+        <img class="logo-sekolah" alt="">
+        <div><b>SMK ASAJAYA</b><span>Berazam · Berusaha · Berjaya</span></div>
+      </div>
+      <div>
+        <div class="jalur-pelangi"></div>
+        <h2>Kehadiran <em>pintar</em> — setiap kelas, setiap waktu.</h2>
+        <p class="hero-teks">Rekod kehadiran guru &amp; murid dengan satu imbasan kod QR kelas. Kehadiran harian Guru Tingkatan, pemantauan ponteng dan surat amaran — semuanya dalam satu portal.</p>
+        <div class="cip-ciri">
+          <span><i class="ph-fill ph-qr-code"></i>Imbas QR Kelas</span>
+          <span><i class="ph-fill ph-chart-donut"></i>Analisis Masa Nyata</span>
+          <span><i class="ph-fill ph-warning-octagon"></i>Amaran Ponteng</span>
+          <span><i class="ph-fill ph-lock-key"></i>Kunci Automatik 07:10</span>
+        </div>
+      </div>
+      <div class="hero-kaki">© SMK Asajaya · Disambung dengan e-Data &amp; Enrolmen, e-Teach-In dan IDME</div>
+    </section>
+
+    <section class="panel-login">
+      <div class="kad-login">
+        <div class="hero-jenama logo-mudah" style="margin-bottom:22px">
+          <img class="logo-sekolah" alt="Logo SMK Asajaya" style="width:52px;height:52px;border-radius:50%">
+          <div><b style="color:var(--navy-700)">SMK ASAJAYA</b><span style="color:var(--teks-2)">e-Kehadiran</span></div>
+        </div>
+        <h1>Selamat datang 👋</h1>
+        <p class="sub">Log masuk ke <b>e-Kehadiran</b> menggunakan No. Kad Pengenalan anda.</p>
+        <div class="tab-jenis" role="tablist">
+          <button type="button" class="aktif" data-jenis="GURU"><i class="ph ph-chalkboard-teacher"></i>Guru</button>
+          <button type="button" data-jenis="MURID"><i class="ph ph-student"></i>Murid</button>
+        </div>
+        <form id="formLogin" autocomplete="on">
+          <div class="medan">
+            <label for="inNoKP">No. Kad Pengenalan</label>
+            <div class="input-ikon"><i class="ph ph-identification-card"></i>
+              <input id="inNoKP" class="input" inputmode="numeric" autocomplete="username" placeholder="cth: 800101135001" required></div>
+          </div>
+          <div class="medan">
+            <label for="inKataLaluan">Kata Laluan</label>
+            <div class="input-ikon"><i class="ph ph-lock-simple"></i>
+              <input id="inKataLaluan" class="input" type="password" autocomplete="current-password" placeholder="••••••" required>
+              <button type="button" class="lihat" data-sasaran="inKataLaluan" aria-label="Papar kata laluan"><i class="ph ph-eye"></i></button></div>
+          </div>
+          <p id="ralatLogin" class="ralat"></p>
+          <button id="btnLogin" type="submit" class="btn penuh"><i class="ph-bold ph-sign-in"></i>Log Masuk</button>
+        </form>
+        <div class="petua"><i class="ph-fill ph-info"></i><span>Log masuk kali pertama? Kata laluan lalai ialah <b>6 digit terakhir No. KP</b> anda. Anda akan diminta menukarnya selepas log masuk.</span></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============================ APLIKASI ============================ -->
+  <div id="skrinApp" class="hidden">
+    <aside class="sisi" id="sisi">
+      <div class="sisi-jenama">
+        <img class="logo-sekolah" alt="Logo SMK Asajaya">
+        <div><b>e-KEHADIRAN</b><span>SMK Asajaya</span></div>
+      </div>
+      <div class="jalur-pelangi"></div>
+      <div class="kad-pengguna" id="kadPengguna"></div>
+      <nav id="navUtama"></nav>
+      <div class="sisi-kaki">
+        <div class="nav-item" id="btnKeluar"><i class="ph ph-sign-out"></i>Log Keluar</div>
+      </div>
+    </aside>
+    <main class="utama">
+      <header class="bar-atas">
+        <button class="btn hantu ikon-sahaja" id="btnMenu" aria-label="Menu"><i class="ph ph-list"></i></button>
+        <div>
+          <h1 id="tajukHalaman">Papan Pemuka</h1>
+          <div class="remeh" id="remehHalaman"></div>
+        </div>
+        <div class="kanan">
+          <span id="cipKunci" class="cip-kunci hidden"></span>
+          <span class="cip-masa tarikh"><i class="ph ph-calendar-blank"></i><span id="teksTarikh"></span></span>
+          <span class="cip-masa"><i class="ph ph-clock"></i><span id="teksJam">--:--</span></span>
+        </div>
+      </header>
+      <section class="kandungan" id="kandungan"></section>
+    </main>
+  </div>
+
+  <div id="kotakModal"></div>
+  <div id="kotakToast" aria-live="polite"></div>
+
+  <?!= include('App'); ?>
+</body>
+</html>
