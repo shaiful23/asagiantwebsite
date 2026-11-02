@@ -20,11 +20,21 @@ const TEMPOH_CACHE_LUAR_SAAT = 600;
 
 function kunciHeader(h) { return String(h || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
 
+/* Terima ID spreadsheet ATAU URL penuh (https://docs.google.com/spreadsheets/d/<ID>/edit...). */
+function idSpreadsheet(nilai) {
+  const s = String(nilai || '').trim();
+  if (!s) return '';
+  const m = s.match(/\/d\/([-\w]{20,})/) || s.match(/[?&]id=([-\w]{20,})/) || s.match(/^([-\w]{20,})$/);
+  return m ? m[1] : s;
+}
+
 /* Baca tab dari spreadsheet luar dan petakan lajurnya kepada medan piawai. */
-function bacaLuarDipetakan(idSpreadsheet, namaTab, prefiksLajur, medan) {
-  const ss = SpreadsheetApp.openById(idSpreadsheet);
+function bacaLuarDipetakan(idSs, namaTab, prefiksLajur, medan, namaSistem) {
+  let ss;
+  try { ss = SpreadsheetApp.openById(idSs); }
+  catch (e) { throw new Error(namaSistem + ': spreadsheet tidak dapat dibuka (ID "' + idSs + '"). Semak ID/URL dalam Sheet TETAPAN dan pastikan akaun yang men-deploy skrip ada akses lihat.'); }
   const sh = ss.getSheetByName(namaTab);
-  if (!sh) throw new Error('Tab "' + namaTab + '" tidak dijumpai dalam spreadsheet sumber luar.');
+  if (!sh) throw new Error(namaSistem + ': tab "' + namaTab + '" tidak dijumpai. Tab yang ada: ' + ss.getSheets().map(x => x.getName()).join(', ') + '.');
   const nilai = sh.getDataRange().getValues();
   const header = (nilai.shift() || []).map(kunciHeader);
   const indeks = {};
@@ -44,7 +54,7 @@ function bacaSumber(kunciCache, idTetapan, fnLuar, fnTempatan) {
   if (memo) return memo;
   const cache = bacaCacheBesar('luar_' + kunciCache);
   if (cache) { MEMO_LUAR[kunciCache] = cache; return cache; }
-  const id = tetapan(idTetapan);
+  const id = idSpreadsheet(tetapan(idTetapan));
   const data = id ? fnLuar(id) : fnTempatan();
   simpanCacheBesar('luar_' + kunciCache, data, TEMPOH_CACHE_LUAR_SAAT);
   MEMO_LUAR[kunciCache] = data;
@@ -69,7 +79,7 @@ function senaraiMurid() {
 }
 function senaraiMuridMentah() {
   return bacaSumber('murid', 'EDATA_SPREADSHEET_ID',
-    id => bacaLuarDipetakan(id, tetapan('EDATA_TAB') || 'MURID', 'EDATA_LAJUR_', MEDAN_EDATA),
+    id => bacaLuarDipetakan(id, tetapan('EDATA_TAB') || 'MURID', 'EDATA_LAJUR_', MEDAN_EDATA, 'e-Data & Enrolmen'),
     () => bacaSheetSebagaiObjek(SHEET.MURID).map(r => {
       const o = {}; MEDAN_EDATA.forEach(m => { o[m] = r[m] === undefined ? '' : r[m]; }); return o;
     })
@@ -90,7 +100,7 @@ function muridDalamKelas(kelas) {
 /* ------------------------------ JADUAL & TEACH-IN ------------------------------ */
 function senaraiJadual() {
   return bacaSumber('jadual', 'TEACHIN_SPREADSHEET_ID',
-    id => bacaLuarDipetakan(id, tetapan('TEACHIN_TAB_JADUAL') || 'JADUAL_WAKTU', 'TEACHIN_JADUAL_LAJUR_', MEDAN_JADUAL),
+    id => bacaLuarDipetakan(id, tetapan('TEACHIN_TAB_JADUAL') || 'JADUAL_WAKTU', 'TEACHIN_JADUAL_LAJUR_', MEDAN_JADUAL, 'e-Teach-In (jadual)'),
     () => bacaSheetSebagaiObjek(SHEET.JADUAL)
   ).map(j => ({
     Hari: String(j.Hari || '').toUpperCase().trim(), Slot: Number(j.Slot) || String(j.Slot || ''),
@@ -101,7 +111,7 @@ function senaraiJadual() {
 
 function senaraiTeachIn() {
   return bacaSumber('ganti', 'TEACHIN_SPREADSHEET_ID',
-    id => bacaLuarDipetakan(id, tetapan('TEACHIN_TAB_GANTI') || 'TEACH_IN', 'TEACHIN_GANTI_LAJUR_', MEDAN_GANTI),
+    id => bacaLuarDipetakan(id, tetapan('TEACHIN_TAB_GANTI') || 'TEACH_IN', 'TEACHIN_GANTI_LAJUR_', MEDAN_GANTI, 'e-Teach-In (guru ganti)'),
     () => bacaSheetSebagaiObjek(SHEET.TEACHIN)
   ).map(t => ({
     Tarikh: keTarikh(t.Tarikh), Slot: Number(t.Slot) || String(t.Slot || ''), Kelas: normalKelas(t.Kelas),
@@ -124,7 +134,7 @@ function teachInGuru(sesi) { return senaraiTeachIn().filter(t => rekodMilikGuru(
 function senaraiSebab() {
   const kodPonteng = senaraiDaripadaMedan(tetapan('SEBAB_PONTENG_KOD')).map(k => k.toUpperCase());
   return bacaSumber('sebab', 'IDME_SPREADSHEET_ID',
-    id => bacaLuarDipetakan(id, tetapan('IDME_TAB') || 'SEBAB_TIDAK_HADIR', 'IDME_LAJUR_', MEDAN_IDME),
+    id => bacaLuarDipetakan(id, tetapan('IDME_TAB') || 'SEBAB_TIDAK_HADIR', 'IDME_LAJUR_', MEDAN_IDME, 'IDME'),
     () => bacaSheetSebagaiObjek(SHEET.SEBAB)
   ).filter(s => s.Sebab || s.Kod).map(s => {
     const kod = String(s.Kod || s.Sebab).trim();
