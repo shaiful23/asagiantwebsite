@@ -30,7 +30,9 @@ const SHEET = {
   PERMOHONAN: 'PERMOHONAN_BUKA_AKSES',
   INTERVENSI: 'INTERVENSI',
   SURAT: 'SURAT_AMARAN',
-  PETA_KOD: 'PETA_KOD_KELAS',            // kod kelas e-Teach-In (cth. 2AR) → kelas e-Data (2 AZARA)
+  PETA_KOD: 'PETA_KOD_KELAS',             // kod kelas e-Teach-In (cth. 2AR) → kelas e-Data (2 AZARA)
+  CUTI: 'CUTI_SEKOLAH',                   // hari cuti / tiada P&P (dikecualikan dari analisis pematuhan guru)
+  PENGECUALIAN: 'PENGECUALIAN_GURU',      // guru berkursus/cuti/tugas rasmi — sesi tidak dikira tidak masuk
   AUDIT: 'AUDIT'
 };
 
@@ -52,6 +54,8 @@ const HEADER = {
   INTERVENSI: ['IdIntervensi', 'Tarikh', 'NoKPMurid', 'NamaMurid', 'Kelas', 'Kategori', 'Tindakan', 'Catatan', 'NoKPGuru', 'NamaGuru', 'Masa'],
   SURAT: ['NoRujukan', 'TarikhKeluar', 'NoKPMurid', 'NamaMurid', 'Kelas', 'Kategori', 'Peringkat', 'BilHari', 'MulaEpisod', 'NoKPGuru', 'NamaGuru', 'Masa'],
   PETA_KOD: ['Kod', 'Kelas', 'Catatan'],
+  CUTI: ['IdCuti', 'TarikhMula', 'TarikhTamat', 'Catatan'],
+  PENGECUALIAN: ['IdPengecualian', 'Tarikh', 'Masa', 'Kelas', 'NoKPGuru', 'NamaGuru', 'Sebab', 'NoKPAdmin', 'NamaAdmin', 'MasaRekod'],
   AUDIT: ['Masa', 'NoKP', 'Nama', 'Tindakan', 'Butiran']
 };
 
@@ -98,7 +102,7 @@ const PERINGKAT_AMARAN = {
     { kod: 'BUANG_SEKOLAH', label: 'Buang Sekolah', hari: 60 }
   ]
 };
-const LABEL_KATEGORI_AMARAN = { BERTURUT: 'Ponteng Berturut-turut', TIDAK_BERTURUT: 'Ponteng Tidak Berturut-turut' };
+const LABEL_KATEGORI_AMARAN = { BERTURUT: 'Ponteng Berturut-turut', TIDAK_BERTURUT: 'Ponteng Tidak Berturut-turut', PONTENG_KELAS: 'Ponteng Kelas' };
 
 const SENARAI_TINDAKAN_INTERVENSI = [
   'Panggilan telefon kepada ibu bapa/penjaga',
@@ -119,6 +123,15 @@ const SENARAI_TINDAKAN_INTERVENSI = [
 const KOD_PONTENG_KELAS = 'PONTENG_KELAS';
 const SEBAB_PONTENG_KELAS = { kod: KOD_PONTENG_KELAS, sebab: 'Ponteng kelas (hadir ke sekolah tetapi tiada dalam kelas)', kategori: 'Ponteng Kelas', dikiraPonteng: false, pontengKelas: true };
 const AMBANG_PONTENG_KELAS_BERULANG = 3;   // kes sebulan → murid ditanda "berulang"
+
+/* Amaran ponteng kelas — kes ponteng kelas terkumpul dalam tahun semasa.
+   Ambang boleh diubah admin di UI (Urus Sistem → Tetapan: PK_AMARAN_*). */
+const PERINGKAT_AMARAN_PK = [
+  { kod: 'AMARAN_1', label: 'Amaran Pertama', kunci: 'PK_AMARAN_1', lalai: 3 },
+  { kod: 'AMARAN_2', label: 'Amaran Kedua', kunci: 'PK_AMARAN_2', lalai: 6 },
+  { kod: 'AMARAN_TERAKHIR', label: 'Amaran Terakhir', kunci: 'PK_AMARAN_TERAKHIR', lalai: 10 },
+  { kod: 'RUJUKAN_DISIPLIN', label: 'Rujukan Lembaga Disiplin', kunci: 'PK_RUJUKAN_DISIPLIN', lalai: 15 }
+];
 
 const SENARAI_JENIS_GURU_SUBJEK = ['GURU SUBJEK', 'GURU TEACH-IN', 'LAIN-LAIN'];
 
@@ -142,6 +155,11 @@ const TETAPAN_LALAI = [
   ['TOLERANSI_LEWAT_MINIT', '10', 'Guru subjek dikira LEWAT jika imbas lebih dari minit ini selepas slot bermula'],
   ['URL_PENGIMBAS', 'https://smkasajaya.my/kehadiranqrscanner.html', 'URL halaman pengimbas QR (GitHub Pages)'],
   ['HARI_PERSEKOLAHAN', 'ISNIN,SELASA,RABU,KHAMIS,JUMAAT', 'Hari persekolahan'],
+  ['TEMPOH_EDIT_SESI_HARI', '14', 'Guru boleh mengedit sesi P&P yang dia rekod dalam tempoh (hari) ini; admin tiada had'],
+  ['PK_AMARAN_1', '3', 'Amaran ponteng kelas: bilangan kes setahun untuk Amaran Pertama'],
+  ['PK_AMARAN_2', '6', 'Amaran ponteng kelas: bilangan kes setahun untuk Amaran Kedua'],
+  ['PK_AMARAN_TERAKHIR', '10', 'Amaran ponteng kelas: bilangan kes setahun untuk Amaran Terakhir'],
+  ['PK_RUJUKAN_DISIPLIN', '15', 'Amaran ponteng kelas: bilangan kes setahun untuk Rujukan Lembaga Disiplin'],
 
   ['EDATA_SPREADSHEET_ID', '', 'e-Data & Enrolmen: ID atau URL spreadsheet (kosong = guna Sheet MURID)'],
   ['EDATA_FORMAT', 'AUTO', 'e-Data: AUTO (kesan format SMK Asajaya: tab Data_Murid/Pengguna/Foto_Murid), SMKA, atau UMUM (guna pemetaan lajur di bawah)'],

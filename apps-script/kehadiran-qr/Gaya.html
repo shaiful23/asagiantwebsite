@@ -178,6 +178,20 @@
   .l-ungu { background: var(--ungu-lembut); color: var(--ungu); } .l-kelabu { background: #EEF1F7; color: var(--teks-2); } .l-oren { background: var(--oren-lembut); color: #9A3412; }
   .pil-AMARAN_1 { background: #FEF9C3; color: #854D0E; } .pil-AMARAN_2 { background: var(--oren-lembut); color: #9A3412; }
   .pil-AMARAN_TERAKHIR { background: var(--merah-lembut); color: var(--merah-gelap); } .pil-BUANG_SEKOLAH { background: var(--navy-800); color: var(--kuning); }
+  .pil-RUJUKAN_DISIPLIN { background: var(--navy-800); color: var(--kuning); }
+  /* Butang aksi dalam jadual & borang urus sistem */
+  .aksi { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .aksi .btn { padding: 6px 10px; font-size: 12px; }
+  .btn.bahaya { background: #fff; color: var(--merah); border: 1px solid #FCA5A5; } .btn.bahaya:hover { background: var(--merah-lembut); }
+  .pilih-peranan { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pilih-peranan label { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--sempadan); border-radius: 999px; font-size: 12.5px; font-weight: 700; cursor: pointer; background: #fff; }
+  .pilih-peranan input { accent-color: var(--biru); }
+  .pilih-peranan label:has(input:checked) { background: var(--biru-lembut, #E8EDFF); border-color: var(--biru); color: var(--biru); }
+  .medan small.bantu { display: block; color: var(--teks-2); font-size: 11.5px; margin-top: 4px; font-weight: 500; }
+  .tab.tatal { overflow-x: auto; flex-wrap: nowrap; }
+  .tab.tatal button { white-space: nowrap; }
+  .roster-modal { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; max-height: 52vh; overflow: auto; padding: 2px; }
+  .murid-kad .nota-pagi { font-size: 11.5px; color: var(--teks-2); margin-top: 6px; }
 
   /* ------------------------------ JADUAL DATA ------------------------------ */
   .alat-jadual { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }

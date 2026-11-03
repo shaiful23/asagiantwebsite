@@ -43,7 +43,7 @@ function apiPontengKelas(p) {
   const semuaKes = bacaSheetSebagaiObjek(SHEET.TIDAK_HADIR_SUBJEK).filter(adalahPontengKelas).map(t => {
     const l = petaLog[t.IdLog] || {};
     return { tarikh: keTarikh(t.Tarikh), hari: hariBagiTarikh(t.Tarikh), masa: keHHmm(t.Slot || l.Slot), kelas: normalKelas(t.Kelas), subjek: String(t.Subjek || l.Subjek || ''),
-      nokp: digitSahaja(t.NoKPMurid), nama: t.NamaMurid, NoKPGuru: digitSahaja(t.NoKPGuru || l.NoKPGuru), guru: t.NamaGuru || l.NamaGuru || '', Kelas: t.Kelas };
+      nokp: digitSahaja(t.NoKPMurid), nama: t.NamaMurid, NoKPGuru: digitSahaja(t.NoKPGuru || l.NoKPGuru), guru: t.NamaGuru || l.NamaGuru || '', Kelas: t.Kelas, idLog: t.IdLog };
   }).filter(skop.lulus);
 
   const kesTahun = semuaKes.filter(k => k.tarikh.slice(0, 4) === tahun);
@@ -91,7 +91,8 @@ function apiPontengKelas(p) {
     perMasa: kiraIkut(kes, k => k.masa).sort((a, b) => a.label.localeCompare(b.label)),
     perHari: hariSek.map(h => ({ label: h, bil: kes.filter(k => k.hari === h).length })),
     petaHaba: { hari: hariSek, masa: masaUnik, nilai: hariSek.map(h => masaUnik.map(ms => peta[h + '|' + ms] || 0)) },
-    murid, kes: kes.map(k => ({ tarikh: k.tarikh, hari: k.hari, masa: k.masa, kelas: k.kelas, subjek: k.subjek, nama: k.nama, nokp: k.nokp, guru: k.guru })),
+    murid, kes: kes.map(k => ({ tarikh: k.tarikh, hari: k.hari, masa: k.masa, kelas: k.kelas, subjek: k.subjek, nama: k.nama, nokp: k.nokp, guru: k.guru, idLog: k.idLog,
+      bolehEdit: bolehEditSesi(sesi, { NoKPGuru: k.NoKPGuru, Tarikh: k.tarikh }) })),
     senaraiKelas: adalahAdmin(sesi) ? senaraiKelas().map(k => k.kelas) : [],
     lihatGuru: adalahAdmin(sesi) || adalahGuruKelas(sesi)
   });
