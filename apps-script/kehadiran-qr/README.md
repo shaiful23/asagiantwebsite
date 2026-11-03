@@ -17,6 +17,10 @@ logo: biru, merah, kuning, ungu). Disambung kepada **e-Data & Enrolmen**,
 | **Rekod Kehadiran Kelas (GT/PGT)** | Lalai **semua murid hadir**; GT matikan suis bagi yang tidak hadir & pilih sebab dari senarai **IDME**. **Kunci automatik selepas 07:10** — selepas itu GT wajib **mohon admin buka akses dengan alasan**. |
 | **Amaran Ponteng (sidebar)** | Pengiraan automatik kategori berturut-turut & tidak berturut-turut, rekod tindakan/intervensi, **jana surat amaran** bercetak (kepala surat + logo, No. Rujukan, tarikh ponteng, akuan penerimaan). |
 | **Ponteng Kelas (sidebar)** | Guru MP tandakan murid yang hadir ke sekolah tetapi tiada dalam kelas dengan butang **Ponteng Kelas** dalam borang imbas QR (ditolak jika murid ditanda tidak hadir ke sekolah oleh GT). Analisis lengkap: kes & kadar, trend harian/bulanan, mengikut subjek, waktu, hari, kelas, guru, peta haba hari × waktu, murid berulang (≥3 kes sebulan), senarai kes — ikut skop (admin semua, GT kelasnya, guru sesi sendiri). Kiraan juga di papan pemuka, profil & rekod murid. |
+| **Amaran Ponteng Kelas (sidebar GT/PGT & admin)** | Ponteng kelas **berulang** mencetuskan amaran tersendiri (berasingan daripada amaran tidak hadir ke sekolah): kes terkumpul setahun → Amaran Pertama (3), Amaran Kedua (6), Amaran Terakhir (10), Rujukan Lembaga Disiplin (15). Senarai Perlu Tindakan / Hampir, butiran kes & subjek kerap, rekod intervensi, **surat amaran ponteng kelas** bercetak (senarai tarikh, masa & subjek). Ambang boleh diubah admin terus dari UI. |
+| **Pematuhan Guru Masuk Kelas (admin)** | Setiap blok jadual waktu e-Teach-In & tugasan teach-in yang telah berlalu dipadankan dengan imbasan QR guru: **Tepat masa / Lewat / Tidak masuk / Diganti (teach-in) / Dikecualikan**. Kadar masuk kelas & perbandingan bulan lalu, trend harian, mengikut hari, waktu, subjek, kelas, peta haba, jadual setiap guru (GMP & guru teach-in), senarai sesi tidak masuk (eksport CSV). Admin boleh **kecualikan** sesi/hari guru (kursus, cuti, tugas rasmi); hari cuti sekolah dikecualikan automatik. |
+| **Butang Edit** | Semua rekod boleh disunting: sesi kehadiran subjek (subjek, jenis, catatan, murid tidak hadir/ponteng kelas — guru pemilik dalam `TEMPOH_EDIT_SESI_HARI` hari, admin bila-bila masa & boleh padam), rekod harian kelas, intervensi (pemilik/admin), surat (admin batal), permohonan (admin tarik balik / lanjut akses / catatan), pengecualian guru. |
+| **Urus Sistem (admin)** | Urus semua data **tanpa membuka Google Sheet**: Tetapan, Guru & peranan (termasuk guru dari e-Data), Kelas & kod QR, Sebab IDME, Slot waktu, Peta kod kelas, Cuti sekolah, Sesi subjek, Rekod harian, Log audit, dan tindakan sistem (semak struktur, segar cache, jana peta kod). Semua perubahan disahkan & dicatat dalam audit. |
 | **Imbas QR Kelas** | Guru subjek/teach-in imbas QR kelas → borang dropdown auto-isi (subjek & jenis dari jadual/e-Teach-In) → murid lalai hadir → simpan. Murid yang ditanda tidak hadir oleh GT pagi itu dicadangkan tidak hadir. |
 | **Admin** | Lulus/tolak permohonan buka akses, **analisis permohonan** (bulanan, kelas, guru, hari, masa proses, % rekod selepas kunci), cetak kod QR kelas, status sambungan sistem luar, set semula kata laluan. |
 
@@ -47,7 +51,11 @@ Hari tidak hadir dikira **ponteng** jika sebabnya bertanda `DikiraPonteng = YA`
 
 Murid yang mencapai peringkat tetapi suratnya belum dijana ditanda **Perlu Tindakan**.
 Jana semula surat peringkat yang sama menggunakan **No. Rujukan yang sama** (tiada pendua).
-Ambang boleh diubah dalam `PERINGKAT_AMARAN` (`Config.gs`). Teks surat ialah templat
+Ambang boleh diubah dalam `PERINGKAT_AMARAN` (`Config.gs`).
+
+**Ponteng kelas berulang** mempunyai tangga sendiri (kes terkumpul setahun): Amaran Pertama
+3, Amaran Kedua 6, Amaran Terakhir 10, Rujukan Lembaga Disiplin 15 — ditetapkan dalam TETAPAN
+`PK_AMARAN_1`, `PK_AMARAN_2`, `PK_AMARAN_TERAKHIR`, `PK_RUJUKAN_DISIPLIN` (boleh diubah di UI). Teks surat ialah templat
 umum — semak dengan pentadbiran sekolah sebelum digunakan secara rasmi.
 
 ## Struktur Fail
@@ -63,6 +71,9 @@ umum — semak dengan pentadbiran sekolah sebelum digunakan secara rasmi.
 | `AmaranService.gs` | Amaran ponteng, intervensi, surat amaran |
 | `DashboardService.gs` | Papan pemuka, analisis bulanan, kelas diajar, profil |
 | `PontengKelasService.gs` | Analisis ponteng kelas |
+| `AmaranPontengKelasService.gs` | Amaran, intervensi & surat ponteng kelas berulang |
+| `PematuhanGuruService.gs` | Analisis guru MP & teach-in masuk / tidak masuk kelas, pengecualian |
+| `UrusService.gs` | Urus sistem dari UI (CRUD tetapan/guru/kelas/sebab/slot/peta kod/cuti) & suntingan rekod |
 | `AdminService.gs` | Permohonan, analisis, kod QR, pengguna, status sumber luar |
 | `Code.gs` | Menu, Sediakan Sistem, data contoh, `doGet` (SPA + API JSONP pengimbas) |
 | `Index.html` `Gaya.html` `Logo.html` `App.html` | Antara muka SPA (logo terbenam dalam `Logo.html`) |
@@ -150,7 +161,12 @@ Kod QR kelas lalai = kod e-Teach-In (cth. `KELAS:2AR`) — terus berfungsi tanpa
 
 `MASA_KUNCI_KEHADIRAN` (07:10), `TEMPOH_BUKA_AKSES_MINIT` (120 — tempoh akses selepas
 diluluskan), `TOLERANSI_LEWAT_MINIT` (10), `NAMA_SEKOLAH`, `ALAMAT_SEKOLAH`,
-`NAMA_PENGETUA`, `PREFIKS_RUJUKAN_SURAT` (kepala & rujukan surat).
+`NAMA_PENGETUA`, `PREFIKS_RUJUKAN_SURAT` (kepala & rujukan surat), `TEMPOH_EDIT_SESI_HARI` (14 —
+tempoh guru boleh menyunting sesi sendiri), `PK_*` (ambang amaran ponteng kelas). Semua boleh
+diubah melalui **Urus Sistem → Tetapan**.
+
+Sheet baharu `CUTI_SEKOLAH` dan `PENGECUALIAN_GURU` dicipta automatik (menu *Sediakan/Kemaskini
+Struktur* atau **Urus Sistem → Tindakan Sistem**).
 
 ## Nota Data & Keselamatan
 

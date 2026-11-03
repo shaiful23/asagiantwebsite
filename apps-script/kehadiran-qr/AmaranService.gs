@@ -127,13 +127,13 @@ function apiButiranAmaranMurid(p) {
   return jaya({
     murid: profilMuridUntukKlien(murid), status,
     tidakHadir: sejarah.filter(h => !h.hadir).reverse(),
-    surat: bacaSheetSebagaiObjek(SHEET.SURAT).filter(s => samaNoKP(s.NoKPMurid, murid.NoKP))
+    surat: bacaSheetSebagaiObjek(SHEET.SURAT).filter(s => samaNoKP(s.NoKPMurid, murid.NoKP) && s.Kategori !== 'PONTENG_KELAS')
       .map(s => ({ noRujukan: s.NoRujukan, tarikh: keTarikh(s.TarikhKeluar), kategori: s.Kategori, peringkat: s.Peringkat, bilHari: s.BilHari, oleh: s.NamaGuru }))
       .reverse(),
-    intervensi: bacaSheetSebagaiObjek(SHEET.INTERVENSI).filter(i => samaNoKP(i.NoKPMurid, murid.NoKP))
-      .map(i => ({ id: i.IdIntervensi, tarikh: keTarikh(i.Tarikh), kategori: i.Kategori, tindakan: i.Tindakan, catatan: i.Catatan, oleh: i.NamaGuru }))
+    intervensi: bacaSheetSebagaiObjek(SHEET.INTERVENSI).filter(i => samaNoKP(i.NoKPMurid, murid.NoKP) && i.Kategori !== 'PONTENG_KELAS')
+      .map(i => ({ id: i.IdIntervensi, tarikh: keTarikh(i.Tarikh), kategori: i.Kategori, tindakan: i.Tindakan, catatan: i.Catatan, oleh: i.NamaGuru, nokpGuru: digitSahaja(i.NoKPGuru) }))
       .reverse(),
-    tindakan: SENARAI_TINDAKAN_INTERVENSI
+    tindakan: SENARAI_TINDAKAN_INTERVENSI, nokpSaya: sesi.nokp, admin: adalahAdmin(sesi)
   });
 }
 
@@ -147,7 +147,7 @@ function apiRekodIntervensi(p) {
   const tarikh = tarikhSah(p.tarikh) && p.tarikh <= tarikhHariIni() ? p.tarikh : tarikhHariIni();
   return denganKunci(() => {
     tambahBaris(SHEET.INTERVENSI, { IdIntervensi: janaId('IV'), Tarikh: tarikh, NoKPMurid: "'" + digitSahaja(murid.NoKP), NamaMurid: murid.Nama,
-      Kelas: murid.Kelas, Kategori: p.kategori === 'BERTURUT' || p.kategori === 'TIDAK_BERTURUT' ? p.kategori : 'UMUM',
+      Kelas: murid.Kelas, Kategori: ['BERTURUT', 'TIDAK_BERTURUT', 'PONTENG_KELAS'].indexOf(p.kategori) !== -1 ? p.kategori : 'UMUM',
       Tindakan: tindakan, Catatan: String(p.catatan || '').slice(0, 1000), NoKPGuru: "'" + sesi.nokp, NamaGuru: sesi.nama,
       Masa: formatTarikhMasa(sekarang()) });
     catatAudit(sesi, 'REKOD_INTERVENSI', murid.Nama + ': ' + tindakan);
@@ -179,8 +179,7 @@ function apiJanaSurat(p) {
     if (dikeluarkan) { noRujukan = dikeluarkan.noRujukan; tarikhKeluar = dikeluarkan.tarikh; }
     else {
       const tahun = tarikhHariIni().slice(0, 4);
-      const bil = semuaSurat.filter(s => String(s.NoRujukan).indexOf('/' + tahun + '/') !== -1).length + 1;
-      noRujukan = (tetapan('PREFIKS_RUJUKAN_SURAT') || 'SMKA/HEM/KHD') + '/' + tahun + '/' + ('000' + bil).slice(-4);
+      noRujukan = noRujukanBaharu(semuaSurat, tahun);
       tarikhKeluar = tarikhHariIni();
       tambahBaris(SHEET.SURAT, { NoRujukan: noRujukan, TarikhKeluar: tarikhKeluar, NoKPMurid: "'" + digitSahaja(murid.NoKP), NamaMurid: murid.Nama,
         Kelas: murid.Kelas, Kategori: kategori, Peringkat: kodPeringkat, BilHari: a[kategori].hari,
@@ -201,4 +200,11 @@ function apiJanaSurat(p) {
       ambang: PERINGKAT_AMARAN[kategori]
     } });
   });
+}
+
+/* Nombor rujukan surat seterusnya: nombor terbesar tahun ini + 1. */
+function noRujukanBaharu(semuaSurat, tahun) {
+  let maks = 0;
+  semuaSurat.forEach(s => { const m = String(s.NoRujukan).match(new RegExp('/' + tahun + '/(\\d+)$')); if (m) maks = Math.max(maks, Number(m[1])); });
+  return (tetapan('PREFIKS_RUJUKAN_SURAT') || 'SMKA/HEM/KHD') + '/' + tahun + '/' + ('000' + (maks + 1)).slice(-4);
 }

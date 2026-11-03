@@ -170,7 +170,7 @@ function analisisBulananSubjekGuru(sesi, bulan) {
     statusMasa[l.StatusMasa] = (statusMasa[l.StatusMasa] || 0) + 1; jenis[l.Jenis] = (jenis[l.Jenis] || 0) + 1;
   });
   return {
-    sesi: log.map(l => ({ tarikh: keTarikh(l.Tarikh), hari: l.Hari, slot: l.Slot, kelas: l.Kelas, subjek: l.Subjek, jenis: l.Jenis, statusMasa: l.StatusMasa,
+    sesi: log.map(l => ({ idLog: l.IdLog, bolehEdit: bolehEditSesi(sesi, l), tarikh: keTarikh(l.Tarikh), hari: l.Hari, slot: l.Slot, kelas: l.Kelas, subjek: l.Subjek, jenis: l.Jenis, statusMasa: l.StatusMasa,
       hadir: Number(l.Hadir), jumlah: Number(l.JumlahMurid), peratus: bulatPeratus(Number(l.Hadir), Number(l.JumlahMurid)) })),
     perKelas: Object.keys(perKelas).map(k => ({ kelas: k, sesi: perKelas[k].sesi, peratus: bulatPeratus(perKelas[k].hadir, perKelas[k].jumlah) })),
     statusMasa: Object.keys(statusMasa).map(k => ({ label: k, bil: statusMasa[k] })), jenis: Object.keys(jenis).map(k => ({ label: k, bil: jenis[k] })),
