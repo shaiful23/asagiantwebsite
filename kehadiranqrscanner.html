@@ -397,8 +397,8 @@ function imbasSemula() {
 }
 
 /* ------------------------------ BORANG ------------------------------ */
-function pilihanSebab(pilih) {
-  const k = {}; DATA.sebab.forEach(s => { (k[s.kategori || 'Lain-lain'] = k[s.kategori || 'Lain-lain'] || []).push(s); });
+function pilihanSebab(pilih, hadirKeSekolah) {
+  const k = {}; DATA.sebab.filter(s => !s.pontengKelas || hadirKeSekolah).forEach(s => { (k[s.kategori || 'Lain-lain'] = k[s.kategori || 'Lain-lain'] || []).push(s); });
   return '<option value="">— Pilih sebab tidak hadir —</option>' + Object.keys(k).map(g => '<optgroup label="' + esc(g) + '">' +
     k[g].map(s => '<option value="' + esc(s.kod) + '"' + (String(s.kod) === String(pilih) ? ' selected' : '') + '>' + esc(s.sebab) + '</option>').join('') + '</optgroup>').join('');
 }
@@ -424,12 +424,14 @@ function lukisBorang() {
     '<label class="l">Catatan (pilihan)</label><input id="fCatatan" class="input" placeholder="cth: Kelas di makmal / aktiviti luar"></div>' +
     '<div class="kad"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><h2 style="margin:0"><i class="ph-fill ph-users-three"></i>Murid (' + d.murid.length + ')</h2>' +
     '<button class="btn hantu kecil" id="btnSemua"><i class="ph ph-checks"></i>Semua Hadir</button></div>' +
-    '<p class="sub" style="margin-bottom:10px">Semua murid <b>hadir</b> secara lalai. Matikan suis bagi murid yang tidak hadir dan pilih sebab.</p>' +
+    '<p class="sub" style="margin-bottom:10px">Semua murid <b>hadir</b> secara lalai. Matikan suis bagi murid yang tidak hadir dan pilih sebab. Murid yang hadir ke sekolah tetapi tiada dalam kelas → tekan <b>Ponteng Kelas</b>.</p>' +
     '<div class="senarai-murid">' + d.murid.map(m => '<div class="murid' + (m.hadir ? '' : ' tidak') + '" data-nokp="' + esc(m.nokp) + '" data-nama="' + esc(m.nama) + '"><div class="atas">' + avatar(m.nama, m.gambar) +
       '<div class="nama">' + esc(m.nama) + (m.tidakHadirPagi ? '<small>Tidak hadir pagi ini (GT)</small>' : '') + '</div><label class="togol"><input type="checkbox"' + (m.hadir ? ' checked' : '') + '><span class="landas"></span><span>' + (m.hadir ? 'Hadir' : 'Tidak') + '</span></label></div>' +
-      '<select class="input sebab' + (m.hadir ? ' hidden' : '') + '">' + pilihanSebab(m.kodSebab) + '</select></div>').join('') + '</div></div>' +
+      '<select class="input sebab' + (m.hadir ? ' hidden' : '') + '">' + pilihanSebab(m.kodSebab, !m.tidakHadirPagi) + '</select>' +
+      (m.tidakHadirPagi ? '' : '<button type="button" class="btn kecil pk' + (m.hadir ? ' hidden' : '') + '" style="background:var(--merah)"><i class="ph-fill ph-person-simple-run"></i>Ponteng Kelas</button>') + '</div>').join('') + '</div></div>' +
     '<button class="btn hantu penuh" onclick="imbasSemula()"><i class="ph ph-arrow-counter-clockwise"></i>Batal & Imbas Kelas Lain</button>';
   b.querySelectorAll('.murid input[type=checkbox]').forEach(cb => cb.onchange = () => togol(cb));
+  b.querySelectorAll('.murid .pk').forEach(btn => btn.onclick = () => { btn.closest('.murid').querySelector('.sebab').value = 'PONTENG_KELAS'; });
   $('#btnSemua').onclick = () => b.querySelectorAll('.murid input[type=checkbox]').forEach(cb => { cb.checked = true; togol(cb); });
   $('#barBawah').classList.remove('hidden');
   $('#btnSimpan').innerHTML = '<i class="ph-bold ph-floppy-disk"></i>' + (d.sudahDirekod ? 'Kemas Kini' : 'Simpan Kehadiran');
@@ -437,7 +439,8 @@ function lukisBorang() {
 }
 function togol(cb) {
   const m = cb.closest('.murid'), h = cb.checked;
-  m.classList.toggle('tidak', !h); m.querySelector('.sebab').classList.toggle('hidden', h); cb.parentNode.lastElementChild.textContent = h ? 'Hadir' : 'Tidak'; kira();
+  m.classList.toggle('tidak', !h); m.querySelector('.sebab').classList.toggle('hidden', h);
+  const pk = m.querySelector('.pk'); if (pk) pk.classList.toggle('hidden', h); cb.parentNode.lastElementChild.textContent = h ? 'Hadir' : 'Tidak'; kira();
 }
 function kira() { const j = document.querySelectorAll('.murid').length, t = document.querySelectorAll('.murid.tidak').length; $('#kHadir').textContent = j - t; $('#kTidak').textContent = t; }
 
@@ -454,6 +457,7 @@ $('#btnSimpan').onclick = () => {
       const h = $('#skrinHasil'); h.classList.remove('hidden');
       h.innerHTML = '<div class="hasil"><i class="ph-fill ph-check-circle besar" style="color:var(--hijau)"></i><h3>Kehadiran ' + (r.dikemaskini ? 'dikemas kini' : 'direkod') + '!</h3><p class="sub">' + esc(DATA.kelas) + ' · ' + esc($('#fSubjek').value) + '</p><br>' +
         '<span class="cip c-hijau"><i class="ph-fill ph-check"></i>' + r.hadir + ' hadir</span><span class="cip c-merah"><i class="ph-fill ph-x"></i>' + r.tidakHadir + ' tidak hadir</span>' +
+        (r.pontengKelas ? '<span class="cip c-merah"><i class="ph-fill ph-person-simple-run"></i>' + r.pontengKelas + ' ponteng kelas</span>' : '') +
         '<span class="cip ' + (r.statusMasa === 'LEWAT' ? 'c-kuning' : 'c-biru') + '"><i class="ph-fill ph-clock"></i>Guru: ' + esc(r.statusMasa) + '</span><br><br>' +
         '<button class="btn" onclick="imbasSemula()"><i class="ph ph-qr-code"></i>Imbas Kelas Seterusnya</button></div>';
       window.scrollTo(0, 0);

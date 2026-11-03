@@ -47,7 +47,7 @@ const HEADER = {
   REKOD_KELAS: ['IdRekod', 'Tarikh', 'Kelas', 'JumlahMurid', 'Hadir', 'TidakHadir', 'NoKPGuru', 'NamaGuru', 'MasaRekod', 'SelepasKunci', 'IdPermohonan'],
   TIDAK_HADIR: ['IdRekod', 'Tarikh', 'Kelas', 'NoKPMurid', 'NamaMurid', 'KodSebab', 'Sebab', 'DikiraPonteng'],
   LOG_SUBJEK: ['IdLog', 'Tarikh', 'Hari', 'Slot', 'NoKPGuru', 'NamaGuru', 'Kelas', 'Bilik', 'Subjek', 'Jenis', 'StatusMasa', 'JumlahMurid', 'Hadir', 'TidakHadir', 'Catatan', 'Masa'],
-  TIDAK_HADIR_SUBJEK: ['IdLog', 'Tarikh', 'Slot', 'Kelas', 'Subjek', 'NoKPMurid', 'NamaMurid', 'KodSebab', 'Sebab'],
+  TIDAK_HADIR_SUBJEK: ['IdLog', 'Tarikh', 'Slot', 'Kelas', 'Subjek', 'NoKPMurid', 'NamaMurid', 'KodSebab', 'Sebab', 'PontengKelas', 'NoKPGuru', 'NamaGuru'],
   PERMOHONAN: ['IdPermohonan', 'TarikhRekod', 'Kelas', 'NoKPGuru', 'NamaGuru', 'Alasan', 'MasaMohon', 'Status', 'DiprosesOleh', 'MasaProses', 'CatatanAdmin', 'TamatAkses'],
   INTERVENSI: ['IdIntervensi', 'Tarikh', 'NoKPMurid', 'NamaMurid', 'Kelas', 'Kategori', 'Tindakan', 'Catatan', 'NoKPGuru', 'NamaGuru', 'Masa'],
   SURAT: ['NoRujukan', 'TarikhKeluar', 'NoKPMurid', 'NamaMurid', 'Kelas', 'Kategori', 'Peringkat', 'BilHari', 'MulaEpisod', 'NoKPGuru', 'NamaGuru', 'Masa'],
@@ -113,6 +113,12 @@ const SENARAI_TINDAKAN_INTERVENSI = [
   'Surat amaran dihantar',
   'Lain-lain'
 ];
+
+/* Ponteng kelas: murid hadir ke sekolah (menurut rekod GT) tetapi tiada dalam
+   kelas semasa waktu P&P guru mata pelajaran. Sebab khas dalam borang imbas QR. */
+const KOD_PONTENG_KELAS = 'PONTENG_KELAS';
+const SEBAB_PONTENG_KELAS = { kod: KOD_PONTENG_KELAS, sebab: 'Ponteng kelas (hadir ke sekolah tetapi tiada dalam kelas)', kategori: 'Ponteng Kelas', dikiraPonteng: false, pontengKelas: true };
+const AMBANG_PONTENG_KELAS_BERULANG = 3;   // kes sebulan → murid ditanda "berulang"
 
 const SENARAI_JENIS_GURU_SUBJEK = ['GURU SUBJEK', 'GURU TEACH-IN', 'LAIN-LAIN'];
 

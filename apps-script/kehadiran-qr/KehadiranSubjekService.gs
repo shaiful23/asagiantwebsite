@@ -58,6 +58,13 @@ function logSubjekPada(nokpGuru, kelas, tarikh, slot) {
     && keTarikh(l.Tarikh) === tarikh && String(l.Slot) === String(slot)) || null;
 }
 
+/* Peta { nokp: sebab } murid yang ditanda tidak hadir ke sekolah oleh GT pada tarikh itu. */
+function muridTidakHadirSekolah(kelas, tarikh) {
+  const o = {}, r = rekodKelasPada(tarikh, kelas);
+  if (r) bacaSheetSebagaiObjek(SHEET.TIDAK_HADIR).filter(t => t.IdRekod === r.IdRekod).forEach(t => { o[digitSahaja(t.NoKPMurid)] = t.Sebab; });
+  return o;
+}
+
 function apiImbasKelas(p) {
   const sesi = wajibSesi(p.token, { jenis: 'GURU' });
   if (gagal(sesi)) return sesi;
@@ -97,7 +104,7 @@ function apiImbasKelas(p) {
     slot, jadual: jadual ? { subjek: jadual.Subjek, guru: jadual.NamaGuru, milikSaya: !!milikSaya } : null,
     teachIn: teachIn ? { subjek: teachIn.Subjek, guruAsal: teachIn.NamaGuruAsal } : null,
     subjekCadangan, jenisCadangan, subjekSaya, senaraiSubjek: SENARAI_SUBJEK, senaraiJenis: SENARAI_JENIS_GURU_SUBJEK,
-    murid, sebab: senaraiSebab(), sudahDirekod: sedia ? { idLog: sedia.IdLog, masa: sedia.Masa, subjek: sedia.Subjek } : null
+    murid, sebab: [SEBAB_PONTENG_KELAS].concat(senaraiSebab()), sudahDirekod: sedia ? { idLog: sedia.IdLog, masa: sedia.Masa, subjek: sedia.Subjek } : null
   });
 }
 
@@ -119,6 +126,11 @@ function apiRekodKehadiranSubjek(p) {
     if (!petaMurid[digitSahaja(tidakHadir[i].nokp)]) return ralat('Murid ' + tidakHadir[i].nokp + ' bukan dalam kelas ini.');
     if (!tidakHadir[i].kodSebab) return ralat('Sila pilih sebab bagi ' + petaMurid[digitSahaja(tidakHadir[i].nokp)].Nama + '.');
   }
+  /* Ponteng kelas hanya sah bagi murid yang hadir ke sekolah hari ini (tidak ditanda tidak hadir oleh GT). */
+  const tidakHadirSekolah = muridTidakHadirSekolah(kelas.kelas, tarikh);
+  const salah = tidakHadir.filter(t => t.kodSebab === KOD_PONTENG_KELAS && tidakHadirSekolah[digitSahaja(t.nokp)]);
+  if (salah.length) return ralat(petaMurid[digitSahaja(salah[0].nokp)].Nama + ' ditanda tidak hadir ke sekolah oleh Guru Tingkatan hari ini (' +
+    tidakHadirSekolah[digitSahaja(salah[0].nokp)] + ') — bukan ponteng kelas. Pilih sebab lain.');
 
   let statusMasa = 'TIADA SLOT';
   if (slot) statusMasa = (minitDaripadaHHmm(masa) - minitDaripadaHHmm(slot.mula)) > Number(tetapan('TOLERANSI_LEWAT_MINIT') || 10) ? 'LEWAT' : 'TEPAT MASA';
@@ -137,11 +149,12 @@ function apiRekodKehadiranSubjek(p) {
     const lama = bacaSheetSebagaiObjek(SHEET.TIDAK_HADIR_SUBJEK).filter(t => t.IdLog === idLog).map(t => t.__row);
     if (lama.length) padamBaris(SHEET.TIDAK_HADIR_SUBJEK, lama);
     tambahBanyakBaris(SHEET.TIDAK_HADIR_SUBJEK, tidakHadir.map(t => {
-      const m = petaMurid[digitSahaja(t.nokp)], s = cariSebab(t.kodSebab);
+      const m = petaMurid[digitSahaja(t.nokp)], s = t.kodSebab === KOD_PONTENG_KELAS ? SEBAB_PONTENG_KELAS : cariSebab(t.kodSebab);
       return { IdLog: idLog, Tarikh: tarikh, Slot: log.Slot, Kelas: kelas.kelas, Subjek: subjek, NoKPMurid: "'" + digitSahaja(m.NoKP),
-        NamaMurid: m.Nama, KodSebab: s.kod, Sebab: s.sebab };
+        NamaMurid: m.Nama, KodSebab: s.kod, Sebab: s.sebab, PontengKelas: s.pontengKelas ? 'YA' : 'TIDAK', NoKPGuru: "'" + sesi.nokp, NamaGuru: sesi.nama };
     }));
     catatAudit(sesi, sedia ? 'KEMASKINI_KEHADIRAN_SUBJEK' : 'REKOD_KEHADIRAN_SUBJEK', kelas.kelas + ' ' + subjek + ' ' + log.Slot);
-    return jaya({ idLog, statusMasa: log.StatusMasa, hadir: log.Hadir, tidakHadir: log.TidakHadir, jumlah: log.JumlahMurid, dikemaskini: !!sedia });
+    return jaya({ idLog, statusMasa: log.StatusMasa, hadir: log.Hadir, tidakHadir: log.TidakHadir, jumlah: log.JumlahMurid, dikemaskini: !!sedia,
+      pontengKelas: tidakHadir.filter(t => t.kodSebab === KOD_PONTENG_KELAS).length });
   });
 }

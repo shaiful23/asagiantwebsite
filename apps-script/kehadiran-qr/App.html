@@ -107,9 +107,13 @@ function cartaGauge(el, nilai, label, warna) {
 }
 function cartaBar(el, kategori, siri, opsyen) {
   const o = opsyen || {};
-  carta(el, { chart: { type: 'bar', height: o.tinggi || 300, stacked: !!o.bertindan }, series: siri, xaxis: { categories: kategori, labels: { rotate: -35, trim: true } },
-    plotOptions: { bar: { borderRadius: 6, columnWidth: o.lebar || '55%', horizontal: !!o.mendatar, borderRadiusApplication: 'end' } },
-    yaxis: o.peratus ? { max: 100, min: 0, labels: { formatter: v => Math.round(v) + '%' } } : { labels: { formatter: v => Math.round(v) } },
+  /* Bar mendatar: paksi Y = kategori (teks), paksi X = nilai — pemformat nombor mesti pada paksi nilai sahaja. */
+  const fmtNilai = v => o.peratus ? Math.round(v) + '%' : Math.round(v);
+  const paksiNilai = o.peratus ? { max: 100, min: 0, labels: { formatter: fmtNilai } } : { labels: { formatter: fmtNilai } };
+  carta(el, { chart: { type: 'bar', height: o.tinggi || 300, stacked: !!o.bertindan }, series: siri,
+    xaxis: o.mendatar ? Object.assign({ categories: kategori }, paksiNilai) : { categories: kategori, labels: { rotate: -35, trim: true } },
+    plotOptions: { bar: { borderRadius: 6, columnWidth: o.lebar || '55%', barHeight: '60%', horizontal: !!o.mendatar, borderRadiusApplication: 'end' } },
+    yaxis: o.mendatar ? { labels: { maxWidth: 220 } } : paksiNilai,
     colors: o.warna || PALET, tooltip: { y: { formatter: v => o.peratus ? Number(v).toFixed(1) + '%' : v } }, fill: { opacity: 1 } });
 }
 function cartaKawasan(el, kategori, siri, opsyen) {
@@ -254,7 +258,8 @@ function senaraiNav() {
   } else {
     if (u.guruKelas || u.admin) n.push({ kumpulan: 'Guru Tingkatan' }, { id: 'kehadiran-kelas', label: 'Rekod Kehadiran Kelas', ikon: 'users-three' }, { id: 'amaran', label: 'Amaran Ponteng', ikon: 'warning-octagon' });
     n.push({ kumpulan: 'Pengajaran & Pembelajaran' }, { id: 'imbas', label: 'Imbas QR Kelas', ikon: 'qr-code' }, { id: 'kelas-diajar', label: 'Kelas Diajar & Teach-In', ikon: 'chalkboard-teacher' });
-    n.push({ kumpulan: 'Rekod & Pelajar' }, { id: 'rekod', label: 'Rekod Kehadiran', ikon: 'calendar-check' }, { id: 'profil', label: 'Profil Pelajar', ikon: 'identification-badge' });
+    n.push({ kumpulan: 'Rekod & Pelajar' }, { id: 'rekod', label: 'Rekod Kehadiran', ikon: 'calendar-check' }, { id: 'ponteng-kelas', label: 'Ponteng Kelas', ikon: 'person-simple-run' },
+      { id: 'profil', label: 'Profil Pelajar', ikon: 'identification-badge' });
     if (u.admin) n.push({ kumpulan: 'Pentadbir' }, { id: 'permohonan', label: 'Permohonan Buka Akses', ikon: 'lock-key-open', lencana: BIL_PERMOHONAN },
       { id: 'analisis-permohonan', label: 'Analisis Permohonan', ikon: 'chart-line-up' }, { id: 'kod-qr', label: 'Kod QR Kelas', ikon: 'qr-code' },
       { id: 'pengguna', label: 'Pengguna & Sistem', ikon: 'gear-six' });
@@ -371,12 +376,12 @@ function dashboardMurid(d) {
       kadStat(hi.direkod ? (hi.hadir ? 'hijau' : 'merah') : 'biru', hi.direkod ? (hi.hadir ? 'check-circle' : 'x-circle') : 'clock', 'Status Hari Ini', hi.direkod ? (hi.hadir ? 'Hadir' : 'Tidak Hadir') : 'Belum', hi.sebab ? esc(hi.sebab) : (hi.direkod ? 'Direkod oleh Guru Tingkatan' : 'Menunggu rekod Guru Tingkatan')) +
       kadStat('biru', 'calendar-check', 'Kehadiran Bulan Ini', m.bulanIni.peratus.toFixed(1) + '<small>%</small>', m.bulanIni.hadir + ' / ' + m.bulanIni.hari + ' hari') +
       kadStat('ungu', 'chart-line-up', 'Kehadiran Tahun Ini', m.tahunIni.peratus.toFixed(1) + '<small>%</small>', m.tahunIni.hadir + ' / ' + m.tahunIni.hari + ' hari persekolahan') +
-      kadStat(m.tahunIni.ponteng ? 'merah' : 'hijau', 'prohibit', 'Hari Ponteng (Tahun)', m.tahunIni.ponteng, m.tahunIni.tidakHadirSah + ' hari tidak hadir bersebab') +
+      kadStat(m.tahunIni.ponteng || m.tahunIni.pontengKelas ? 'merah' : 'hijau', 'prohibit', 'Hari Ponteng (Tahun)', m.tahunIni.ponteng, m.tahunIni.pontengKelas + ' kes ponteng kelas · ' + m.tahunIni.tidakHadirSah + ' hari bersebab') +
     '</div><div class="grid g-21 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-bar', 'duotone') + 'Trend Kehadiran Bulanan</h3><span class="remeh">Tahun semasa</span></div><div id="cMTrend" class="carta"></div></div>' +
     '<div class="kad"><div class="kad-kepala"><h3>' + ikon('gauge', 'duotone') + 'Kehadiran Keseluruhan</h3></div><div id="cMGauge"></div></div></div>' +
     '<div class="grid g-2"><div class="kad"><div class="kad-kepala"><h3>' + ikon('clock-countdown', 'duotone') + 'Sesi P&P Hari Ini</h3><span class="remeh">Direkod melalui imbasan QR guru</span></div><div class="senarai-jadual">' +
     (m.sesiHariIni.length ? m.sesiHariIni.map(s => '<div class="slot-item ' + (s.jenis === 'GURU TEACH-IN' ? 'teachin' : '') + '"><div class="masa">' + esc(s.slot || '-') + '<small>Masa</small></div><span class="garis"></span><div class="info"><b>' + esc(s.subjek) + '</b><small>' + esc(s.guru) + (s.jenis === 'GURU TEACH-IN' ? ' · Teach-In' : '') + '</small></div>' +
-      (s.hadir ? lencana('Hadir', 'hijau') : lencana('Tidak hadir', 'merah')) + '</div>').join('') : kosong('chalkboard', 'Tiada sesi direkod lagi hari ini')) +
+      (s.hadir ? lencana('Hadir', 'hijau') : s.pontengKelas ? lencana('Ponteng kelas', 'merah', 'person-simple-run') : lencana('Tidak hadir', 'kuning')) + '</div>').join('') : kosong('chalkboard', 'Tiada sesi direkod lagi hari ini')) +
     '</div></div><div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar-dots', 'duotone') + '20 Hari Persekolahan Terkini</h3></div><div class="kalendar" style="grid-template-columns:repeat(10,1fr)">' +
     (m.terkini.length ? m.terkini.map(h => '<div class="sel ' + (h.hadir ? 'hadir' : (h.ponteng ? 'ponteng' : 'sah')) + '" title="' + esc(tarikhPanjang(h.tarikh) + (h.sebab ? ' · ' + h.sebab : '')) + '">' + Number(h.tarikh.slice(8)) + '<small>' + esc(BULAN[Number(h.tarikh.slice(5, 7)) - 1].slice(0, 3)) + '</small></div>').join('') : '') + '</div>' +
     (m.terkini.length ? '' : kosong('calendar-blank', 'Belum ada rekod')) + petunjukKalendar() + '</div></div>';
@@ -424,6 +429,9 @@ function dashboardGuru(d) {
     (ks.direkod && ks.senaraiTidakHadir.length ? ks.senaraiTidakHadir.map(t => '<div class="slot-item"><span class="garis" style="background:' + (t.ponteng ? WARNA.merah : WARNA.emas) + '"></span><div class="info"><b>' + esc(t.nama) + '</b><small>' + esc(t.sebab) + '</small></div>' + (t.ponteng ? lencana('Ponteng', 'merah') : lencana('Bersebab', 'kuning')) + '</div>').join('')
       : kosong(ks.direkod ? 'confetti' : 'clock', ks.direkod ? 'Semua murid hadir!' : 'Belum direkod')) + '</div></div></div>';
 
+  if (ks && ks.pontengKelasHariIni && ks.pontengKelasHariIni.length) html += '<div class="banner merah">' + ikon('person-simple-run', 'fill') + '<div><b>' + ks.pontengKelasHariIni.length +
+    ' kes ponteng kelas hari ini — kelas ' + esc(ks.kelas) + '</b><p>' + ks.pontengKelasHariIni.map(x => esc(x.nama) + ' (' + esc(x.subjek) + ', ' + esc(x.masa) + ')').join(' · ') +
+    '</p></div><button class="btn kecil merah" style="margin-left:auto" onclick="pergi(\'ponteng-kelas\')">Lihat Analisis</button></div>';
   if (sk) html += blokSekolah(sk);
   $('#kandungan').innerHTML = html;
 
@@ -439,7 +447,7 @@ function blokSekolah(sk) {
   return '<div class="nav-kumpulan" style="padding:8px 0 12px;color:var(--teks-2)">Gambaran Sekolah Hari Ini</div><div class="grid g-4 mb">' +
     kadStat('biru', 'buildings', 'Kelas Direkod', sk.kad.kelasDirekod + '<small> / ' + sk.kad.kelas + '</small>', sk.belumDirekod.length + ' kelas belum direkod' + (sk.kelasCuti ? ' · ' + sk.kelasCuti + ' kelas giliran/cuti' : '')) +
     kadStat('hijau', 'percent', 'Kehadiran Sekolah', sk.kad.peratusHadir.toFixed(1) + '<small>%</small>', 'Daripada kelas yang telah direkod') +
-    kadStat('merah', 'user-minus', 'Murid Tidak Hadir', sk.kad.tidakHadir, sk.kad.ponteng + ' dikira ponteng') +
+    kadStat('merah', 'user-minus', 'Murid Tidak Hadir', sk.kad.tidakHadir, sk.kad.ponteng + ' dikira ponteng · ' + sk.kad.pontengKelas + ' kes ponteng kelas') +
     kadStat('kuning', 'lock-key-open', 'Permohonan Menunggu', sk.kad.permohonanMenunggu, '<a href="#/permohonan">Semak permohonan →</a>') + '</div>' +
     '<div class="grid g-2 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-bar', 'duotone') + 'Kehadiran Mengikut Tingkatan</h3></div><div id="cSTingkatan" class="carta"></div></div>' +
     '<div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-pie-slice', 'duotone') + 'Sebab Tidak Hadir</h3></div><div id="cSSebab" class="carta"></div></div></div>' +
@@ -614,19 +622,21 @@ function rekodMurid(m) {
     kal += '<div class="sel ' + (h ? (h.hadir ? 'hadir' : h.ponteng ? 'ponteng' : 'sah') : '') + (t === tarikhIniKlien() ? ' hari-ini' : '') + '" title="' + esc(h && h.sebab ? h.sebab : '') + '">' + i + (h ? '<small>' + (h.hadir ? 'Hadir' : 'Tidak') + '</small>' : '') + '</div>'; }
   $('#rkIsi').innerHTML = '<div class="grid g-4 mb">' + kadStat('biru', 'calendar-check', 'Kehadiran Bulan Ini', r.peratus.toFixed(1) + '<small>%</small>', r.hadir + ' / ' + r.hari + ' hari') +
     kadStat('merah', 'calendar-x', 'Tidak Hadir', r.tidakHadir, 'hari dalam bulan ini') + kadStat('ungu', 'chart-line-up', 'Kehadiran Tahun Ini', r.peratusTahun.toFixed(1) + '<small>%</small>', 'Purata kumulatif') +
-    kadStat(r.pontengTahun ? 'oren' : 'hijau', 'prohibit', 'Ponteng (Tahun)', r.pontengTahun, 'Hari dikira ponteng') + '</div>' +
+    kadStat(r.pontengTahun || r.pontengKelasTahun ? 'oren' : 'hijau', 'prohibit', 'Ponteng (Tahun)', r.pontengTahun, r.pontengKelasTahun + ' kes ponteng kelas tahun ini (' + r.pontengKelas + ' bulan ini)') + '</div>' +
     '<div class="grid g-2 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar-dots', 'duotone') + 'Kalendar Kehadiran</h3></div><div class="kalendar">' + kal + '</div>' + petunjukKalendar() + '</div>' +
     '<div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-bar', 'duotone') + 'Trend Bulanan (Tahun Ini)</h3></div><div id="cRTrend" class="carta"></div></div></div>' +
     '<div class="grid g-2 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('books', 'duotone') + 'Kehadiran Mengikut Subjek</h3></div><div id="cRSubjek" class="carta"></div></div>' +
     '<div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-pie-slice', 'duotone') + 'Sebab Tidak Hadir</h3></div><div id="cRSebab" class="carta"></div></div></div>' +
     '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('list-bullets', 'duotone') + 'Rekod Harian</h3></div><div id="tRHarian"></div></div>' +
-    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('clock-countdown', 'duotone') + 'Sesi Subjek Tidak Hadir</h3></div><div id="tRSubjek"></div></div>';
+    '<div class="grid g-2"><div class="kad"><div class="kad-kepala"><h3>' + ikon('clock-countdown', 'duotone') + 'Sesi Subjek Tidak Hadir</h3></div><div id="tRSubjek"></div></div>' +
+    '<div class="kad"><div class="kad-kepala"><h3>' + ikon('person-simple-run', 'duotone') + 'Ponteng Kelas</h3><span class="remeh">' + m.pontengKelas.length + ' kes bulan ini</span></div><div id="tRPK"></div></div></div>';
   cartaBar('#cRTrend', m.trend.map(t => t.label), [{ name: 'Kehadiran', data: m.trend.map(t => t.peratus) }], { peratus: true, warna: [WARNA.ungu] });
   if (m.perSubjek.length) cartaBar('#cRSubjek', m.perSubjek.map(s => s.subjek), [{ name: 'Kehadiran', data: m.perSubjek.map(s => s.peratus) }], { peratus: true, mendatar: true, warna: [WARNA.biru], tinggi: Math.max(240, m.perSubjek.length * 38) });
   else $('#cRSubjek').innerHTML = kosong('books', 'Tiada sesi subjek direkod bulan ini');
   if (m.sebab.length) cartaDonut('#cRSebab', m.sebab.map(s => s.sebab), m.sebab.map(s => s.bil), null, 'Hari'); else $('#cRSebab').innerHTML = kosong('confetti', 'Tiada ketidakhadiran bulan ini');
   jadualData('#tRHarian', { data: m.harian.slice().reverse(), eksport: 'rekod-harian-' + m.bulan, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => '<b>' + esc(tarikhPendek(r.tarikh)) + '</b>' }, { k: 'hari', label: 'Hari' },
     { k: 'hadir', label: 'Status', teks: r => r.hadir ? 'Hadir' : 'Tidak hadir', f: r => r.hadir ? lencana('Hadir', 'hijau') : lencana(r.ponteng ? 'Ponteng' : 'Tidak hadir', r.ponteng ? 'merah' : 'kuning') }, { k: 'sebab', label: 'Sebab' }] });
+  jadualData('#tRPK', { data: m.pontengKelas, cari: false, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => esc(tarikhPendek(r.tarikh)) }, { k: 'masa', label: 'Masa' }, { k: 'subjek', label: 'Subjek' }, { k: 'guru', label: 'Guru' }] });
   jadualData('#tRSubjek', { data: m.subjekTidakHadir, cari: false, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => esc(tarikhPendek(r.tarikh)) }, { k: 'slot', label: 'Masa', nombor: true }, { k: 'subjek', label: 'Subjek' }, { k: 'sebab', label: 'Sebab' }] });
 }
 
@@ -680,6 +690,58 @@ function rekodSekolah(s) {
       { k: 'selepasKunci', label: 'Rekod Selepas Kunci', nombor: true, f: r => r.selepasKunci ? lencana(r.selepasKunci + ' hari', 'kuning') : '0' }] });
 }
 
+/* ============================== PONTENG KELAS ============================== */
+let PKL = { bulan: '', kelas: '' };
+HALAMAN_FN['ponteng-kelas'] = function () {
+  if (!PKL.bulan) PKL.bulan = tarikhIniKlien().slice(0, 7);
+  muat('apiPontengKelas', { bulan: PKL.bulan, kelas: PKL.kelas }).then(d => {
+    $('#remehHalaman').textContent = d.skop + ' · ' + d.labelBulan;
+    const k = d.kad, beza = k.kes - k.kesBulanLalu;
+    const trendTeks = k.kesBulanLalu || k.kes ? (beza > 0 ? '▲ ' + beza + ' berbanding bulan lalu' : beza < 0 ? '▼ ' + Math.abs(beza) + ' berbanding bulan lalu' : 'Sama seperti bulan lalu') : 'Tiada kes bulan lalu';
+    $('#kandungan').innerHTML =
+      '<div class="kad mb"><div class="alat-jadual" style="margin:0"><div class="medan" style="margin:0"><label>Bulan</label><input type="month" class="input" id="pkBulan" value="' + esc(d.bulan) + '" max="' + tarikhIniKlien().slice(0, 7) + '"></div>' +
+      (d.senaraiKelas.length ? '<div class="medan" style="margin:0"><label>Kelas</label><select class="input" id="pkKelas"><option value="">Semua kelas</option>' + d.senaraiKelas.map(c => '<option ' + (c === PKL.kelas ? 'selected' : '') + '>' + esc(c) + '</option>').join('') + '</select></div>' : '') +
+      '<div class="banner biru" style="margin:0;flex:1;min-width:260px">' + ikon('info', 'fill') + '<div><b>Ponteng kelas</b><p>Murid hadir ke sekolah (tidak ditanda tidak hadir oleh GT) tetapi tiada dalam kelas semasa waktu P&amp;P. Direkod oleh guru melalui imbasan QR kelas.</p></div></div></div></div>' +
+      '<div class="grid g-4 mb">' +
+        kadStat('merah', 'person-simple-run', 'Kes Ponteng Kelas', k.kes, trendTeks) +
+        kadStat('oren', 'users', 'Murid Terlibat', k.murid, '<b style="color:var(--merah)">' + k.berulang + '</b> murid berulang (≥' + d.ambangBerulang + ' kes)') +
+        kadStat('ungu', 'percent', 'Kadar Ponteng Kelas', k.kadar.toFixed(2) + '<small>%</small>', 'daripada kehadiran murid dalam ' + k.sesi + ' sesi direkod') +
+        kadStat('biru', 'buildings', 'Kelas Terlibat', k.kelas, k.kesTahun + ' kes sepanjang ' + d.bulan.slice(0, 4)) + '</div>' +
+      '<div class="grid g-21 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-bar', 'duotone') + 'Kes Harian</h3><span class="remeh">' + esc(d.labelBulan) + '</span></div><div id="cPKHarian" class="carta"></div></div>' +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('trend-up', 'duotone') + 'Trend Bulanan</h3><span class="remeh">' + esc(d.bulan.slice(0, 4)) + '</span></div><div id="cPKBulanan" class="carta"></div></div></div>' +
+      '<div class="grid g-3 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('books', 'duotone') + 'Mengikut Subjek</h3></div><div id="cPKSubjek" class="carta"></div></div>' +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('clock', 'duotone') + 'Mengikut Waktu</h3></div><div id="cPKMasa" class="carta"></div></div>' +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar', 'duotone') + 'Mengikut Hari</h3></div><div id="cPKHari" class="carta"></div></div></div>' +
+      '<div class="grid g-21 mb"><div class="kad"><div class="kad-kepala"><h3>' + ikon('grid-four', 'duotone') + 'Peta Haba Hari × Waktu</h3><span class="remeh">Bila ponteng kelas paling kerap berlaku</span></div><div id="cPKHaba" class="carta"></div></div>' +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('buildings', 'duotone') + 'Mengikut Kelas</h3></div><div id="cPKKelas" class="carta"></div></div></div>' +
+      '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('student', 'duotone') + 'Murid Terlibat</h3><span class="remeh">Klik untuk profil</span></div><div id="tPKMurid"></div></div>' +
+      (d.lihatGuru ? '<div class="kad mb"><div class="kad-kepala"><h3>' + ikon('chalkboard-teacher', 'duotone') + 'Mengikut Guru Yang Merekod</h3></div><div id="tPKGuru"></div></div>' : '') +
+      '<div class="kad"><div class="kad-kepala"><h3>' + ikon('list-bullets', 'duotone') + 'Semua Kes</h3></div><div id="tPKKes"></div></div>';
+    $('#pkBulan').onchange = e => { PKL.bulan = e.target.value; HALAMAN_FN['ponteng-kelas'](); };
+    if ($('#pkKelas')) $('#pkKelas').onchange = e => { PKL.kelas = e.target.value; HALAMAN_FN['ponteng-kelas'](); };
+    const tiada = sel => { $(sel).innerHTML = kosong('confetti', 'Tiada kes ponteng kelas'); };
+    if (k.kes) carta('#cPKHarian', { chart: { type: 'bar', height: 290 }, series: [{ name: 'Kes', data: d.trendHarian.map(x => x.bil) }],
+      xaxis: { categories: d.trendHarian.map(x => Number(x.tarikh.slice(8)) + ' ' + (HARI_PENDEK[hariDariTarikh(x.tarikh)] || '')) }, colors: [WARNA.merah],
+      plotOptions: { bar: { borderRadius: 5, columnWidth: '60%' } }, yaxis: { labels: { formatter: v => Math.round(v) } } }); else tiada('#cPKHarian');
+    cartaKawasan('#cPKBulanan', d.trendBulanan.map(x => x.bulan), [{ name: 'Kes', data: d.trendBulanan.map(x => x.bil) }], { warna: [WARNA.merah] });
+    if (d.perSubjek.length) cartaBar('#cPKSubjek', d.perSubjek.map(x => x.label), [{ name: 'Kes', data: d.perSubjek.map(x => x.bil) }], { mendatar: true, warna: [WARNA.ungu], tinggi: Math.max(260, d.perSubjek.length * 34) }); else tiada('#cPKSubjek');
+    if (d.perMasa.length) cartaBar('#cPKMasa', d.perMasa.map(x => x.label), [{ name: 'Kes', data: d.perMasa.map(x => x.bil) }], { warna: [WARNA.oren] }); else tiada('#cPKMasa');
+    if (k.kes) cartaBar('#cPKHari', d.perHari.map(x => HARI_PENDEK[x.label] || x.label), [{ name: 'Kes', data: d.perHari.map(x => x.bil) }], { warna: [WARNA.biru], lebar: '50%' }); else tiada('#cPKHari');
+    if (k.kes && d.petaHaba.masa.length) carta('#cPKHaba', { chart: { type: 'heatmap', height: 300 }, dataLabels: { enabled: true, style: { colors: ['#fff'] } },
+      series: d.petaHaba.hari.map((h, ri) => ({ name: HARI_PENDEK[h] || h, data: d.petaHaba.masa.map((m, ci) => ({ x: m, y: d.petaHaba.nilai[ri][ci] })) })).reverse(),
+      colors: [WARNA.merah], plotOptions: { heatmap: { radius: 6, colorScale: { ranges: [{ from: 0, to: 0, color: '#EEF1F7', name: 'Tiada' }] } } } }); else tiada('#cPKHaba');
+    if (d.perKelas.length) cartaBar('#cPKKelas', d.perKelas.map(x => x.label), [{ name: 'Kes', data: d.perKelas.map(x => x.bil) }], { mendatar: true, warna: [WARNA.merah], tinggi: Math.max(260, d.perKelas.length * 34) }); else tiada('#cPKKelas');
+    jadualData('#tPKMurid', { data: d.murid, eksport: 'ponteng-kelas-murid-' + d.bulan, klik: r => bukaProfilModal(r.nokp), lajur: [
+      { k: 'nama', label: 'Murid', f: r => '<div class="orang">' + avatar(r.nama, r.gambar) + '<div><b>' + esc(r.nama) + '</b><small>' + esc(r.kelas) + '</small></div></div>' },
+      { k: 'bil', label: 'Kes', nombor: true, f: r => '<b style="color:var(--merah)">' + r.bil + '</b>' + (r.berulang ? ' ' + lencana('Berulang', 'merah', 'warning') : '') },
+      { k: 'subjek', label: 'Subjek', f: r => '<small>' + esc(r.subjek) + '</small>' }, { k: 'terkini', label: 'Kes Terkini', f: r => esc(tarikhPendek(r.terkini)) }] });
+    if (d.lihatGuru) jadualData('#tPKGuru', { data: d.perGuru, cari: false, eksport: 'ponteng-kelas-guru-' + d.bulan, lajur: [{ k: 'label', label: 'Guru' }, { k: 'bil', label: 'Kes Direkod', nombor: true }] });
+    jadualData('#tPKKes', { data: d.kes, eksport: 'ponteng-kelas-kes-' + d.bulan, lajur: [{ k: 'tarikh', label: 'Tarikh', f: r => '<b>' + esc(tarikhPendek(r.tarikh)) + '</b><br><small style="color:var(--teks-2)">' + esc(r.hari) + '</small>' },
+      { k: 'masa', label: 'Masa' }, { k: 'nama', label: 'Murid', f: r => '<b>' + esc(r.nama) + '</b>' }, { k: 'kelas', label: 'Kelas' }, { k: 'subjek', label: 'Subjek' }, { k: 'guru', label: 'Guru' }] });
+  }).catch(e => { $('#kandungan').innerHTML = kosong('wifi-slash', 'Gagal memuat', e.message); });
+};
+function hariDariTarikh(t) { const [y, m, d] = t.split('-').map(Number); return ['AHAD', 'ISNIN', 'SELASA', 'RABU', 'KHAMIS', 'JUMAAT', 'SABTU'][new Date(y, m - 1, d).getDay()]; }
+
 /* ============================== PROFIL PELAJAR ============================== */
 HALAMAN_FN.profil = function () {
   if (PENGGUNA.jenis === 'MURID') {
@@ -711,7 +773,8 @@ function htmlProfil(p, id) {
       ['Penolong Guru Tingkatan', (p.penolongGT || []).join(', ') || '-'], ['Ibu Bapa / Penjaga', m.namaPenjaga], ['Telefon Penjaga', m.telefonPenjaga], ['Alamat', m.alamat]]
       .map(x => '<div><small>' + esc(x[0]) + '</small><span>' + esc(x[1] || '-') + '</span></div>').join('') + '</div><p style="font-size:11.5px;color:var(--kelabu);margin:16px 0 0">' + ikon('database') + ' Sumber: ' + esc(p.sumber) + '</p></div>' +
     '<div class="kad"><div class="kad-kepala"><h3>' + ikon('gauge', 'duotone') + 'Kehadiran Tahun Ini</h3></div><div id="' + id + 'Gauge"></div><div class="tangga" style="grid-template-columns:1fr 1fr;margin-top:8px">' +
-    '<div><b>' + k.hadir + '/' + k.hari + '</b><small>Hari hadir</small></div><div><b style="color:var(--merah)">' + k.ponteng + '</b><small>Hari ponteng</small></div><div><b>' + k.tidakHadirSah + '</b><small>Tidak hadir bersebab</small></div><div><b>' + k.berturut + '</b><small>Ponteng berturut kini</small></div></div></div></div>' +
+    '<div><b>' + k.hadir + '/' + k.hari + '</b><small>Hari hadir</small></div><div><b style="color:var(--merah)">' + k.ponteng + '</b><small>Hari ponteng</small></div><div><b>' + k.tidakHadirSah + '</b><small>Tidak hadir bersebab</small></div><div><b>' + k.berturut + '</b><small>Ponteng berturut kini</small></div>' +
+    '<div style="grid-column:1/-1"><b style="color:' + (k.pontengKelas ? 'var(--merah)' : 'inherit') + '">' + (k.pontengKelas || 0) + '</b><small>Kes ponteng kelas (tahun ini)</small></div></div></div></div>' +
     '<div class="grid g-2"><div class="kad"><div class="kad-kepala"><h3>' + ikon('chart-bar', 'duotone') + 'Trend Bulanan</h3></div><div id="' + id + 'Trend" class="carta"></div></div>' +
     '<div class="kad"><div class="kad-kepala"><h3>' + ikon('calendar-x', 'duotone') + 'Ketidakhadiran Terkini</h3></div><div class="senarai-jadual">' +
     (p.tidakHadirTerkini.length ? p.tidakHadirTerkini.map(h => '<div class="slot-item"><span class="garis" style="background:' + (h.ponteng ? WARNA.merah : WARNA.emas) + '"></span><div class="info"><b>' + esc(tarikhPanjang(h.tarikh)) + '</b><small>' + esc(h.sebab) + '</small></div>' + (h.ponteng ? lencana('Ponteng', 'merah') : lencana('Bersebab', 'kuning')) + '</div>').join('') : kosong('confetti', 'Tiada ketidakhadiran direkod')) + '</div></div></div>';
