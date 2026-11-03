@@ -96,7 +96,7 @@ function doGet(e) {
     let hasil;
     try {
       const fn = API_JSONP[p.apiAction];
-      hasil = fn ? fn(p) : ralat('apiAction tidak dikenali.');
+      hasil = fn ? laksanaApi(fn.name || 'apiJsonp', p, fn) : ralat('apiAction tidak dikenali.');
     } catch (err) {
       hasil = ralat('Ralat pelayan: ' + err.message);
     }
@@ -113,6 +113,23 @@ function doGet(e) {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
     .setFaviconUrl('https://smkasajaya.my/favicon.ico')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/* Titik masuk tunggal klien SPA: google.script.run.jalankanApi('apiX', param).
+   • hanya fungsi api* dibenarkan;
+   • ralat tidak dijangka dipulangkan sebagai {success:false} (bukan pengecualian)
+     supaya klien tidak tergantung;
+   • idPermintaan klien → simpanan idempoten (lihat denganKunci). */
+function jalankanApi(nama, p) { return laksanaApi(nama, p, typeof globalThis !== 'undefined' ? globalThis[nama] : null); }
+function laksanaApi(nama, p, fn) {
+  if (!/^api[A-Z]\w*$/.test(String(nama || '')) || typeof fn !== 'function') return ralat('Fungsi pelayan tidak dikenali: ' + nama);
+  ID_PERMINTAAN = String((p && p.idPermintaan) || '').replace(/[^\w-]/g, '').slice(0, 64);
+  try { return fn(p || {}); }
+  catch (e) {
+    const m = String(e && e.message || e);
+    if (/lock|kunci|timed out|Service invoked too many times|too many simultaneous|Exceeded maximum execution/i.test(m)) return ralat('Pelayan sibuk seketika. Sila cuba lagi.', 'SIBUK');
+    return ralat('Ralat pelayan: ' + m);
+  } finally { ID_PERMINTAAN = ''; }
 }
 
 function include(nama) { return HtmlService.createHtmlOutputFromFile(nama).getContent(); }

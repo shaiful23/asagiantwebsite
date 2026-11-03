@@ -25,7 +25,13 @@ function avatar(nama, gambar, kelas) {
 }
 function tarikhPanjang(t) { if (!t) return '-'; const [y, m, d] = t.split('-').map(Number); const dt = new Date(y, m - 1, d); return HARI_PENUH[dt.getDay()] + ', ' + d + ' ' + BULAN[m - 1] + ' ' + y; }
 function tarikhPendek(t) { if (!t) return '-'; const [y, m, d] = String(t).slice(0, 10).split('-').map(Number); return d + ' ' + BULAN[m - 1].slice(0, 3) + ' ' + y; }
-function tarikhIniKlien() { const d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+/* Jam aplikasi = jam PELAYAN (waktu Kuching), bukan jam komputer guru — tarikh rekod
+   & kiraan kunci 07:10 tetap betul walaupun jam PC/telefon tersilap. Baca dengan getUTC*. */
+let BEZA_JAM = 0;
+try { BEZA_JAM = Number(localStorage.getItem('ekhd_beza_jam')) || 0; } catch (e) { BEZA_JAM = 0; }
+function selarasJam(t) { if (t && t.epochPelayan) { BEZA_JAM = t.epochPelayan - Date.now(); try { localStorage.setItem('ekhd_beza_jam', String(BEZA_JAM)); } catch (e) { /* abaikan */ } } }
+function jamSekolah() { return new Date(Date.now() + BEZA_JAM + 8 * 3600000); }
+function tarikhIniKlien() { const d = jamSekolah(); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
 function warnaPeratus(p) { return p >= 95 ? WARNA.hijau : p >= 85 ? WARNA.biru : p >= 75 ? WARNA.emas : WARNA.merah; }
 function barPeratus(p) { const v = Number(p) || 0; return '<div class="bar-peratus"><div class="trek"><div class="isi" style="width:' + Math.min(100, v) + '%;background:' + warnaPeratus(v) + '"></div></div><b class="nombor">' + v.toFixed(1) + '%</b></div>'; }
 function lencana(teks, warna, ik) { return '<span class="lencana l-' + warna + '">' + (ik ? ikon(ik, 'fill') : '') + esc(teks) + '</span>'; }
@@ -44,11 +50,22 @@ function toast(mesej, jenis) {
 }
 
 /* ------------------------------ PANGGILAN PELAYAN ------------------------------ */
-function panggil(fn, param) {
-  return new Promise((selesai, gagal) => { google.script.run.withSuccessHandler(selesai).withFailureHandler(gagal)[fn](param || {}); });
+/* Semua panggilan melalui jalankanApi (pelayan). Gangguan rangkaian, had pelaksanaan
+   serentak Apps Script atau kunci sibuk → cuba semula automatik (hingga 4 kali,
+   tunda eksponen + rawak) dengan idPermintaan SAMA — pelayan menjamin tiada pendua. */
+const tunda = ms => new Promise(r => setTimeout(r, ms));
+function panggil(fn, param, cubaan) {
+  const n = cubaan || 0;
+  const ulang = () => tunda(Math.min(6000, 700 * Math.pow(2, n)) + Math.random() * 600).then(() => panggil(fn, param, n + 1));
+  return new Promise((selesai, gagal) => { google.script.run.withSuccessHandler(selesai).withFailureHandler(gagal).jalankanApi(fn, param || {}); })
+    .then(h => (h && h.kod === 'SIBUK' && n < 4) ? ulang() : h, e => { if (n < 4) return ulang(); throw e; });
 }
+function idBaharu() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
+const RE_TULIS = /^api(KehadiranKelasSimpan|Rekod|Mohon|Proses|Jana|Kemaskini|Padam|Simpan|Batal|Urus(Simpan|Padam)|Tindakan|TukarKataLaluan|AdminSetSemula)/;
 function api(fn, param, senyap) {
-  return panggil(fn, Object.assign({ token: TOKEN }, param || {})).then(h => {
+  const tulis = RE_TULIS.test(fn);
+  return panggil(fn, Object.assign({ token: TOKEN, idPermintaan: idBaharu() }, param || {})).then(h => {
+    if (tulis && h && h.success !== false) batalCacheSelepasTulis();
     if (!h || h.success === false) {
       const mesej = (h && h.message) || 'Ralat tidak diketahui.';
       if (h && h.kod === 'SESI') { keluar(true); $('#ralatLogin').textContent = mesej; }
@@ -62,9 +79,67 @@ function api(fn, param, senyap) {
 /* Pemuat halaman: jika pengguna sudah berpindah halaman sebelum respons tiba,
    abaikan respons lama supaya ia tidak menimpa halaman semasa. */
 let NAV_SEQ = 0;
+/* ---------- Cache peranti (stale-while-revalidate) ----------
+   Halaman dipaparkan SERTA-MERTA daripada data terakhir yang disimpan dalam peranti
+   (hari yang sama sahaja), kemudian data terkini diambil di belakang dan halaman
+   dilukis semula jika ada perubahan — kecuali pengguna sedang mengisi borang. */
+const AWALAN_CACHE = 'ekhd_c_';
+const MEM_SEGAR = {};          // data terkini dalam memori (15 saat)
+let KUNCI_HALAMAN = [];        // kunci cache yang digunakan halaman semasa
+let KOTOR = false;             // borang ada perubahan belum disimpan
+let BIL_SEGAR = 0;
+function kunciCache(fn, param) { return AWALAN_CACHE + (PENGGUNA ? PENGGUNA.nokp : '-') + '|' + fn + '|' + JSON.stringify(param || {}); }
+function bacaCacheKlien(k) {
+  try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v && v.d === tarikhIniKlien() ? v : null; } catch (e) { return null; }
+}
+function simpanCacheKlien(k, h) {
+  let j; try { j = JSON.stringify({ t: Date.now(), d: tarikhIniKlien(), h }); } catch (e) { return; }
+  if (j.length > 1500000) return;
+  try { localStorage.setItem(k, j); } catch (e) { bersihCacheKlien(); try { localStorage.setItem(k, j); } catch (e2) { /* penuh */ } }
+}
+function bersihCacheKlien(kunci) {
+  try { Object.keys(localStorage).forEach(k => { if (k.indexOf(AWALAN_CACHE) === 0 && (!kunci || kunci.indexOf(k) !== -1)) localStorage.removeItem(k); }); } catch (e) { /* abaikan */ }
+}
+function batalCacheSelepasTulis() {
+  Object.keys(MEM_SEGAR).forEach(k => { delete MEM_SEGAR[k]; });
+  bersihCacheKlien(KUNCI_HALAMAN.slice());   // halaman semasa dimuat semula dengan data terkini
+}
+function barSegar(tambah) { BIL_SEGAR = Math.max(0, BIL_SEGAR + tambah); const b = $('#barSegar'); if (b) b.classList.toggle('aktif', BIL_SEGAR > 0); }
+function sedangMengisi() {
+  const a = document.activeElement;
+  return KOTOR || !!$('#kotakModal').innerHTML || (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && $('#kandungan').contains(a) && a.type !== 'month' && a.type !== 'date');
+}
 function muat(fn, param) {
   const seq = NAV_SEQ, gantung = () => new Promise(() => {});
-  return api(fn, param).then(h => seq === NAV_SEQ ? h : gantung(), e => { if (seq !== NAV_SEQ) return gantung(); throw e; });
+  const k = kunciCache(fn, param);
+  if (KUNCI_HALAMAN.indexOf(k) === -1) KUNCI_HALAMAN.push(k);
+  const mem = MEM_SEGAR[k];
+  if (mem && Date.now() - mem.t < 15000) return Promise.resolve(mem.h);
+  const c = bacaCacheKlien(k);
+  barSegar(1);
+  const ambil = api(fn, param, !!c).then(h => { barSegar(-1); MEM_SEGAR[k] = { t: Date.now(), h }; simpanCacheKlien(k, h); return h; }, e => { barSegar(-1); throw e; });
+  if (c) {
+    ambil.then(h => {
+      if (seq !== NAV_SEQ || sedangMengisi() || JSON.stringify(h) === JSON.stringify(c.h)) return;
+      const y = window.scrollY; HALAMAN_FN[HALAMAN](); setTimeout(() => window.scrollTo(0, y), 30);
+    }).catch(() => {});
+    return Promise.resolve(c.h);
+  }
+  return ambil.then(h => seq === NAV_SEQ ? h : gantung(), e => { if (seq !== NAV_SEQ) return gantung(); throw e; });
+}
+/* Pra-muat di belakang (tanpa menyekat UI) supaya borang penting dibuka serta-merta. */
+function praMuat(fn, param) {
+  const k = kunciCache(fn, param);
+  if (bacaCacheKlien(k) && (Date.now() - bacaCacheKlien(k).t) < 60000) return Promise.resolve();
+  return api(fn, param, true).then(h => { MEM_SEGAR[k] = { t: Date.now(), h }; simpanCacheKlien(k, h); }).catch(() => {});
+}
+function praMuatPeranan() {
+  if (!PENGGUNA || PENGGUNA.jenis !== 'GURU') return;
+  const senarai = [];
+  if (PENGGUNA.guruKelas) senarai.push(['apiKehadiranKelasMuat', { tarikh: tarikhIniKlien(), kelas: '' }]);
+  senarai.push(['apiKelasDiajar', {}]);
+  if (PENGGUNA.guruKelas || PENGGUNA.admin) senarai.push(['apiAmaranPonteng', { kelas: '' }]);
+  senarai.reduce((p, x) => p.then(() => tunda(400)).then(() => praMuat(x[0], x[1])), tunda(1200));
 }
 function sibuk(btn, ya, teks) {
   if (!btn) return;
@@ -88,7 +163,11 @@ function carta(el, opsyen) {
   if (!el) return;
   musnahCarta(false);
   if (el._carta) { try { el._carta.destroy(); } catch (e) { /* abaikan */ } CARTA_AKTIF = CARTA_AKTIF.filter(c => c.el !== el); }
-  if (typeof ApexCharts === 'undefined') { el.innerHTML = kosong('chart-bar', 'Carta tidak dapat dimuat', 'Semak sambungan internet.'); return; }
+  if (typeof ApexCharts === 'undefined') {
+    /* Pustaka carta dimuat secara tak segerak — data dipaparkan dahulu, carta menyusul. */
+    if (window.APEX_GAGAL) { el.innerHTML = kosong('chart-bar', 'Carta tidak dapat dimuat', 'Semak sambungan internet.'); return; }
+    el.innerHTML = rangka(200); (window.CARTA_MENUNGGU = window.CARTA_MENUNGGU || []).push([el, opsyen]); return;
+  }
   const asas = { chart: { fontFamily: 'Plus Jakarta Sans, sans-serif', toolbar: { show: false }, animations: { speed: 400 }, foreColor: '#64748B' },
     grid: { borderColor: '#EEF1F7', strokeDashArray: 4 }, dataLabels: { enabled: false }, legend: { fontWeight: 600, markers: { radius: 12 } },
     tooltip: { theme: 'light' }, colors: PALET };
@@ -201,11 +280,20 @@ function mula() {
   window.addEventListener('hashchange', () => { const h = location.hash.replace('#/', ''); if (PENGGUNA && h && h !== HALAMAN) pergi(h, true); });
   setInterval(kemaskiniJam, 1000); kemaskiniJam();
   if (!TOKEN) return tunjukLogin();
+  /* Buka serta-merta dengan profil tersimpan; sahkan sesi di belakang. */
+  let tersimpan = null;
+  try { tersimpan = JSON.parse(localStorage.getItem('ekhd_pengguna') || 'null'); } catch (e) { tersimpan = null; }
+  if (tersimpan && tersimpan.pengguna) masukAplikasi(tersimpan.pengguna, tersimpan.tetapanUi, tersimpan.pengguna.mestiTukar);
   panggil('apiSemakSesi', { token: TOKEN }).then(h => {
-    if (!h || !h.success) return tunjukLogin();
-    masukAplikasi(h.pengguna, h.tetapanUi, h.mestiTukarPassword);
-  }).catch(() => tunjukLogin());
+    if (!h || !h.success) { if (tersimpan) { keluar(true); $('#ralatLogin').textContent = (h && h.message) || 'Sesi tamat. Sila log masuk semula.'; } else tunjukLogin(); return; }
+    selarasJam(h.tetapanUi);
+    const berubah = !tersimpan || JSON.stringify(tersimpan.pengguna) !== JSON.stringify(h.pengguna);
+    simpanPenggunaKlien(h.pengguna, h.tetapanUi);
+    if (!tersimpan) masukAplikasi(h.pengguna, h.tetapanUi, h.mestiTukarPassword);
+    else if (berubah) { PENGGUNA = h.pengguna; TETAPAN_UI = h.tetapanUi || {}; lukisPengguna(); binaNav(); if (h.mestiTukarPassword) paparTukarKataLaluan(true); }
+  }).catch(() => { if (!tersimpan) tunjukLogin(); });
 }
+function simpanPenggunaKlien(pengguna, tetapanUi) { try { localStorage.setItem('ekhd_pengguna', JSON.stringify({ pengguna, tetapanUi })); } catch (e) { /* abaikan */ } }
 function tunjukLogin() { $('#skrinSplash').classList.add('hidden'); $('#skrinApp').classList.add('hidden'); $('#skrinLogin').classList.remove('hidden'); setTimeout(() => $('#inNoKP').focus(), 50); }
 
 function logMasuk(e) {
@@ -220,13 +308,15 @@ function logMasuk(e) {
     if (h.pengguna.jenis !== JENIS_LOGIN) toast('Anda log masuk sebagai ' + (h.pengguna.jenis === 'GURU' ? 'guru' : 'murid') + '.');
     TOKEN = h.token; try { localStorage.setItem('ekhd_token', TOKEN); } catch (er) { /* abaikan */ }
     $('#inKataLaluan').value = '';
-    return panggil('apiSemakSesi', { token: TOKEN }).then(s => masukAplikasi(h.pengguna, s.tetapanUi || {}, h.mestiTukarPassword));
+    selarasJam(h.tetapanUi); simpanPenggunaKlien(h.pengguna, h.tetapanUi || {});
+    masukAplikasi(h.pengguna, h.tetapanUi || {}, h.mestiTukarPassword);
   }).catch(() => { sibuk(btn, false); $('#ralatLogin').textContent = 'Sambungan ke pelayan gagal. Sila cuba lagi.'; });
 }
 
 function keluar(senyap) {
   if (TOKEN && !senyap) panggil('apiLogout', { token: TOKEN }).catch(() => {});
-  TOKEN = ''; PENGGUNA = null; try { localStorage.removeItem('ekhd_token'); } catch (e) { /* abaikan */ }
+  TOKEN = ''; PENGGUNA = null; try { localStorage.removeItem('ekhd_token'); localStorage.removeItem('ekhd_pengguna'); } catch (e) { /* abaikan */ }
+  bersihCacheKlien(); Object.keys(MEM_SEGAR).forEach(k => { delete MEM_SEGAR[k]; });   // data murid tidak kekal di komputer berkongsi
   tutupModal(); document.body.classList.remove('menu-buka'); history.replaceState(null, '', location.pathname + location.search); tunjukLogin();
 }
 
@@ -237,7 +327,8 @@ function masukAplikasi(pengguna, tetapanUi, mestiTukar) {
   if (mestiTukar) { paparTukarKataLaluan(true); return; }
   const h = location.hash.replace('#/', '');
   pergi(NAV_ID().indexOf(h) !== -1 ? h : 'dashboard');
-  kemaskiniLencanaPermohonan();
+  setTimeout(kemaskiniLencanaPermohonan, 1500);
+  praMuatPeranan();
 }
 function kemaskiniLencanaPermohonan() {
   if (PENGGUNA && PENGGUNA.admin) api('apiSenaraiPermohonan', { status: 'MENUNGGU' }, true).then(r => { BIL_PERMOHONAN = r.senarai.length; binaNav(); }).catch(() => {});
@@ -257,7 +348,7 @@ function senaraiNav() {
   if (u.jenis === 'MURID') {
     n.push({ id: 'rekod', label: 'Rekod Kehadiran Saya', ikon: 'calendar-check' }, { id: 'profil', label: 'Profil Saya', ikon: 'identification-badge' });
   } else {
-    if (u.guruKelas || u.admin) n.push({ kumpulan: 'Guru Tingkatan' }, { id: 'kehadiran-kelas', label: 'Rekod Kehadiran Kelas', ikon: 'users-three' }, { id: 'amaran', label: 'Amaran Ponteng', ikon: 'warning-octagon' },
+    if (u.guruKelas || u.admin) n.push({ kumpulan: 'Guru Tingkatan' }, { id: 'kehadiran-kelas', label: 'Rekod Kehadiran Kelas', ikon: 'users-three' }, { id: 'amaran', label: 'Amaran Ponteng Sekolah', ikon: 'warning-octagon' },
       { id: 'amaran-pk', label: 'Amaran Ponteng Kelas', ikon: 'siren' });
     n.push({ kumpulan: 'Pengajaran & Pembelajaran' }, { id: 'imbas', label: 'Imbas QR Kelas', ikon: 'qr-code' }, { id: 'kelas-diajar', label: 'Kelas Diajar & Teach-In', ikon: 'chalkboard-teacher' });
     n.push({ kumpulan: 'Rekod & Pelajar' }, { id: 'rekod', label: 'Rekod Kehadiran', ikon: 'calendar-check' }, { id: 'ponteng-kelas', label: 'Ponteng Kelas', ikon: 'person-simple-run' },
@@ -281,7 +372,7 @@ function binaNav() {
 const HALAMAN_FN = {};
 function pergi(id, dariHash) {
   if (NAV_ID().indexOf(id) === -1) id = 'dashboard';
-  HALAMAN = id; NAV_SEQ++; musnahCarta(true); binaNav(); tutupModal();
+  HALAMAN = id; NAV_SEQ++; KOTOR = false; KUNCI_HALAMAN = []; musnahCarta(true); binaNav(); tutupModal();
   const item = senaraiNav().find(x => x.id === id);
   $('#tajukHalaman').textContent = item ? item.label : '';
   $('#remehHalaman').textContent = '';
@@ -292,15 +383,15 @@ function pergi(id, dariHash) {
 }
 
 function kemaskiniJam() {
-  const d = new Date();
-  const jam = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
-  if ($('#teksJam')) $('#teksJam').textContent = jam + ':' + ('0' + d.getSeconds()).slice(-2);
+  const d = jamSekolah();
+  const jam = ('0' + d.getUTCHours()).slice(-2) + ':' + ('0' + d.getUTCMinutes()).slice(-2);
+  if ($('#teksJam')) $('#teksJam').textContent = jam + ':' + ('0' + d.getUTCSeconds()).slice(-2);
   if ($('#teksTarikh')) $('#teksTarikh').textContent = tarikhPanjang(tarikhIniKlien());
   const cip = $('#cipKunci');
   if (!cip || !PENGGUNA || !PENGGUNA.guruKelas) { if (cip) cip.classList.add('hidden'); return; }
   const mk = TETAPAN_UI.masaKunci || '07:10';
-  const [h, m] = mk.split(':').map(Number), sasar = new Date(d); sasar.setHours(h, m, 0, 0);
-  const baki = Math.floor((sasar - d) / 1000);
+  const [h, m] = mk.split(':').map(Number);
+  const baki = (h * 3600 + m * 60) - (d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds());
   cip.classList.remove('hidden');
   if (baki > 0) { cip.className = 'cip-kunci buka'; cip.innerHTML = ikon('lock-simple-open', 'fill') + '<span class="teks-kunci">Rekod kelas dikunci dalam </span>' + Math.floor(baki / 60) + ':' + ('0' + baki % 60).slice(-2); }
   else { cip.className = 'cip-kunci kunci'; cip.innerHTML = ikon('lock-simple', 'fill') + '<span class="teks-kunci">Rekod kelas dikunci </span>(' + mk + ')'; }
@@ -333,8 +424,8 @@ function pasangBorangKataLaluan(wajib) {
       sibuk(btn, false);
       if (!h.success) { r.textContent = h.message; return; }
       toast('Kata laluan berjaya ditukar.');
-      PENGGUNA = h.pengguna;
-      if (wajib) { tutupModal(); lukisPengguna(); pergi('dashboard'); kemaskiniLencanaPermohonan(); } else $('#formKL').reset();
+      PENGGUNA = h.pengguna; simpanPenggunaKlien(PENGGUNA, TETAPAN_UI);
+      if (wajib) { tutupModal(); lukisPengguna(); pergi('dashboard'); kemaskiniLencanaPermohonan(); praMuatPeranan(); } else $('#formKL').reset();
     }).catch(() => { sibuk(btn, false); r.textContent = 'Sambungan gagal.'; });
   };
 }
@@ -362,7 +453,7 @@ HALAMAN_FN.dashboard = function () {
   }).catch(e => { $('#kandungan').innerHTML = kosong('wifi-slash', 'Gagal memuat papan pemuka', e.message); });
 };
 
-function salam() { const h = new Date().getHours(); return h < 12 ? 'Selamat pagi' : h < 15 ? 'Selamat tengah hari' : h < 19 ? 'Selamat petang' : 'Selamat malam'; }
+function salam() { const h = jamSekolah().getUTCHours(); return h < 12 ? 'Selamat pagi' : h < 15 ? 'Selamat tengah hari' : h < 19 ? 'Selamat petang' : 'Selamat malam'; }
 
 function dashboardMurid(d) {
   const m = d.murid, hi = m.hariIni;
@@ -497,7 +588,9 @@ function lukisKehadiranKelas() {
   $('#kkTarikh').onchange = e => HALAMAN_FN['kehadiran-kelas'](e.target.value, $('#kkKelas') ? $('#kkKelas').value : '');
   if ($('#kkKelas')) $('#kkKelas').onchange = e => HALAMAN_FN['kehadiran-kelas']($('#kkTarikh').value, e.target.value);
   $('#kkCari').oninput = e => { const q = e.target.value.toLowerCase(); $$('.murid-kad').forEach(c => { c.style.display = c.dataset.nama.toLowerCase().indexOf(q) !== -1 ? '' : 'none'; }); };
+  KOTOR = false;
   $$('.murid-kad input[type=checkbox]').forEach(cb => cb.onchange = () => togolMurid(cb));
+  $$('.murid-kad select.sebab').forEach(sl => sl.addEventListener('change', () => { KOTOR = true; }));
   if ($('#kkSemuaHadir')) $('#kkSemuaHadir').onclick = () => $$('.murid-kad input[type=checkbox]').forEach(cb => { cb.checked = true; togolMurid(cb); });
   if ($('#kkSimpan')) $('#kkSimpan').onclick = simpanKehadiranKelas;
   kiraRoster();
@@ -513,6 +606,7 @@ function kadRoster(m, i, bolehUbah) {
     '<select class="input sebab ' + (m.hadir ? 'hidden' : '') + '" ' + (bolehUbah ? '' : 'disabled') + '>' + pilihanSebab(KK.sebab, m.kodSebab) + '</select></div>';
 }
 function togolMurid(cb) {
+  KOTOR = true;
   const kad = cb.closest('.murid-kad'); const hadir = cb.checked;
   kad.classList.toggle('tidak-hadir', !hadir); kad.querySelector('.sebab').classList.toggle('hidden', hadir); kad.querySelector('.teks-togol').textContent = hadir ? 'Hadir' : 'Tidak';
   if (!hadir) kad.querySelector('.sebab').focus();
@@ -524,10 +618,11 @@ function simpanKehadiranKelas() {
   $$('.murid-kad.tidak-hadir').forEach(c => { const kod = c.querySelector('.sebab').value; if (!kod) tiadaSebab.push(c.dataset.nama); tidakHadir.push({ nokp: c.dataset.nokp, kodSebab: kod }); });
   if (tiadaSebab.length) { toast('Pilih sebab tidak hadir bagi: ' + tiadaSebab.slice(0, 3).join(', ') + (tiadaSebab.length > 3 ? '…' : ''), 'gagal'); return; }
   const btn = $('#kkSimpan'); sibuk(btn, true, 'Menyimpan…');
-  api('apiKehadiranKelasSimpan', { tarikh: KK.tarikh, kelas: KK.senaraiKelas.length ? KK.kelas : '', tidakHadir }).then(r => {
+  api('apiKehadiranKelasSimpan', { tarikh: KK.tarikh, kelas: KK.senaraiKelas.length ? KK.kelas : '', tidakHadir, versi: KK.versi === undefined ? null : KK.versi }).then(r => {
+    KOTOR = false;
     toast((r.dikemaskini ? 'Rekod dikemaskini' : 'Rekod disimpan') + ': ' + r.hadir + ' hadir, ' + r.tidakHadir + ' tidak hadir.');
     HALAMAN_FN['kehadiran-kelas'](KK.tarikh, KK.kelasPilihan);
-  }).catch(e => { sibuk(btn, false); if (e.kod === 'TERKUNCI') HALAMAN_FN['kehadiran-kelas'](KK.tarikh, KK.kelasPilihan); });
+  }).catch(e => { sibuk(btn, false); if (e.kod === 'TERKUNCI' || e.kod === 'KONFLIK') { KOTOR = false; batalCacheSelepasTulis(); HALAMAN_FN['kehadiran-kelas'](KK.tarikh, KK.kelasPilihan); } });
 }
 function borangMohonAkses() {
   bukaModal(kepalaModal('Mohon Buka Akses Rekod', 'lock-key-open') + '<div class="modal-badan"><div class="banner biru">' + ikon('info', 'fill') + '<div><b>' + esc(KK.kelas) + ' · ' + esc(tarikhPanjang(KK.tarikh)) + '</b><p>Permohonan akan dihantar kepada admin. Alasan disimpan dan dianalisis untuk rujukan pentadbiran.</p></div></div>' +
@@ -832,7 +927,7 @@ function lukisAmaran() {
     { k: 's', label: 'Status', teks: r => (r.BERTURUT.perluSurat || r.TIDAK_BERTURUT.perluSurat) ? 'Perlu surat' : 'Dikemas kini', f: r => ((r.BERTURUT.perluSurat || r.TIDAK_BERTURUT.perluSurat) ? lencana('Perlu surat', 'merah', 'envelope-simple') : lencana('Surat dijana', 'hijau', 'check')) + '<br><small style="color:var(--teks-2)">' + r.bilIntervensi + ' intervensi</small>' }] });
 }
 function bukaButiranAmaran(nokp) {
-  const m = bukaModal(kepalaModal('Butiran Amaran Ponteng', 'warning-octagon') + '<div class="modal-badan" id="baBadan">' + rangka(320) + '</div>', { lebar: true });
+  const m = bukaModal(kepalaModal('Butiran Amaran Ponteng Sekolah', 'warning-octagon') + '<div class="modal-badan" id="baBadan">' + rangka(320) + '</div>', { lebar: true });
   api('apiButiranAmaranMurid', { nokp }).then(d => {
     const s = d.status, mu = d.murid;
     const blokKat = k => { const x = s[k]; return '<div class="kad"><div class="kad-kepala"><h3>' + esc(AM.data.labelKategori[k]) + '</h3>' + pilPeringkat(x.peringkat.kod) + '</div>' +
@@ -1490,4 +1585,11 @@ function urusSistem() {
     '<button class="btn hantu kecil" onclick="pergi(\'pengguna\')">' + ikon('arrow-right') + 'Buka Pengguna & Sumber Luar</button></div>';
   $$('.us-tindakan').forEach(b => b.onclick = () => { sibuk(b, true, 'Menjalankan…'); api('apiTindakanSistem', { tindakan: b.dataset.t }).then(r => { sibuk(b, false); toast(r.mesej); }).catch(() => sibuk(b, false)); });
 }
+
+/* Dipanggil apabila ApexCharts selesai dimuat (Index.html). */
+function apexSedia() {
+  const q = window.CARTA_MENUNGGU || []; window.CARTA_MENUNGGU = [];
+  q.forEach(([el, o]) => { if (el.isConnected) { el.innerHTML = ''; carta(el, o); } });
+}
+function apexGagal() { window.APEX_GAGAL = true; (window.CARTA_MENUNGGU || []).forEach(([el]) => { el.innerHTML = kosong('chart-bar', 'Carta tidak dapat dimuat', 'Semak sambungan internet.'); }); window.CARTA_MENUNGGU = []; }
 </script>

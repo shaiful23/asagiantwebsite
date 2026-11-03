@@ -53,6 +53,11 @@ function kelasDibenarkan(sesi, kelasDiminta) {
   return sesi.kelasTingkatan;
 }
 
+/* Versi rekod (IdRekod@MasaRekod) — klien menghantar versi yang dimuatkan; jika guru
+   lain (GT/PGT) telah menyimpan selepas itu, simpanan ditolak dengan kod KONFLIK
+   supaya rekod rakan tidak ditimpa tanpa disedari. */
+function versiRekodKelas(r) { return r ? r.IdRekod + '@' + (r.MasaRekod instanceof Date ? formatTarikhMasa(r.MasaRekod) : String(r.MasaRekod)) : ''; }
+
 function apiKehadiranKelasMuat(p) {
   const sesi = wajibGuruKelas(p.token);
   if (gagal(sesi)) return sesi;
@@ -72,7 +77,7 @@ function apiKehadiranKelasMuat(p) {
   }));
 
   return jaya({
-    tarikh, kelas, hari: hariBagiTarikh(tarikh), murid, sebab: senaraiSebab(),
+    tarikh, kelas, hari: hariBagiTarikh(tarikh), murid, sebab: senaraiSebab(), versi: versiRekodKelas(rekod),
     rekod: rekod ? { direkodOleh: rekod.NamaGuru, masa: rekod.MasaRekod, hadir: Number(rekod.Hadir), tidakHadir: Number(rekod.TidakHadir), selepasKunci: rekod.SelepasKunci === 'YA' } : null,
     kunci: statusKunci(tarikh, kelas),
     permohonan: permohonanUntuk(tarikh, kelas).slice(0, 5).map(ringkasPermohonan),
@@ -100,6 +105,10 @@ function apiKehadiranKelasSimpan(p) {
 
   return denganKunci(() => {
     const sedia = rekodKelasPada(tarikh, kelas);
+    if (p.versi !== undefined && p.versi !== null && String(p.versi) !== versiRekodKelas(sedia) && !p.paksa) {
+      return ralat('Rekod kehadiran ' + kelas + ' telah ' + (p.versi ? 'dikemas kini' : 'disimpan') + ' oleh ' + (sedia ? sedia.NamaGuru : 'guru lain') +
+        ' pada ' + (sedia ? String(versiRekodKelas(sedia).split('@')[1]).slice(11, 16) : '-') + ' selepas anda membuka borang ini. Semak rekod terkini dahulu.', 'KONFLIK');
+    }
     const idRekod = sedia ? sedia.IdRekod : janaId('RK');
     const ringkasan = {
       IdRekod: idRekod, Tarikh: tarikh, Kelas: kelas, JumlahMurid: senaraiMuridKelas.length,
@@ -119,7 +128,7 @@ function apiKehadiranKelasSimpan(p) {
         KodSebab: s.kod, Sebab: s.sebab, DikiraPonteng: s.dikiraPonteng ? 'YA' : 'TIDAK' };
     }));
     catatAudit(sesi, sedia ? 'KEMASKINI_KEHADIRAN_KELAS' : 'REKOD_KEHADIRAN_KELAS', kelas + ' ' + tarikh + ' (tidak hadir: ' + tidakHadir.length + ')');
-    return jaya({ hadir: ringkasan.Hadir, tidakHadir: ringkasan.TidakHadir, jumlah: ringkasan.JumlahMurid, dikemaskini: !!sedia });
+    return jaya({ hadir: ringkasan.Hadir, tidakHadir: ringkasan.TidakHadir, jumlah: ringkasan.JumlahMurid, dikemaskini: !!sedia, versi: idRekod + '@' + ringkasan.MasaRekod });
   });
 }
 

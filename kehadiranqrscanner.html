@@ -352,6 +352,14 @@ function jsonp(action, param, ms) {
   });
 }
 
+/* Cuba semula automatik (rangkaian lemah / pelayan sibuk) dengan idPermintaan sama —
+   pelayan memulangkan hasil asal tanpa menulis dua kali. */
+function jsonpUlang(action, param, ms, n) {
+  n = n || 0;
+  const ulang = () => new Promise(r => setTimeout(r, Math.min(6000, 800 * Math.pow(2, n)) + Math.random() * 500)).then(() => jsonpUlang(action, param, ms, n + 1));
+  return jsonp(action, param, ms).then(d => (d && d.kod === 'SIBUK' && n < 4) ? ulang() : d, e => { if (n < 4) return ulang(); throw e; });
+}
+
 /* ------------------------------ KAMERA ------------------------------ */
 let pengimbas = null, sibuk = false, DATA = null;
 function mulaKamera() {
@@ -377,7 +385,7 @@ function diimbas(teks) {
   if (teks.toUpperCase().indexOf('KELAS:') !== 0) { $('#statusTeks').textContent = 'Kod QR ini bukan kod QR kelas e-Kehadiran.'; return; }
   sibuk = true; hentiKamera();
   $('#statusTeks').innerHTML = '<span class="putar" style="border-color:rgba(30,59,209,.2);border-top-color:var(--biru)"></span> Mengesahkan kelas…';
-  jsonp('imbasKelas', { kod: teks }).then(r => {
+  jsonpUlang('imbasKelas', { kod: teks }).then(r => {
     sibuk = false;
     if (!r.success) { tunjukRalat(r.message); return; }
     DATA = r; lukisBorang();
@@ -449,10 +457,12 @@ $('#btnSimpan').onclick = () => {
   document.querySelectorAll('.murid.tidak').forEach(m => { const k = m.querySelector('.sebab').value; if (!k) tiada.push(m.dataset.nama); tidakHadir.push({ nokp: m.dataset.nokp, kodSebab: k }); });
   if (tiada.length) { toast('Pilih sebab bagi: ' + tiada.slice(0, 2).join(', ') + (tiada.length > 2 ? '…' : '')); return; }
   const btn = $('#btnSimpan'); btn.disabled = true; btn.innerHTML = '<span class="putar"></span>Menyimpan…';
-  jsonp('rekodKehadiranSubjek', { kelas: DATA.kelas, subjek: $('#fSubjek').value, jenis: $('#fJenis').value, bilik: $('#fBilik').value, catatan: $('#fCatatan').value, tidakHadir: JSON.stringify(tidakHadir) })
+  if (!btn.dataset.idp) btn.dataset.idp = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  jsonpUlang('rekodKehadiranSubjek', { idPermintaan: btn.dataset.idp, kelas: DATA.kelas, subjek: $('#fSubjek').value, jenis: $('#fJenis').value, bilik: $('#fBilik').value, catatan: $('#fCatatan').value, tidakHadir: JSON.stringify(tidakHadir) })
     .then(r => {
       btn.disabled = false;
-      if (!r.success) { toast(r.message); btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i>Cuba Lagi'; return; }
+      if (!r.success) { toast(r.message); btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i>Cuba Lagi'; delete btn.dataset.idp; return; }
+      delete btn.dataset.idp;
       $('#skrinBorang').classList.add('hidden'); $('#barBawah').classList.add('hidden');
       const h = $('#skrinHasil'); h.classList.remove('hidden');
       h.innerHTML = '<div class="hasil"><i class="ph-fill ph-check-circle besar" style="color:var(--hijau)"></i><h3>Kehadiran ' + (r.dikemaskini ? 'dikemas kini' : 'direkod') + '!</h3><p class="sub">' + esc(DATA.kelas) + ' · ' + esc($('#fSubjek').value) + '</p><br>' +

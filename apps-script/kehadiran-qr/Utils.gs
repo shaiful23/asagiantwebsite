@@ -73,7 +73,15 @@ function kemaskiniBaris(namaSheet, objek) {
 /* Padam beberapa baris (nombor baris) — dari bawah ke atas supaya indeks tidak beralih. */
 function padamBaris(namaSheet, senaraiNomborBaris) {
   const sh = dapatkanSheet(namaSheet);
-  senaraiNomborBaris.slice().sort((a, b) => b - a).forEach(n => sh.deleteRow(n));
+  /* Kumpulkan baris berturutan → satu panggilan deleteRows (jauh lebih pantas). */
+  const s = Array.from(new Set(senaraiNomborBaris)).sort((a, b) => b - a);
+  let i = 0;
+  while (i < s.length) {
+    let akhir = s[i], mula = s[i];
+    while (i + 1 < s.length && s[i + 1] === mula - 1) { i++; mula = s[i]; }
+    if (akhir === mula) sh.deleteRow(mula); else sh.deleteRows(mula, akhir - mula + 1);
+    i++;
+  }
   batalMemo(namaSheet);
 }
 function HEADER_UNTUK(namaSheet) {
@@ -83,10 +91,27 @@ function HEADER_UNTUK(namaSheet) {
 }
 
 /* Tulis secara bersiri (elak dua guru menulis serentak merosakkan baris). */
+/* Semua penulisan data melalui kunci skrip (satu penulis pada satu masa):
+   • memo baca dikosongkan selepas kunci diperoleh — data dibaca SEMULA dari Sheet,
+     jadi semakan "rekod sedia ada?" sentiasa melihat simpanan guru lain (tiada pendua);
+   • ID_PERMINTAAN (dari klien) menjadikan simpanan idempoten — permintaan yang
+     dihantar semula (rangkaian putus, klik dua kali, cuba semula automatik) tidak
+     ditulis dua kali, sebaliknya hasil asal dipulangkan;
+   • jika barisan menunggu terlalu panjang, pulangkan kod SIBUK (klien cuba semula). */
+let ID_PERMINTAAN = '';
 function denganKunci(fn) {
   const kunci = LockService.getScriptLock();
-  kunci.waitLock(20000);
-  try { return fn(); } finally { kunci.releaseLock(); }
+  if (!kunci.tryLock(28000)) return ralat('Sistem sedang memproses simpanan ramai guru serentak. Sila cuba lagi sebentar.', 'SIBUK');
+  const id = ID_PERMINTAAN; ID_PERMINTAAN = '';   // sekali sahaja bagi setiap permintaan
+  const cache = CacheService.getScriptCache(), kunciId = id ? 'idp_' + id : '';
+  try {
+    if (kunciId) { const ada = cache.get(kunciId); if (ada) { const h = JSON.parse(ada); h.ulangan = true; return h; } }
+    Object.keys(MEMO_DATA).forEach(k => { delete MEMO_DATA[k]; });
+    const hasil = fn();
+    SpreadsheetApp.flush();
+    if (kunciId && hasil && hasil.success) { try { const j = JSON.stringify(hasil); if (j.length < 90000) cache.put(kunciId, j, 1800); } catch (e) { /* abaikan */ } }
+    return hasil;
+  } finally { kunci.releaseLock(); }
 }
 
 /* ------------------------- TARIKH & MASA ------------------------- */
@@ -169,10 +194,10 @@ function bulatPeratus(a, b) { return b ? Math.round((a / b) * 1000) / 10 : 0; }
 
 function catatAudit(sesi, tindakan, butiran) {
   try {
-    tambahBaris(SHEET.AUDIT, {
-      Masa: formatTarikhMasa(sekarang()), NoKP: sesi ? String(sesi.nokp || '') : '',
-      Nama: sesi ? sesi.nama || '' : '', Tindakan: tindakan, Butiran: butiran || ''
-    });
+    /* appendRow adalah atomik — selamat walaupun ramai pengguna serentak tanpa kunci. */
+    dapatkanSheet(SHEET.AUDIT).appendRow(["'" + formatTarikhMasa(sekarang()), sesi ? "'" + String(sesi.nokp || '') : '',
+      sesi ? sesi.nama || '' : '', tindakan, String(butiran || '').slice(0, 1000)]);
+    batalMemo(SHEET.AUDIT);
   } catch (e) { /* audit tidak boleh menggagalkan operasi utama */ }
 }
 

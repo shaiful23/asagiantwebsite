@@ -168,6 +168,24 @@ diubah melalui **Urus Sistem → Tetapan**.
 Sheet baharu `CUTI_SEKOLAH` dan `PENGECUALIAN_GURU` dicipta automatik (menu *Sediakan/Kemaskini
 Struktur* atau **Urus Sistem → Tindakan Sistem**).
 
+## Kelajuan & Kestabilan
+
+| Aspek | Cara dijamin |
+| --- | --- |
+| **Buka serta-merta** | Aplikasi dibuka terus dengan profil & data terakhir yang disimpan dalam peranti (hari yang sama), kemudian data terkini diambil di belakang (bar warna nipis di atas) dan halaman dikemas kini automatik. Borang **Rekod Kehadiran Kelas**, **Kelas Diajar** dan **Amaran** dipra-muat sejurus selepas log masuk — dibuka tanpa menunggu. Pustaka carta dimuat tak segerak (data dipaparkan dahulu). |
+| **Borang tidak terganggu** | Segar semula latar **tidak** melukis semula halaman semasa guru sedang mengisi borang (perubahan belum disimpan kekal). |
+| **Tiada data pendua** | Semua simpanan melalui kunci skrip; data dibaca **semula** dari Sheet selepas kunci diperoleh, jadi semakan "rekod sedia ada" sentiasa melihat simpanan guru lain. Setiap simpanan membawa `idPermintaan` — jika dihantar semula (klik dua kali, rangkaian putus, cuba semula automatik) pelayan memulangkan hasil asal tanpa menulis dua kali. |
+| **GT & PGT serentak** | Rekod kehadiran kelas membawa versi. Jika rakan telah menyimpan selepas borang anda dibuka, simpanan ditolak dengan amaran *KONFLIK* dan borang dimuat semula — rekod rakan tidak ditimpa tanpa disedari. |
+| **Ramai pengguna serentak** | Ralat sementara (had pelaksanaan serentak Apps Script, kunci sibuk, rangkaian lemah) dicuba semula automatik hingga 4 kali dengan tunda eksponen + rawak. Log audit ditulis dengan `appendRow` atomik. Pemadaman baris dikelompokkan (`deleteRows`). Ralat pelayan tidak dijangka dipulangkan sebagai mesej, bukan menggantung skrin. |
+| **Sesi stabil** | Token log masuk ditandatangani (HMAC). Jika cache sesi dibuang oleh Google semasa beban tinggi, sesi dibina semula daripada token — guru tidak terlog keluar secara tiba-tiba. Log keluar membatalkan token. |
+| **Jam betul** | Tarikh & kiraan kunci 07:10 di aplikasi mengikut jam **pelayan** (waktu Kuching), bukan jam komputer/telefon guru. |
+| **Privasi** | Cache peranti dikosongkan sepenuhnya apabila log keluar (sesuai untuk komputer berkongsi). |
+
+> Apps Script yang di-deploy sebagai *Execute as: Me* berkongsi had ~30 pelaksanaan serentak
+> akaun pemilik. Cache peranti, pra-muat dan cuba semula automatik mengurangkan bilangan
+> panggilan serta menyerap lonjakan pagi; untuk sekolah yang sangat besar, arkibkan Sheet
+> rekod tahun lepas ke fail lain supaya bacaan kekal pantas.
+
 ## Nota Data & Keselamatan
 
 - Hanya murid **tidak hadir** disimpan (`KETIDAKHADIRAN_HARIAN`) + satu baris ringkasan

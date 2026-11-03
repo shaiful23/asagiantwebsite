@@ -9,10 +9,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
-  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
-  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css" media="print" onload="this.media='all'">
+  <link rel="preconnect" href="https://unpkg.com" crossorigin><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <!-- Pustaka carta dimuat tak segerak: halaman & borang dipaparkan tanpa menunggu carta. -->
+  <script async src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js" onload="window.apexSedia && apexSedia()" onerror="window.apexGagal && apexGagal()"></script>
   <?!= include('Gaya'); ?>
   <?!= include('Logo'); ?>
   <script>const EXEC_URL = '<?= execUrl ?>';</script>
@@ -94,6 +96,7 @@
       </div>
     </aside>
     <main class="utama">
+      <div id="barSegar" aria-hidden="true"></div>
       <header class="bar-atas">
         <button class="btn hantu ikon-sahaja" id="btnMenu" aria-label="Menu"><i class="ph ph-list"></i></button>
         <div>

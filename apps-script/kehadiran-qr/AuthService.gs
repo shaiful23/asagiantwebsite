@@ -46,11 +46,40 @@ function adalahGuruKelas(sesi) { return adaPeranan(sesi, KUMPULAN_GURU_KELAS) &&
 const AWALAN_SESI = 'sesi_ekhd_';
 const MEMO_SESI = {};
 
+/* Token = muatan bertandatangan HMAC (No. KP + tamat tempoh) + butiran sesi dalam
+   CacheService. Jika cache dibuang oleh Google (beban tinggi), sesi dibina semula
+   daripada token yang sah — guru TIDAK terlog keluar secara tiba-tiba. */
+const TEMPOH_TOKEN_MS = 14 * 60 * 60 * 1000;   // had mutlak 14 jam (satu hari persekolahan)
+function rahsiaToken() {
+  const pr = PropertiesService.getScriptProperties();
+  let r = pr.getProperty('EKHD_RAHSIA_TOKEN');
+  if (!r) { r = Utilities.getUuid() + Utilities.getUuid(); pr.setProperty('EKHD_RAHSIA_TOKEN', r); }
+  return r;
+}
+function tandatangan(muatan) {
+  return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(muatan, rahsiaToken())).replace(/=+$/, '');
+}
 function ciptaSesi(profil, mestiTukar) {
-  const token = Utilities.getUuid();
+  const muatan = Utilities.base64EncodeWebSafe(JSON.stringify({ n: profil.nokp, x: Date.now() + TEMPOH_TOKEN_MS, r: Utilities.getUuid().slice(0, 8) })).replace(/=+$/, '');
+  const token = muatan + '.' + tandatangan(muatan);
   const sesi = Object.assign({}, profil, { mestiTukar: !!mestiTukar, t: Date.now() });
   CacheService.getScriptCache().put(AWALAN_SESI + token, JSON.stringify(sesi), TEMPOH_SESI_SAAT);
   return token;
+}
+function binaSemulaSesi(token) {
+  const bahagian = String(token).split('.');
+  if (bahagian.length !== 2 || tandatangan(bahagian[0]) !== bahagian[1]) return null;
+  const cache = CacheService.getScriptCache();
+  if (cache.get('batal_' + token)) return null;
+  let m;
+  try { m = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(bahagian[0])).getDataAsString()); } catch (e) { return null; }
+  if (!m || !m.n || !(m.x > Date.now())) return null;
+  const profil = profilSesi(m.n);
+  if (!profil) return null;
+  const akaun = cariAkaun(m.n);
+  const sesi = Object.assign({}, profil, { mestiTukar: !akaun || String(akaun.MestiTukarPassword).toUpperCase() === 'YA', t: Date.now() });
+  try { simpanSesi(token, sesi); } catch (e) { MEMO_SESI[token] = sesi; }
+  return sesi;
 }
 function simpanSesi(token, sesi) {
   CacheService.getScriptCache().put(AWALAN_SESI + token, JSON.stringify(sesi), TEMPOH_SESI_SAAT);
@@ -60,7 +89,7 @@ function sahkanSesi(token) {
   if (!token) return null;
   if (MEMO_SESI[token]) return MEMO_SESI[token];
   const mentah = CacheService.getScriptCache().get(AWALAN_SESI + token);
-  if (!mentah) return null;
+  if (!mentah) return binaSemulaSesi(token);
   const sesi = JSON.parse(mentah);
   if (Date.now() - (sesi.t || 0) > 10 * 60 * 1000) { sesi.t = Date.now(); try { simpanSesi(token, sesi); } catch (e) { /* abaikan */ } }
   MEMO_SESI[token] = sesi;
@@ -124,7 +153,7 @@ function apiLogin(p) {
 
   const token = ciptaSesi(profil, mestiTukar);
   catatAudit(profil, 'LOGIN', profil.jenis);
-  return jaya({ token, pengguna: ringkasanPengguna(profil), mestiTukarPassword: mestiTukar });
+  return jaya({ token, pengguna: ringkasanPengguna(profil), mestiTukarPassword: mestiTukar, tetapanUi: tetapanUntukKlien() });
 }
 
 function ringkasanPengguna(sesi) {
@@ -144,7 +173,10 @@ function apiSemakSesi(p) {
 }
 
 function apiLogout(p) {
-  if (p && p.token) { CacheService.getScriptCache().remove(AWALAN_SESI + p.token); delete MEMO_SESI[p.token]; }
+  if (p && p.token) {
+    const c = CacheService.getScriptCache();
+    c.remove(AWALAN_SESI + p.token); c.put('batal_' + p.token, '1', 6 * 60 * 60); delete MEMO_SESI[p.token];
+  }
   return jaya({});
 }
 
@@ -193,5 +225,5 @@ function apiAdminSetSemulaKataLaluan(p) {
 
 function tetapanUntukKlien() {
   return { namaSekolah: tetapan('NAMA_SEKOLAH'), masaKunci: keHHmm(tetapan('MASA_KUNCI_KEHADIRAN')),
-    urlPengimbas: tetapan('URL_PENGIMBAS'), tarikhHariIni: tarikhHariIni(), masaPelayan: masaSekarang() };
+    urlPengimbas: tetapan('URL_PENGIMBAS'), tarikhHariIni: tarikhHariIni(), masaPelayan: masaSekarang(), epochPelayan: sekarang().getTime() };
 }
