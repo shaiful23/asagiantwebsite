@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Membuka sistem…</title>
+    <style>
+        html, body { height: 100%; margin: 0; }
+        body { display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, #0b1f3a, #12306b); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #fff; }
+        .k { text-align: center; padding: 24px; max-width: 420px; }
+        .p { width: 44px; height: 44px; margin: 0 auto 20px; border-radius: 50%; border: 4px solid rgba(255, 255, 255, .25); border-top-color: #f2b705; animation: pusing 0.9s linear infinite; }
+        @keyframes pusing { to { transform: rotate(360deg); } }
+        h1 { font-size: 20px; margin: 0 0 8px; }
+        p { margin: 0; opacity: .85; line-height: 1.6; font-size: 15px; }
+        a.b { display: inline-block; margin-top: 22px; background: #f2b705; color: #0b1f3a; font-weight: 700; padding: 12px 22px; border-radius: 12px; text-decoration: none; }
+        .sembunyi { display: none; }
+    </style>
+</head>
+<body>
+    <div class="k">
+        <div class="p" id="putar"></div>
+        <h1 id="tajuk">Membuka sistem…</h1>
+        <p id="teks">Sila tunggu sebentar.</p>
+        <a class="b sembunyi" id="balik" href="/">Kembali ke laman utama</a>
+    </div>
+    <script>
+    /* SSO SMK Asajaya — halaman perantara.
+     *
+     * Laman web / portal membuka halaman ini SERTA-MERTA semasa pengguna klik (supaya pelayar
+     * dan aplikasi yang dipasang membenarkan tetingkap baharu), dengan tiket rawak ?t=…
+     * Pada masa yang sama ia meminta Pusat SSO menyediakan pautan log masuk untuk tiket itu.
+     * Halaman ini bertanya kepada Pusat SSO sehingga pautan sedia, kemudian beralih ke sistem.
+     * Tiket hanya sah sekali dan selama 60 saat.
+     */
+    (function () {
+        var IDP = 'https://script.google.com/macros/s/AKfycbwh8yDxGU0nHaGX8G-Mdn6kMfgMzXEtfVV73qAdp4Keg3FHwAxAlk1aQ31UJvbAvuxgVg/exec';
+        var DIBENARKAN = /^https:\/\/(smkasajaya\.my(\/|\?|$)|script\.google\.com\/(a\/)?macros\/)/;   // hanya ke sistem sekolah
+        var m = /[?&]t=([A-Za-z0-9_-]{20,100})(?:&|$)/.exec(location.search);
+        var mula = Date.now(), n = 0, selesai = false;
+
+        function gagal(tajuk, teks) {
+            selesai = true;
+            document.getElementById('putar').className = 'sembunyi';
+            document.getElementById('tajuk').textContent = tajuk;
+            document.getElementById('teks').textContent = teks;
+            document.getElementById('balik').className = 'b';
+        }
+        if (!m) return gagal('Pautan tidak sah', 'Sila buka sistem ini melalui laman web atau portal sekolah.');
+        try { history.replaceState(null, '', location.pathname); } catch (e) { }
+
+        function tanya() {
+            if (selesai) return;
+            if (Date.now() - mula > 25000) return gagal('Tidak dapat membuka sistem', 'Sambungan mengambil masa terlalu lama. Sila tutup halaman ini dan cuba lagi.');
+            var nama = '__ssoTiket' + (++n), s = document.createElement('script'), siap = false;
+            function lagi() { if (siap) return; siap = true; try { delete window[nama]; } catch (e) { } s.remove(); setTimeout(tanya, 700); }
+            window[nama] = function (r) {
+                if (siap || selesai) return;
+                if (r && r.ok && typeof r.url === 'string' && DIBENARKAN.test(r.url)) { selesai = true; siap = true; location.replace(r.url); return; }
+                if (r && r.tunggu) return lagi();
+                siap = true;
+                if (r && r.ralat === 'TIADA_AKSES') return gagal('Tiada akses', 'Akaun anda tiada akses ke ' + (r.nama || 'sistem ini') + '. Sila hubungi pentadbir sistem.');
+                if (r && (r.ralat === 'SESI_TAMAT' || r.ralat === 'WAJIB_TUKAR_KL')) return gagal('Sesi tamat', 'Sila log masuk semula di laman web sekolah.');
+                gagal('Tidak dapat membuka sistem', 'Sila tutup halaman ini dan cuba lagi.');
+            };
+            s.onerror = lagi;
+            s.src = IDP + '?tiket=' + m[1] + '&cb=' + nama + '&_=' + Date.now();
+            document.head.appendChild(s);
+            setTimeout(lagi, 6000);          // jika permintaan tergantung, cuba lagi
+        }
+        tanya();
+    })();
+    </script>
+</body>
+</html>
