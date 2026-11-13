@@ -27,7 +27,8 @@
   // ---- Kod log masuk dari bar alamat ----
   var kod = '';
   try {
-    var m = /[?&]code=([A-Za-z0-9_-]{20,100})(?:&|$)/.exec(location.search);
+    // Kod biasa (20-100 aksara) atau kod bertandatangan Pusat SSO ('T2' + sehingga 1500 aksara)
+    var m = /[?&]code=(T2[A-Za-z0-9_-]{60,1500}|[A-Za-z0-9_-]{20,100})(?:&|$)/.exec(location.search);
     if (m) {
       kod = m[1];
       // Kod hanya sah sekali; jangan biarkan ia kekal di bar alamat / penanda buku.
