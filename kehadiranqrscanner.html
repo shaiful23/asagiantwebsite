@@ -414,10 +414,14 @@ function lukisBorang() {
   const d = DATA;
   const senaraiSubjek = Array.from(new Set([d.subjekCadangan].concat(d.subjekSaya, d.senaraiSubjek).filter(Boolean)));
   let info = '';
-  if (d.teachIn) info = '<div class="info ungu"><i class="ph-fill ph-swap"></i><div><b>Kelas teach-in dikesan</b> (e-Teach-In) — menggantikan ' + esc(d.teachIn.guruAsal || 'guru asal') + '.</div></div>';
+  const ti = d.teachInKelas || d.teachIn;
+  if (d.situasi === 'GURU ASAL KEMBALI') info = '<div class="info biru"><i class="ph-fill ph-arrow-u-down-left"></i><div><b>Guru asal masuk semula</b> — ' + esc(d.makluman || '') + '</div></div>';
+  else if (d.situasi === 'AMBIL ALIH') info = '<div class="info kuning"><i class="ph-fill ph-hand-grabbing"></i><div><b>Ambil alih kelas</b> — ' + esc(d.makluman || '') + '</div></div>';
+  else if (d.teachIn) info = '<div class="info ungu"><i class="ph-fill ph-swap"></i><div><b>Kelas teach-in dikesan</b> (e-Teach-In) — menggantikan ' + esc(d.teachIn.guruAsal || 'guru asal') + '.</div></div>';
   else if (d.jadual && d.jadual.milikSaya) info = '<div class="info biru"><i class="ph-fill ph-calendar-check"></i><div>Sepadan dengan jadual anda: <b>' + esc(d.jadual.subjek) + '</b>.</div></div>';
   else if (d.jadual) info = '<div class="info kuning"><i class="ph-fill ph-warning"></i><div>Jadual asal slot ini: <b>' + esc(d.jadual.subjek) + '</b> oleh ' + esc(d.jadual.guru) + '. Sahkan jenis kehadiran anda.</div></div>';
   else info = '<div class="info kuning"><i class="ph-fill ph-info"></i><div>' + (d.slot ? 'Tiada jadual untuk kelas ini pada slot semasa.' : 'Di luar waktu P&P berjadual.') + ' Sila lengkapkan borang secara manual.</div></div>';
+  if (d.direkodGuruLain && d.direkodGuruLain.length && !d.sudahDirekod) info += '<div class="info ungu"><i class="ph-fill ph-users"></i><div>Kelas ini sudah direkod oleh <b>' + esc(d.direkodGuruLain.map(x => x.nama).join(', ')) + '</b> pada waktu ini. Senarai tidak hadir mereka dijadikan cadangan (boleh diubah).</div></div>';
   if (d.sudahDirekod) info += '<div class="info biru"><i class="ph-fill ph-arrows-clockwise"></i><div>Sesi ini telah direkod pada ' + esc(d.sudahDirekod.masa) + '. Menyimpan semula akan <b>mengemas kini</b> rekod tersebut.</div></div>';
   const bilPagi = d.murid.filter(m => m.tidakHadirPagi).length;
   if (bilPagi && !d.sudahDirekod) info += '<div class="info kuning"><i class="ph-fill ph-user-minus"></i><div>' + bilPagi + ' murid ditanda tidak hadir oleh Guru Tingkatan pagi ini — ditanda tidak hadir secara automatik (boleh diubah).</div></div>';
@@ -429,7 +433,7 @@ function lukisBorang() {
     '<div class="grid2"><div><label class="l">Subjek</label><select id="fSubjek" class="input">' + senaraiSubjek.map(s => '<option' + (s === d.subjekCadangan ? ' selected' : '') + '>' + esc(s) + '</option>').join('') + '</select></div>' +
     '<div><label class="l">Jenis Kehadiran</label><select id="fJenis" class="input">' + d.senaraiJenis.map(j => '<option' + (j === d.jenisCadangan ? ' selected' : '') + '>' + esc(j) + '</option>').join('') + '</select></div></div>' +
     '<label class="l">Bilik</label><input id="fBilik" class="input" value="' + esc(d.bilik || '') + '">' +
-    '<label class="l">Catatan (pilihan)</label><input id="fCatatan" class="input" placeholder="cth: Kelas di makmal / aktiviti luar"></div>' +
+    '<label class="l" id="lCatatan">Catatan (pilihan)</label><input id="fCatatan" class="input" placeholder="cth: Kelas di makmal / aktiviti luar"></div>' +
     '<div class="kad"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><h2 style="margin:0"><i class="ph-fill ph-users-three"></i>Murid (' + d.murid.length + ')</h2>' +
     '<button class="btn hantu kecil" id="btnSemua"><i class="ph ph-checks"></i>Semua Hadir</button></div>' +
     '<p class="sub" style="margin-bottom:10px">Semua murid <b>hadir</b> secara lalai. Matikan suis bagi murid yang tidak hadir dan pilih sebab. Murid yang hadir ke sekolah tetapi tiada dalam kelas → tekan <b>Ponteng Kelas</b>.</p>' +
@@ -438,6 +442,10 @@ function lukisBorang() {
       '<select class="input sebab' + (m.hadir ? ' hidden' : '') + '">' + pilihanSebab(m.kodSebab, !m.tidakHadirPagi) + '</select>' +
       (m.tidakHadirPagi ? '' : '<button type="button" class="btn kecil pk' + (m.hadir ? ' hidden' : '') + '" style="background:var(--merah)"><i class="ph-fill ph-person-simple-run"></i>Ponteng Kelas</button>') + '</div>').join('') + '</div></div>' +
     '<button class="btn hantu penuh" onclick="imbasSemula()"><i class="ph ph-arrow-counter-clockwise"></i>Batal & Imbas Kelas Lain</button>';
+  const kemasCatatan = () => { const w = $('#fJenis').value === 'GURU AMBIL ALIH';
+    $('#lCatatan').textContent = w ? 'Sebab ambil alih (wajib)' : 'Catatan (pilihan)';
+    $('#fCatatan').placeholder = w ? 'cth: Guru teach-in bermesyuarat / diminta PK Pentadbiran' : 'cth: Kelas di makmal / aktiviti luar'; };
+  $('#fJenis').onchange = kemasCatatan; kemasCatatan();
   b.querySelectorAll('.murid input[type=checkbox]').forEach(cb => cb.onchange = () => togol(cb));
   b.querySelectorAll('.murid .pk').forEach(btn => btn.onclick = () => { btn.closest('.murid').querySelector('.sebab').value = 'PONTENG_KELAS'; });
   $('#btnSemua').onclick = () => b.querySelectorAll('.murid input[type=checkbox]').forEach(cb => { cb.checked = true; togol(cb); });
@@ -456,6 +464,7 @@ $('#btnSimpan').onclick = () => {
   const tidakHadir = [], tiada = [];
   document.querySelectorAll('.murid.tidak').forEach(m => { const k = m.querySelector('.sebab').value; if (!k) tiada.push(m.dataset.nama); tidakHadir.push({ nokp: m.dataset.nokp, kodSebab: k }); });
   if (tiada.length) { toast('Pilih sebab bagi: ' + tiada.slice(0, 2).join(', ') + (tiada.length > 2 ? '…' : '')); return; }
+  if ($('#fJenis').value === 'GURU AMBIL ALIH' && $('#fCatatan').value.trim().length < 3) { toast('Nyatakan sebab ambil alih kelas di ruangan catatan.'); $('#fCatatan').focus(); return; }
   const btn = $('#btnSimpan'); btn.disabled = true; btn.innerHTML = '<span class="putar"></span>Menyimpan…';
   if (!btn.dataset.idp) btn.dataset.idp = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   jsonpUlang('rekodKehadiranSubjek', { idPermintaan: btn.dataset.idp, kelas: DATA.kelas, subjek: $('#fSubjek').value, jenis: $('#fJenis').value, bilik: $('#fBilik').value, catatan: $('#fCatatan').value, tidakHadir: JSON.stringify(tidakHadir) })
@@ -468,7 +477,9 @@ $('#btnSimpan').onclick = () => {
       h.innerHTML = '<div class="hasil"><i class="ph-fill ph-check-circle besar" style="color:var(--hijau)"></i><h3>Kehadiran ' + (r.dikemaskini ? 'dikemas kini' : 'direkod') + '!</h3><p class="sub">' + esc(DATA.kelas) + ' · ' + esc($('#fSubjek').value) + '</p><br>' +
         '<span class="cip c-hijau"><i class="ph-fill ph-check"></i>' + r.hadir + ' hadir</span><span class="cip c-merah"><i class="ph-fill ph-x"></i>' + r.tidakHadir + ' tidak hadir</span>' +
         (r.pontengKelas ? '<span class="cip c-merah"><i class="ph-fill ph-person-simple-run"></i>' + r.pontengKelas + ' ponteng kelas</span>' : '') +
-        '<span class="cip ' + (r.statusMasa === 'LEWAT' ? 'c-kuning' : 'c-biru') + '"><i class="ph-fill ph-clock"></i>Guru: ' + esc(r.statusMasa) + '</span><br><br>' +
+        '<span class="cip ' + (r.statusMasa === 'LEWAT' ? 'c-kuning' : 'c-biru') + '"><i class="ph-fill ph-clock"></i>Guru: ' + esc(r.statusMasa) + '</span>' +
+        (r.situasi === 'AMBIL ALIH' ? '<span class="cip c-kuning"><i class="ph-fill ph-hand-grabbing"></i>Ambil alih' + (r.guruDijangka ? ': ' + esc(r.guruDijangka) : '') + '</span>' : '') +
+        (r.situasi === 'GURU ASAL KEMBALI' ? '<span class="cip c-biru"><i class="ph-fill ph-arrow-u-down-left"></i>Masuk semula</span>' : '') + '<br><br>' +
         '<button class="btn" onclick="imbasSemula()"><i class="ph ph-qr-code"></i>Imbas Kelas Seterusnya</button></div>';
       window.scrollTo(0, 0);
     }).catch(e => { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i>Cuba Lagi'; toast(e.message); });
