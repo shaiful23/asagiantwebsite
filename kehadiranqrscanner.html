@@ -2,13 +2,14 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0B1D6B">
 <title>Imbas QR Kelas — e-Kehadiran SMK Asajaya</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
   :root { --navy-900:#060E3D; --navy-800:#081350; --navy-700:#0B1D6B; --biru:#1E3BD1; --biru-lembut:#E8EDFF; --merah:#D9141B; --merah-lembut:#FDE8E9;
@@ -19,10 +20,15 @@
   body { margin:0; font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; background:var(--latar); color:var(--teks); font-size:14px; -webkit-font-smoothing:antialiased; }
   .hidden { display:none !important; }
   i.ph, i.ph-fill { vertical-align:-2px; }
-  header { position:sticky; top:0; z-index:10; color:#fff; padding:14px 16px 12px; background:radial-gradient(circle at 90% 0, rgba(91,31,140,.6), transparent 45%), linear-gradient(140deg,var(--navy-700),var(--navy-900)); }
+  header { position:sticky; top:0; z-index:10; color:#fff; padding:calc(14px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left)); background:radial-gradient(circle at 90% 0, rgba(91,31,140,.6), transparent 45%), linear-gradient(140deg,var(--navy-700),var(--navy-900)); }
   header .baris { display:flex; align-items:center; gap:12px; max-width:1100px; margin:0 auto; }
   header img { width:42px; height:42px; border-radius:50%; background:#fff; padding:2px; }
   header b { display:block; font-size:15px; letter-spacing:.03em; } header small { opacity:.75; font-size:12px; }
+  header .teks { flex:1; min-width:0; } header .teks small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .btn-tutup { flex-shrink:0; display:inline-flex; align-items:center; gap:6px; min-height:44px; min-width:44px; padding:0 14px; border-radius:12px; border:1.5px solid rgba(255,255,255,.35);
+    background:rgba(255,255,255,.12); color:#fff; font:inherit; font-weight:800; font-size:13px; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+  .btn-tutup:active { background:rgba(255,255,255,.25); } .btn-tutup i { font-size:18px; }
+  @media (max-width:360px) { .btn-tutup { padding:0 10px; gap:4px; } header b { font-size:14px; } header img { width:36px; height:36px; } }
   header .pelangi { height:3px; background:var(--pelangi); max-width:1100px; margin:10px auto 0; border-radius:3px; }
   main { max-width:1100px; margin:0 auto; padding:16px clamp(12px, 2vw, 28px) 120px; }
   #skrinImbas { max-width:640px; margin-left:auto; margin-right:auto; }
@@ -56,7 +62,7 @@
   .togol input { position:absolute; opacity:0; } .togol .landas { width:44px; height:25px; border-radius:25px; background:var(--hijau); position:relative; transition:background .15s; }
   .togol .landas::after { content:''; position:absolute; top:3px; left:22px; width:19px; height:19px; border-radius:50%; background:#fff; transition:left .15s; box-shadow:0 1px 3px rgba(0,0,0,.25); }
   .togol input:not(:checked) + .landas { background:#CBD5E1; } .togol input:not(:checked) + .landas::after { left:3px; } .togol input:not(:checked) ~ span:last-child { color:var(--merah); }
-  .bar-bawah { position:fixed; left:0; right:0; bottom:0; z-index:20; padding:12px 14px calc(12px + env(safe-area-inset-bottom)); background:rgba(8,19,80,.96); color:#fff; box-shadow:0 -10px 30px rgba(8,19,80,.25); }
+  .bar-bawah { position:fixed; left:0; right:0; bottom:0; z-index:20; padding:12px calc(14px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); background:rgba(8,19,80,.96); color:#fff; box-shadow:0 -10px 30px rgba(8,19,80,.25); }
   .bar-bawah .dalam { max-width:1100px; margin:0 auto; display:flex; gap:12px; align-items:center; }
   .bar-bawah .kira { font-weight:700; font-size:13px; } .bar-bawah .kira b { font-size:19px; }
   .bar-bawah .btn { margin-left:auto; }
@@ -68,7 +74,8 @@
 </head>
 <body>
 <header>
-  <div class="baris"><img id="logo" alt="Logo SMK Asajaya"><div><b>e-KEHADIRAN · SMK ASAJAYA</b><small id="infoPengguna">Imbas QR Kelas</small></div></div>
+  <div class="baris"><img id="logo" alt="Logo SMK Asajaya"><div class="teks"><b>e-KEHADIRAN · SMK ASAJAYA</b><small id="infoPengguna">Imbas QR Kelas</small></div>
+    <button type="button" id="btnTutup" class="btn-tutup" aria-label="Tutup pengimbas dan kembali ke sistem" onclick="tutupPengimbas()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Tutup</span></button></div>
   <div class="pelangi"></div>
 </header>
 <main>
@@ -76,6 +83,7 @@
     <i class="ph-fill ph-warning-octagon" style="font-size:44px;color:var(--merah)"></i>
     <h2 style="justify-content:center">Akses Tidak Sah</h2>
     <p class="sub">Buka pengimbas ini melalui butang <b>“Buka Pengimbas Kamera”</b> di menu <b>Imbas QR Kelas</b> dalam portal e-Kehadiran.</p>
+    <br><button type="button" class="btn" onclick="tutupPengimbas()"><i class="ph ph-arrow-left"></i>Kembali ke Sistem</button>
   </div>
 
   <section id="skrinImbas" class="kad">
@@ -331,6 +339,24 @@ function inisial(n) { return String(n || '?').replace(/\b(BIN|BINTI|ANAK|A\/L|A\
 function avatar(n, g) { return g ? '<img class="avatar" src="' + esc(g) + '" referrerpolicy="no-referrer" alt="" onerror="this.outerHTML=\'<span class=&quot;avatar&quot;>' + esc(inisial(n)) + '</span>\'">' : '<span class="avatar">' + esc(inisial(n)) + '</span>'; }
 function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); }
 
+/* ------------------------------ TUTUP / KEMBALI ------------------------------
+   1) Tetingkap dibuka oleh skrip portal (window.open) → window.close() menutup tab ini.
+   2) Jika pelayar enggan (iPhone Safari / apl skrin utama, tab dibuka melalui pautan) →
+      halaman ini digantikan dengan sistem e-Kehadiran (sesi log masuk dikekalkan).
+   Hanya alamat smkasajaya.my atau script.google.com diterima (elak lencongan ke laman lain). */
+const ALAMAT_SAH = /^https:\/\/((www\.)?smkasajaya\.my|script\.google\.com)(\/|$)/i;
+const KEMBALI = [P.get('kembali'), EXEC, 'https://smkasajaya.my/ehadirpelajar'].find(u => u && ALAMAT_SAH.test(u));
+let SUDAH_SIMPAN = false;
+function tutupPengimbas() {
+  const borang = document.getElementById('skrinBorang');
+  if (borang && !borang.classList.contains('hidden') && !SUDAH_SIMPAN && !confirm('Kehadiran kelas ini belum disimpan. Tutup pengimbas juga?')) return;
+  try { hentiKamera(); } catch (e) { /* kamera belum dimulakan */ }
+  const btn = document.getElementById('btnTutup'); if (btn) btn.disabled = true;
+  try { window.close(); } catch (e) { /* abaikan */ }
+  /* Jika tab masih terbuka selepas seketika → kembali ke sistem dalam tab ini. */
+  setTimeout(() => { if (!window.closed) location.replace(KEMBALI); }, 300);
+}
+
 if (!TOKEN || !EXEC || !/^https:\/\/script\.google(usercontent)?\.com\//.test(EXEC)) {
   $('#aksesTidakSah').classList.remove('hidden'); $('#skrinImbas').classList.add('hidden');
   throw new Error('Parameter URL tidak sah.');
@@ -363,6 +389,7 @@ function jsonpUlang(action, param, ms, n) {
 /* ------------------------------ KAMERA ------------------------------ */
 let pengimbas = null, sibuk = false, DATA = null;
 function mulaKamera() {
+  if (pengimbas) return;
   $('#statusTeks').textContent = 'Menghidupkan kamera…';
   if (typeof Html5Qrcode === 'undefined') { $('#statusTeks').textContent = 'Pustaka pengimbas gagal dimuat. Guna kod kelas manual di bawah.'; return; }
   pengimbas = new Html5Qrcode('qr-reader');
@@ -379,6 +406,13 @@ function hentiKamera() {
   const p = pengimbas; pengimbas = null;
   try { Promise.resolve(p.stop()).then(() => p.clear()).catch(() => {}); } catch (e) { try { p.clear(); } catch (e2) { /* kamera tidak berjalan */ } }
 }
+
+/* Lepaskan kamera bila tab disembunyikan / ditinggalkan (iOS & Android), hidupkan semula bila kembali. */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') hentiKamera();
+  else if (!$('#skrinImbas').classList.contains('hidden') && !sibuk) mulaKamera();
+});
+window.addEventListener('pagehide', () => hentiKamera());
 
 function diimbas(teks) {
   if (sibuk) return;
@@ -397,10 +431,10 @@ $('#kodManual').onkeydown = e => { if (e.key === 'Enter') $('#btnManual').click(
 function tunjukRalat(mesej) {
   $('#skrinImbas').classList.add('hidden'); $('#skrinBorang').classList.add('hidden'); $('#barBawah').classList.add('hidden');
   const h = $('#skrinHasil'); h.classList.remove('hidden');
-  h.innerHTML = '<div class="hasil"><i class="ph-fill ph-x-circle besar" style="color:var(--merah)"></i><h3>Tidak berjaya</h3><p class="sub">' + esc(mesej) + '</p><br><button class="btn" onclick="imbasSemula()"><i class="ph ph-camera"></i>Imbas Semula</button></div>';
+  h.innerHTML = '<div class="hasil"><i class="ph-fill ph-x-circle besar" style="color:var(--merah)"></i><h3>Tidak berjaya</h3><p class="sub">' + esc(mesej) + '</p><br><button class="btn" onclick="imbasSemula()"><i class="ph ph-camera"></i>Imbas Semula</button> <button class="btn hantu" onclick="tutupPengimbas()"><i class="ph ph-arrow-left"></i>Kembali ke Sistem</button></div>';
 }
 function imbasSemula() {
-  DATA = null; $('#skrinHasil').classList.add('hidden'); $('#skrinBorang').classList.add('hidden'); $('#barBawah').classList.add('hidden');
+  DATA = null; SUDAH_SIMPAN = false; $('#skrinHasil').classList.add('hidden'); $('#skrinBorang').classList.add('hidden'); $('#barBawah').classList.add('hidden');
   $('#skrinImbas').classList.remove('hidden'); $('#kodManual').value = ''; window.scrollTo(0, 0); mulaKamera();
 }
 
@@ -472,7 +506,7 @@ $('#btnSimpan').onclick = () => {
     .then(r => {
       btn.disabled = false;
       if (!r.success) { toast(r.message); btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i>Cuba Lagi'; delete btn.dataset.idp; return; }
-      delete btn.dataset.idp;
+      delete btn.dataset.idp; SUDAH_SIMPAN = true;
       $('#skrinBorang').classList.add('hidden'); $('#barBawah').classList.add('hidden');
       const h = $('#skrinHasil'); h.classList.remove('hidden');
       h.innerHTML = '<div class="hasil"><i class="ph-fill ph-check-circle besar" style="color:var(--hijau)"></i><h3>Kehadiran ' + (r.dikemaskini ? 'dikemas kini' : 'direkod') + '!</h3><p class="sub">' + esc(DATA.kelas) + ' · ' + esc($('#fSubjek').value) + '</p><br>' +
@@ -481,7 +515,7 @@ $('#btnSimpan').onclick = () => {
         '<span class="cip ' + (r.statusMasa === 'LEWAT' ? 'c-kuning' : 'c-biru') + '"><i class="ph-fill ph-clock"></i>Guru: ' + esc(r.statusMasa) + '</span>' +
         (r.situasi === 'AMBIL ALIH' ? '<span class="cip c-kuning"><i class="ph-fill ph-hand-grabbing"></i>Ambil alih' + (r.guruDijangka ? ': ' + esc(r.guruDijangka) : '') + '</span>' : '') +
         (r.situasi === 'GURU ASAL KEMBALI' ? '<span class="cip c-biru"><i class="ph-fill ph-arrow-u-down-left"></i>Masuk semula</span>' : '') + '<br><br>' +
-        '<button class="btn" onclick="imbasSemula()"><i class="ph ph-qr-code"></i>Imbas Kelas Seterusnya</button></div>';
+        '<button class="btn" onclick="imbasSemula()"><i class="ph ph-qr-code"></i>Imbas Kelas Seterusnya</button> <button class="btn hantu" onclick="tutupPengimbas()"><i class="ph ph-arrow-left"></i>Kembali ke Sistem</button></div>';
       window.scrollTo(0, 0);
     }).catch(e => { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i>Cuba Lagi'; toast(e.message); });
 };
