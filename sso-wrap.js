@@ -12,6 +12,11 @@
  *     <iframe data-src="https://script.google.com/macros/s/…/exec"></iframe>
  *     <script src="/sso-wrap.js?v=2"></script>
  * Halaman lama yang masih menulis  src="…"  terus pada iframe tetap disokong.
+ *
+ * 4. "Ingat peranti ini" (Pusat SSO): Safari di iPhone/iPad tidak mengekalkan storan di dalam
+ *    iframe Apps Script (pihak ketiga). Sistem di dalam iframe meminta halaman ini (pihak pertama)
+ *    menyimpan/membaca token peranti melalui postMessage. Token sahaja tidak membolehkan log masuk —
+ *    kata laluan tetap diperlukan.
  */
 (function () {
   var f = null, asal = '', tangguh = false;
@@ -69,4 +74,26 @@
   } catch (e) {
     try { if (f && asal) f.src = asal; } catch (e2) { }
   }
+})();
+
+// ---- 4. Storan token "ingat peranti ini" untuk sistem di dalam iframe ----
+(function () {
+  var ASAL_SAH = /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/;   // kotak pasir Apps Script sahaja
+  var kunci = function (ic) { return 'ssoPeranti_' + ic; };
+  window.addEventListener('message', function (ev) {
+    try {
+      var d = ev.data;
+      if (!d || typeof d !== 'object' || !ASAL_SAH.test(ev.origin) || !ev.source) return;
+      var ic = String(d.ic || '');
+      if (!/^\d{12}$/.test(ic)) return;
+      if (d.smka === 'peranti-baca') {
+        var tok = '';
+        try { tok = localStorage.getItem(kunci(ic)) || ''; } catch (e) { }
+        ev.source.postMessage({ smka: 'peranti', ic: ic, tok: tok }, ev.origin);
+      } else if (d.smka === 'peranti-simpan') {
+        var t = String(d.tok || '');
+        if (/^[A-Za-z0-9._-]{20,300}$/.test(t)) { try { localStorage.setItem(kunci(ic), t); } catch (e) { } }
+      }
+    } catch (e) { /* jangan ganggu halaman */ }
+  });
 })();
