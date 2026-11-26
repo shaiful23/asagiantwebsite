@@ -36,16 +36,19 @@
 // kekal (dokumentasi rasmi Google), tak kira iframe atau akses terus.
 // Selepas imbas berjaya, hasil dihantar balik ke Apps Script melalui
 // endpoint JSONP (elak isu CORS sepenuhnya).
+// Keselamatan: warden dikenal pasti oleh TIKET (#t=…) yang dijana oleh Portal Warden
+// daripada sesi log masuknya. Nama hanya untuk paparan. Tiket dibuang dari bar alamat.
 const params = new URLSearchParams(window.location.search);
 const NAMA_WARDEN = params.get('nama') || '';
-const PERANAN = params.get('peranan') || '';
+const TIKET = (/[#&]t=([a-f0-9]{64})/.exec(window.location.hash) || [])[1] || '';
+try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec';
 
-if (!NAMA_WARDEN || !PERANAN) {
+if (!TIKET) {
   document.body.innerHTML = '<div style="padding:40px;"><h2 style="color:#ff8a8a;">⚠️ Akses Tidak Sah</h2><p>Sila buka pengimbas ini melalui butang "Buka Pengimbas QR" dalam Portal Warden.</p></div>';
-  throw new Error('Tiada maklumat warden dalam URL');
+  throw new Error('Tiada tiket pengimbas');
 }
-document.getElementById('modeInfo').innerText = 'Log masuk sebagai: ' + NAMA_WARDEN + ' (' + PERANAN + ')';
+document.getElementById('modeInfo').innerText = 'Log masuk sebagai: ' + (NAMA_WARDEN || 'Warden');
 
 let mode = 'CheckIn';
 let lastScanTime = 0;
@@ -83,8 +86,7 @@ function onScan(decodedText){
   const url = SCRIPT_URL + '?apiAction=rekodCheckInOut'
     + '&id=' + encodeURIComponent(decodedText.trim())
     + '&jenis=' + encodeURIComponent(mode)
-    + '&namaWarden=' + encodeURIComponent(NAMA_WARDEN)
-    + '&peranan=' + encodeURIComponent(PERANAN);
+    + '&t=' + TIKET;
   jsonp(url).then(res => {
     if (res.success) {
       tunjukHasil('<b style="color:#4ade80;">✅ ' + res.nama + '</b><br>' + res.jenis + ' — ' + res.masa +
