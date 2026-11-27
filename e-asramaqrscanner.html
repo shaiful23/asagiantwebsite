@@ -2,69 +2,120 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Imbas QR - Asrama SMK Asajaya</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#17358A">
+<title>Imbas QR Pulang/Kembali - Asrama SMK Asajaya</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
-  html,body{margin:0; padding:0;}
-  body{
-    font-family:'Segoe UI',Roboto,-apple-system,sans-serif;
-    background:linear-gradient(160deg,#0f2445 0%,#16345f 100%);
-    color:#fff; min-height:100vh; padding:24px 16px; text-align:center; box-sizing:border-box;
-  }
-  h2{margin:0 0 4px;}
-  #modeInfo{color:#c7d3e6; font-size:13px; margin-bottom:18px;}
-  #qr-reader{max-width:420px; margin:0 auto 18px; border-radius:16px; overflow:hidden; background:#000;}
-  button{background:#c9a24b; color:#0f2445; border:none; border-radius:10px; padding:12px 22px; font-weight:700; font-size:14px; cursor:pointer; margin:6px;}
-  button.outline{background:transparent; border:1.5px solid #c9a24b; color:#c9a24b;}
-  #result{max-width:420px; margin:20px auto 0; padding:16px; border-radius:12px; background:rgba(255,255,255,.08); min-height:50px; font-size:14px; line-height:1.5;}
+  :root{ --biru:#17358A; --biru2:#0F2766; --kuning:#F5CF00; --merah:#D21F2C; --ok:#1E7F4F; --okS:#E6F4EC; --bad:#C62828; --badS:#FCEBEB; --warnS:#FFF4DB;
+    --jalur:linear-gradient(90deg,var(--biru) 0 40%,var(--kuning) 40% 70%,var(--merah) 70% 100%); }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:#F5F6F9; color:#141B2E; min-height:100vh; -webkit-font-smoothing:antialiased; }
+  header{ background:var(--biru); color:#fff; padding:calc(10px + env(safe-area-inset-top)) 14px 12px; position:sticky; top:0; z-index:5; }
+  header:after{ content:""; position:absolute; left:0; right:0; bottom:-3px; height:3px; background:var(--jalur); }
+  .hd{ max-width:520px; margin:0 auto; display:flex; align-items:center; gap:12px; }
+  .hd .t{ flex:1; min-width:0; }
+  .hd b{ display:block; font-size:16px; font-weight:600; }
+  .hd span{ display:block; font-size:12px; color:#C9D3EC; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .btn-tutup{ flex-shrink:0; display:inline-flex; align-items:center; gap:6px; min-height:44px; min-width:44px; padding:0 14px; border-radius:10px; border:1.5px solid rgba(255,255,255,.35);
+    background:rgba(255,255,255,.12); color:#fff; font:inherit; font-weight:600; font-size:14px; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+  .btn-tutup:active{ background:rgba(255,255,255,.25); }
+  main{ max-width:520px; margin:0 auto; padding:18px 14px calc(28px + env(safe-area-inset-bottom)); }
+  .mod{ display:grid; grid-template-columns:1fr 1fr; gap:8px; background:#fff; border:1px solid #E3E6EE; border-radius:12px; padding:6px; }
+  .mod button{ display:flex; flex-direction:column; align-items:center; gap:2px; padding:10px 6px; border:0; border-radius:8px; background:transparent; color:#5B6478; font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .mod button b{ font-size:15px; font-weight:600; display:flex; align-items:center; gap:6px; }
+  .mod button small{ font-size:11.5px; }
+  .mod button.on.pulang{ background:#FFF4DB; color:#7A4F00; box-shadow:inset 0 0 0 2px #E0B000; }
+  .mod button.on.kembali{ background:var(--okS); color:var(--ok); box-shadow:inset 0 0 0 2px var(--ok); }
+  .bingkai{ margin:14px 0; border-radius:14px; overflow:hidden; background:#000; position:relative; border:3px solid transparent; }
+  .bingkai.pulang{ border-color:#E0B000; } .bingkai.kembali{ border-color:var(--ok); }
+  .lbl-mod{ position:absolute; top:10px; left:10px; z-index:3; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600; }
+  .bingkai.pulang .lbl-mod{ background:#F5CF00; color:#141B2E; } .bingkai.kembali .lbl-mod{ background:var(--ok); color:#fff; }
+  #qr-reader{ width:100%; } #qr-reader video{ display:block; }
+  .hasil{ background:#fff; border:1px solid #E3E6EE; border-radius:12px; padding:14px; min-height:64px; display:flex; gap:12px; align-items:center; font-size:14px; line-height:1.45; }
+  .hasil.ok{ border-color:#BFE3CE; background:var(--okS); } .hasil.bad{ border-color:#F0CACA; background:var(--badS); }
+  .hasil .ik{ width:40px; height:40px; border-radius:10px; display:grid; place-items:center; flex:none; background:#EDF1FA; color:var(--biru); }
+  .hasil.ok .ik{ background:#fff; color:var(--ok); } .hasil.bad .ik{ background:#fff; color:var(--bad); }
+  .hasil b{ font-weight:600; }
+  .hasil .m{ font-size:12.5px; color:#5B6478; }
+  .cip{ display:inline-block; padding:1px 8px; border-radius:5px; font-size:11.5px; font-weight:600; margin-top:4px; }
+  .cip.lewat{ background:var(--bad); color:#fff; } .cip.tepat{ background:#fff; color:var(--ok); border:1px solid #BFE3CE; } .cip.amaran{ background:var(--warnS); color:#5E4300; }
+  .nota{ font-size:12px; color:#5B6478; text-align:center; margin-top:12px; line-height:1.5; }
+  svg.i{ width:20px; height:20px; }
+  .tak-sah{ padding:48px 20px; text-align:center; }
 </style>
 </head>
 <body>
-  <h2>📷 Imbas Kod QR Penghuni</h2>
-  <p id="modeInfo"></p>
-  <div id="qr-reader"></div>
-  <div>
-    <button id="btnIn" onclick="setMode('CheckIn')">✅ Check-In</button>
-    <button id="btnOut" class="outline" onclick="setMode('CheckOut')">🚪 Check-Out</button>
+<header><div class="hd">
+  <div class="t"><b>Imbas QR — Pulang &amp; Kembali</b><span id="modeInfo">E-Asrama SMK Asajaya</span></div>
+  <button type="button" id="btnTutup" class="btn-tutup" aria-label="Tutup pengimbas dan kembali ke Portal Warden" onclick="tutupPengimbas()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Tutup</span></button>
+</div></header>
+<main id="utama">
+  <div class="mod" role="tablist" aria-label="Jenis rekod">
+    <button type="button" id="btnOut" class="pulang" onclick="setMode('CheckOut')"><b><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Pulang ke rumah</b><small>Check-out (bermalam / cuti)</small></button>
+    <button type="button" id="btnIn" class="kembali" onclick="setMode('CheckIn')"><b><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01"/></svg>Kembali ke asrama</b><small>Check-in</small></button>
   </div>
-  <div id="result">Sedia untuk imbas...</div>
+  <div class="bingkai" id="bingkai"><span class="lbl-mod" id="lblMod"></span><div id="qr-reader"></div></div>
+  <div class="hasil" id="result"><span class="ik"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10"/></svg></span><div>Pilih jenis rekod, kemudian halakan kamera ke kad QR penghuni.</div></div>
+  <div class="nota">Sistem menolak rekod yang tidak mengikut urutan (cth. pulang dua kali). Tekan <b>Tutup</b> untuk kembali ke Portal Warden.</div>
+</main>
 
 <script>
-// Laman ini SENGAJA dihoskan di luar Apps Script (GitHub Pages) — Apps
-// Script HtmlService SEKAT getUserMedia() (akses kamera) secara rasmi &
-// kekal (dokumentasi rasmi Google), tak kira iframe atau akses terus.
-// Selepas imbas berjaya, hasil dihantar balik ke Apps Script melalui
-// endpoint JSONP (elak isu CORS sepenuhnya).
-// Keselamatan: warden dikenal pasti oleh TIKET (#t=…) yang dijana oleh Portal Warden
-// daripada sesi log masuknya. Nama hanya untuk paparan. Tiket dibuang dari bar alamat.
+// Laman ini SENGAJA dihoskan di luar Apps Script (GitHub Pages) — Apps Script HtmlService
+// menyekat getUserMedia() (kamera). Hasil imbasan dihantar ke Apps Script melalui JSONP.
+// Keselamatan: warden dikenal pasti oleh TIKET (#t=…) daripada sesi Portal Warden.
+// MAKSUD: CheckOut = penghuni PULANG ke rumah; CheckIn = penghuni KEMBALI ke asrama.
 const params = new URLSearchParams(window.location.search);
 const NAMA_WARDEN = params.get('nama') || '';
 const TIKET = (/[#&]t=([a-f0-9]{64})/.exec(window.location.hash) || [])[1] || '';
 try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbykYksuDRd_3YpY-jXO6LF8uL5cb05mnjU198t6_SEvEpkZdUQOurR7p2Gej2ZCUmvKXg/exec';
+const KEMBALI_KE = 'https://smkasajaya.my/e-asramawarden';
+let qr = null;
+
+/* TUTUP: 1) tab dibuka oleh Portal Warden (window.open) -> window.close();
+   2) jika pelayar enggan (iPhone / apl skrin utama) -> ganti laman ini dengan Portal Warden. */
+function tutupPengimbas() {
+  const btn = document.getElementById('btnTutup'); if (btn) btn.disabled = true;
+  try { if (qr && qr.isScanning) qr.stop().catch(() => {}); } catch (e) {}
+  try { window.close(); } catch (e) {}
+  setTimeout(() => { if (!window.closed) location.replace(KEMBALI_KE); }, 300);
+}
 
 if (!TIKET) {
-  document.body.innerHTML = '<div style="padding:40px;"><h2 style="color:#ff8a8a;">⚠️ Akses Tidak Sah</h2><p>Sila buka pengimbas ini melalui butang "Buka Pengimbas QR" dalam Portal Warden.</p></div>';
+  document.getElementById('utama').innerHTML = '<div class="tak-sah"><h2 style="color:#C62828;margin:0 0 8px">Akses tidak sah</h2><p>Sila buka pengimbas ini melalui butang "Buka Pengimbas QR" dalam Portal Warden.</p></div>';
   throw new Error('Tiada tiket pengimbas');
 }
-document.getElementById('modeInfo').innerText = 'Log masuk sebagai: ' + (NAMA_WARDEN || 'Warden');
+document.getElementById('modeInfo').innerText = 'Warden: ' + (NAMA_WARDEN || 'Warden');
 
-let mode = 'CheckIn';
-let lastScanTime = 0;
-
-function setMode(m){
+let mode = 'CheckOut';
+let lastScanTime = 0, lastText = '';
+function setMode(m) {
   mode = m;
-  document.getElementById('btnIn').className = m === 'CheckIn' ? '' : 'outline';
-  document.getElementById('btnOut').className = m === 'CheckOut' ? '' : 'outline';
+  document.getElementById('btnIn').classList.toggle('on', m === 'CheckIn');
+  document.getElementById('btnOut').classList.toggle('on', m === 'CheckOut');
+  const b = document.getElementById('bingkai');
+  b.className = 'bingkai ' + (m === 'CheckIn' ? 'kembali' : 'pulang');
+  document.getElementById('lblMod').textContent = m === 'CheckIn' ? 'Mod: KEMBALI ke asrama' : 'Mod: PULANG ke rumah';
 }
-setMode('CheckIn');
+setMode('CheckOut');
 
-function tunjukHasil(html){ document.getElementById('result').innerHTML = html; }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+const IK = {
+  tunggu: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  ok: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>',
+  bad: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg>'
+};
+function tunjukHasil(jenis, html) {
+  const r = document.getElementById('result');
+  r.className = 'hasil' + (jenis === 'ok' ? ' ok' : jenis === 'bad' ? ' bad' : '');
+  r.innerHTML = '<span class="ik">' + IK[jenis] + '</span><div>' + html + '</div>';
+}
+function getar(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
 
-// JSONP — muatkan respons pelayan melalui tag <script> (bukan fetch()),
-// supaya sekatan CORS merentasi domain langsung tidak relevan.
-function jsonp(url, timeoutMs){
+// JSONP — respons pelayan dimuat melalui tag <script> (elak sekatan CORS).
+function jsonp(url, timeoutMs) {
   return new Promise((resolve, reject) => {
     const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
     const script = document.createElement('script');
@@ -78,41 +129,47 @@ function jsonp(url, timeoutMs){
   });
 }
 
-function onScan(decodedText){
-  const now = Date.now();
-  if (now - lastScanTime < 2500) return;
-  lastScanTime = now;
-  tunjukHasil('⏳ Mengesahkan...');
+function onScan(decodedText) {
+  const now = Date.now(), teks = decodedText.trim();
+  if (now - lastScanTime < 2500 || (teks === lastText && now - lastScanTime < 6000)) return;
+  lastScanTime = now; lastText = teks;
+  const modSemasa = mode;
+  tunjukHasil('tunggu', 'Mengesahkan rekod <b>' + (modSemasa === 'CheckIn' ? 'kembali ke asrama' : 'pulang ke rumah') + '</b>...');
   const url = SCRIPT_URL + '?apiAction=rekodCheckInOut'
-    + '&id=' + encodeURIComponent(decodedText.trim())
-    + '&jenis=' + encodeURIComponent(mode)
+    + '&id=' + encodeURIComponent(teks)
+    + '&jenis=' + encodeURIComponent(modSemasa)
     + '&t=' + TIKET;
   jsonp(url).then(res => {
     if (res.success) {
-      tunjukHasil('<b style="color:#4ade80;">✅ ' + res.nama + '</b><br>' + res.jenis + ' — ' + res.masa +
-        (res.status === 'Lewat' ? ' <span style="color:#ff8a8a;">(LEWAT)</span>' : ''));
+      const kembali = res.jenis === 'CheckIn';
+      let h = '<b>' + esc(res.nama) + '</b>' + (res.kelas ? ' <span class="m">· ' + esc(res.kelas) + '</span>' : '') +
+        '<br>' + (res.label ? esc(res.label) : (kembali ? 'Kembali ke asrama' : 'Pulang ke rumah')) + ' — ' + esc(res.masa);
+      if (kembali && res.tempoh) h += '<div class="m">Di rumah selama ' + esc(res.tempoh) + '</div>';
+      if (kembali) h += '<span class="cip ' + (res.status === 'Lewat' ? 'lewat">KEMBALI LEWAT' : 'tepat">Tepat masa') + '</span> ';
+      if (res.amaran) h += '<div><span class="cip amaran">' + esc(res.amaran) + '</span></div>';
+      tunjukHasil(res.status === 'Lewat' ? 'bad' : 'ok', h);
+      getar(res.status === 'Lewat' ? [120, 80, 120] : 80);
     } else {
-      tunjukHasil('<b style="color:#ff8a8a;">⚠️ ' + res.message + '</b>');
+      tunjukHasil('bad', '<b>' + esc(res.message) + '</b>');
+      getar([200, 100, 200]);
     }
   }).catch(err => {
-    tunjukHasil('<b style="color:#ff8a8a;">⚠️ Ralat sambungan: ' + err.message + '</b>');
+    tunjukHasil('bad', '<b>Ralat sambungan:</b> ' + esc(err.message));
   });
 }
 
-// Mula kamera — cuba kamera belakang dahulu (biasa utk telefon), jika
-// gagal cuba mana-mana kamera lain yang wujud (biasa utk komputer/laptop).
-const qr = new Html5Qrcode('qr-reader');
-const config = { fps: 10, qrbox: 230 };
+// Mula kamera — kamera belakang dahulu (telefon), jika gagal mana-mana kamera (komputer).
+qr = new Html5Qrcode('qr-reader');
+const config = { fps: 10, qrbox: { width: 230, height: 230 } };
 qr.start({ facingMode: 'environment' }, config, onScan, () => {}).catch(err => {
-  console.warn('Kamera "environment" gagal, cuba senarai kamera lain:', err);
+  console.warn('Kamera "environment" gagal, cuba kamera lain:', err);
   Html5Qrcode.getCameras().then(cams => {
-    if (!cams || !cams.length) { tunjukHasil('🚫 Tiada kamera dikesan pada peranti/pelayar ini.'); return; }
+    if (!cams || !cams.length) { tunjukHasil('bad', 'Tiada kamera dikesan pada peranti/pelayar ini.'); return; }
     qr.start(cams[0].id, config, onScan, () => {}).catch(err2 => {
-      const sebab = (err2 && (err2.name || err2.message)) || String(err2);
-      tunjukHasil('🚫 Tidak dapat mengakses kamera: ' + sebab);
+      tunjukHasil('bad', 'Tidak dapat mengakses kamera: ' + esc((err2 && (err2.name || err2.message)) || String(err2)));
     });
   }).catch(errCam => {
-    tunjukHasil('🚫 Tidak dapat mengesan kamera: ' + ((errCam && errCam.message) || errCam));
+    tunjukHasil('bad', 'Tidak dapat mengesan kamera: ' + esc((errCam && errCam.message) || errCam));
   });
 });
 </script>
